@@ -130,17 +130,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     try {
-      // Buscar ID do agente se foi indicado (antes do signUp)
+      // Buscar ID do agente usando RPC segura
       let referredByAgentId = null;
-      if (referred_by_agent_id && referred_by_agent_id !== 'null') {
-        const { data: agentData } = await supabase
-          .from('users')
-          .select('id')
-          .eq('agent_code', referred_by_agent_id)
-          .eq('user_type', 'agente')
-          .maybeSingle();
-        
-        referredByAgentId = agentData?.id || null;
+      if (referred_by_agent_id) {
+        const { data: agentId } = await supabase.rpc('get_agent_id_by_code', { p_code: referred_by_agent_id });
+        referredByAgentId = agentId || null;
       }
 
       const { data, error } = await supabase.auth.signUp({
@@ -162,11 +156,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) return { error }
 
-      // O trigger handle_new_user irá criar automaticamente:
-      // - O perfil em public.users
-      // - A carteira (via trigger after_insert_create_wallet)
-      // - O código de agente (via trigger before_insert_assign_agent_code)
-      // - O registro de indicação (via trigger process_agent_referral)
+      // Triggers automáticos criam: perfil, carteira, código agente, referral
 
       return { error: null }
     } catch (err: any) {

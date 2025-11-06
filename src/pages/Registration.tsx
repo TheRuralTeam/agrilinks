@@ -35,7 +35,7 @@ const Registration = () => {
   const [validatingCode, setValidatingCode] = useState(false);
   const [agentCodeValid, setAgentCodeValid] = useState<boolean | null>(null);
 
-  // Validar código do agente
+  // Validar código do agente usando RPC segura
   const validateAgentCode = async (code: string) => {
     if (!code || code.length !== 6) {
       setAgentCodeValid(null);
@@ -44,15 +44,9 @@ const Registration = () => {
 
     setValidatingCode(true);
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id')
-        .eq('agent_code', code.toUpperCase())
-        .eq('user_type', 'agente')
-        .maybeSingle();
-
+      const { data, error } = await supabase.rpc('validate_agent_code', { p_code: code });
       if (error) throw error;
-      setAgentCodeValid(!!data);
+      setAgentCodeValid(data === true);
     } catch (error) {
       console.error('Erro ao validar código:', error);
       setAgentCodeValid(false);
@@ -73,24 +67,6 @@ const Registration = () => {
 
     setLoading(true);
     try {
-      // Buscar ID do agente se foi indicado
-      let referredByAgentId = null;
-      if (wasReferred === 'sim' && agentCode) {
-        const { data, error } = await supabase
-          .from('users')
-          .select('id')
-          .eq('agent_code', agentCode.toUpperCase())
-          .eq('user_type', 'agente')
-          .single();
-
-        if (error || !data) {
-          setErrorMessage("Código de agente não encontrado.");
-          setLoading(false);
-          return;
-        }
-        referredByAgentId = data.id;
-      }
-
       const { error } = await register({
         email,
         phone,
@@ -100,7 +76,7 @@ const Registration = () => {
         user_type: userType as "agricultor" | "agente" | "comprador",
         province_id: selectedProvince,
         municipality_id: selectedMunicipality,
-        referred_by_agent_id: referredByAgentId,
+        referred_by_agent_id: wasReferred === 'sim' && agentCode ? agentCode.toUpperCase() : null,
       });
 
       if (error) {

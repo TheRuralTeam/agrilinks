@@ -177,16 +177,16 @@ const SearchPage = () => {
         }
       })
 
-      // Buscar admin users (AgriLink) e criar notificação
-      const { data: adminUsers } = await supabase
+      // Buscar agentes
+      const { data: agentUsers } = await supabase
         .from('users')
         .select('id')
-        .eq('user_type', 'admin')
+        .eq('user_type', 'agente' as const)
       
-      if (adminUsers && adminUsers.length > 0) {
-        for (const admin of adminUsers) {
+      if (agentUsers && agentUsers.length > 0) {
+        for (const agent of agentUsers) {
           await supabase.rpc('create_notification', {
-            p_user_id: admin.id,
+            p_user_id: agent.id,
             p_type: 'pre_order',
             p_title: 'Nova Pré-Compra no Sistema',
             p_message: `${user.email} quer comprar ${orderData.quantity}kg de ${selectedProduct.product_type} de ${selectedProduct.farmer_name}`,
