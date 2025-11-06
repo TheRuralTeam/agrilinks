@@ -1,1 +1,9 @@
 project_id = "oqcrfqtlfqwrxxmsjpaf"
+[auth.email.smtp]
+host = "mail.agrilink.ao"
+port = 465
+user = "no-reply@agrilink.ao"
+pass = "[fnN6K)5l4"
+admin_email = "no-reply@agrilink.ao"
+sender_name = "AgriLink"
+enable_ssl = true
