@@ -608,6 +608,24 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           agent_code: string | null
@@ -624,7 +642,7 @@ export type Database = {
           province_id: string
           referred_by_agent_id: string | null
           updated_at: string | null
-          user_type: string
+          user_type: Database["public"]["Enums"]["user_type_enum"] | null
           verification_code: string | null
           verification_code_expires_at: string | null
         }
@@ -643,7 +661,7 @@ export type Database = {
           province_id: string
           referred_by_agent_id?: string | null
           updated_at?: string | null
-          user_type: string
+          user_type?: Database["public"]["Enums"]["user_type_enum"] | null
           verification_code?: string | null
           verification_code_expires_at?: string | null
         }
@@ -662,7 +680,7 @@ export type Database = {
           province_id?: string
           referred_by_agent_id?: string | null
           updated_at?: string | null
-          user_type?: string
+          user_type?: Database["public"]["Enums"]["user_type_enum"] | null
           verification_code?: string | null
           verification_code_expires_at?: string | null
         }
@@ -737,6 +755,7 @@ export type Database = {
         Returns: string
       }
       generate_agent_code: { Args: never; Returns: string }
+      get_agent_id_by_code: { Args: { p_code: string }; Returns: string }
       get_agent_referral_stats: {
         Args: { agent_user_id: string }
         Returns: {
@@ -744,6 +763,13 @@ export type Database = {
           total_points: number
           total_referrals: number
         }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
       }
       process_deposit: {
         Args: { p_amount: number; p_description?: string; p_user_id: string }
@@ -766,8 +792,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      validate_agent_code: { Args: { p_code: string }; Returns: boolean }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "user"
       transaction_status:
         | "pending"
         | "blocked"
@@ -783,6 +811,7 @@ export type Database = {
         | "deposit"
         | "commission"
         | "refund"
+      user_type_enum: "agente" | "agricultor" | "comprador"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -910,6 +939,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "user"],
       transaction_status: [
         "pending",
         "blocked",
@@ -927,6 +957,7 @@ export const Constants = {
         "commission",
         "refund",
       ],
+      user_type_enum: ["agente", "agricultor", "comprador"],
     },
   },
 } as const
