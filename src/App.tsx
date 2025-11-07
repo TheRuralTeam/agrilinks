@@ -28,6 +28,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import FichaRecebimento from "./pages/FichaRecebimento";
 import PerfilComprador from "./pages/PerfilComprador";
 import SearchPage from "./pages/SearchPage";
+import EmailConfirmation from "./pages/EmailConfirmation";
 
 const queryClient = new QueryClient();
 
@@ -76,6 +77,7 @@ const AppRoutes = () => {
       <Route path="/site" element={<Index />} />
       <Route path="/login" element={user ? <Navigate to="/app" replace /> : <LoginPage />} />
       <Route path="/cadastro" element={user ? <Navigate to="/app" replace /> : <Registration />} />
+      <Route path="/confirmar-email" element={<EmailConfirmation />} />
       <Route path="/termos-publicidade" element={<TermsOfService />} />
     
       {/* App Routes - Main Application */}
