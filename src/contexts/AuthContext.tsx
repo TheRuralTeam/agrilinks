@@ -29,7 +29,16 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
+    // Load userProfile from localStorage on initialization
+    try {
+      const saved = localStorage.getItem('userProfile')
+      return saved ? JSON.parse(saved) : null
+    } catch (error) {
+      console.error('Error loading userProfile from localStorage:', error)
+      return null
+    }
+  })
   const [loading, setLoading] = useState(true)
 
   const fetchUserProfile = async (userId: string) => {
@@ -39,16 +48,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .select('*')
         .eq('id', userId)
         .maybeSingle()
-      
+
       if (error) {
         console.error('Error fetching user profile:', error)
         return
       }
-      
-      setUserProfile(data ? {
+
+      const profile = data ? {
         ...data,
         user_type: data.user_type as 'agricultor' | 'agente' | 'comprador'
-      } : null)
+      } : null
+
+      setUserProfile(profile)
+
+      // Save to localStorage
+      if (profile) {
+        localStorage.setItem('userProfile', JSON.stringify(profile))
+      } else {
+        localStorage.removeItem('userProfile')
+      }
     } catch (error) {
       console.error('Error fetching user profile:', error)
     }
@@ -169,12 +187,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await supabase.auth.signOut()
     setUser(null)
     setUserProfile(null)
+    // Clear localStorage on logout
+    localStorage.removeItem('userProfile')
   }
 
   const verifyEmail = async (token: string) => {
+    // SDK expects 'token' and a type such as 'signup' or 'recovery'.
     const { error } = await supabase.auth.verifyOtp({
-      token_hash: token,
-      type: 'email'
+      token: token,
+      type: 'signup'
     })
     return { error }
   }

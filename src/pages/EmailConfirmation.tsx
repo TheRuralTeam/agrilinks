@@ -15,41 +15,63 @@ const EmailConfirmation = () => {
   useEffect(() => {
     const confirmEmail = async () => {
       try {
-        // Extrair token da URL
-        const token = searchParams.get("token");
-        const type = searchParams.get("type");
-        
-        if (!token) {
-          setStatus("error");
-          setMessage("Link de confirmação inválido. Token não encontrado.");
+        // Primeiro, deixe o Supabase processar a URL (hash ou query) e criar a sessão
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSessionFromUrl({ storeSession: true });
+
+        if (sessionError) {
+          console.warn('getSessionFromUrl error:', sessionError);
+        }
+
+        // Se o Supabase criou uma sessão, consideramos a confirmação como bem sucedida
+        if (sessionData?.session?.user) {
+          setStatus('success');
+          setMessage('E-mail confirmado com sucesso! Você será redirecionado automaticamente.');
+          setTimeout(() => navigate('/app'), 3000);
           return;
         }
 
-        // Verificar e-mail usando o token
-        const { error } = await supabase.auth.verifyOtp({
-          token_hash: token,
-          type: type === "recovery" ? "recovery" : "signup"
-        });
+        // Fallback: alguns links podem expor o token no fragmento/hash ou na query como token/access_token
+        const url = new URL(window.location.href);
+        const hashParams = new URLSearchParams(window.location.hash.replace('#', ''));
+        const accessToken = hashParams.get('access_token') || url.searchParams.get('access_token') || url.searchParams.get('token') || hashParams.get('token');
+        const type = url.searchParams.get('type') || hashParams.get('type');
+        const email = url.searchParams.get('email') || hashParams.get('email') || undefined;
 
+        if (!accessToken) {
+          setStatus('error');
+          setMessage('Link de confirmação inválido. Token não encontrado.');
+          return;
+        }
+
+        // Tentar verificar via verifyOtp usando token extraído
+        const payload: any = {
+          token: accessToken,
+          type: type === 'recovery' ? 'recovery' : 'signup',
+        };
+        if (email) payload.email = email;
+
+        const { error } = await supabase.auth.verifyOtp(payload);
         if (error) {
-          console.error("Erro ao confirmar e-mail:", error);
-          setStatus("error");
-          setMessage(error.message || "Erro ao confirmar e-mail. O link pode ter expirado.");
+          console.error('Erro ao confirmar e-mail (verifyOtp):', error);
+          setStatus('error');
+          setMessage(error.message || 'Erro ao confirmar e-mail. O link pode ter expirado.');
           return;
         }
 
-        // Sucesso!
-        setStatus("success");
-        setMessage("E-mail confirmado com sucesso! Você já pode fazer login.");
-        
-        // Redirecionar após 3 segundos
-        setTimeout(() => {
-          navigate("/login");
-        }, 3000);
+        // Sucesso - verificar se a sessão foi criada
+        const { data: checkSession } = await supabase.auth.getSession();
+        if (checkSession.session) {
+          setStatus('success');
+          setMessage('E-mail confirmado com sucesso! Você será redirecionado automaticamente.');
+          setTimeout(() => navigate('/app'), 3000);
+        } else {
+          setStatus('error');
+          setMessage('E-mail confirmado, mas não foi possível estabelecer a sessão. Tente fazer login manualmente.');
+        }
       } catch (err) {
-        console.error("Erro inesperado:", err);
-        setStatus("error");
-        setMessage("Erro inesperado ao confirmar e-mail.");
+        console.error('Erro inesperado:', err);
+        setStatus('error');
+        setMessage('Erro inesperado ao confirmar e-mail.');
       }
     };
 

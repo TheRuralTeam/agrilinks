@@ -5,9 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
-import Login from "./pages/Login";
+
 import LoginPage from "./pages/LoginPage";
-import FarmerFormWithAuth from "./pages/FarmerFormWithAuth";
+
 import Registration from "./pages/Registration";
 import Dashboard from "./pages/Dashboard";
 import TechnicalSheet from "./pages/TechnicalSheet";
@@ -26,7 +26,7 @@ import Wallet from "./pages/Wallet";
 import AppLayout from "./layouts/AppLayout";
 import AdminDashboard from "./pages/AdminDashboard";
 import FichaRecebimento from "./pages/FichaRecebimento";
-import PerfilComprador from "./pages/PerfilComprador";
+
 import SearchPage from "./pages/SearchPage";
 import EmailConfirmation from "./pages/EmailConfirmation";
 
@@ -183,9 +183,6 @@ const AppRoutes = () => {
           <TechnicalSheet />
         </ProtectedRoute>
       } />
-      
-      {/* Legacy route for compatibility */}
-      <Route path="/old-login" element={<Login />} />
       
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
