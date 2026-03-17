@@ -17,10 +17,10 @@ const Header = () => {
   ];
 
   return (
-    <header className="bg-[#FFF159] border-b border-[#FFF159] sticky top-0 z-50 shadow-sm">
+    <header className="bg-card border-b border-border sticky top-0 z-50 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <img src={OrbisLinkLogo} alt="OrbisLink Logo" className="h-9 sm:h-10 drop-shadow-sm" />    
+          <img src={OrbisLinkLogo} alt="OrbisLink Logo" className="h-9 sm:h-10 drop-shadow-sm" />
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:block">
@@ -29,7 +29,7 @@ const Header = () => {
                 <a
                   key={item.name}
                   href={item.href}
-                  className="text-[#2D3277] hover:opacity-70 transition-colors duration-300 font-bold text-sm"
+                  className="text-foreground/70 hover:text-foreground transition-colors duration-200 font-semibold text-sm"
                 >
                   {item.name}
                 </a>
@@ -39,22 +39,26 @@ const Header = () => {
 
           {/* Desktop CTA */}
           <div className="hidden lg:flex items-center space-x-3">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
-              className="h-9 rounded-lg text-sm text-[#2D3277] hover:bg-[#2D3277]/10"
-              onClick={() => navigate('/mercado')}
+              className="h-9 rounded-lg text-sm"
+              onClick={() => navigate("/mercado")}
             >
               <TrendingUp className="h-4 w-4" />
               Dados de Mercado
             </Button>
-            <Button variant="outline" size="sm" className="h-9 rounded-lg text-sm border-[#2D3277] text-[#2D3277] hover:bg-[#2D3277] hover:text-white">
+            <Button variant="outline" size="sm" className="h-9 rounded-lg text-sm">
               <Phone className="h-4 w-4" />
               Contato
             </Button>
-            <Button size="sm" className="h-9 rounded-lg text-sm shadow-soft bg-[#3483FA] hover:bg-[#3483FA]/90 text-white border-none">
+            <Button
+              size="sm"
+              className="h-9 rounded-lg text-sm shadow-soft"
+              onClick={() => navigate("/login")}
+            >
               <ShoppingCart className="h-4 w-4" />
-              Fazer Pedido
+              Entrar
             </Button>
           </div>
 
@@ -66,11 +70,7 @@ const Header = () => {
               className="h-10 w-10 rounded-xl"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
-              {isMenuOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
+              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </div>
         </div>
@@ -83,32 +83,35 @@ const Header = () => {
                 <a
                   key={item.name}
                   href={item.href}
-                  className="block px-4 py-3 text-base font-bold text-[#2D3277] hover:opacity-70 hover:bg-muted rounded-xl transition-colors duration-200"
+                  className="block px-4 py-3 text-base font-semibold text-foreground hover:bg-muted rounded-xl transition-colors duration-200"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {item.name}
                 </a>
               ))}
               <div className="flex flex-col space-y-2 px-3 pt-4 border-t border-border/50 mt-3">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="w-full h-11 rounded-xl justify-start"
                   onClick={() => {
-                    navigate('/mercado');
+                    navigate("/mercado");
                     setIsMenuOpen(false);
                   }}
                 >
                   <TrendingUp className="h-4 w-4" />
                   Dados de Mercado
                 </Button>
-                <Button variant="outline" size="sm" className="w-full h-11 rounded-xl justify-start">
-                  <Phone className="h-4 w-4" />
-                  Contato
-                </Button>
-                <Button size="sm" className="w-full h-11 rounded-xl justify-start shadow-soft">
+                <Button
+                  size="sm"
+                  className="w-full h-11 rounded-xl justify-start shadow-soft"
+                  onClick={() => {
+                    navigate("/login");
+                    setIsMenuOpen(false);
+                  }}
+                >
                   <ShoppingCart className="h-4 w-4" />
-                  Fazer Pedido
+                  Entrar
                 </Button>
               </div>
             </div>
