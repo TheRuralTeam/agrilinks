@@ -5,7 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: "/", // ✅ Adiciona esta linha
+  base: "/",
   server: {
     host: "::",
     port: 8080,
@@ -19,4 +19,19 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    // Adicione estas opções para debug
+    sourcemap: true,
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // Mostrar todos os warnings
+        if (warning.code === 'MODULE_LEVEL_DIRECTIVE') {
+          return;
+        }
+        console.log(`[Rollup Warning]: ${warning.message}`);
+        warn(warning);
+      },
+    },
+  },
+  logLevel: 'info', // Mostrar mais logs
 }));
