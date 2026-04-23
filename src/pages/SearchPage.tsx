@@ -23,6 +23,46 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoibHVjYW1iYSIsImEiOiJjbWdqY283Z2QwaGRwMmlyNGlwNW4xYXhwIn0.qOjQNe8kbbfmdK5G0MHWDA'
 
+/* 
+  BRANDING THEME - AgriLinks 
+  Improved color palette for a professional agricultural look
+*/
+const T = {
+  /* Greens - Primary Brand Colors */
+  g900:   '#1A5C24', // Deep Forest Green
+  g700:   '#2D7D3A', // Rich Leaf Green
+  g600:   '#3D9A48', // Vibrant Grass
+  g500:   '#4CAF50', // Standard Green
+  g400:   '#81C784', // Soft Green
+  g100:   '#E8F5E9', // Mint Tint
+  g50:    '#F2FAF3', // Subtle Green Wash
+  gBorder:'#C8E6CA',
+
+  /* Earth - Secondary Brand Colors */
+  e700:   '#5C3317', // Dark Soil
+  e500:   '#7B4F2E', // Terracotta
+  e300:   '#A0522D', // Sienna
+  ePale:  '#FDF5EE', // Sand
+  eBorder:'#EDD9C6',
+
+  /* Neutrals */
+  ink:    '#111714', // Near Black
+  mid:    '#3D4D40', // Dark Grey-Green
+  muted:  '#758A79', // Muted Sage
+  faint:  '#A8BAA9', // Light Sage
+  canvas: '#F7F9F7', // Off-white Greenish
+  white:  '#FFFFFF',
+  rule:   '#E5EDE6',
+
+  /* Accents */
+  gold:   '#B07D0A', // Harvest Gold
+  goldL:  '#E5A020', // Sun Gold
+
+  /* Shadow */
+  shadow: 'rgba(13,43,18,0.10)',
+  shadowMd:'rgba(13,43,18,0.15)',
+}
+
 interface Product extends ProductCardType {}
 
 interface UserResult {
@@ -287,218 +327,168 @@ const SearchPage = () => {
   const TAX_RATE = 0.10
   const totalPrice = selectedProduct ? orderData.quantity * selectedProduct.price * (1 + TAX_RATE) : 0
 
-  const getUserTypeLabel = (type: string) => {
-    switch (type) {
-      case 'agricultor': return 'Agricultor'
-      case 'comprador': return 'Comprador'
-      case 'agente': return 'Agente'
-      default: return 'Usuário'
-    }
-  }
-
-  const getUserTypeColor = (type: string) => {
-    switch (type) {
-      case 'agricultor': return 'bg-green-500/10 text-green-600'
-      case 'comprador': return 'bg-blue-500/10 text-blue-600'
-      case 'agente': return 'bg-purple-500/10 text-purple-600'
-      default: return 'bg-muted text-muted-foreground'
-    }
-  }
-
   return (
-    <div className="min-h-screen bg-background pb-20">
-      {/* HEADER */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b border-border">
-        <div className="px-4 py-3">
-          <div className="flex items-center gap-3 mb-3">
-            <button
+    <div className="min-h-screen bg-[#F7F9F7] pb-20">
+      {/* Header com Branding Melhorado */}
+      <div className="bg-white border-b sticky top-0 z-40 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="icon" 
               onClick={() => navigate(-1)}
-              className="p-2 rounded-full hover:bg-muted transition"
+              className="text-[#1A5C24] hover:bg-[#E8F5E9]"
             >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <h1 className="text-xl font-bold">Pesquisar</h1>
-            <div className="flex-1" />
-            <Button
-              variant={showFilters ? 'default' : 'outline'}
-              size="sm"
+              <ChevronLeft className="h-6 w-6" />
+            </Button>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#758A79]" />
+              <Input 
+                placeholder="Pesquisar produtos, agricultores..." 
+                className="pl-10 bg-[#F2FAF3] border-[#C8E6CA] focus:ring-[#4CAF50] focus:border-[#4CAF50]"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Button 
+              variant="outline" 
+              size="icon"
               onClick={() => setShowFilters(!showFilters)}
-              className="gap-2"
+              className={showFilters ? "bg-[#1A5C24] text-white border-[#1A5C24]" : "border-[#C8E6CA] text-[#1A5C24]"}
             >
-              <SlidersHorizontal className="h-4 w-4" />
-              Filtros
-              {hasActiveFilters && (
-                <span className="w-2 h-2 bg-primary rounded-full" />
-              )}
+              <SlidersHorizontal className="h-5 w-5" />
             </Button>
           </div>
-          
-          {/* Search Input */}
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-            <Input
-              placeholder="Pesquisar produtos, agricultores..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-10 h-11 bg-muted/50"
-            />
-            {searchTerm && (
-              <button 
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-2.5 p-0.5 hover:bg-muted rounded"
+
+          {/* Filtros Rápidos */}
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+            {productCategories.map((cat) => (
+              <Button
+                key={cat.id}
+                variant={selectedCategory === cat.id ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`rounded-full whitespace-nowrap flex items-center gap-2 ${
+                  selectedCategory === cat.id 
+                    ? "bg-[#1A5C24] text-white" 
+                    : "border-[#C8E6CA] text-[#3D4D40] hover:bg-[#E8F5E9]"
+                }`}
               >
-                <X className="h-4 w-4 text-muted-foreground" />
-              </button>
-            )}
-          </div>
-
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabOption)} className="mt-3">
-            <TabsList className="w-full grid grid-cols-3">
-              <TabsTrigger value="all" className="text-xs">Todos</TabsTrigger>
-              <TabsTrigger value="products" className="text-xs">Produtos</TabsTrigger>
-              <TabsTrigger value="users" className="text-xs">Usuários</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-
-        {/* Filters Panel */}
-        {showFilters && (
-          <div className="px-4 pb-4 space-y-4 border-t border-border pt-4 bg-muted/30">
-            {/* Categorias */}
-            <div>
-              <p className="text-sm font-medium mb-2 flex items-center gap-2">
-                <Filter className="h-4 w-4" />
-                Categoria
-              </p>
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                {productCategories.map((cat) => (
-                  <Button
-                    key={cat.id}
-                    variant={selectedCategory === cat.id ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className="whitespace-nowrap shrink-0 gap-1.5"
-                  >
-                    <cat.icon className="h-3.5 w-3.5" />
-                    {cat.name}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Ordenar */}
-            <div className="flex items-center gap-3">
-              <p className="text-sm font-medium flex items-center gap-2">
-                <ArrowUpDown className="h-4 w-4" />
-                Ordenar
-              </p>
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-                <SelectTrigger className="w-[180px] h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="recent">
-                    <span className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" /> Mais recentes
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="popular">
-                    <span className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4" /> Mais populares
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="price_asc">
-                    <span className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4" /> Menor preço
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="price_desc">
-                    <span className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4" /> Maior preço
-                    </span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Províncias */}
-            <div>
-              <p className="text-sm font-medium mb-2">Província</p>
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                {angolaProvinces.map((province) => (
-                  <Button
-                    key={province.id}
-                    variant={selectedProvince === province.id ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => handleProvinceClick(province.id)}
-                    className="whitespace-nowrap shrink-0 text-xs"
-                  >
-                    {province.name}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Limpar filtros */}
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={clearFilters} className="w-full text-destructive">
-                <X className="h-4 w-4 mr-2" />
-                Limpar todos os filtros
+                <cat.icon className="h-4 w-4" />
+                {cat.name}
               </Button>
-            )}
+            ))}
           </div>
-        )}
+        </div>
       </div>
 
-      <div className="p-4 space-y-6">
-        {loading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        )}
-
-        {!loading && searchTerm && sortedProducts.length === 0 && userResults.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Search className="h-12 w-12 text-muted-foreground mb-3" />
-            <p className="text-muted-foreground font-medium">Nenhum resultado encontrado</p>
-            <p className="text-sm text-muted-foreground mt-1">Tente buscar por outro termo ou ajuste os filtros</p>
-            {hasActiveFilters && (
-              <Button variant="outline" size="sm" onClick={clearFilters} className="mt-4">
-                Limpar filtros
-              </Button>
-            )}
-          </div>
-        )}
-
-        {/* Resultados de Usuários */}
-        {(activeTab === 'all' || activeTab === 'users') && userResults.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <User className="h-5 w-5 text-primary" />
-              <h2 className="font-semibold text-lg">Usuários</h2>
-              <Badge variant="secondary">{userResults.length}</Badge>
-            </div>
-            <div className="grid gap-2">
-              {userResults.map(u => (
-                <Card 
-                  key={u.id} 
-                  className="hover:shadow-md hover:border-primary/50 transition-all cursor-pointer"
-                  onClick={() => navigate(`/perfil/${u.id}`)}
+      {/* Painel de Filtros Expandido */}
+      {showFilters && (
+        <div className="bg-white border-b p-4 animate-in slide-in-from-top duration-200">
+          <div className="max-w-7xl mx-auto space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-[#111714]">Filtros Avançados</h3>
+              {hasActiveFilters && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={clearFilters}
+                  className="text-[#B07D0A] hover:text-[#E5A020]"
                 >
-                  <CardContent className="flex items-center gap-3 p-3">
-                    <Avatar className="h-11 w-11">
-                      <AvatarImage src={u.avatar_url || ''} />
-                      <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                        {u.full_name?.charAt(0)?.toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{u.full_name}</p>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={`text-[10px] ${getUserTypeColor(u.user_type)}`}>
-                          {getUserTypeLabel(u.user_type)}
-                        </Badge>
+                  Limpar Tudo
+                </Button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <label className="text-sm font-semibold text-[#3D4D40] flex items-center gap-2">
+                  <ArrowUpDown className="h-4 w-4" /> Ordenar por
+                </label>
+                <Select value={sortBy} onValueChange={(v: SortOption) => setSortBy(v)}>
+                  <SelectTrigger className="bg-[#F2FAF3] border-[#C8E6CA]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recent">Mais Recentes</SelectItem>
+                    <SelectItem value="popular">Mais Populares</SelectItem>
+                    <SelectItem value="price_asc">Menor Preço</SelectItem>
+                    <SelectItem value="price_desc">Maior Preço</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-sm font-semibold text-[#3D4D40] flex items-center gap-2">
+                  <Filter className="h-4 w-4" /> Província
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {angolaProvinces.map(p => (
+                    <Badge
+                      key={p.id}
+                      variant={selectedProvince === p.id ? "default" : "outline"}
+                      className={`cursor-pointer px-3 py-1 transition-all ${
+                        selectedProvince === p.id 
+                          ? "bg-[#4CAF50] text-white" 
+                          : "bg-white text-[#758A79] border-[#C8E6CA] hover:border-[#4CAF50]"
+                      }`}
+                      onClick={() => handleProvinceClick(p.id)}
+                    >
+                      {p.name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Conteúdo Principal */}
+      <div className="max-w-7xl mx-auto px-4 py-6 space-y-8">
+        <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-[#E5EDE6]">
+            <TabsTrigger value="all" className="data-[state=active]:bg-white data-[state=active]:text-[#1A5C24]">Tudo</TabsTrigger>
+            <TabsTrigger value="products" className="data-[state=active]:bg-white data-[state=active]:text-[#1A5C24]">Produtos</TabsTrigger>
+            <TabsTrigger value="users" className="data-[state=active]:bg-white data-[state=active]:text-[#1A5C24]">Usuários</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1A5C24]"></div>
+            <p className="text-[#758A79] font-medium">Buscando as melhores ofertas...</p>
+          </div>
+        )}
+
+        {/* Resultados de Usuários - Grelha de 4 Colunas */}
+        {(activeTab === 'all' || activeTab === 'users') && userResults.length > 0 && (
+          <div className="animate-in fade-in duration-500">
+            <div className="flex items-center gap-2 mb-4">
+              <User className="h-5 w-5 text-[#1A5C24]" />
+              <h2 className="font-bold text-lg text-[#111714]">Agricultores e Agentes</h2>
+              <Badge className="bg-[#E8F5E9] text-[#1A5C24] border-none">{userResults.length}</Badge>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {userResults.map(user => (
+                <Card 
+                  key={user.id} 
+                  className="hover:shadow-md transition-all border-[#C8E6CA] overflow-hidden group cursor-pointer"
+                  onClick={() => navigate(`/profile/${user.id}`)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-12 w-12 border-2 border-[#E8F5E9] group-hover:border-[#4CAF50] transition-colors">
+                        <AvatarImage src={user.avatar_url} />
+                        <AvatarFallback className="bg-[#F2FAF3] text-[#1A5C24] font-bold">
+                          {user.full_name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-[#111714] truncate group-hover:text-[#1A5C24] transition-colors">
+                          {user.full_name}
+                        </p>
+                        <p className="text-xs text-[#758A79] capitalize">{user.user_type}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -508,17 +498,21 @@ const SearchPage = () => {
           </div>
         )}
 
-        {/* Resultados de Produtos */}
+        {/* Resultados de Produtos - Grelha de 4 Colunas */}
         {(activeTab === 'all' || activeTab === 'products') && sortedProducts.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-3">
+          <div className="animate-in fade-in duration-500">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-primary" />
-                <h2 className="font-semibold text-lg">Produtos</h2>
-                <Badge variant="secondary">{sortedProducts.length}</Badge>
+                <Package className="h-5 w-5 text-[#1A5C24]" />
+                <h2 className="font-bold text-lg text-[#111714]">Produtos Disponíveis</h2>
+                <Badge className="bg-[#E8F5E9] text-[#1A5C24] border-none">{sortedProducts.length}</Badge>
               </div>
             </div>
-            <div className="space-y-4">
+            {/* 
+              IMPROVED GRID: Max 4 columns (lg:grid-cols-4) 
+              Ensures the layout doesn't get too large or cluttered
+            */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {sortedProducts.map(product => (
                 <ProductCard
                   key={product.id}
@@ -534,82 +528,88 @@ const SearchPage = () => {
 
         {/* Estado vazio sem pesquisa */}
         {!loading && !searchTerm && sortedProducts.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Search className="h-12 w-12 text-muted-foreground/50 mb-3" />
-            <p className="text-muted-foreground font-medium">Comece a pesquisar</p>
-            <p className="text-sm text-muted-foreground mt-1">Digite para encontrar produtos e usuários</p>
+          <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl border border-dashed border-[#C8E6CA]">
+            <div className="bg-[#F2FAF3] p-6 rounded-full mb-4">
+              <Search className="h-12 w-12 text-[#4CAF50]" />
+            </div>
+            <h3 className="text-xl font-bold text-[#111714]">Encontre o que precisa</h3>
+            <p className="text-[#758A79] max-w-xs mt-2">
+              Pesquise por produtos agrícolas, agricultores ou províncias para começar.
+            </p>
           </div>
         )}
       </div>
 
       {/* MAP MODAL */}
       <Dialog open={mapModalOpen} onOpenChange={setMapModalOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl border-[#C8E6CA]">
           <DialogHeader>
-            <DialogTitle>Localização do Produto</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-[#1A5C24]">Localização do Produto</DialogTitle>
+            <DialogDescription className="text-[#758A79]">
               {selectedProduct?.product_type} - {selectedProduct?.farmer_name}
             </DialogDescription>
           </DialogHeader>
-          <div ref={mapContainerRef} className="w-full h-[400px] rounded-lg" />
+          <div ref={mapContainerRef} className="w-full h-[400px] rounded-lg border border-[#C8E6CA] shadow-inner" />
         </DialogContent>
       </Dialog>
 
       {/* PRE-ORDER MODAL */}
       <Dialog open={preOrderModalOpen} onOpenChange={setPreOrderModalOpen}>
-        <DialogContent>
+        <DialogContent className="border-[#C8E6CA]">
           <DialogHeader>
-            <DialogTitle>Pré-Compra de {selectedProduct?.product_type}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-[#1A5C24]">Pré-Compra de {selectedProduct?.product_type}</DialogTitle>
+            <DialogDescription className="text-[#758A79]">
               Preencha os dados para solicitar a pré-compra deste produto.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div>
-              <label className="text-sm font-medium">Quantidade (kg)</label>
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-[#3D4D40]">Quantidade (kg)</label>
               <Input
                 type="number"
                 min="1"
                 max={selectedProduct?.quantity}
                 value={orderData.quantity}
                 onChange={(e) => setOrderData({ ...orderData, quantity: Number(e.target.value) })}
+                className="bg-[#F2FAF3] border-[#C8E6CA] focus:ring-[#4CAF50]"
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Disponível: {selectedProduct?.quantity.toLocaleString()} kg
+              <p className="text-xs text-[#758A79]">
+                Disponível: <span className="font-bold text-[#1A5C24]">{selectedProduct?.quantity.toLocaleString()} kg</span>
               </p>
             </div>
-            <div>
-              <label className="text-sm font-medium">Local de Entrega</label>
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-[#3D4D40]">Local de Entrega</label>
               <Input
                 placeholder="Digite o local de entrega"
                 value={orderData.location}
                 onChange={(e) => setOrderData({ ...orderData, location: e.target.value })}
+                className="bg-[#F2FAF3] border-[#C8E6CA] focus:ring-[#4CAF50]"
               />
             </div>
-            <div className="bg-muted p-4 rounded-lg space-y-2">
-              <div className="flex justify-between text-sm">
+            <div className="bg-[#F2FAF3] p-4 rounded-xl border border-[#C8E6CA] space-y-2">
+              <div className="flex justify-between text-sm text-[#3D4D40]">
                 <span>Preço por kg:</span>
-                <span>{selectedProduct?.price.toLocaleString()} Kz</span>
+                <span className="font-medium">{selectedProduct?.price.toLocaleString()} Kz</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm text-[#3D4D40]">
                 <span>Subtotal:</span>
-                <span>{(orderData.quantity * (selectedProduct?.price || 0)).toLocaleString()} Kz</span>
+                <span className="font-medium">{(orderData.quantity * (selectedProduct?.price || 0)).toLocaleString()} Kz</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span>Taxa (10%):</span>
-                <span>{(orderData.quantity * (selectedProduct?.price || 0) * TAX_RATE).toLocaleString()} Kz</span>
+              <div className="flex justify-between text-sm text-[#B07D0A]">
+                <span>Taxa de Serviço (10%):</span>
+                <span className="font-medium">{(orderData.quantity * (selectedProduct?.price || 0) * TAX_RATE).toLocaleString()} Kz</span>
               </div>
-              <div className="flex justify-between font-bold text-lg pt-2 border-t">
-                <span>Total:</span>
+              <div className="flex justify-between font-bold text-xl pt-3 border-t border-[#C8E6CA] text-[#1A5C24]">
+                <span>Total Estimado:</span>
                 <span>{totalPrice.toLocaleString()} Kz</span>
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPreOrderModalOpen(false)}>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setPreOrderModalOpen(false)} className="border-[#C8E6CA] text-[#758A79]">
               Cancelar
             </Button>
-            <Button onClick={handlePreOrderSubmit}>
+            <Button onClick={handlePreOrderSubmit} className="bg-[#1A5C24] hover:bg-[#2D7D3A] text-white">
               Confirmar Pré-Compra
             </Button>
           </DialogFooter>

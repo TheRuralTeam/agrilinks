@@ -1,12 +1,48 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, MapPin, ShoppingCart, DollarSign, Loader2, RefreshCw, AlertCircle } from "lucide-react";
+import { TrendingUp, TrendingDown, ShoppingCart, DollarSign, Loader2, RefreshCw, AlertCircle, ArrowLeft, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+/* ─── AgriLink Design System (Branding T) ─────────────────────── */
+const T = {
+  /* Greens */
+  g900:   '#2c863b',
+  g700:   '#1A5C24',
+  g600:   '#2D7D3A',
+  g500:   '#3D9A48',
+  g400:   '#4CAF50',
+  g100:   '#E8F5E9',
+  g50:    '#F2FAF3',
+  gBorder:'#C8E6CA',
+
+  /* Earth */
+  e700:   '#5C3317',
+  e500:   '#7B4F2E',
+  e300:   '#A0522D',
+  ePale:  '#FDF5EE',
+  eBorder:'#EDD9C6',
+
+  /* Neutrals */
+  ink:    '#111714',
+  mid:    '#3D4D40',
+  muted:  '#758A79',
+  faint:  '#A8BAA9',
+  canvas: '#F7F9F7',
+  white:  '#FFFFFF',
+  rule:   '#E5EDE6',
+
+  /* Accents */
+  gold:   '#B07D0A',
+  goldL:  '#E5A020',
+
+  /* Shadow */
+  shadow: 'rgba(13,43,18,0.10)',
+  shadowMd:'rgba(13,43,18,0.15)',
+}
 
 interface ProductStats {
   product: string;
@@ -32,7 +68,6 @@ const MarketData = () => {
   const [marketData, setMarketData] = useState<MarketAnalysis | null>(null);
   const [products, setProducts] = useState<any[]>([]);
 
-  // Buscar produtos do banco de dados
   const fetchProducts = async () => {
     try {
       const { data, error: fetchError } = await supabase
@@ -51,7 +86,6 @@ const MarketData = () => {
     }
   };
 
-  // Calcular estatísticas locais
   const calculateLocalStats = (productsData: any[]): ProductStats[] => {
     const productsByType: Record<string, any[]> = {};
     
@@ -76,7 +110,6 @@ const MarketData = () => {
     }).sort((a, b) => b.count - a.count);
   };
 
-  // Gerar análise de mercado via edge function
   const generateAnalysis = async (productsData: any[]) => {
     if (productsData.length === 0) {
       setError("Nenhum produto disponível para análise");
@@ -95,7 +128,6 @@ const MarketData = () => {
       setError(null);
     } catch (err: any) {
       console.error("Erro na análise de mercado:", err);
-      // Use local stats if AI analysis fails
       const localStats = calculateLocalStats(productsData);
       setMarketData({
         analysis: "",
@@ -145,65 +177,66 @@ const MarketData = () => {
   const getDemandBadge = (demand: string) => {
     switch (demand) {
       case "muito alta":
-        return <Badge className="bg-success text-success-foreground">Muito Alta</Badge>;
+        return <Badge style={{ background: T.g900, color: T.white }}>Muito Alta</Badge>;
       case "alta":
-        return <Badge className="bg-primary text-primary-foreground">Alta</Badge>;
+        return <Badge style={{ background: T.g600, color: T.white }}>Alta</Badge>;
       case "média":
-        return <Badge className="bg-accent text-accent-foreground">Média</Badge>;
+        return <Badge style={{ background: T.gold, color: T.white }}>Média</Badge>;
       default:
-        return <Badge variant="outline">{demand}</Badge>;
+        return <Badge variant="outline" style={{ borderColor: T.gBorder, color: T.muted }}>{demand}</Badge>;
     }
   };
 
   const getTrendIcon = (avgPrice: number, minPrice: number, maxPrice: number) => {
     const range = maxPrice - minPrice;
+    if (range === 0) return <DollarSign className="h-4 w-4" style={{ color: T.muted }} />;
     const position = (avgPrice - minPrice) / range;
-    if (position > 0.6) return <TrendingUp className="h-4 w-4 text-success" />;
-    if (position < 0.4) return <TrendingDown className="h-4 w-4 text-destructive" />;
-    return <DollarSign className="h-4 w-4 text-muted-foreground" />;
+    if (position > 0.6) return <TrendingUp className="h-4 w-4" style={{ color: T.g900 }} />;
+    if (position < 0.4) return <TrendingDown className="h-4 w-4" style={{ color: T.e700 }} />;
+    return <DollarSign className="h-4 w-4" style={{ color: T.muted }} />;
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: T.canvas }}>
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="text-sm text-muted-foreground">Carregando dados de mercado...</span>
+          <Loader2 className="h-8 w-8 animate-spin" style={{ color: T.g900 }} />
+          <span className="text-sm" style={{ color: T.muted }}>Carregando dados de mercado...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen pb-24" style={{ background: T.canvas }}>
       {/* Header */}
-      <header className="bg-card border-b border-card-border sticky top-0 z-50 shadow-soft">
+      <header className="sticky top-0 z-50" style={{ background: T.white, borderBottom: `1px solid ${T.rule}`, boxShadow: `0 2px 8px ${T.shadow}` }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 gap-4">
-            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <div className="flex items-center gap-3 min-w-0">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate(-1)}
                 className="shrink-0"
+                style={{ color: T.mid }}
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div className="min-w-0">
-                <h1 className="text-lg sm:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent truncate">
+                <h1 className="text-lg sm:text-xl font-bold truncate" style={{ color: T.g900 }}>
                   Dados de Mercado
                 </h1>
-                <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                <p className="text-xs hidden sm:block" style={{ color: T.muted }}>
                   Análise baseada em {marketData?.totalProducts || 0} produtos ativos
                 </p>
               </div>
             </div>
             <Button 
-              variant="outline" 
-              size="sm"
               onClick={handleRefresh}
               disabled={analyzing}
               className="shrink-0 gap-2"
+              style={{ background: T.g900, color: T.white }}
             >
               {analyzing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -216,13 +249,13 @@ const MarketData = () => {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
         {/* Error State */}
         {error && products.length === 0 && (
-          <Card className="border-destructive/50 bg-destructive/5">
+          <Card style={{ border: `1px solid ${T.eBorder}`, background: T.ePale }}>
             <CardContent className="flex items-center gap-3 py-6">
-              <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
-              <p className="text-sm text-destructive">{error}</p>
+              <AlertCircle className="h-5 w-5 shrink-0" style={{ color: T.e700 }} />
+              <p className="text-sm" style={{ color: T.e700 }}>{error}</p>
             </CardContent>
           </Card>
         )}
@@ -230,13 +263,13 @@ const MarketData = () => {
         {/* AI Analysis */}
         {marketData?.analysis && (
           <section>
-            <h2 className="text-lg sm:text-xl font-semibold mb-4 flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Análise de Mercado (IA)
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: T.g700 }}>
+              <BarChart3 className="h-5 w-5" />
+              Análise Estratégica
             </h2>
-            <Card>
+            <Card style={{ border: `1px solid ${T.gBorder}`, background: T.white, boxShadow: `0 4px 12px ${T.shadow}` }}>
               <CardContent className="pt-6">
-                <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap">
+                <div className="prose prose-sm max-w-none whitespace-pre-wrap" style={{ color: T.mid }}>
                   {marketData.analysis}
                 </div>
               </CardContent>
@@ -247,27 +280,27 @@ const MarketData = () => {
         {/* Product Statistics */}
         {marketData?.stats && marketData.stats.length > 0 && (
           <>
-            {/* Top Products */}
             <section>
-              <h2 className="text-lg sm:text-xl font-semibold mb-4 flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5 text-primary" />
-                Produtos Mais Ofertados
+              <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: T.g700 }}>
+                <ShoppingCart className="h-5 w-5" />
+                Produtos em Destaque
               </h2>
-              <Card>
+              <Card style={{ border: `1px solid ${T.rule}`, background: T.white }}>
                 <CardContent className="pt-6">
-                  <div className="space-y-3 sm:space-y-4">
+                  <div className="space-y-3">
                     {marketData.stats.slice(0, 5).map((product, index) => (
                       <div 
                         key={product.product} 
-                        className="flex items-center justify-between p-3 sm:p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                        className="flex items-center justify-between p-4 rounded-xl transition-all hover:shadow-sm"
+                        style={{ background: T.g50, border: `1px solid ${T.gBorder}` }}
                       >
-                        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                          <div className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/10 text-primary font-bold text-sm shrink-0">
+                        <div className="flex items-center gap-4 min-w-0">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm shrink-0" style={{ background: T.g900, color: T.white }}>
                             {index + 1}
                           </div>
                           <div className="min-w-0">
-                            <p className="font-semibold text-sm sm:text-base truncate">{product.product}</p>
-                            <p className="text-xs sm:text-sm text-muted-foreground">
+                            <p className="font-bold text-sm sm:text-base truncate" style={{ color: T.ink }}>{product.product}</p>
+                            <p className="text-xs" style={{ color: T.muted }}>
                               {product.count} ofertas • {product.totalQuantity.toLocaleString()} kg
                             </p>
                           </div>
@@ -282,48 +315,44 @@ const MarketData = () => {
               </Card>
             </section>
 
-            {/* Price Analysis */}
             <section>
-              <h2 className="text-lg sm:text-xl font-semibold mb-4 flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-primary" />
-                Análise de Preços por Produto
+              <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: T.g700 }}>
+                <DollarSign className="h-5 w-5" />
+                Variação de Preços
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {marketData.stats.map((item) => (
-                  <Card key={item.product} className="hover:shadow-medium transition-shadow">
+                  <Card key={item.product} className="transition-all hover:translate-y-[-2px]" style={{ border: `1px solid ${T.rule}`, background: T.white, boxShadow: `0 2px 6px ${T.shadow}` }}>
                     <CardHeader className="pb-2">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <CardTitle className="text-base sm:text-lg truncate">{item.product}</CardTitle>
-                          <CardDescription className="flex items-center gap-1 mt-1 text-xs">
-                            <MapPin className="h-3 w-3" />
-                            {item.count} ofertas disponíveis
+                          <CardTitle className="text-base truncate" style={{ color: T.ink }}>
+                            {item.product}
+                          </CardTitle>
+                          <CardDescription style={{ color: T.muted }}>
+                            {item.count} ofertas ativas
                           </CardDescription>
                         </div>
-                        {getTrendIcon(item.avgPrice, item.minPrice, item.maxPrice)}
+                        <div className="p-2 rounded-lg" style={{ background: T.g50 }}>
+                          {getTrendIcon(item.avgPrice, item.minPrice, item.maxPrice)}
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         <div>
-                          <p className="text-xs text-muted-foreground">Preço Médio</p>
-                          <p className="text-xl sm:text-2xl font-bold text-primary">
-                            {formatPrice(Math.round(item.avgPrice))}
-                          </p>
+                          <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: T.faint }}>Preço Médio</p>
+                          <p className="text-xl font-bold" style={{ color: T.g900 }}>{formatPrice(item.avgPrice)}</p>
                         </div>
-                        <div className="grid grid-cols-2 gap-3 text-xs sm:text-sm">
+                        <div className="grid grid-cols-2 gap-4 pt-4 border-t" style={{ borderColor: T.rule }}>
                           <div>
-                            <p className="text-muted-foreground">Mínimo</p>
-                            <p className="font-medium">{formatPrice(item.minPrice)}</p>
+                            <p className="text-[10px] font-medium uppercase tracking-wider mb-1" style={{ color: T.faint }}>Mínimo</p>
+                            <p className="text-sm font-bold" style={{ color: T.mid }}>{formatPrice(item.minPrice)}</p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">Máximo</p>
-                            <p className="font-medium">{formatPrice(item.maxPrice)}</p>
+                            <p className="text-[10px] font-medium uppercase tracking-wider mb-1" style={{ color: T.faint }}>Máximo</p>
+                            <p className="text-sm font-bold" style={{ color: T.mid }}>{formatPrice(item.maxPrice)}</p>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-2 pt-2 border-t border-border">
-                          <span className="text-xs text-muted-foreground">Oferta:</span>
-                          {getDemandBadge(getDemandLevel(item.count, marketData.totalProducts))}
                         </div>
                       </div>
                     </CardContent>
@@ -332,34 +361,6 @@ const MarketData = () => {
               </div>
             </section>
           </>
-        )}
-
-        {/* Empty State */}
-        {(!marketData?.stats || marketData.stats.length === 0) && !error && (
-          <Card className="py-12">
-            <CardContent className="flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 mb-4 rounded-full bg-muted flex items-center justify-center">
-                <ShoppingCart className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold mb-1">Nenhum produto disponível</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Quando houver produtos cadastrados, as análises aparecerão aqui.
-              </p>
-              <Button onClick={() => navigate("/home")}>
-                Voltar ao Início
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Disclaimer */}
-        {marketData && marketData.stats.length > 0 && (
-          <div className="p-4 bg-muted/30 rounded-lg border border-border">
-            <p className="text-xs text-muted-foreground text-center">
-              * Os dados apresentados são baseados em produtos ativos na plataforma OrbisLink. 
-              Última atualização: {new Date(marketData.generatedAt).toLocaleString("pt-AO")}
-            </p>
-          </div>
         )}
       </div>
     </div>

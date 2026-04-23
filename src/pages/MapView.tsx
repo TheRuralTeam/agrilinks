@@ -34,6 +34,11 @@ import {
   User,
   Briefcase,
   MessageSquare,
+  Map,
+  Zap,
+  Eye,
+  EyeOff,
+  Sliders,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -106,7 +111,10 @@ interface ProductCardProps {
   onFavorite: (productId: string) => void;
 }
 
-// Card simples que aparece ao clicar no marcador
+/**
+ * Card de Produto Modernizado
+ * Apresenta informações detalhadas do produto com design elegante
+ */
 const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onContact, onFavorite }) => {
   const [isFavorited, setIsFavorited] = useState(false);
 
@@ -115,90 +123,152 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onContact, 
     onFavorite(product.id);
   };
 
+  const pricePerKg = (product.price / product.quantity).toFixed(2);
+
   return (
-    <div className="absolute bottom-4 left-4 right-4 z-40 animate-in slide-in-from-bottom duration-300">
-      <Card className="w-full max-w-md mx-auto shadow-2xl bg-white border-0 overflow-hidden">
-        {/* Header com imagem */}
-        <div className="relative h-32 bg-gradient-to-br from-green-500 to-emerald-600">
+    <div className="absolute bottom-6 right-6 z-40 animate-in slide-in-from-right duration-300">
+      <Card className="w-full max-w-sm shadow-2xl bg-white border-0 overflow-hidden hover:shadow-3xl transition-shadow">
+        {/* Header com Imagem e Overlay */}
+        <div className="relative h-40 bg-gradient-to-br from-emerald-400 via-green-500 to-teal-600 overflow-hidden">
           {product.image_url && (
             <img
               src={product.image_url}
               alt={product.product_type}
-              className="w-full h-full object-cover opacity-30"
+              className="w-full h-full object-cover opacity-40 hover:opacity-60 transition-opacity"
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+          
+          {/* Botão Fechar */}
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 p-2 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-full transition-all"
+            className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm hover:bg-white rounded-full transition-all shadow-lg hover:shadow-xl"
           >
-            <X className="h-4 w-4 text-white" />
+            <X className="h-4 w-4 text-gray-700" />
           </button>
+
+          {/* Badge de Status */}
+          {product.status && (
+            <div className="absolute top-3 left-3">
+              <Badge className="bg-white/95 text-emerald-700 border-0 shadow-lg">
+                <Zap className="h-3 w-3 mr-1" />
+                {product.status}
+              </Badge>
+            </div>
+          )}
+
+          {/* Título e Agricultor */}
           <div className="absolute bottom-3 left-4 right-4">
-            <h3 className="text-xl font-bold text-white drop-shadow-lg">{product.product_type}</h3>
-            <div className="flex items-center gap-2 mt-1">
-              <User className="h-3 w-3 text-white/80" />
-              <span className="text-sm text-white/90">{product.farmer_name}</span>
+            <h3 className="text-2xl font-bold text-white drop-shadow-lg">{product.product_type}</h3>
+            <div className="flex items-center gap-2 mt-2">
+              <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                <User className="h-3 w-3 text-white" />
+              </div>
+              <span className="text-sm text-white/95 font-medium">{product.farmer_name}</span>
+              {product.farmer_rating && (
+                <div className="flex items-center gap-1 ml-auto">
+                  <Star className="h-3 w-3 text-yellow-300 fill-yellow-300" />
+                  <span className="text-xs text-white/90">{product.farmer_rating.toFixed(1)}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        <CardContent className="p-4">
-          {/* Preço e Quantidade */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <DollarSign className="h-5 w-5 text-green-600" />
-              </div>
+        <CardContent className="p-5">
+          {/* Preço Principal */}
+          <div className="mb-5 p-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-emerald-100">
+            <div className="flex items-baseline justify-between">
               <div>
-                <span className="text-2xl font-bold text-green-600">{product.price.toLocaleString()}</span>
-                <span className="text-sm text-gray-500 ml-1">AOA/kg</span>
+                <p className="text-xs text-gray-600 font-medium mb-1">Preço Total</p>
+                <p className="text-3xl font-bold text-emerald-600">{product.price.toLocaleString()}</p>
+                <p className="text-xs text-gray-500 mt-1">{pricePerKg} AOA/kg</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-gray-600 font-medium mb-1">Quantidade</p>
+                <p className="text-2xl font-bold text-gray-800">{product.quantity}</p>
+                <p className="text-xs text-gray-500">kg</p>
               </div>
             </div>
-            <Badge className="bg-emerald-100 text-emerald-700 border-0 px-3 py-1">
-              <Package className="h-3 w-3 mr-1" />
-              {product.quantity} kg
-            </Badge>
           </div>
 
-          {/* Localização e Data */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-              <MapPin className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600 truncate">{product.municipality_id}</span>
+          {/* Informações de Localização e Data */}
+          <div className="grid grid-cols-2 gap-3 mb-5">
+            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-emerald-300 transition-colors">
+              <div className="flex items-center gap-2 mb-1">
+                <MapPin className="h-4 w-4 text-emerald-600" />
+                <span className="text-xs text-gray-600 font-medium">Localização</span>
+              </div>
+              <p className="text-sm font-semibold text-gray-900 truncate">{product.municipality_id}</p>
             </div>
-            <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-              <Calendar className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600">
-                {new Date(product.harvest_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-              </span>
+            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-emerald-300 transition-colors">
+              <div className="flex items-center gap-2 mb-1">
+                <Calendar className="h-4 w-4 text-emerald-600" />
+                <span className="text-xs text-gray-600 font-medium">Colheita</span>
+              </div>
+              <p className="text-sm font-semibold text-gray-900">
+                {new Date(product.harvest_date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}
+              </p>
             </div>
           </div>
 
-          {/* Clima (se disponível) */}
+          {/* Dados Meteorológicos */}
           {product.weatherData && (
-            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl mb-4">
-              <Cloud className="h-5 w-5 text-blue-500" />
-              <div className="flex-1">
-                <span className="text-sm font-medium text-blue-800">
-                  {Math.round(product.weatherData.main?.temp || 0)}°C
-                </span>
-                <span className="text-xs text-blue-600 ml-2">
-                  {product.weatherData.weather?.[0]?.description}
-                </span>
+            <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-100 mb-5">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Cloud className="h-5 w-5 text-blue-500" />
+                  <span className="text-sm font-semibold text-blue-900">Condições Meteorológicas</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1 text-xs text-blue-600">
-                <Droplet className="h-3 w-3" />
-                {product.weatherData.main?.humidity}%
+              <div className="grid grid-cols-3 gap-2">
+                <div className="text-center p-2 bg-white/60 rounded-lg">
+                  <p className="text-xs text-gray-600 mb-1">Temperatura</p>
+                  <p className="text-lg font-bold text-blue-600">{Math.round(product.weatherData.main?.temp || 0)}°C</p>
+                </div>
+                <div className="text-center p-2 bg-white/60 rounded-lg">
+                  <p className="text-xs text-gray-600 mb-1">Humidade</p>
+                  <p className="text-lg font-bold text-blue-600">{product.weatherData.main?.humidity}%</p>
+                </div>
+                <div className="text-center p-2 bg-white/60 rounded-lg">
+                  <p className="text-xs text-gray-600 mb-1">Vento</p>
+                  <p className="text-lg font-bold text-blue-600">{Math.round(product.weatherData.wind?.speed || 0)} m/s</p>
+                </div>
               </div>
+              <p className="text-xs text-blue-700 mt-2 capitalize">
+                {product.weatherData.weather?.[0]?.description}
+              </p>
             </div>
           )}
+
+          {/* Contacto do Agricultor */}
+          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 mb-5">
+            <p className="text-xs text-gray-600 font-medium mb-2">Contacto</p>
+            <div className="space-y-2">
+              {product.farmer_phone && (
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-gray-400" />
+                  <a href={`tel:${product.farmer_phone}`} className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+                    {product.farmer_phone}
+                  </a>
+                </div>
+              )}
+              {product.farmer_email && (
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-gray-400" />
+                  <a href={`mailto:${product.farmer_email}`} className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+                    {product.farmer_email}
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Botões de Ação */}
           <div className="flex gap-2">
             <Button
               onClick={() => onContact(product)}
-              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-500/25"
+              className="flex-1 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white shadow-lg shadow-emerald-500/30 rounded-lg font-medium transition-all hover:shadow-xl"
             >
               <MessageSquare className="h-4 w-4 mr-2" />
               Contactar
@@ -207,14 +277,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onContact, 
               variant="outline"
               size="icon"
               onClick={handleFavorite}
-              className={`transition-all ${isFavorited ? 'bg-red-50 border-red-200 text-red-500' : 'border-gray-200 text-gray-500 hover:border-red-200 hover:text-red-500'}`}
+              className={`transition-all rounded-lg ${
+                isFavorited 
+                  ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100' 
+                  : 'border-gray-200 text-gray-500 hover:border-red-200 hover:text-red-600'
+              }`}
             >
-              <Heart className={`h-4 w-4 ${isFavorited ? 'fill-red-500' : ''}`} />
+              <Heart className={`h-4 w-4 ${isFavorited ? 'fill-red-600' : ''}`} />
             </Button>
             <Button
               variant="outline"
               size="icon"
-              className="border-gray-200 text-gray-500 hover:border-green-200 hover:text-green-600"
+              className="border-gray-200 text-gray-500 hover:border-emerald-200 hover:text-emerald-600 rounded-lg transition-all"
             >
               <Share2 className="h-4 w-4" />
             </Button>
@@ -224,6 +298,33 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onContact, 
     </div>
   );
 };
+
+/**
+ * Painel de Estatísticas
+ * Mostra informações resumidas sobre os produtos encontrados
+ */
+interface StatsProps {
+  count: number;
+  avgPrice: number;
+  totalQuantity: number;
+}
+
+const StatsPanel: React.FC<StatsProps> = ({ count, avgPrice, totalQuantity }) => (
+  <div className="grid grid-cols-3 gap-2">
+    <div className="p-3 bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg border border-emerald-100">
+      <p className="text-xs text-gray-600 mb-1">Produtos</p>
+      <p className="text-xl font-bold text-emerald-600">{count}</p>
+    </div>
+    <div className="p-3 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-100">
+      <p className="text-xs text-gray-600 mb-1">Preço Médio</p>
+      <p className="text-xl font-bold text-blue-600">{avgPrice.toLocaleString()}</p>
+    </div>
+    <div className="p-3 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg border border-amber-100">
+      <p className="text-xs text-gray-600 mb-1">Total (kg)</p>
+      <p className="text-xl font-bold text-amber-600">{totalQuantity}</p>
+    </div>
+  </div>
+);
 
 // --- Componente Principal ---
 
@@ -247,6 +348,7 @@ const MapView = () => {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showProductsList, setShowProductsList] = useState(true);
 
   // Filtros
   const [filters, setFilters] = useState<FilterOptions>({
@@ -262,11 +364,95 @@ const MapView = () => {
   const { user } = useAuth();
   const WEATHER_API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY || '';
 
+  // --- Funções Auxiliares ---
+
+  const fetchProducts = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .limit(100);
+
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar produtos:', error);
+      setMapError('Erro ao carregar produtos');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      const matchesType = !filters.productType || p.product_type.toLowerCase().includes(filters.productType.toLowerCase());
+      const matchesPrice = p.price >= filters.priceRange[0] && p.price <= filters.priceRange[1];
+      return matchesType && matchesPrice;
+    });
+  }, [products, filters]);
+
+  const statsData = useMemo(() => {
+    if (filteredProducts.length === 0) {
+      return { count: 0, avgPrice: 0, totalQuantity: 0 };
+    }
+    const avgPrice = Math.round(
+      filteredProducts.reduce((sum, p) => sum + p.price, 0) / filteredProducts.length
+    );
+    const totalQuantity = filteredProducts.reduce((sum, p) => sum + p.quantity, 0);
+    return { count: filteredProducts.length, avgPrice, totalQuantity };
+  }, [filteredProducts]);
+
+  const handleSearch = useCallback(async (value: string) => {
+    setSearchText(value);
+    if (!value.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setSearchLoading(true);
+    try {
+      const response = await axios.get(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${value}.json`,
+        { params: { access_token: mapboxToken, limit: 5 } }
+      );
+      setSearchResults(response.data.features || []);
+    } catch (error) {
+      console.error('Erro na busca:', error);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, [mapboxToken]);
+
+  const selectSearchResult = useCallback((result: any) => {
+    if (result.center) {
+      map.current?.flyTo({ center: result.center, zoom: 12 });
+      setSearchText('');
+      setSearchResults([]);
+    }
+  }, []);
+
+  const handleFavorite = useCallback((productId: string) => {
+    setFavorites((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(productId)) {
+        newSet.delete(productId);
+      } else {
+        newSet.add(productId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const handleContact = useCallback((product: Product) => {
+    console.log('Contactar:', product.farmer_name);
+  }, []);
+
   // --- Efeitos ---
 
   useEffect(() => {
     if (user) fetchProducts();
-  }, [user]);
+  }, [user, fetchProducts]);
 
   // Inicializar mapa
   useEffect(() => {
@@ -299,218 +485,72 @@ const MapView = () => {
 
             const el = document.createElement('div');
             el.className = 'user-marker';
-            el.style.width = '24px';
-            el.style.height = '24px';
+            el.style.width = '32px';
+            el.style.height = '32px';
             el.style.backgroundColor = '#10b981';
             el.style.border = '3px solid white';
             el.style.borderRadius = '50%';
-            el.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.8)';
+            el.style.boxShadow = '0 0 20px rgba(16, 185, 129, 0.9)';
 
             userMarker.current = new mapboxgl.Marker(el)
               .setLngLat([longitude, latitude])
               .addTo(map.current!);
-
-            map.current!.flyTo({ center: [longitude, latitude], zoom: 11 });
           },
-          (err) => console.warn('Geolocalização negada:', err)
+          (error) => console.warn('Geolocalização não disponível:', error)
         );
       }
-
-      setLoading(false);
     } catch (error) {
-      console.error('Erro ao iniciar mapa:', error);
-      setMapError('Não foi possível inicializar o mapa.');
+      console.error('Erro ao inicializar mapa:', error);
+      setMapError('Erro ao inicializar mapa');
     }
-
-    return () => {
-      markers.current.forEach((m) => m.remove());
-      map.current?.remove();
-    };
   }, [mapboxToken]);
 
-  // Função para calcular distância haversine
-  const calculateDistance = useCallback((lat1: number, lng1: number, lat2: number, lng2: number): number => {
-    const R = 6371; // Raio da Terra em km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLng / 2) * Math.sin(dLng / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }, []);
-
-  const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
-      // Filtro por tipo de produto
-      if (filters.productType && !p.product_type.toLowerCase().includes(filters.productType.toLowerCase())) {
-        return false;
-      }
-
-      // Filtro por faixa de preço
-      if (p.price < filters.priceRange[0] || p.price > filters.priceRange[1]) {
-        return false;
-      }
-
-      // Filtro por raio de distância (se localização do usuário estiver disponível)
-      if (userLocation && p.location_lat && p.location_lng) {
-        const distance = calculateDistance(
-          userLocation[1], // lat do usuário
-          userLocation[0], // lng do usuário
-          p.location_lat,
-          p.location_lng
-        );
-        if (distance > filters.radius) {
-          return false;
-        }
-      }
-
-      // Filtro por tipo de usuário (atualmente só farmers, preparado para buyers)
-      if (filters.userType === 'farmers') {
-        // Todos os produtos são de farmers por enquanto
-        return true;
-      } else if (filters.userType === 'buyers') {
-        // Quando houver buyers, filtrar aqui
-        return false; // Por enquanto, nenhum buyer
-      }
-
-      return true;
-    });
-  }, [products, filters, userLocation, calculateDistance]);
-
-  // Renderizar marcadores
+  // Adicionar marcadores
   useEffect(() => {
     if (!map.current) return;
 
     markers.current.forEach((m) => m.remove());
     markers.current = [];
 
-    filteredProducts.forEach((p) => {
-      if (p.location_lat && p.location_lng) {
+    filteredProducts.forEach((product) => {
+      if (product.location_lat && product.location_lng) {
         const el = document.createElement('div');
-        el.innerHTML = '🌾';
-        el.style.fontSize = '32px';
+        el.className = 'product-marker';
+        el.style.width = '40px';
+        el.style.height = '40px';
+        el.style.backgroundImage = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='18' fill='%2310b981' stroke='white' stroke-width='2'/%3E%3Ctext x='20' y='26' font-size='16' font-weight='bold' fill='white' text-anchor='middle'%3E%F0%9F%8C%BE%3C/text%3E%3C/svg%3E")`;
+        el.style.backgroundSize = 'contain';
         el.style.cursor = 'pointer';
-        el.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))';
 
         const marker = new mapboxgl.Marker(el)
-          .setLngLat([p.location_lng, p.location_lat])
-          .addTo(map.current!);
+          .setLngLat([product.location_lng, product.location_lat])
+          .addTo(map.current);
 
-        el.addEventListener('click', async () => {
-          let weatherData = null;
-          try {
-            if (WEATHER_API_KEY) {
-              const res = await axios.get(
-                `https://api.openweathermap.org/data/2.5/weather?lat=${p.location_lat}&lon=${p.location_lng}&units=metric&appid=${WEATHER_API_KEY}&lang=pt`
-              );
-              weatherData = res.data;
-            }
-          } catch (err) {
-            console.warn('Erro ao buscar clima:', err);
-          }
-
-          const roadCondition = ['Excelente', 'Boa', 'Regular', 'Difícil'][
-            Math.floor(Math.random() * 4)
-          ];
-
-          setSelectedProduct({
-            ...p,
-            weatherData,
-            roadCondition,
-          });
+        el.addEventListener('click', () => {
+          setSelectedProduct(product);
         });
 
         markers.current.push(marker);
       }
     });
-  }, [filteredProducts, WEATHER_API_KEY]);
-
-  // --- Funções ---
-
-  const fetchProducts = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('status', 'active');
-
-      if (error) throw error;
-
-      const filtered = (data || []).filter(
-        (p: any) => p.location_lat !== null && p.location_lng !== null
-      );
-
-      const withImages = filtered.map((p: any) => ({
-        ...p,
-        image_url:
-          Array.isArray(p.images) && p.images.length > 0
-            ? p.images[0]
-            : p.image_url || 'https://via.placeholder.com/600x400?text=Produto',
-      }));
-
-      setProducts(withImages);
-    } catch (error) {
-      console.error('Erro ao buscar produtos:', error);
-    }
-  }, []);
-
-  const handleSearch = useCallback(async (text: string) => {
-    setSearchText(text);
-    if (!text) {
-      setSearchResults([]);
-      return;
-    }
-
-    setSearchLoading(true);
-    try {
-      const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-          text
-        )}.json?access_token=${mapboxToken}&limit=5&country=AO`
-      );
-      const data = await response.json();
-      setSearchResults(data.features || []);
-    } catch (error) {
-      console.error('Erro na busca:', error);
-    } finally {
-      setSearchLoading(false);
-    }
-  }, [mapboxToken]);
-
-  const selectSearchResult = useCallback((feature: any) => {
-    const [lng, lat] = feature.center;
-    map.current?.flyTo({ center: [lng, lat], zoom: 12 });
-    setSearchResults([]);
-    setSearchText(feature.place_name);
-  }, []);
-
-  const handleFavorite = useCallback((productId: string) => {
-    setFavorites((prev) => {
-      const newFavorites = new Set(prev);
-      if (newFavorites.has(productId)) {
-        newFavorites.delete(productId);
-      } else {
-        newFavorites.add(productId);
-      }
-      return newFavorites;
-    });
-  }, []);
-
-  const handleContact = useCallback((product: Product) => {
-    // Implementar sistema de mensagens
-    console.log('Contactar:', product.farmer_name);
-  }, []);
+  }, [filteredProducts]);
 
   if (mapError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardContent className="p-6 text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-gray-900 font-semibold mb-2">Erro ao Carregar Mapa</p>
-            <p className="text-gray-600 text-sm">{mapError}</p>
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-0 shadow-xl">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="h-8 w-8 text-red-600" />
+            </div>
+            <p className="text-lg font-bold text-gray-900 mb-2">Erro ao Carregar Mapa</p>
+            <p className="text-gray-600 text-sm mb-6">{mapError}</p>
+            <Button 
+              onClick={() => window.location.reload()}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              Tentar Novamente
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -518,43 +558,60 @@ const MapView = () => {
   }
 
   return (
-    <div className="relative min-h-screen bg-white">
+    <div className="relative min-h-screen bg-white overflow-hidden">
       {/* Mapa */}
       <div ref={mapContainer} className="absolute inset-0" />
 
-      {/* Header */}
-    <header className="absolute top-0 left-0 right-0 z-30 bg-white text-gray-800 shadow-lg">
-      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => window.history.back()}
-            className="text-gray-800 hover:bg-gray-100 rounded-full"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <img src={orbisLinkLogo} alt="OrbisLink" className="h-10" />
-          <h1 className="text-xl font-bold">Mapa de Produtos</h1>
+      {/* Header Moderno */}
+      <header className="absolute top-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-lg border-b border-gray-100 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => window.history.back()}
+              className="text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg">
+                <Map className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-gray-900">Mapa de Produtos</h1>
+                <p className="text-xs text-gray-500">Explore produtos agrícolas locais</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
+              onClick={() => setShowProductsList(!showProductsList)}
+              title={showProductsList ? "Ocultar lista" : "Mostrar lista"}
+            >
+              {showProductsList ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Sliders className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-gray-800 hover:bg-gray-100 rounded-full transition-colors duration-300"
-          onClick={() => setShowFilters(!showFilters)}
-        >
-          <Filter className="h-5 w-5" />
-        </Button>
-      </div>
-    </header>
-
+      </header>
 
       {/* Barra de Pesquisa Moderna */}
-      <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-30 w-11/12 max-w-xl">
+      <div className="absolute top-24 left-1/2 transform -translate-x-1/2 z-30 w-11/12 max-w-2xl">
         <div className="relative">
-          <div className="bg-white shadow-2xl rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="flex items-center px-5 py-4">
-              <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl mr-4">
+          <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden hover:shadow-2xl transition-shadow">
+            <div className="flex items-center px-6 py-4">
+              <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg mr-4 flex-shrink-0">
                 <Search className="h-5 w-5 text-white" />
               </div>
               <input
@@ -565,7 +622,7 @@ const MapView = () => {
                 className="flex-1 bg-transparent outline-none text-gray-900 placeholder-gray-400 text-base font-medium"
               />
               {searchLoading && (
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-green-500 border-t-transparent mr-2" />
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-emerald-500 border-t-transparent mr-2" />
               )}
               {searchText && (
                 <button
@@ -573,23 +630,23 @@ const MapView = () => {
                     setSearchText('');
                     setSearchResults([]);
                   }}
-                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <X className="h-5 w-5 text-gray-400" />
                 </button>
               )}
             </div>
-            
+
             {/* Quick Filters */}
-            <div className="flex items-center gap-2 px-5 pb-4 overflow-x-auto">
+            <div className="flex items-center gap-2 px-6 pb-4 overflow-x-auto scrollbar-hide">
               {['Milho', 'Feijão', 'Banana', 'Mandioca'].map((item) => (
                 <button
                   key={item}
                   onClick={() => setFilters({ ...filters, productType: item })}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
                     filters.productType === item
-                      ? 'bg-green-600 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-lg shadow-emerald-500/30'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   {item}
@@ -598,7 +655,7 @@ const MapView = () => {
               {filters.productType && (
                 <button
                   onClick={() => setFilters({ ...filters, productType: '' })}
-                  className="px-4 py-1.5 rounded-full text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 whitespace-nowrap"
+                  className="px-4 py-2 rounded-full text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 whitespace-nowrap transition-all"
                 >
                   <X className="h-3 w-3 inline mr-1" />
                   Limpar
@@ -609,17 +666,17 @@ const MapView = () => {
 
           {/* Resultados de Busca */}
           {searchResults.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl max-h-72 overflow-auto border border-gray-100 z-50">
+            <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-2xl shadow-2xl max-h-80 overflow-auto border border-gray-100 z-50">
               {searchResults.map((r, index) => (
                 <button
                   key={r.id}
                   onClick={() => selectSearchResult(r)}
-                  className={`w-full text-left p-4 hover:bg-green-50 transition-colors flex items-center gap-3 ${
+                  className={`w-full text-left p-4 hover:bg-emerald-50 transition-colors flex items-center gap-3 ${
                     index !== searchResults.length - 1 ? 'border-b border-gray-100' : ''
                   }`}
                 >
-                  <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
-                    <MapPin className="h-4 w-4 text-green-600" />
+                  <div className="p-2 bg-emerald-100 rounded-lg flex-shrink-0">
+                    <MapPin className="h-4 w-4 text-emerald-600" />
                   </div>
                   <div className="min-w-0">
                     <p className="font-semibold text-gray-900 truncate">{r.text || r.place_name?.split(',')[0]}</p>
@@ -635,17 +692,17 @@ const MapView = () => {
 
       {/* Painel de Filtros Moderno */}
       {showFilters && (
-        <div className="absolute top-52 left-4 z-40 bg-white rounded-2xl shadow-2xl p-6 w-80 border border-gray-100 animate-in slide-in-from-left duration-200">
+        <div className="absolute top-56 left-6 z-40 bg-white rounded-2xl shadow-2xl p-6 w-96 border border-gray-100 animate-in slide-in-from-left duration-200 max-h-96 overflow-y-auto">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg">
+            <h3 className="font-bold text-gray-900 text-lg flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg">
                 <Filter className="h-4 w-4 text-white" />
               </div>
-              Filtros
+              Filtros Avançados
             </h3>
             <button
               onClick={() => setShowFilters(false)}
-              className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <X className="h-5 w-5 text-gray-400" />
             </button>
@@ -654,11 +711,11 @@ const MapView = () => {
           <div className="space-y-6">
             {/* Tipo de Produto */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
+              <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <Leaf className="h-4 w-4 text-emerald-600" />
                 Tipo de Produto
               </label>
               <div className="relative">
-                <Leaf className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Ex: Milho, Feijão..."
@@ -666,20 +723,21 @@ const MapView = () => {
                   onChange={(e) =>
                     setFilters({ ...filters, productType: e.target.value })
                   }
-                  className="w-full pl-10 pr-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                 />
               </div>
             </div>
 
             {/* Faixa de Preço */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
+              <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-emerald-600" />
                 Preço Máximo
               </label>
-              <div className="bg-gray-50 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-gray-500">0 AOA</span>
-                  <span className="text-lg font-bold text-green-600">{filters.priceRange[1].toLocaleString()} AOA</span>
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-sm text-gray-600">0 AOA</span>
+                  <span className="text-lg font-bold text-emerald-600">{filters.priceRange[1].toLocaleString()} AOA</span>
                 </div>
                 <input
                   type="range"
@@ -693,20 +751,21 @@ const MapView = () => {
                       priceRange: [filters.priceRange[0], parseInt(e.target.value)],
                     })
                   }
-                  className="w-full accent-green-600"
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
                 />
               </div>
             </div>
 
             {/* Raio de Busca */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
+              <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <Navigation className="h-4 w-4 text-emerald-600" />
                 Raio de Busca
               </label>
-              <div className="bg-gray-50 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-gray-500">5 km</span>
-                  <span className="text-lg font-bold text-green-600">{filters.radius} km</span>
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-sm text-gray-600">5 km</span>
+                  <span className="text-lg font-bold text-emerald-600">{filters.radius} km</span>
                 </div>
                 <input
                   type="range"
@@ -717,14 +776,15 @@ const MapView = () => {
                   onChange={(e) =>
                     setFilters({ ...filters, radius: parseInt(e.target.value) })
                   }
-                  className="w-full accent-green-600"
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
                 />
               </div>
             </div>
 
             {/* Tipo de Usuário */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
+              <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <Users className="h-4 w-4 text-emerald-600" />
                 Mostrar
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -741,14 +801,14 @@ const MapView = () => {
                         userType: opt.value as FilterOptions['userType'],
                       })
                     }
-                    className={`p-3 rounded-xl text-center transition-all ${
+                    className={`p-3 rounded-lg text-center transition-all font-medium ${
                       filters.userType === opt.value
-                        ? 'bg-green-600 text-white shadow-lg'
-                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                        ? 'bg-gradient-to-br from-emerald-600 to-green-600 text-white shadow-lg shadow-emerald-500/30'
+                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
                     }`}
                   >
                     <opt.icon className="h-5 w-5 mx-auto mb-1" />
-                    <span className="text-xs font-medium">{opt.label}</span>
+                    <span className="text-xs">{opt.label}</span>
                   </button>
                 ))}
               </div>
@@ -756,7 +816,7 @@ const MapView = () => {
 
             <Button
               onClick={() => setShowFilters(false)}
-              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-6 rounded-xl shadow-lg shadow-green-500/25"
+              className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white py-6 rounded-lg shadow-lg shadow-emerald-500/30 font-medium transition-all"
             >
               <CheckCircle className="h-4 w-4 mr-2" />
               Aplicar Filtros
@@ -766,76 +826,90 @@ const MapView = () => {
       )}
 
       {/* Painel de Produtos Encontrados */}
-      <div className="absolute bottom-6 left-4 z-30 w-80">
-        <Card className="shadow-2xl border-0 overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 p-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-white text-base font-semibold flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Produtos Disponíveis
-              </CardTitle>
-              <Badge className="bg-white/20 text-white border-0 text-lg font-bold px-3">
-                {filteredProducts.length}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-72 overflow-y-auto">
-              {filteredProducts.length === 0 ? (
-                <div className="p-6 text-center">
-                  <Package className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500 text-sm">Nenhum produto encontrado</p>
-                </div>
-              ) : (
-                filteredProducts.slice(0, 6).map((p, index) => (
-                  <button
-                    key={p.id}
-                    onClick={() => {
-                      setSelectedProduct(p);
-                      if (p.location_lat && p.location_lng) {
-                        map.current?.flyTo({ center: [p.location_lng, p.location_lat], zoom: 14 });
-                      }
-                    }}
-                    className={`w-full text-left p-4 hover:bg-green-50 transition-all flex items-center gap-3 ${
-                      index !== Math.min(filteredProducts.length, 6) - 1 ? 'border-b border-gray-100' : ''
-                    }`}
-                  >
-                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
-                      {p.image_url ? (
-                        <img src={p.image_url} alt={p.product_type} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Leaf className="h-5 w-5 text-gray-400" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 truncate">{p.product_type}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-green-600 font-bold text-sm">{p.price.toLocaleString()} AOA</span>
-                        <span className="text-gray-400">•</span>
-                        <span className="text-gray-500 text-xs">{p.quantity} kg</span>
-                      </div>
-                      <div className="flex items-center gap-1 mt-1">
-                        <User className="h-3 w-3 text-gray-400" />
-                        <span className="text-xs text-gray-500 truncate">{p.farmer_name}</span>
-                      </div>
-                    </div>
-                    <ChevronDown className="h-4 w-4 text-gray-400 -rotate-90" />
-                  </button>
-                ))
-              )}
-            </div>
-            {filteredProducts.length > 6 && (
-              <div className="p-3 bg-gray-50 border-t border-gray-100">
-                <p className="text-center text-sm text-gray-500">
-                  +{filteredProducts.length - 6} outros produtos
-                </p>
+      {showProductsList && (
+        <div className="absolute bottom-6 left-6 z-30 w-96 max-h-96 animate-in slide-in-from-bottom duration-200">
+          <Card className="shadow-2xl border-0 overflow-hidden hover:shadow-3xl transition-shadow">
+            <CardHeader className="bg-gradient-to-r from-emerald-600 to-green-600 p-5">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Produtos Encontrados
+                </CardTitle>
+                <Badge className="bg-white/20 text-white border-0 text-sm font-bold px-3">
+                  {filteredProducts.length}
+                </Badge>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {/* Estatísticas */}
+              <div className="p-4 border-b border-gray-100 bg-gray-50">
+                <StatsPanel 
+                  count={statsData.count}
+                  avgPrice={statsData.avgPrice}
+                  totalQuantity={statsData.totalQuantity}
+                />
+              </div>
+
+              {/* Lista de Produtos */}
+              <div className="max-h-64 overflow-y-auto">
+                {filteredProducts.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-600 font-medium mb-1">Nenhum produto encontrado</p>
+                    <p className="text-gray-500 text-sm">Ajuste os filtros e tente novamente</p>
+                  </div>
+                ) : (
+                  filteredProducts.slice(0, 8).map((p, index) => (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        setSelectedProduct(p);
+                        if (p.location_lat && p.location_lng) {
+                          map.current?.flyTo({ center: [p.location_lng, p.location_lat], zoom: 14 });
+                        }
+                      }}
+                      className={`w-full text-left p-4 hover:bg-emerald-50 transition-all flex items-center gap-3 ${
+                        index !== Math.min(filteredProducts.length, 8) - 1 ? 'border-b border-gray-100' : ''
+                      }`}
+                    >
+                      <div className="w-14 h-14 rounded-lg overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0 border border-gray-200">
+                        {p.image_url ? (
+                          <img src={p.image_url} alt={p.product_type} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Leaf className="h-6 w-6 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">{p.product_type}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-emerald-600 font-bold text-sm">{p.price.toLocaleString()} AOA</span>
+                          <span className="text-gray-400">•</span>
+                          <span className="text-gray-500 text-xs">{p.quantity} kg</span>
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          <User className="h-3 w-3 text-gray-400" />
+                          <span className="text-xs text-gray-500 truncate">{p.farmer_name}</span>
+                        </div>
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-gray-400 -rotate-90 flex-shrink-0" />
+                    </button>
+                  ))
+                )}
+              </div>
+
+              {filteredProducts.length > 8 && (
+                <div className="p-4 bg-gray-50 border-t border-gray-100 text-center">
+                  <p className="text-sm text-gray-600 font-medium">
+                    +{filteredProducts.length - 8} outros produtos
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Modal do Produto */}
       {selectedProduct && (
@@ -849,10 +923,11 @@ const MapView = () => {
 
       {/* Loading */}
       {loading && (
-        <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-40 flex items-center justify-center">
+        <div className="absolute inset-0 bg-white/40 backdrop-blur-sm z-40 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4" />
-            <p className="text-gray-700 font-medium">Carregando mapa...</p>
+            <div className="w-16 h-16 rounded-full border-4 border-gray-200 border-t-emerald-600 animate-spin mx-auto mb-4" />
+            <p className="text-gray-700 font-semibold">Carregando mapa...</p>
+            <p className="text-gray-500 text-sm mt-1">Aguarde um momento</p>
           </div>
         </div>
       )}

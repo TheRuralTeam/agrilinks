@@ -48,16 +48,17 @@ const TermsOfService = () => {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-hero">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto space-y-6">
+
           {/* Cabeçalho */}
-          <div className="flex items-center gap-4 text-white">
+          <div className="flex items-center gap-4 text-emerald-700">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate(-1)}
-              className="text-white hover:bg-white/10"
+              className="text-emerald-700 hover:bg-emerald-100"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar
@@ -67,22 +68,21 @@ const TermsOfService = () => {
 
           {/* Card com Termos */}
           <Card className="shadow-strong border-0">
-            <CardHeader className="bg-gradient-primary text-primary-foreground">
+            <CardHeader className="bg-gradient-to-r from-emerald-600 to-green-500 text-white">
               <CardTitle className="text-xl flex items-center gap-3">
                 <Shield className="h-6 w-6" />
                 Condições para Publicação de Produtos Agrícolas
               </CardTitle>
             </CardHeader>
-            
+
             <CardContent className="p-6">
               <div className="space-y-6">
-                <div className="prose prose-sm max-w-none">
-                  <p className="text-muted-foreground leading-relaxed">
-                    Ao utilizar a plataforma AgriLink para publicar produtos agrícolas, você concorda 
-                    com os seguintes termos e condições. Estes termos garantem a qualidade, 
-                    transparência e confiabilidade de todos os anúncios na plataforma.
-                  </p>
-                </div>
+
+                <p className="text-muted-foreground leading-relaxed">
+                  Ao utilizar a plataforma AgriLink para publicar produtos agrícolas, você concorda
+                  com os seguintes termos e condições. Estes termos garantem a qualidade,
+                  transparência e confiabilidade de todos os anúncios na plataforma.
+                </p>
 
                 <Separator />
 
@@ -93,14 +93,17 @@ const TermsOfService = () => {
                     return (
                       <div key={index} className="space-y-3">
                         <div className="flex items-start gap-4">
-                          <div className="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                            <Icon className="h-6 w-6 text-primary" />
+
+                          <div className="flex-shrink-0 w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
+                            <Icon className="h-6 w-6 text-emerald-600" />
                           </div>
+
                           <div className="flex-1 space-y-2">
                             <h3 className="font-semibold text-lg">{term.title}</h3>
                             <p className="text-foreground">{term.description}</p>
                             <p className="text-sm text-muted-foreground">{term.details}</p>
                           </div>
+
                         </div>
                         {index < terms.length - 1 && <Separator />}
                       </div>
@@ -111,16 +114,14 @@ const TermsOfService = () => {
                 <Separator />
 
                 {/* Aviso Importante */}
-                <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                   <div className="flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+                    <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                     <div className="space-y-2">
-                      <h4 className="font-semibold text-warning-foreground">Importante</h4>
+                      <h4 className="font-semibold text-amber-700">Importante</h4>
                       <p className="text-sm text-muted-foreground">
-                        O não cumprimento destes termos resultará em ações que podem incluir 
-                        remoção de anúncios, suspensão temporária ou banimento permanente da conta. 
-                        A AgriLink reserva-se o direito de tomar as medidas necessárias para 
-                        manter a integridade da plataforma.
+                        O não cumprimento destes termos resultará em ações que podem incluir
+                        remoção de anúncios, suspensão temporária ou banimento permanente da conta.
                       </p>
                     </div>
                   </div>
@@ -130,61 +131,30 @@ const TermsOfService = () => {
                 <div className="flex flex-col sm:flex-row gap-3 pt-6">
                   <Button
                     onClick={() => navigate('/cadastro')}
-                    className="flex-1 bg-primary hover:bg-primary-hover"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
                   >
                     Aceitar e Fazer Cadastro
                   </Button>
+
                   <Button
                     variant="outline"
                     onClick={() => navigate('/publicar-produto')}
-                    className="flex-1"
+                    className="flex-1 border-emerald-600 text-emerald-700 hover:bg-emerald-50"
                   >
                     Aceitar e Publicar Produto
                   </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Resumo do Marketplace */}
-          <Card className="shadow-strong border-0 mt-6">
-            <CardHeader className="bg-gradient-primary text-primary-foreground">
-              <CardTitle className="text-xl flex items-center gap-3">
-                <Percent className="h-6 w-6" />
-                Resumo Rápido do Marketplace
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-primary">Para Agricultores</h4>
-                  <ul className="list-disc list-inside space-y-1">
-                    <li>Comissão AgriLink: <span className="font-semibold">7%</span> do valor vendido</li>
-                    <li>Responsáveis por fornecer informações corretas sobre o produto</li>
-                    <li>Publicação antecipada mínima: 1 mês antes da colheita</li>
-                    <li>Seguir critérios de qualidade da plataforma</li>
-                    <li>Penalidades por anúncios falsos ou incorretos</li>
-                  </ul>
-                </div>
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-primary">Para Compradores</h4>
-                  <ul className="list-disc list-inside space-y-1">
-                    <li>Taxa de transporte: <span className="font-semibold">7,8%</span> sobre o pedido</li>
-                    <li>Pagamento no prazo acordado</li>
-                    <li>Conferir produtos no ato da entrega</li>
-                    <li>Seguir regras de cancelamento e devolução</li>
-                    <li>Uso responsável e seguro da plataforma</li>
-                  </ul>
-                </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Footer */}
-          <div className="text-center text-white/80 text-sm mt-6">
+          <div className="text-center text-emerald-700/80 text-sm mt-6">
             <p>© 2025 AgriLink. Todos os direitos reservados.</p>
             <p>Plataforma B2B de Produtos Alimentares em Grande Escala</p>
           </div>
+
         </div>
       </div>
     </div>

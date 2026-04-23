@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,10 +6,47 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search, Plus, MessageSquare } from "lucide-react";
+import { Search, Plus, MessageSquare, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+
+// --- Branding Tokens ---
+const T = {
+  /* Greens */
+  g900:   '#2c863b',
+  g700:   '#1A5C24',
+  g600:   '#2D7D3A',
+  g500:   '#3D9A48',
+  g400:   '#4CAF50',
+  g100:   '#E8F5E9',
+  g50:    '#F2FAF3',
+  gBorder:'#C8E6CA',
+
+  /* Earth */
+  e700:   '#5C3317',
+  e500:   '#7B4F2E',
+  e300:   '#A0522D',
+  ePale:  '#FDF5EE',
+  eBorder:'#EDD9C6',
+
+  /* Neutrals */
+  ink:    '#111714',
+  mid:    '#3D4D40',
+  muted:  '#758A79',
+  faint:  '#A8BAA9',
+  canvas: '#F7F9F7',
+  white:  '#FFFFFF',
+  rule:   '#E5EDE6',
+
+  /* Accents */
+  gold:   '#B07D0A',
+  goldL:  '#E5A020',
+
+  /* Shadow */
+  shadow: 'rgba(13,43,18,0.10)',
+  shadowMd:'rgba(13,43,18,0.15)',
+}
 
 // --- Tipos ---
 
@@ -32,20 +68,17 @@ interface UserProfile {
 
 // --- Funções Auxiliares ---
 
-// Função para realçar o termo pesquisado
 const highlightText = (text: string, term: string) => {
   if (!term) return text;
-  // Escapa caracteres especiais para uso em RegExp
   const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const regex = new RegExp(`(${escapedTerm})`, "gi");
   const parts = text.split(regex);
   
   return parts.map((part, i) =>
-    regex.test(part) ? <strong key={i} className="text-primary">{part}</strong> : part
+    regex.test(part) ? <strong key={i} style={{ color: T.g600 }}>{part}</strong> : part
   );
 };
 
-// Função de debounce
 const debounce = (func: Function, delay = 300) => {
   let timer: NodeJS.Timeout;
   return (...args: any[]) => {
@@ -62,7 +95,6 @@ const ConversationsList = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Estados
   const [searchTerm, setSearchTerm] = useState("");
   const [userResults, setUserResults] = useState<UserProfile[]>([]);
   const [allConversations, setAllConversations] = useState<Conversation[]>([]);
@@ -71,14 +103,10 @@ const ConversationsList = () => {
   const [newConvSearchTerm, setNewConvSearchTerm] = useState("");
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
 
-  // --- Lógica de Conversas ---
-
-  // Função para carregar conversas
   const loadConversations = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      // Busca todas as conversas onde o usuário é o user_id OU participant_id
       const { data, error } = await supabase
         .from("conversations")
         .select("*")
@@ -97,15 +125,12 @@ const ConversationsList = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [user, toast, t]);
 
-  // Efeito para carregar conversas e configurar o Real-time
   useEffect(() => {
     loadConversations();
-
     if (!user) return;
 
-    // Real-time para novas mensagens/atualizações de conversas
     const channel = supabase
       .channel("conversations-updates")
       .on(
@@ -114,7 +139,6 @@ const ConversationsList = () => {
           event: "*",
           schema: "public",
           table: "conversations",
-          // Filtra por conversas onde o usuário é um dos participantes
           filter: `user_id=eq.${user.id},participant_id=eq.${user.id}`, 
         },
         () => {
@@ -128,20 +152,14 @@ const ConversationsList = () => {
     };
   }, [user, loadConversations]);
 
-  // --- Lógica de Busca ---
-
-  // Função de busca principal (debounced)
   const search = useCallback(
     debounce(async (term: string) => {
       if (!user || term.trim() === "") {
         setUserResults([]);
         return;
       }
-
       setLoading(true);
-
       try {
-        // Buscar usuários
         const { data: users, error: usersError } = await supabase
           .from("users")
           .select("id, full_name, avatar_url")
@@ -154,7 +172,6 @@ const ConversationsList = () => {
         } else {
           setUserResults((users as UserProfile[]) || []);
         }
-
       } catch (err) {
         console.error("Erro na busca:", err);
         toast({
@@ -163,38 +180,28 @@ const ConversationsList = () => {
           variant: "destructive"
         });
       }
-
       setLoading(false);
     }, 300),
-    [user, toast]
+    [user, toast, t]
   );
 
-  // Efeito para disparar a busca quando o termo de busca muda
   useEffect(() => {
     search(searchTerm);
   }, [searchTerm, search]);
 
-  // Filtrar conversas localmente (useMemo para otimização)
   const conversationResults = useMemo(() => {
-    if (searchTerm.trim() === "") {
-      return allConversations;
-    }
+    if (searchTerm.trim() === "") return allConversations;
     return allConversations.filter(conv =>
       conv.title.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [allConversations, searchTerm]);
 
-  // --- Lógica de Ações ---
-
-  // Função para iniciar ou navegar para uma conversa
   const startConversation = useCallback(async (
     participantId: string, 
     participantName: string, 
     participantAvatar: string | null
   ) => {
     if (!user) return;
-
-    // 1. Verificar se já existe uma conversa entre os dois
     const { data: existingConv, error: searchError } = await supabase
       .from("conversations")
       .select("id")
@@ -212,17 +219,15 @@ const ConversationsList = () => {
     }
 
     if (existingConv && existingConv.length > 0) {
-      // Conversa existe, navega para ela
       navigate(`/messages/${existingConv[0].id}`);
       return;
     }
 
-    // 2. Se não existir, cria uma nova conversa
     try {
       const newConvData = {
         user_id: user.id,
         participant_id: participantId,
-        title: participantName, // O título inicial é o nome do outro usuário
+        title: participantName,
         avatar: participantAvatar,
         last_message: null,
         last_timestamp: new Date().toISOString(),
@@ -236,10 +241,7 @@ const ConversationsList = () => {
         .single();
 
       if (createError) throw createError;
-
-      // Navega para a nova conversa
       navigate(`/messages/${createdConv.id}`);
-      
     } catch (error) {
       console.error("Erro ao criar nova conversa:", error);
       toast({
@@ -250,7 +252,6 @@ const ConversationsList = () => {
     }
   }, [user, navigate, toast, t]);
 
-  // Função para formatar o tempo
   const formatTime = (timestamp: string) => {
     if (!timestamp) return "";
     const date = new Date(timestamp);
@@ -259,28 +260,20 @@ const ConversationsList = () => {
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
     if (days === 0) {
-      return date.toLocaleTimeString("pt-BR", { 
-        hour: "2-digit", 
-        minute: "2-digit" 
-      });
+      return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
     } else if (days === 1) {
       return t('messages.yesterday');
     } else if (days < 7) {
       return `${days}${t('messages.daysAgo')}`;
     } else {
-      return date.toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "2-digit"
-      });
+      return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
     }
   };
 
-  // Função para abrir o modal de nova conversa e carregar usuários
   const openNewConversationDialog = async () => {
     if (!user) return;
     setNewConversationOpen(true);
     setNewConvSearchTerm("");
-    
     try {
       const { data: users, error } = await supabase
         .from("users")
@@ -304,81 +297,106 @@ const ConversationsList = () => {
     }
   };
 
-  // Usuários filtrados para o modal (useMemo para otimização)
   const filteredUsers = useMemo(() => {
     return allUsers.filter(usr =>
       usr.full_name.toLowerCase().includes(newConvSearchTerm.toLowerCase())
     );
   }, [allUsers, newConvSearchTerm]);
 
-  // --- Renderização ---
-
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">{t('common.loading')}</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: T.canvas }}>
+        <p style={{ color: T.muted }}>{t('common.loading')}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Cabeçalho fixo */}
-      <header className="sticky top-0 bg-card/95 backdrop-blur-sm border-b border-border px-4 py-3 z-10 flex-shrink-0 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <h1 className="text-2xl font-bold">{t('messages.title')}</h1>
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: T.canvas, color: T.ink }}>
+      {/* Cabeçalho */}
+      <header 
+        className="sticky top-0 z-10 px-6 py-5 border-b shadow-sm backdrop-blur-md"
+        style={{ 
+          backgroundColor: 'rgba(247, 249, 247, 0.8)', 
+          borderColor: T.rule 
+        }}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight" style={{ color: T.ink }}>
+              {t('messages.title')}
+            </h1>
+            <p className="text-xs font-medium uppercase tracking-widest mt-1" style={{ color: T.muted }}>
+              {allConversations.length} {t('messages.conversations').toLowerCase()}
+            </p>
+          </div>
           <Button
-            size="icon"
             onClick={openNewConversationDialog}
-            className="rounded-full"
+            className="rounded-full h-12 w-12 shadow-lg transition-transform hover:scale-105 active:scale-95"
+            style={{ backgroundColor: T.g600, color: T.white }}
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-6 w-6" />
           </Button>
         </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+        <div className="relative group">
+          <Search 
+            className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors group-focus-within:text-g600" 
+            style={{ color: T.faint }} 
+          />
           <Input
             placeholder={t('messages.searchConversations')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
+            className="pl-11 h-12 bg-white border-none rounded-xl shadow-sm focus-visible:ring-2"
+            style={{ 
+              '--tw-ring-color': T.gBorder,
+              color: T.ink
+            } as React.CSSProperties}
           />
         </div>
       </header>
 
-      {/* Lista scrollável */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-4">
+      {/* Lista de Conversas */}
+      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
         {loading && searchTerm.trim() !== "" && (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            {t('messages.searching')}
-          </p>
+          <div className="flex justify-center py-4">
+            <div className="animate-pulse text-sm font-medium" style={{ color: T.g600 }}>
+              {t('messages.searching')}...
+            </div>
+          </div>
         )}
 
-        {/* Usuários encontrados */}
+        {/* Resultados de Usuários */}
         {userResults.length > 0 && searchTerm.trim() !== "" && (
-          <div>
-            <p className="text-xs text-muted-foreground mb-2 font-semibold uppercase tracking-wide px-2">
+          <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] mb-3 px-2" style={{ color: T.muted }}>
               {t('messages.users')}
-            </p>
+            </h2>
             <div className="space-y-2">
               {userResults.map((usr) => (
                 <Card
                   key={usr.id}
                   onClick={() => startConversation(usr.id, usr.full_name, usr.avatar_url)}
-                  className="cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
+                  className="border-none shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden group"
+                  style={{ backgroundColor: T.white }}
                 >
-                  <CardContent className="flex items-center gap-3 p-3">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={usr.avatar_url || "/default-avatar.png"} />
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {usr.full_name.charAt(0).toUpperCase() || "?"}
-                      </AvatarFallback>
-                    </Avatar>
+                  <CardContent className="flex items-center gap-4 p-4">
+                    <div className="relative">
+                      <Avatar className="h-12 w-12 border-2 transition-transform group-hover:scale-105" style={{ borderColor: T.g50 }}>
+                        <AvatarImage src={usr.avatar_url || "/default-avatar.png"} />
+                        <AvatarFallback style={{ backgroundColor: T.g100, color: T.g700 }}>
+                          {usr.full_name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="absolute -bottom-1 -right-1 bg-white p-1 rounded-full shadow-sm">
+                        <UserPlus className="h-3 w-3" style={{ color: T.g600 }} />
+                      </div>
+                    </div>
                     <div className="flex-1">
-                      <span className="font-medium">
+                      <p className="font-semibold text-sm" style={{ color: T.ink }}>
                         {highlightText(usr.full_name, searchTerm)}
-                      </span>
-                      <p className="text-xs text-muted-foreground">
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: T.muted }}>
                         {t('messages.clickToStart')}
                       </p>
                     </div>
@@ -386,127 +404,197 @@ const ConversationsList = () => {
                 </Card>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Conversas existentes */}
+        {/* Lista de Conversas */}
         {conversationResults.length > 0 && (
-          <div>
+          <section className="animate-in fade-in duration-500">
             {userResults.length > 0 && searchTerm.trim() !== "" && (
-              <p className="text-xs text-muted-foreground mb-2 font-semibold uppercase tracking-wide px-2">
+              <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] mb-3 mt-6 px-2" style={{ color: T.muted }}>
                 {t('messages.conversations')}
-              </p>
+              </h2>
             )}
-            <div className="space-y-2">
+            <div className="space-y-3">
               {conversationResults.map((conv) => (
                 <Card
                   key={conv.id}
                   onClick={() => navigate(`/messages/${conv.id}`)}
-                  className="cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
+                  className="border-none shadow-sm hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
+                  style={{ backgroundColor: T.white }}
                 >
-                  <CardContent className="flex items-center justify-between p-3">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <Avatar className="h-12 w-12 flex-shrink-0">
+                  {conv.unread_count > 0 && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: T.g500 }} />
+                  )}
+                  <CardContent className="flex items-center justify-between p-4">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <Avatar className="h-14 w-14 border-2 transition-transform group-hover:scale-105" style={{ borderColor: T.g50 }}>
                         <AvatarImage src={conv.avatar || "/default-avatar.png"} />
-                        <AvatarFallback className="bg-secondary text-secondary-foreground">
-                          {conv.title.charAt(0).toUpperCase() || "?"}
+                        <AvatarFallback style={{ backgroundColor: T.ePale, color: T.e700 }}>
+                          {conv.title.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col flex-1 min-w-0">
-                        <span className="font-semibold text-sm truncate">
-                          {highlightText(conv.title, searchTerm)}
-                        </span>
-                        <span className="text-xs text-muted-foreground line-clamp-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-bold text-[15px] truncate" style={{ color: T.ink }}>
+                            {highlightText(conv.title, searchTerm)}
+                          </span>
+                          <span className="text-[10px] font-medium" style={{ color: T.faint }}>
+                            {formatTime(conv.last_timestamp)}
+                          </span>
+                        </div>
+                        <p className={`text-sm truncate ${conv.unread_count > 0 ? 'font-semibold' : 'font-normal'}`} 
+                           style={{ color: conv.unread_count > 0 ? T.mid : T.muted }}>
                           {conv.last_message || t('messages.noMessageYet')}
-                        </span>
+                        </p>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {formatTime(conv.last_timestamp)}
-                      </span>
-                      {conv.unread_count > 0 && (
-                        <span className="bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                    {conv.unread_count > 0 && (
+                      <div className="ml-4 flex-shrink-0">
+                        <span 
+                          className="flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-[10px] font-black shadow-sm"
+                          style={{ backgroundColor: T.g600, color: T.white }}
+                        >
                           {conv.unread_count}
                         </span>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Estado vazio */}
+        {/* Estados Vazios */}
         {!loading && searchTerm.trim() !== "" && userResults.length === 0 && conversationResults.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Search className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <p className="text-muted-foreground">{t('messages.noResults')}</p>
-            <p className="text-sm text-muted-foreground mt-1">
+          <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in-95">
+            <div className="bg-white p-6 rounded-full shadow-sm mb-6">
+              <Search className="h-10 w-10" style={{ color: T.faint }} />
+            </div>
+            <p className="font-bold text-lg" style={{ color: T.ink }}>{t('messages.noResults')}</p>
+            <p className="text-sm mt-2 max-w-[200px]" style={{ color: T.muted }}>
               {t('messages.tryAnotherName')}
             </p>
           </div>
         )}
 
         {!loading && searchTerm.trim() === "" && conversationResults.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <MessageSquare className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <p className="text-muted-foreground">{t('messages.noConversations')}</p>
-            <p className="text-sm text-muted-foreground mt-1">
+          <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in-95">
+            <div className="bg-white p-8 rounded-full shadow-sm mb-6">
+              <MessageSquare className="h-12 w-12" style={{ color: T.g200 || T.g100 }} />
+            </div>
+            <p className="font-bold text-lg" style={{ color: T.ink }}>{t('messages.noConversations')}</p>
+            <p className="text-sm mt-2 max-w-[240px]" style={{ color: T.muted }}>
               {t('messages.startWithButton')}
             </p>
+            <Button 
+              onClick={openNewConversationDialog}
+              className="mt-8 rounded-xl px-8 font-bold shadow-md"
+              style={{ backgroundColor: T.g600, color: T.white }}
+            >
+              {t('messages.newConversation')}
+            </Button>
           </div>
         )}
       </div>
 
-      {/* Modal Nova Conversa */}
+      {/* Modal Nova Conversa (Modal Mail) */}
       <Dialog open={newConversationOpen} onOpenChange={setNewConversationOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t('messages.newConversation')}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+        <DialogContent 
+          className="sm:max-w-md border-none p-0 overflow-hidden rounded-3xl shadow-2xl"
+          style={{ backgroundColor: T.canvas }}
+        >
+          <div className="p-8">
+            <DialogHeader className="mb-6">
+              <DialogTitle className="text-2xl font-black tracking-tight" style={{ color: T.ink }}>
+                {t('messages.newConversation')}
+              </DialogTitle>
+              <p className="text-sm font-medium" style={{ color: T.muted }}>
+                Selecione um contacto para iniciar a conversa
+              </p>
+            </DialogHeader>
+            
+            <div className="relative mb-6">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: T.faint }} />
               <Input
                 placeholder={t('messages.searchUser')}
                 value={newConvSearchTerm}
                 onChange={(e) => setNewConvSearchTerm(e.target.value)}
-                className="pl-9"
+                className="pl-11 h-12 bg-white border-none rounded-2xl shadow-sm focus-visible:ring-2"
+                style={{ '--tw-ring-color': T.gBorder } as React.CSSProperties}
               />
             </div>
-            <div className="max-h-[400px] overflow-y-auto space-y-2">
+
+            <div className="max-h-[350px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
               {filteredUsers.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  {newConvSearchTerm ? t('messages.noUserFound') : t('messages.startWithButton')}
-                </p>
+                <div className="py-12 text-center">
+                  <p className="text-sm font-medium" style={{ color: T.muted }}>
+                    {newConvSearchTerm ? t('messages.noUserFound') : 'Nenhum contacto disponível'}
+                  </p>
+                </div>
               ) : (
                 filteredUsers.map((usr) => (
-                  <Card
+                  <div
                     key={usr.id}
                     onClick={() => {
                       startConversation(usr.id, usr.full_name, usr.avatar_url);
                       setNewConversationOpen(false);
                     }}
-                    className="cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]"
+                    className="flex items-center gap-4 p-3 rounded-2xl cursor-pointer transition-all hover:bg-white hover:shadow-sm group"
                   >
-                    <CardContent className="flex items-center gap-3 p-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={usr.avatar_url || "/default-avatar.png"} />
-                        <AvatarFallback className="bg-primary/10 text-primary">
-                          {usr.full_name.charAt(0).toUpperCase() || "?"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="font-medium text-sm">{usr.full_name}</span>
-                    </CardContent>
-                  </Card>
+                    <Avatar className="h-12 w-12 border-2 border-transparent group-hover:border-g100 transition-all">
+                      <AvatarImage src={usr.avatar_url || "/default-avatar.png"} />
+                      <AvatarFallback style={{ backgroundColor: T.g100, color: T.g700 }}>
+                        {usr.full_name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <p className="font-bold text-sm" style={{ color: T.ink }}>{usr.full_name}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: T.g600 }}>
+                        Disponível
+                      </p>
+                    </div>
+                    <div 
+                      className="h-8 w-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ backgroundColor: T.g50 }}
+                    >
+                      <Plus className="h-4 w-4" style={{ color: T.g600 }} />
+                    </div>
+                  </div>
                 ))
               )}
             </div>
           </div>
+          
+          <div className="px-8 py-4 border-t flex justify-end" style={{ borderColor: T.rule, backgroundColor: T.white }}>
+            <Button 
+              variant="ghost" 
+              onClick={() => setNewConversationOpen(false)}
+              className="rounded-xl font-bold"
+              style={{ color: T.muted }}
+            >
+              Cancelar
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: ${T.rule};
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: ${T.faint};
+        }
+      `}} />
     </div>
   );
 };
