@@ -10,7 +10,7 @@ import fotoMoises from '@/assets/MOISES.jpeg';
 import fotoLizeth from '@/assets/LIZETH.jpeg';
 import fotoClaudio from '@/assets/CLAUDIO.jpeg';
 import comunidadeImg from '@/assets/comunidade.png';
-import comunidadeImg2 from '@/assets/COMUNIDADE2.jpeg';
+import comunidadeImg2 from '@/assets/comunidade2.jpeg';
 
 /* ─── Design Tokens ─ Luxo Editorial Minimalista ───────────────────────────── */
 const T = {
