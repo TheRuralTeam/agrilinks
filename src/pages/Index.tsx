@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 // ═══════════════════════════════════════════════════════════════
-// IMPORTAÇÃO DAS FOTOS DA EQUIPE E LOGO
+// IMPORTAÇÃO DAS FOTOS DA EQUIPE E LOGO (com fallbacks)
 // ═══════════════════════════════════════════════════════════════
+// Substitua pelos seus paths reais ou remova as importações e use URLs
 import orbisLinkLogo from '@/assets/orbislink-logo.png';
 import fotoFeliciano from '@/assets/FELICIANO.jpeg';
 import fotoMoises from '@/assets/MOISES.jpeg';
@@ -198,40 +199,42 @@ const LANGS = {
 
 /* ─── Hooks ────────────────────────────────────────────────────────────────── */
 function useScrolled(threshold = 40) {
-  const [s, setS] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
-    const fn = () => setS(window.scrollY > threshold)
+    const fn = () => setScrolled(window.scrollY > threshold)
     window.addEventListener('scroll', fn, { passive: true })
     return () => window.removeEventListener('scroll', fn)
   }, [threshold])
-  return s
+  return scrolled
 }
 
-function useVisible(ref: React.RefObject<Element>) {
-  const [v, setV] = useState(false)
+function useVisible(ref) {
+  const [isVisible, setIsVisible] = useState(false)
   useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setV(true) }, { threshold: 0.08 })
+    const obs = new IntersectionObserver(([entry]) => { 
+      if (entry.isIntersecting) setIsVisible(true) 
+    }, { threshold: 0.08 })
     if (ref.current) obs.observe(ref.current)
     return () => obs.disconnect()
   }, [ref])
-  return v
+  return isVisible
 }
 
 /* ─── Main Component ───────────────────────────────────────────────────────── */
-const AgriLinkLanding: React.FC = () => {
+const AgriLinkLanding = () => {
   const navigate = useNavigate()
-  const [lang, setLang] = useState<'pt' | 'fr' | 'en'>('pt')
-  const [faqOpen, setFaqOpen] = useState<number | null>(null)
+  const [lang, setLang] = useState('pt')
+  const [faqOpen, setFaqOpen] = useState(null)
   const t = LANGS[lang]
   const scrolled = useScrolled()
 
-  const statsRef   = useRef<HTMLDivElement>(null)
-  const modelsRef  = useRef<HTMLDivElement>(null)
-  const featRef    = useRef<HTMLDivElement>(null)
-  const teamRef    = useRef<HTMLDivElement>(null)
-  const aboutRef   = useRef<HTMLDivElement>(null)
-  const faqRef     = useRef<HTMLDivElement>(null)
-  const communityRef = useRef<HTMLDivElement>(null)
+  const statsRef   = useRef(null)
+  const modelsRef  = useRef(null)
+  const featRef    = useRef(null)
+  const teamRef    = useRef(null)
+  const aboutRef   = useRef(null)
+  const faqRef     = useRef(null)
+  const communityRef = useRef(null)
 
   const statsVis  = useVisible(statsRef)
   const modelsVis = useVisible(modelsRef)
@@ -862,6 +865,12 @@ const AgriLinkLanding: React.FC = () => {
           align-items: center;
           justify-content: center;
           border: 1px solid ${T.rule};
+          overflow: hidden;
+        }
+        .about-visual img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
         }
         .about-visual-placeholder {
           text-align: center;
@@ -1278,7 +1287,7 @@ const AgriLinkLanding: React.FC = () => {
           </div>
 
           <div className="nav-right">
-            {(['pt','fr','en'] as const).map(l => (
+            {['pt','fr','en'].map(l => (
               <button key={l} className={`lang-btn ${lang === l ? 'active' : ''}`} onClick={() => setLang(l)}>
                 {l.toUpperCase()}
               </button>
@@ -1291,7 +1300,7 @@ const AgriLinkLanding: React.FC = () => {
 
       {/* ═══ HERO ═══ */}
       <section className="hero" id="platform" style={{ paddingTop: 140 }}>
-        <div className="hero-location-bar" style={{ top: 0 }}>
+        <div className="hero-location-bar">
           <div className="hero-location-dot" />
           <span>{t.hero.location}</span>
         </div>
@@ -1446,18 +1455,16 @@ const AgriLinkLanding: React.FC = () => {
                 </div>
               </div>
             </div>
-           <div className="about-visual">
-  <img 
-    src={comunidadeImg} 
-    alt="Comunidade AgriLink" 
-    style={{
-      width: '100%',
-      height: '100%',
-      objectFit: 'cover',
-      borderRadius: '8px'
-    }}
-  />
-</div>
+            <div className="about-visual">
+              {comunidadeImg ? (
+                <img src={comunidadeImg} alt="Comunidade AgriLink" />
+              ) : (
+                <div className="about-visual-placeholder">
+                  <div>🌾</div>
+                  <p>Comunidade AgriLink</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -1482,17 +1489,17 @@ const AgriLinkLanding: React.FC = () => {
           </div>
           <div className="culture-grid">
             <div className="culture-card">
-              <div className="culture-icon"></div>
+              <div className="culture-icon">🏠</div>
               <div className="culture-title">Trabalho Remoto</div>
               <div className="culture-desc">Nossa equipa trabalha de qualquer lugar, desde que os resultados sejam entregues com excelência e dentro dos prazos.</div>
             </div>
             <div className="culture-card">
-              <div className="culture-icon"></div>
+              <div className="culture-icon">🎯</div>
               <div className="culture-title">Foco em Resultados</div>
               <div className="culture-desc">Medimos performance por resultados concretos, não por horas trabalhadas. Autonomia com responsabilidade.</div>
             </div>
             <div className="culture-card">
-              <div className="culture-icon"></div>
+              <div className="culture-icon">🤝</div>
               <div className="culture-title">Colaboração</div>
               <div className="culture-desc">Times multidisciplinares trabalhando juntos para transformar o agronegócio africano com tecnologia.</div>
             </div>
@@ -1532,16 +1539,15 @@ const AgriLinkLanding: React.FC = () => {
           </div>
           <div className="community-grid">
             <div className="community-image">
-  <img 
-    src={comunidadeImg2} 
-    alt="Encontro da Comunidade AgriLink" 
-    style={{
-      width: '100%',
-      height: '100%',
-      objectFit: 'cover'
-    }}
-  />
-</div>
+              {comunidadeImg2 ? (
+                <img src={comunidadeImg2} alt="Encontro da Comunidade AgriLink" />
+              ) : (
+                <div className="community-image-placeholder">
+                  <div>🌍</div>
+                  <p>Encontros AgriLink</p>
+                </div>
+              )}
+            </div>
             <div>
               <h3 style={{ fontFamily: T.fontSerif, fontSize: '24px', marginBottom: '16px', color: T.ink }}>
                 Encontros Mensais
@@ -1593,7 +1599,7 @@ const AgriLinkLanding: React.FC = () => {
       </section>
 
       {/* ═══ CTA ═══ */}
-      <section className="cta-section" id="contact" style={{ paddingTop: 0 }}>
+      <section className="cta-section" id="contact">
         <div className="cta-inner">
           <div className="cta-box">
             <div>
@@ -1644,7 +1650,7 @@ const AgriLinkLanding: React.FC = () => {
           </div>
         </div>
         <div className="footer-bottom">
-          <div className="footer-copyright">© 2025 AgriLink Lda. Todos os direitos reservados.</div>
+          <div className="footer-copyright">{t.footer.rights}</div>
           <div style={{ display: 'flex', gap: '24px' }}>
             <span className="footer-link" onClick={() => navigate('/termos-publicidade')}>Termos de Uso</span>
             <span className="footer-link">Privacidade</span>
