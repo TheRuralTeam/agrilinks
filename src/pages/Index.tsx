@@ -1489,17 +1489,17 @@ const AgriLinkLanding = () => {
           </div>
           <div className="culture-grid">
             <div className="culture-card">
-              <div className="culture-icon">🏠</div>
+              <div className="culture-icon"></div>
               <div className="culture-title">Trabalho Remoto</div>
               <div className="culture-desc">Nossa equipa trabalha de qualquer lugar, desde que os resultados sejam entregues com excelência e dentro dos prazos.</div>
             </div>
             <div className="culture-card">
-              <div className="culture-icon">🎯</div>
+              <div className="culture-icon"></div>
               <div className="culture-title">Foco em Resultados</div>
               <div className="culture-desc">Medimos performance por resultados concretos, não por horas trabalhadas. Autonomia com responsabilidade.</div>
             </div>
             <div className="culture-card">
-              <div className="culture-icon">🤝</div>
+              <div className="culture-icon"></div>
               <div className="culture-title">Colaboração</div>
               <div className="culture-desc">Times multidisciplinares trabalhando juntos para transformar o agronegócio africano com tecnologia.</div>
             </div>
