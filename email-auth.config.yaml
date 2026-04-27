@@ -1,0 +1,246 @@
+# Configuracao completa de autenticacao de email para agrilink.ao
+# Objetivo: reduzir spam e aumentar entregabilidade
+# Uso:
+# 1) Copiar os blocos DNS para o teu provedor (Cloudflare, cPanel, GoDaddy, etc.)
+# 2) Ajustar apenas os campos marcados como TODO
+# 3) Aguardar propagacao DNS (ate 24-48h)
+
+domain: agrilink.ao
+from_address: no-reply@agrilink.ao
+reply_to: suporte@agrilink.ao
+
+smtp:
+  host: mail.agrilink.ao
+  port: 465
+  secure: true
+  username: no-reply@agrilink.ao
+  # Nunca versionar senha em repositorio.
+  password_env_var: SMTP_PASSWORD
+
+# REGISTROS DNS
+# Cada item abaixo representa 1 registro para criar no painel DNS.
+dns_records:
+  # SPF
+  # Escolhe UMA das opcoes abaixo.
+  - type: TXT
+    host: "@"
+    value: "v=spf1 mx a:mail.agrilink.ao ~all"
+    ttl: 3600
+    enabled: true
+    note: "Opcao recomendada quando envias pelo teu proprio servidor mail.agrilink.ao"
+
+  # Opcao SPF alternativa (desativada por padrao) para provedores externos.
+  - type: TXT
+    host: "@"
+    value: "v=spf1 include:SEU_PROVEDOR_SMTP ~all"
+    ttl: 3600
+    enabled: false
+    note: "Ativar so se usares provedor externo (ex.: SendGrid, Mailgun, Resend)"
+
+  # DKIM
+  # TODO: gerar no teu servidor de email e colar a chave publica abaixo.
+  - type: TXT
+    host: "default._domainkey"
+    value: "v=DKIM1; k=rsa; p=COLE_AQUI_A_CHAVE_PUBLICA_DKIM"
+    ttl: 3600
+    enabled: true
+    note: "Nao incluir quebras de linha na chave publica"
+
+  # DMARC
+  - type: TXT
+    host: "_dmarc"
+    value: "v=DMARC1; p=quarantine; adkim=s; aspf=s; pct=100; rua=mailto:admin@agrilink.ao; ruf=mailto:admin@agrilink.ao; fo=1"
+    ttl: 3600
+    enabled: true
+    note: "Depois de estabilizar, podes mudar p=quarantine para p=reject"
+
+# POLITICA DE EVOLUCAO DMARC (recomendado)
+dmarc_rollout:
+  fase_1:
+    duracao_dias: 7
+    policy: none
+    exemplo_valor: "v=DMARC1; p=none; rua=mailto:admin@agrilink.ao"
+    objetivo: "monitorar sem bloquear"
+  fase_2:
+    duracao_dias: 14
+    policy: quarantine
+    exemplo_valor: "v=DMARC1; p=quarantine; pct=100; rua=mailto:admin@agrilink.ao"
+    objetivo: "colocar suspeitos em spam"
+  fase_3:
+    duracao_dias: 0
+    policy: reject
+    exemplo_valor: "v=DMARC1; p=reject; pct=100; rua=mailto:admin@agrilink.ao"
+    objetivo: "bloquear falsificacoes"
+
+# CABECALHOS RECOMENDADOS NO ENVIO (melhoram reputacao)
+recommended_headers:
+  list_unsubscribe: "<mailto:suporte@agrilink.ao?subject=unsubscribe>"
+  precedence: "bulk"
+  x_entity_ref_id: "agrilink-auth-mail"
+
+# CHECKLIST DE VALIDACAO
+validation:
+  - "SPF passa para no-reply@agrilink.ao"
+  - "DKIM passa com selector default"
+  - "DMARC passa com alinhamento SPF/DKIM"
+  - "From domain igual ao Return-Path domain (sempre que possivel)"
+  - "Sem links encurtados (bit.ly etc.)"
+  - "Corpo texto + HTML"
+
+# COMANDOS UTEIS (validacao local)
+commands:
+  spf_lookup: "nslookup -type=TXT agrilink.ao"
+  dkim_lookup: "nslookup -type=TXT default._domainkey.agrilink.ao"
+  dmarc_lookup: "nslookup -type=TXT _dmarc.agrilink.ao"
+
+# EXPORTS PRONTOS POR PROVEDOR DNS
+# Copiar exatamente estes valores para o painel do teu provedor.
+# Apenas o valor de DKIM precisa ser substituido.
+provider_exports:
+  cloudflare:
+    notes:
+      - "Proxy deve ficar OFF (DNS only) para registros TXT"
+      - "TTL Auto ou 3600"
+      - "Se ja existir SPF, nao criar outro. Fazer merge em 1 unica linha SPF"
+    records:
+      - type: "TXT"
+        name: "@"
+        content: "v=spf1 mx a:mail.agrilink.ao ~all"
+        ttl: "Auto"
+      - type: "TXT"
+        name: "default._domainkey"
+        content: "v=DKIM1; k=rsa; p=COLE_AQUI_A_CHAVE_PUBLICA_DKIM"
+        ttl: "Auto"
+      - type: "TXT"
+        name: "_dmarc"
+        content: "v=DMARC1; p=quarantine; adkim=s; aspf=s; pct=100; rua=mailto:admin@agrilink.ao; ruf=mailto:admin@agrilink.ao; fo=1"
+        ttl: "Auto"
+
+  cpanel_zone_editor:
+    notes:
+      - "Entrar em Zone Editor > Manage > Add Record"
+      - "No cPanel, Name pode exigir FQDN completo"
+      - "Se pedir FQDN, usar agrilink.ao. no final"
+    records:
+      - type: "TXT"
+        name: "agrilink.ao"
+        txt_data: "v=spf1 mx a:mail.agrilink.ao ~all"
+        ttl: 3600
+      - type: "TXT"
+        name: "default._domainkey.agrilink.ao"
+        txt_data: "v=DKIM1; k=rsa; p=COLE_AQUI_A_CHAVE_PUBLICA_DKIM"
+        ttl: 3600
+      - type: "TXT"
+        name: "_dmarc.agrilink.ao"
+        txt_data: "v=DMARC1; p=quarantine; adkim=s; aspf=s; pct=100; rua=mailto:admin@agrilink.ao; ruf=mailto:admin@agrilink.ao; fo=1"
+        ttl: 3600
+
+  godaddy:
+    notes:
+      - "Entrar em DNS Management > Add"
+      - "Campo Name nao precisa do dominio completo"
+      - "TTL recomendado: 1 hour"
+    records:
+      - type: "TXT"
+        name: "@"
+        value: "v=spf1 mx a:mail.agrilink.ao ~all"
+        ttl: "1 Hour"
+      - type: "TXT"
+        name: "default._domainkey"
+        value: "v=DKIM1; k=rsa; p=COLE_AQUI_A_CHAVE_PUBLICA_DKIM"
+        ttl: "1 Hour"
+      - type: "TXT"
+        name: "_dmarc"
+        value: "v=DMARC1; p=quarantine; adkim=s; aspf=s; pct=100; rua=mailto:admin@agrilink.ao; ruf=mailto:admin@agrilink.ao; fo=1"
+        ttl: "1 Hour"
+
+# VERIFICACAO POS-CONFIGURACAO
+post_config_checks:
+  - "Executar os 3 nslookup deste arquivo"
+  - "Enviar 1 email de teste para Gmail e Outlook"
+  - "Conferir cabecalhos: SPF=pass, DKIM=pass, DMARC=pass"
+  - "Rodar teste em https://www.mail-tester.com"
+  - "Se passar 8/10+, migrar DMARC para p=reject apos 2-3 semanas"
+
+# PERFIS PRONTOS (copiar valor de DMARC conforme etapa)
+dmarc_profiles:
+  monitoring:
+    value: "v=DMARC1; p=none; adkim=s; aspf=s; pct=100; rua=mailto:admin@agrilink.ao; ruf=mailto:admin@agrilink.ao; fo=1"
+    use_when: "primeiros 7 dias"
+  protected:
+    value: "v=DMARC1; p=quarantine; adkim=s; aspf=s; pct=100; rua=mailto:admin@agrilink.ao; ruf=mailto:admin@agrilink.ao; fo=1"
+    use_when: "fase atual recomendada"
+  strict_production:
+    value: "v=DMARC1; p=reject; adkim=s; aspf=s; pct=100; rua=mailto:admin@agrilink.ao; ruf=mailto:admin@agrilink.ao; fo=1"
+    use_when: "apos 2-3 semanas sem falhas"
+
+# EXPORT FINAL (DMARC REJECT) POR PROVEDOR
+provider_exports_reject:
+  cloudflare:
+    records:
+      - type: "TXT"
+        name: "@"
+        content: "v=spf1 mx a:mail.agrilink.ao ~all"
+        ttl: "Auto"
+      - type: "TXT"
+        name: "default._domainkey"
+        content: "v=DKIM1; k=rsa; p=COLE_AQUI_A_CHAVE_PUBLICA_DKIM"
+        ttl: "Auto"
+      - type: "TXT"
+        name: "_dmarc"
+        content: "v=DMARC1; p=reject; adkim=s; aspf=s; pct=100; rua=mailto:admin@agrilink.ao; ruf=mailto:admin@agrilink.ao; fo=1"
+        ttl: "Auto"
+  cpanel_zone_editor:
+    records:
+      - type: "TXT"
+        name: "agrilink.ao"
+        txt_data: "v=spf1 mx a:mail.agrilink.ao ~all"
+        ttl: 3600
+      - type: "TXT"
+        name: "default._domainkey.agrilink.ao"
+        txt_data: "v=DKIM1; k=rsa; p=COLE_AQUI_A_CHAVE_PUBLICA_DKIM"
+        ttl: 3600
+      - type: "TXT"
+        name: "_dmarc.agrilink.ao"
+        txt_data: "v=DMARC1; p=reject; adkim=s; aspf=s; pct=100; rua=mailto:admin@agrilink.ao; ruf=mailto:admin@agrilink.ao; fo=1"
+        ttl: 3600
+  godaddy:
+    records:
+      - type: "TXT"
+        name: "@"
+        value: "v=spf1 mx a:mail.agrilink.ao ~all"
+        ttl: "1 Hour"
+      - type: "TXT"
+        name: "default._domainkey"
+        value: "v=DKIM1; k=rsa; p=COLE_AQUI_A_CHAVE_PUBLICA_DKIM"
+        ttl: "1 Hour"
+      - type: "TXT"
+        name: "_dmarc"
+        value: "v=DMARC1; p=reject; adkim=s; aspf=s; pct=100; rua=mailto:admin@agrilink.ao; ruf=mailto:admin@agrilink.ao; fo=1"
+        ttl: "1 Hour"
+
+# OPERACAO COMPLETA (segredos, deploy e teste)
+operations:
+  supabase_secrets:
+    set_smtp_password: "supabase secrets set SMTP_PASSWORD=COLOCA_A_TUA_PASSWORD --project-ref oqcrfqtlfqwrxxmsjpaf"
+    list_secrets: "supabase secrets list --project-ref oqcrfqtlfqwrxxmsjpaf"
+  function_deploy:
+    deploy_send_otp_email: "supabase functions deploy send-otp-email --project-ref oqcrfqtlfqwrxxmsjpaf"
+    logs_send_otp_email: "supabase functions logs send-otp-email --project-ref oqcrfqtlfqwrxxmsjpaf"
+  smoke_test:
+    trigger_from_app: "Registrar usuario novo e confirmar recebimento do email"
+    mailbox_checks:
+      - "Gmail: Mostrar original e validar SPF/DKIM/DMARC=PASS"
+      - "Outlook: Verificar internet headers e reputacao"
+      - "Mail-tester: alvo minimo 8/10"
+
+# HIGIENE E SEGURANCA
+security_notes:
+  - "Rotacionar senha SMTP periodicamente"
+  - "Nao guardar senha SMTP em codigo nem em ficheiros versionados"
+  - "Se houve exposicao anterior, trocar senha SMTP imediatamente"
+  - "Manter sender unico: no-reply@agrilink.ao"
+
+# NOTA IMPORTANTE
+# Nao publicar chave privada DKIM neste arquivo.
+# Apenas a chave PUBLICA vai no DNS.
