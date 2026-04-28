@@ -19,6 +19,8 @@ const T = {
   ink:     '#0A0A0A',
   ink80:   '#1A1A1A',
   ink60:   '#2C2C2C',
+
+  
   mid:     '#555555',
   muted:   '#888888',
   faint:   '#BBBBBB',
