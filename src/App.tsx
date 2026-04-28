@@ -107,8 +107,11 @@ const AppRoutes = () => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  // Handle OAuth implicit flow: Supabase sends #access_token to the root URL
-  if (location.hash.includes('access_token=')) {
+  // Handle OAuth callback: PKCE sends ?code= in query, implicit sends #access_token in hash
+  const isPKCECallback = location.search.includes('code=') && location.search.includes('state=')
+  const isImplicitCallback = location.hash.includes('access_token=')
+
+  if (isPKCECallback || isImplicitCallback) {
     return (
       <Routes>
         <Route path="*" element={<OAuthCallbackHandler />} />

@@ -249,7 +249,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/confirmar-email?oauth=google&mode=${mode}`,
+          redirectTo: `${window.location.origin}/`,
           queryParams: {
             prompt: 'select_account',
           },
