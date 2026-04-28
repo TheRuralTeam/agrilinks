@@ -14,33 +14,49 @@ import { supabase } from '@/integrations/supabase/client'
 import { useNavigate } from 'react-router-dom'
 import { toast } from '@/hooks/use-toast'
 
-/* ─── Design tokens ─────────────────────────────────────────────────────────── */
+/* ─── Design tokens — B2B Modern / League Spartan ───────────────────────────── */
 const T = {
-  g900:    '#0D2B12',
-  g700:    '#1A5C24',
-  g600:    '#2D7D3A',
-  g500:    '#3D9A48',
-  g400:    '#4CAF50',
-  g100:    '#E8F5E9',
-  g50:     '#F2FAF3',
-  gBorder: '#C8E6CA',
-  e700:    '#5C3317',
-  e500:    '#7B4F2E',
-  e300:    '#A0522D',
-  ePale:   '#FDF5EE',
-  eBorder: '#EDD9C6',
-  ink:     '#111714',
-  mid:     '#3D4D40',
-  muted:   '#758A79',
-  faint:   '#A8BAA9',
-  canvas:  '#F7F9F7',
+  /* Greens — deeper, more corporate */
+  g950:    '#061A09',
+  g900:    '#0A2310',
+  g800:    '#0F3318',
+  g700:    '#165220',
+  g600:    '#1E7A2E',
+  g500:    '#28A745',
+  g400:    '#3DBE5C',
+  g200:    '#B6E8C0',
+  g100:    '#E4F5E8',
+  g50:     '#F0FAF2',
+  gBorder: '#C4E2CA',
+
+  /* Accent — slate-teal for B2B edge */
+  accent:  '#0D7E6A',
+  accentL: '#10A688',
+  accentBg:'#E8F7F4',
+
+  /* Neutrals — cool-shifted for professionalism */
+  ink:     '#0C1311',
+  slate:   '#243329',
+  mid:     '#3A4D40',
+  muted:   '#6B8070',
+  faint:   '#9DB5A4',
+  rule:    '#DDE8DF',
+  canvas:  '#F4F7F5',
+  surface: '#FAFCFA',
   white:   '#FFFFFF',
-  rule:    '#E5EDE6',
-  gold:    '#B07D0A',
-  goldL:   '#E5A020',
-  shadow:  'rgba(13,43,18,0.10)',
-  shadowMd:'rgba(13,43,18,0.15)',
+
+  /* Amber — reserved, only for gold/points */
+  gold:    '#92660A',
+  goldL:   '#C78B12',
+  goldBg:  '#FDF6E3',
+
+  /* Shadows */
+  shadow:  'rgba(10,35,16,0.08)',
+  shadowMd:'rgba(10,35,16,0.14)',
+  shadowLg:'rgba(10,35,16,0.20)',
 }
+
+const FONT = "'League Spartan', 'Helvetica Neue', Arial, sans-serif"
 
 /* ─── Interfaces ─────────────────────────────────────────────────────────────── */
 interface UserProduct {
@@ -63,106 +79,99 @@ interface SourcingRequest {
   id: string; product_name: string; quantity: number; delivery_date: string
   description: string | null; status: string; admin_notes: string | null; created_at: string
 }
-
 interface AgentReferral {
-  user_name: string
-  user_type: string
-  created_at: string
-  points: number
+  user_name: string; user_type: string; created_at: string; points: number
 }
-
 interface ProfileExtras {
-  verified?: boolean
-  agent_code?: string | null
-  avatar_url?: string | null
+  verified?: boolean; agent_code?: string | null; avatar_url?: string | null
 }
-
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost'
-
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost' | 'accent'
 interface BtnProps {
-  children: React.ReactNode
-  onClick?: () => void
-  variant?: ButtonVariant
-  disabled?: boolean
-  size?: 'sm' | 'md' | 'lg'
-  style?: React.CSSProperties
+  children: React.ReactNode; onClick?: () => void; variant?: ButtonVariant
+  disabled?: boolean; size?: 'sm' | 'md' | 'lg'; style?: React.CSSProperties
 }
-
 interface InputFieldProps {
-  label?: string
-  value: string
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  type?: React.HTMLInputTypeAttribute
-  placeholder?: string
-  required?: boolean
+  label?: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  type?: React.HTMLInputTypeAttribute; placeholder?: string; required?: boolean
 }
-
 interface TextareaFieldProps {
-  label?: string
-  value: string
-  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
-  placeholder?: string
-  rows?: number
+  label?: string; value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+  placeholder?: string; rows?: number
 }
-
 interface ProfileTab {
-  id: string
-  label: string
-  icon: React.ReactNode
-  badge?: number
+  id: string; label: string; icon: React.ReactNode; badge?: number
 }
 
 const getErrorMessage = (error: unknown) => {
-  if (error instanceof Error) {
-    return error.message
-  }
-
+  if (error instanceof Error) return error.message
   return 'Erro inesperado'
 }
 
 /* ─── Micro components ───────────────────────────────────────────────────────── */
-const StatCard = ({ icon, value, label, color = T.g600 }: { icon: React.ReactNode; value: number | string; label: string; color?: string }) => (
+
+const StatCard = ({ icon, value, label, color = T.g600, accent = false }:
+  { icon: React.ReactNode; value: number | string; label: string; color?: string; accent?: boolean }) => (
   <div style={{
-    background: T.white, borderRadius: 16, padding: '18px 16px',
-    border: `1px solid ${T.rule}`, boxShadow: `0 1px 6px ${T.shadow}`,
-    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+    background: accent ? `linear-gradient(135deg, ${T.g800}, ${T.g700})` : T.white,
+    borderRadius: 12,
+    padding: '20px 16px',
+    border: accent ? 'none' : `1px solid ${T.rule}`,
+    boxShadow: accent ? `0 8px 32px ${T.shadowMd}` : `0 1px 4px ${T.shadow}`,
+    display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10,
     transition: 'transform 0.18s, box-shadow 0.18s', cursor: 'default',
+    position: 'relative', overflow: 'hidden',
   }}
-    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 24px ${T.shadowMd}` }}
-    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 1px 6px ${T.shadow}` }}
+    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = accent ? `0 12px 40px ${T.shadowLg}` : `0 6px 24px ${T.shadowMd}` }}
+    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = accent ? `0 8px 32px ${T.shadowMd}` : `0 1px 4px ${T.shadow}` }}
   >
-    <div style={{ width: 38, height: 38, borderRadius: 10, background: T.g50, border: `1px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {icon}
+    {accent && <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }}/>}
+    <div style={{
+      width: 32, height: 32, borderRadius: 8,
+      background: accent ? 'rgba(255,255,255,0.12)' : T.g50,
+      border: accent ? '1px solid rgba(255,255,255,0.15)' : `1px solid ${T.gBorder}`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }}>
+      {React.cloneElement(icon as React.ReactElement, { size: 14, color: accent ? T.white : T.g500 })}
     </div>
-    <div style={{ fontSize: 26, fontWeight: 900, color, letterSpacing: '-0.03em', fontFamily: "'Cormorant Garamond', Georgia, serif", fontVariantNumeric: 'tabular-nums' }}>{value}</div>
-    <div style={{ fontSize: 10, color: T.faint, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: 'center', lineHeight: 1.3 }}>{label}</div>
+    <div>
+      <div style={{ fontSize: 28, fontWeight: 800, color: accent ? T.white : color, letterSpacing: '-0.04em', fontFamily: FONT, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 10, color: accent ? 'rgba(255,255,255,0.55)' : T.faint, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 4 }}>{label}</div>
+    </div>
   </div>
 )
 
-const InfoRow = ({ icon, value }: { icon: React.ReactNode; value: string }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: `1px solid ${T.rule}` }}>
-    <div style={{ width: 30, height: 30, borderRadius: 8, background: T.g50, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{icon}</div>
-    <span style={{ fontSize: 13, color: T.mid, fontWeight: 500 }}>{value || '—'}</span>
+const InfoRow = ({ icon, value, label }: { icon: React.ReactNode; value: string; label?: string }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: `1px solid ${T.rule}` }}>
+    <div style={{ width: 28, height: 28, borderRadius: 7, background: T.g50, border: `1px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      {React.cloneElement(icon as React.ReactElement, { size: 12, color: T.g600 })}
+    </div>
+    <div>
+      {label && <div style={{ fontSize: 9, fontWeight: 700, color: T.faint, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 1 }}>{label}</div>}
+      <span style={{ fontSize: 13, color: T.slate, fontWeight: 500, letterSpacing: '-0.01em' }}>{value || '—'}</span>
+    </div>
   </div>
 )
 
 const TabBtn = ({ active, onClick, icon, label, badge }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; badge?: number }) => (
   <button onClick={onClick} style={{
-    display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px',
-    borderRadius: 10, border: 'none', cursor: 'pointer',
-    background: active ? T.g600 : 'transparent',
+    display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
+    borderRadius: 8, border: 'none', cursor: 'pointer',
+    background: active ? T.g700 : 'transparent',
     color: active ? T.white : T.muted,
-    fontWeight: active ? 700 : 500,
-    fontSize: 13, transition: 'all 0.18s',
+    fontWeight: 700, fontSize: 12,
+    fontFamily: FONT,
+    letterSpacing: '0.02em',
+    textTransform: 'uppercase',
+    transition: 'all 0.15s',
     position: 'relative', flexShrink: 0,
   }}
-    onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = T.g50 }}
-    onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+    onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = T.g50; if (!active) (e.currentTarget as HTMLElement).style.color = T.slate }}
+    onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; if (!active) (e.currentTarget as HTMLElement).style.color = T.muted }}
   >
-    {icon}
+    {React.cloneElement(icon as React.ReactElement, { size: 13 })}
     <span className="hidden sm:inline">{label}</span>
     {badge !== undefined && badge > 0 && (
-      <span style={{ position: 'absolute', top: 4, right: 4, width: 16, height: 16, borderRadius: '50%', background: '#EF4444', color: T.white, fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{badge}</span>
+      <span style={{ position: 'absolute', top: 3, right: 3, width: 15, height: 15, borderRadius: '50%', background: '#EF4444', color: T.white, fontSize: 8, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{badge}</span>
     )}
   </button>
 )
@@ -170,24 +179,28 @@ const TabBtn = ({ active, onClick, icon, label, badge }: { active: boolean; onCl
 const Btn = ({ children, onClick, variant = 'primary', disabled = false, size = 'md', style: extraStyle = {} }: BtnProps) => {
   const base: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-    borderRadius: 10, cursor: disabled ? 'not-allowed' : 'pointer',
-    fontWeight: 700, transition: 'all 0.18s', border: 'none',
+    borderRadius: 8, cursor: disabled ? 'not-allowed' : 'pointer',
+    fontWeight: 700, fontFamily: FONT,
+    fontSize: size === 'sm' ? 11 : 12,
+    letterSpacing: '0.04em',
+    textTransform: 'uppercase',
+    transition: 'all 0.15s', border: 'none',
     opacity: disabled ? 0.5 : 1,
-    padding: size === 'sm' ? '6px 12px' : size === 'lg' ? '12px 24px' : '9px 18px',
-    fontSize: size === 'sm' ? 12 : 13,
+    padding: size === 'sm' ? '7px 12px' : size === 'lg' ? '13px 26px' : '10px 18px',
     ...extraStyle,
   }
   const variants: Record<string, React.CSSProperties> = {
-    primary:   { background: `linear-gradient(135deg, ${T.g500}, ${T.g700})`, color: T.white, boxShadow: `0 4px 14px rgba(45,125,58,0.28)` },
-    secondary: { background: T.g50, color: T.g600, border: `1px solid ${T.gBorder}` },
-    outline:   { background: 'transparent', color: T.mid, border: `1px solid ${T.rule}` },
-    danger:    { background: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA' },
-    ghost:     { background: 'transparent', color: T.muted, border: 'none' },
+    primary:   { background: T.g700, color: T.white, boxShadow: `0 2px 8px rgba(22,82,32,0.30)` },
+    secondary: { background: T.g50, color: T.g700, border: `1.5px solid ${T.gBorder}` },
+    outline:   { background: 'transparent', color: T.mid, border: `1.5px solid ${T.rule}` },
+    danger:    { background: '#FEF2F2', color: '#DC2626', border: '1.5px solid #FECACA' },
+    ghost:     { background: 'transparent', color: T.muted },
+    accent:    { background: T.accent, color: T.white, boxShadow: `0 2px 8px rgba(13,126,106,0.30)` },
   }
   return (
     <button style={{ ...base, ...variants[variant] }} onClick={onClick} disabled={disabled}
-      onMouseEnter={e => { if (!disabled && variant === 'primary') { (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px rgba(45,125,58,0.38)` } }}
-      onMouseLeave={e => { if (variant === 'primary') { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 14px rgba(45,125,58,0.28)` } }}
+      onMouseEnter={e => { if (!disabled) { if (variant === 'primary') { (e.currentTarget as HTMLElement).style.background = T.g600; (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 16px rgba(22,82,32,0.40)` } if (variant === 'accent') { (e.currentTarget as HTMLElement).style.background = T.accentL } } }}
+      onMouseLeave={e => { if (variant === 'primary') { (e.currentTarget as HTMLElement).style.background = T.g700; (e.currentTarget as HTMLElement).style.boxShadow = `0 2px 8px rgba(22,82,32,0.30)` } if (variant === 'accent') { (e.currentTarget as HTMLElement).style.background = T.accent } }}
     >{children}</button>
   )
 }
@@ -195,17 +208,17 @@ const Btn = ({ children, onClick, variant = 'primary', disabled = false, size = 
 const Input = ({ label, value, onChange, type = 'text', placeholder = '', required = false }: InputFieldProps) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
     {label && (
-      <label style={{ fontSize: 11, fontWeight: 700, color: T.ink, textTransform: 'uppercase', letterSpacing: '0.07em', display: 'flex', gap: 6, alignItems: 'center' }}>
-        {label}{required && <span style={{ color: T.g500, fontSize: 10 }}>obrigatório</span>}
+      <label style={{ fontSize: 10, fontWeight: 700, color: T.mid, textTransform: 'uppercase', letterSpacing: '0.09em', display: 'flex', gap: 6, alignItems: 'center', fontFamily: FONT }}>
+        {label}{required && <span style={{ color: T.g500, fontSize: 9, background: T.g50, padding: '1px 6px', borderRadius: 4, border: `1px solid ${T.gBorder}` }}>obrigatório</span>}
       </label>
     )}
     <input type={type} value={value} onChange={onChange} placeholder={placeholder} style={{
-      height: 42, borderRadius: 10, border: `1px solid ${T.rule}`, padding: '0 14px',
+      height: 40, borderRadius: 8, border: `1.5px solid ${T.rule}`, padding: '0 12px',
       fontSize: 13, outline: 'none', background: T.white, color: T.ink,
-      transition: 'border-color 0.18s, box-shadow 0.18s', width: '100%', boxSizing: 'border-box',
-      fontFamily: 'inherit',
+      transition: 'border-color 0.15s, box-shadow 0.15s', width: '100%', boxSizing: 'border-box',
+      fontFamily: FONT, fontWeight: 500, letterSpacing: '-0.01em',
     }}
-      onFocus={e => { e.currentTarget.style.borderColor = T.g600; e.currentTarget.style.boxShadow = `0 0 0 3px rgba(61,154,72,0.1)` }}
+      onFocus={e => { e.currentTarget.style.borderColor = T.g600; e.currentTarget.style.boxShadow = `0 0 0 3px rgba(30,122,46,0.10)` }}
       onBlur={e => { e.currentTarget.style.borderColor = T.rule; e.currentTarget.style.boxShadow = 'none' }}
     />
   </div>
@@ -213,33 +226,34 @@ const Input = ({ label, value, onChange, type = 'text', placeholder = '', requir
 
 const Textarea = ({ label, value, onChange, placeholder = '', rows = 4 }: TextareaFieldProps) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-    {label && <label style={{ fontSize: 11, fontWeight: 700, color: T.ink, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</label>}
+    {label && <label style={{ fontSize: 10, fontWeight: 700, color: T.mid, textTransform: 'uppercase', letterSpacing: '0.09em', fontFamily: FONT }}>{label}</label>}
     <textarea value={value} onChange={onChange} placeholder={placeholder} rows={rows} style={{
-      borderRadius: 10, border: `1px solid ${T.rule}`, padding: '10px 14px',
+      borderRadius: 8, border: `1.5px solid ${T.rule}`, padding: '10px 12px',
       fontSize: 13, outline: 'none', background: T.white, color: T.ink,
-      transition: 'border-color 0.18s, box-shadow 0.18s', width: '100%', boxSizing: 'border-box',
-      resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6,
+      transition: 'border-color 0.15s, box-shadow 0.15s', width: '100%', boxSizing: 'border-box',
+      resize: 'vertical', fontFamily: FONT, lineHeight: 1.6, fontWeight: 500,
     }}
-      onFocus={e => { e.currentTarget.style.borderColor = T.g600; e.currentTarget.style.boxShadow = `0 0 0 3px rgba(61,154,72,0.1)` }}
+      onFocus={e => { e.currentTarget.style.borderColor = T.g600; e.currentTarget.style.boxShadow = `0 0 0 3px rgba(30,122,46,0.10)` }}
       onBlur={e => { e.currentTarget.style.borderColor = T.rule; e.currentTarget.style.boxShadow = 'none' }}
     />
   </div>
 )
 
 const StatusPill = ({ status }: { status: string }) => {
-  const map: Record<string, { bg: string; color: string; label: string }> = {
-    active:     { bg: T.g50,     color: T.g600,    label: 'Activo' },
-    inactive:   { bg: '#FFF7ED', color: T.gold,    label: 'Inactivo' },
-    removed:    { bg: '#FEF2F2', color: '#DC2626',  label: 'Removido' },
-    pending:    { bg: '#FFF7ED', color: T.gold,    label: 'Pendente' },
-    accepted:   { bg: T.g50,     color: T.g600,    label: 'Aceite' },
-    rejected:   { bg: '#FEF2F2', color: '#DC2626',  label: 'Rejeitado' },
-    completed:  { bg: T.g50,     color: T.g600,    label: 'Concluído' },
-    processing: { bg: '#EFF6FF', color: '#2563EB',  label: 'A processar' },
+  const map: Record<string, { bg: string; color: string; label: string; dot: string }> = {
+    active:     { bg: T.g50,     color: T.g700,    label: 'Activo',      dot: T.g500 },
+    inactive:   { bg: T.goldBg,  color: T.gold,    label: 'Inactivo',    dot: T.goldL },
+    removed:    { bg: '#FEF2F2', color: '#DC2626',  label: 'Removido',    dot: '#EF4444' },
+    pending:    { bg: T.goldBg,  color: T.gold,    label: 'Pendente',    dot: T.goldL },
+    accepted:   { bg: T.g50,     color: T.g700,    label: 'Aceite',      dot: T.g500 },
+    rejected:   { bg: '#FEF2F2', color: '#DC2626',  label: 'Rejeitado',   dot: '#EF4444' },
+    completed:  { bg: T.accentBg,color: T.accent,  label: 'Concluído',   dot: T.accentL },
+    processing: { bg: '#EFF6FF', color: '#2563EB',  label: 'A processar', dot: '#60A5FA' },
   }
-  const s = map[status] || { bg: T.canvas, color: T.muted, label: status }
+  const s = map[status] || { bg: T.canvas, color: T.muted, label: status, dot: T.faint }
   return (
-    <span style={{ padding: '3px 10px', borderRadius: 20, background: s.bg, color: s.color, fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 6, background: s.bg, color: s.color, fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT }}>
+      <span style={{ width: 5, height: 5, borderRadius: '50%', background: s.dot, flexShrink: 0 }}/>
       {s.label}
     </span>
   )
@@ -274,7 +288,6 @@ const Profile = () => {
     province_id: userProfile?.province_id || '',
     municipality_id: userProfile?.municipality_id || '',
   })
-
   const [sourcingRequests, setSourcingRequests] = useState<SourcingRequest[]>([])
   const [showSourcingForm, setShowSourcingForm] = useState(false)
   const [sourcingForm, setSourcingForm] = useState({ product_name: '', quantity: '', delivery_date: '', description: '' })
@@ -463,112 +476,142 @@ const Profile = () => {
   const totalLikes = userProducts.reduce((s, p) => s + (productStats[p.id]?.likes || 0), 0)
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: T.canvas, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ minHeight: '100vh', background: T.canvas, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-        <div style={{ width: 48, height: 48, borderRadius: '50%', border: `2px solid ${T.gBorder}`, borderTopColor: T.g500, animation: 'spin 0.9s linear infinite' }}/>
-        <p style={{ fontSize: 13, color: T.faint, fontWeight: 500 }}>{t('profile.loadingProfile')}</p>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', border: `2px solid ${T.gBorder}`, borderTopColor: T.g600, animation: 'spin 0.8s linear infinite' }}/>
+        <p style={{ fontSize: 11, color: T.faint, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{t('profile.loadingProfile')}</p>
       </div>
     </div>
   )
 
-  /* ── TABS config ── */
   const isComprador = userProfile?.user_type === 'comprador'
   const isAgente = userProfile?.user_type === 'agente'
   const isAgricultor = userProfile?.user_type === 'agricultor'
 
   const tabs: ProfileTab[] = [
-    { id: 'products', label: isComprador ? t('profile.myFichas') : t('profile.myProducts'), icon: isComprador ? <ClipboardList size={15}/> : <Package size={15}/> },
-    ...(isComprador ? [{ id: 'sourcing', label: t('profile.sourcing'), icon: <Search size={15}/> }] : []),
-    ...(isAgricultor || isAgente ? [{ id: 'orders', label: t('profile.receivedOrders'), icon: <ShoppingCart size={15}/>, badge: receivedOrders.filter(o => o.status === 'pending').length }] : []),
-    ...(isAgente ? [{ id: 'referrals', label: t('profile.myReferrals'), icon: <Users size={15}/> }] : []),
-    { id: 'statistics', label: t('profile.statistics'), icon: <BarChart3 size={15}/> },
+    { id: 'products', label: isComprador ? t('profile.myFichas') : t('profile.myProducts'), icon: isComprador ? <ClipboardList size={13}/> : <Package size={13}/> },
+    ...(isComprador ? [{ id: 'sourcing', label: t('profile.sourcing'), icon: <Search size={13}/> }] : []),
+    ...(isAgricultor || isAgente ? [{ id: 'orders', label: t('profile.receivedOrders'), icon: <ShoppingCart size={13}/>, badge: receivedOrders.filter(o => o.status === 'pending').length }] : []),
+    ...(isAgente ? [{ id: 'referrals', label: t('profile.myReferrals'), icon: <Users size={13}/> }] : []),
+    { id: 'statistics', label: t('profile.statistics'), icon: <BarChart3 size={13}/> },
   ]
 
   return (
-    <div style={{ minHeight: '100vh', background: T.canvas, fontFamily: "'DM Sans', system-ui, sans-serif", paddingBottom: 80 }}>
+    <div style={{ minHeight: '100vh', background: T.canvas, fontFamily: FONT, paddingBottom: 80 }}>
 
       {/* ═══ HEADER ═══════════════════════════════════════════════════════════ */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 30,
-        background: 'rgba(247,249,247,0.97)', backdropFilter: 'blur(20px)',
-        borderBottom: `1px solid ${T.rule}`,
-        boxShadow: `0 1px 0 ${T.rule}, 0 4px 20px rgba(13,43,18,0.04)`,
+        background: T.g900,
+        borderBottom: `1px solid rgba(255,255,255,0.06)`,
+        boxShadow: `0 2px 20px ${T.shadowMd}`,
       }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 20, fontWeight: 700, color: T.ink, margin: 0, letterSpacing: '-0.01em' }}>
-              {t('profile.title')}
-            </h1>
-            <p style={{ fontSize: 11, color: T.faint, margin: 0, marginTop: 1, fontWeight: 500 }}>
-              {userProfile?.user_type}
-            </p>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            {/* Brand mark */}
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: T.g600, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Zap size={16} color={T.white} />
+            </div>
+            <div>
+              <h1 style={{ fontFamily: FONT, fontSize: 15, fontWeight: 800, color: T.white, margin: 0, letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
+                {t('profile.title')}
+              </h1>
+              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', margin: 0, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                {userProfile?.user_type}
+              </p>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <Btn variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
-              <Settings size={14}/> <span className="hidden sm:inline">{t('profile.settings')}</span>
-            </Btn>
-            <Btn variant="danger" size="sm" onClick={() => logout()}>
-              <LogOut size={14}/> <span className="hidden sm:inline">{t('common.logout') || 'Sair'}</span>
-            </Btn>
+            <button onClick={() => setSettingsOpen(true)} style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px',
+              borderRadius: 7, border: '1px solid rgba(255,255,255,0.12)',
+              background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.7)',
+              cursor: 'pointer', fontSize: 11, fontWeight: 700, fontFamily: FONT,
+              letterSpacing: '0.06em', textTransform: 'uppercase', transition: 'all 0.15s',
+            }}>
+              <Settings size={13}/> <span className="hidden sm:inline">{t('profile.settings')}</span>
+            </button>
+            <button onClick={() => logout()} style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px',
+              borderRadius: 7, border: '1px solid rgba(239,68,68,0.30)',
+              background: 'rgba(239,68,68,0.10)', color: '#FCA5A5',
+              cursor: 'pointer', fontSize: 11, fontWeight: 700, fontFamily: FONT,
+              letterSpacing: '0.06em', textTransform: 'uppercase', transition: 'all 0.15s',
+            }}>
+              <LogOut size={13}/> <span className="hidden sm:inline">{t('common.logout') || 'Sair'}</span>
+            </button>
           </div>
         </div>
       </header>
 
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 20px', display: 'grid', gridTemplateColumns: '1fr', gap: 24 }} className="lg:grid-cols-[320px_1fr]">
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 24px', display: 'grid', gridTemplateColumns: '1fr', gap: 24 }} className="lg:grid-cols-[300px_1fr]">
 
         {/* ══ LEFT COLUMN ══════════════════════════════════════════════════════ */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
           {/* Profile Card */}
           <div style={{
-            background: T.white, borderRadius: 20, border: `1px solid ${T.rule}`,
-            boxShadow: `0 1px 8px ${T.shadow}`, overflow: 'hidden',
-            animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both',
+            background: T.white, borderRadius: 14, border: `1px solid ${T.rule}`,
+            boxShadow: `0 2px 12px ${T.shadow}`, overflow: 'hidden',
+            animation: 'fadeUp 0.35s cubic-bezier(0.22,1,0.36,1) both',
           }}>
-            {/* Dark top band */}
-            <div style={{ height: 72, background: `linear-gradient(135deg, ${T.g900}, ${T.g700})`, position: 'relative' }}>
-              <div style={{ position: 'absolute', inset: 0, opacity: 0.05, backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)', backgroundSize: '32px 32px' }}/>
+            {/* Dark header band with grid texture */}
+            <div style={{ height: 80, background: `linear-gradient(135deg, ${T.g950} 0%, ${T.g800} 100%)`, position: 'relative', overflow: 'hidden' }}>
+              {/* Fine grid overlay */}
+              <div style={{
+                position: 'absolute', inset: 0, opacity: 0.08,
+                backgroundImage: `linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)`,
+                backgroundSize: '20px 20px'
+              }}/>
+              {/* Accent dot top-right */}
+              <div style={{ position: 'absolute', top: 16, right: 16, width: 6, height: 6, borderRadius: '50%', background: T.g400, boxShadow: `0 0 10px ${T.g500}` }}/>
             </div>
 
-            <div style={{ padding: '0 24px 24px' }}>
+            <div style={{ padding: '0 20px 22px' }}>
               {/* Avatar */}
-              <div style={{ position: 'relative', display: 'inline-block', marginTop: -36, marginBottom: 14 }}>
+              <div style={{ position: 'relative', display: 'inline-block', marginTop: -32, marginBottom: 14 }}>
                 <div style={{
-                  width: 72, height: 72, borderRadius: '50%',
+                  width: 64, height: 64, borderRadius: 12,
                   border: `3px solid ${T.white}`, boxShadow: `0 4px 16px ${T.shadowMd}`,
-                  background: `linear-gradient(135deg, ${T.g600}, ${T.g400})`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  overflow: 'hidden',
+                  background: `linear-gradient(135deg, ${T.g700}, ${T.g500})`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
                 }}>
                   {userProfile?.avatar_url
                     ? <img src={userProfile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
-                    : <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 28, fontWeight: 700, color: T.white }}>{profileData.full_name.charAt(0) || 'U'}</span>
+                    : <span style={{ fontFamily: FONT, fontSize: 22, fontWeight: 800, color: T.white, letterSpacing: '-0.03em' }}>{profileData.full_name.charAt(0) || 'U'}</span>
                   }
                 </div>
                 <label htmlFor="avatar-upload" style={{
-                  position: 'absolute', bottom: 0, right: 0, width: 24, height: 24,
-                  borderRadius: '50%', background: T.white, border: `1.5px solid ${T.gBorder}`,
+                  position: 'absolute', bottom: -4, right: -4, width: 22, height: 22,
+                  borderRadius: 6, background: T.white, border: `1.5px solid ${T.rule}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                   boxShadow: `0 2px 8px ${T.shadow}`,
                 }}>
-                  {avatarLoading ? <div style={{ width: 10, height: 10, borderRadius: '50%', border: `1.5px solid ${T.g500}`, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }}/> : <Camera size={11} color={T.g600}/>}
+                  {avatarLoading
+                    ? <div style={{ width: 8, height: 8, borderRadius: '50%', border: `1.5px solid ${T.g600}`, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }}/>
+                    : <Camera size={10} color={T.g600}/>
+                  }
                 </label>
                 <input id="avatar-upload" type="file" accept="image/*" onChange={uploadAvatar} style={{ display: 'none' }}/>
               </div>
 
               {/* Name + type */}
-              <div style={{ marginBottom: 18 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                  <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 22, fontWeight: 700, color: T.ink, margin: 0, letterSpacing: '-0.01em' }}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+                  <h2 style={{ fontFamily: FONT, fontSize: 18, fontWeight: 800, color: T.ink, margin: 0, letterSpacing: '-0.03em' }}>
                     {profileData.full_name || 'Utilizador'}
                   </h2>
                   {profileExtras?.verified && (
-                    <div style={{ width: 20, height: 20, borderRadius: '50%', background: T.g50, border: `1.5px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <BadgeCheck size={12} color={T.g600}/>
+                    <div style={{ width: 18, height: 18, borderRadius: '50%', background: T.accentBg, border: `1.5px solid ${T.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <BadgeCheck size={11} color={T.accent}/>
                     </div>
                   )}
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: T.g50, color: T.g600, border: `1px solid ${T.gBorder}`, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                <span style={{
+                  fontSize: 9, fontWeight: 800, padding: '4px 10px', borderRadius: 6,
+                  background: T.g900, color: T.g200,
+                  textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: FONT,
+                }}>
                   {userProfile?.user_type}
                 </span>
               </div>
@@ -576,25 +619,25 @@ const Profile = () => {
               {/* Contact info / Edit form */}
               {!editMode ? (
                 <>
-                  <InfoRow icon={<Mail size={13} color={T.g500}/>} value={profileData.email} />
-                  <InfoRow icon={<Phone size={13} color={T.g500}/>} value={profileData.phone} />
-                  <InfoRow icon={<MapPin size={13} color={T.g500}/>} value={`${provinceName}${municipalityName ? ', ' + municipalityName : ''}`} />
+                  <InfoRow icon={<Mail size={12}/>} value={profileData.email} label="Email" />
+                  <InfoRow icon={<Phone size={12}/>} value={profileData.phone} label="Telefone" />
+                  <InfoRow icon={<MapPin size={12}/>} value={`${provinceName}${municipalityName ? ', ' + municipalityName : ''}`} label="Localização" />
 
-                  {/* Agent code */}
                   {isAgente && profileExtras?.agent_code && (
-                    <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 12, background: T.g50, border: `1px solid ${T.gBorder}` }}>
-                      <p style={{ fontSize: 10, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{t('profile.agentCode')}</p>
-                      <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 24, fontWeight: 700, color: T.g600, letterSpacing: '0.08em', margin: 0 }}>{profileExtras.agent_code}</p>
+                    <div style={{ marginTop: 14, padding: '14px', borderRadius: 10, background: T.g900, position: 'relative', overflow: 'hidden' }}>
+                      <div style={{ position: 'absolute', inset: 0, opacity: 0.05, backgroundImage: `linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)`, backgroundSize: '16px 16px' }}/>
+                      <p style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 6, fontFamily: FONT }}>{t('profile.agentCode')}</p>
+                      <p style={{ fontFamily: FONT, fontSize: 26, fontWeight: 800, color: T.g200, letterSpacing: '0.12em', margin: 0 }}>{profileExtras.agent_code}</p>
                     </div>
                   )}
 
                   <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
                     <Btn variant="secondary" onClick={() => setEditMode(true)} style={{ flex: 1 }}>
-                      <Edit size={13}/> {t('profile.editProfile')}
+                      <Edit size={12}/> {t('profile.editProfile')}
                     </Btn>
                     {isAgente && (
                       <Btn variant="outline" size="sm" onClick={shareAgentCode}>
-                        <Share2 size={13}/>
+                        <Share2 size={12}/>
                       </Btn>
                     )}
                   </div>
@@ -614,104 +657,101 @@ const Profile = () => {
           </div>
 
           {/* Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) 0.08s both' }}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, animation: 'fadeUp 0.35s cubic-bezier(0.22,1,0.36,1) 0.07s both' }}
             className="lg:grid-cols-1"
           >
             {isAgente ? (
               <>
-                <StatCard icon={<Users size={15} color={T.g500}/>} value={agentStats?.totalReferrals || 0} label={t('profile.usersReferred')} color={T.g600} />
-                <StatCard icon={<Star size={15} color={T.goldL}/>} value={agentStats?.totalPoints || 0} label={t('profile.pointsEarned')} color={T.gold} />
+                <StatCard icon={<Users size={14}/>} value={agentStats?.totalReferrals || 0} label={t('profile.usersReferred')} color={T.g700} accent />
+                <StatCard icon={<Star size={14}/>} value={agentStats?.totalPoints || 0} label={t('profile.pointsEarned')} color={T.gold} />
               </>
             ) : isComprador ? (
               <>
-                <StatCard icon={<ClipboardList size={15} color={T.g500}/>} value={fichasRecebimento.length} label={t('profile.fichasCreated')} color={T.g600} />
-                <StatCard icon={<ShoppingCart size={15} color={T.g500}/>} value={buyerStats.completedOrders} label={t('profile.purchasesCompleted')} color={T.g600} />
-                <StatCard icon={<Heart size={15} color={T.goldL}/>} value={buyerStats.favoriteProducts} label={t('profile.favoriteProducts')} color={T.gold} />
+                <StatCard icon={<ClipboardList size={14}/>} value={fichasRecebimento.length} label={t('profile.fichasCreated')} color={T.g700} accent />
+                <StatCard icon={<ShoppingCart size={14}/>} value={buyerStats.completedOrders} label={t('profile.purchasesCompleted')} color={T.g700} />
+                <StatCard icon={<Heart size={14}/>} value={buyerStats.favoriteProducts} label={t('profile.favoriteProducts')} color={T.gold} />
               </>
             ) : (
               <>
-                <StatCard icon={<Package size={15} color={T.g500}/>} value={activeProducts} label={t('profile.activeProducts')} color={T.g600} />
-                <StatCard icon={<MessageCircle size={15} color={T.g500}/>} value={totalComments} label={t('profile.comments')} color={T.g600} />
-                <StatCard icon={<Heart size={15} color={T.goldL}/>} value={totalLikes} label={t('profile.likes')} color={T.gold} />
+                <StatCard icon={<Package size={14}/>} value={activeProducts} label={t('profile.activeProducts')} color={T.g700} accent />
+                <StatCard icon={<MessageCircle size={14}/>} value={totalComments} label={t('profile.comments')} color={T.g700} />
+                <StatCard icon={<Heart size={14}/>} value={totalLikes} label={t('profile.likes')} color={T.gold} />
               </>
             )}
           </div>
         </div>
 
         {/* ══ RIGHT COLUMN ═════════════════════════════════════════════════════ */}
-        <div style={{ animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) 0.12s both' }}>
+        <div style={{ animation: 'fadeUp 0.35s cubic-bezier(0.22,1,0.36,1) 0.10s both' }}>
 
           {/* Tab bar */}
           <div style={{
-            display: 'flex', gap: 4, padding: '6px', borderRadius: 14,
-            background: T.white, border: `1px solid ${T.rule}`,
-            boxShadow: `0 1px 6px ${T.shadow}`, marginBottom: 20,
-            overflowX: 'auto',
+            display: 'flex', gap: 3, padding: '5px',
+            borderRadius: 10,
+            background: T.white,
+            border: `1px solid ${T.rule}`,
+            boxShadow: `0 1px 4px ${T.shadow}`,
+            marginBottom: 18, overflowX: 'auto',
           }}>
             {tabs.map(tab => (
-              <TabBtn
-                key={tab.id}
-                active={activeTab === tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                icon={tab.icon}
-                label={tab.label}
-                badge={tab.badge}
-              />
+              <TabBtn key={tab.id} active={activeTab === tab.id} onClick={() => setActiveTab(tab.id)} icon={tab.icon} label={tab.label} badge={tab.badge} />
             ))}
           </div>
 
           {/* ── Products / Fichas ── */}
           {activeTab === 'products' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 12 }}>
               {isComprador ? (
-                fichasRecebimento.length === 0 ? (
-                  <EmptyState icon={<ClipboardList size={28} color={T.faint}/>} message={t('profile.noFichasCreated')} />
-                ) : fichasRecebimento.map((ficha, i) => (
-                  <ProductCardBlock key={ficha.id} delay={i * 0.04}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                      <div>
-                        <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 17, fontWeight: 700, color: T.ink, margin: 0 }}>{ficha.nomeFicha}</h3>
-                        <StatusPill status="active" />
-                      </div>
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        <IconBtn icon={<Edit size={13}/>} title={t('profile.editFicha')} />
-                        <IconBtn icon={<Bell size={13}/>} title={t('profile.notifications')} />
-                        <IconBtn icon={<Trash2 size={13}/>} title={t('profile.removeFicha')} danger />
-                      </div>
-                    </div>
-                    <MetaRow icon={<Package size={12}/>} label={ficha.produto} />
-                    <MetaRow icon={<Star size={12}/>} label={ficha.qualidade} />
-                    <MetaRow icon={<MapPin size={12}/>} label={`${ficha.locaisEntrega?.length || 0} locais`} />
-                    <MetaRow icon={<Calendar size={12}/>} label={formatDate(ficha.created_at)} />
-                  </ProductCardBlock>
-                ))
-              ) : (
-                userProducts.length === 0 ? (
-                  <EmptyState icon={<Package size={28} color={T.faint}/>} message={t('profile.noProductsPublished')} />
-                ) : userProducts.map((product, i) => (
-                  <ProductCardBlock key={product.id} delay={i * 0.04}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                      <div style={{ flex: 1 }}>
-                        <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 17, fontWeight: 700, color: T.ink, margin: '0 0 4px' }}>{product.product_type}</h3>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <StatusPill status={product.status} />
-                          <span style={{ fontSize: 13, fontWeight: 800, color: T.g600 }}>{product.price.toLocaleString()} Kz/kg</span>
+                fichasRecebimento.length === 0
+                  ? <EmptyState icon={<ClipboardList size={24}/>} message={t('profile.noFichasCreated')} />
+                  : fichasRecebimento.map((ficha, i) => (
+                    <ProductCardBlock key={ficha.id} delay={i * 0.04}>
+                      <CardTopBar>
+                        <div>
+                          <h3 style={{ fontFamily: FONT, fontSize: 14, fontWeight: 800, color: T.ink, margin: '0 0 5px', letterSpacing: '-0.02em' }}>{ficha.nomeFicha}</h3>
+                          <StatusPill status="active" />
                         </div>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <IconBtn icon={<Edit size={12}/>} title={t('profile.editFicha')} />
+                          <IconBtn icon={<Bell size={12}/>} title={t('profile.notifications')} />
+                          <IconBtn icon={<Trash2 size={12}/>} title={t('profile.removeFicha')} danger />
+                        </div>
+                      </CardTopBar>
+                      <Divider />
+                      <MetaRow icon={<Package size={11}/>} label={ficha.produto} />
+                      <MetaRow icon={<Star size={11}/>} label={ficha.qualidade} />
+                      <MetaRow icon={<MapPin size={11}/>} label={`${ficha.locaisEntrega?.length || 0} locais de entrega`} />
+                      <MetaRow icon={<Calendar size={11}/>} label={formatDate(ficha.created_at)} />
+                    </ProductCardBlock>
+                  ))
+              ) : (
+                userProducts.length === 0
+                  ? <EmptyState icon={<Package size={24}/>} message={t('profile.noProductsPublished')} />
+                  : userProducts.map((product, i) => (
+                    <ProductCardBlock key={product.id} delay={i * 0.04}>
+                      <CardTopBar>
+                        <div style={{ flex: 1 }}>
+                          <h3 style={{ fontFamily: FONT, fontSize: 14, fontWeight: 800, color: T.ink, margin: '0 0 5px', letterSpacing: '-0.02em' }}>{product.product_type}</h3>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                            <StatusPill status={product.status} />
+                            <span style={{ fontSize: 12, fontWeight: 800, color: T.g700, fontFamily: FONT }}>{product.price.toLocaleString()} <span style={{ fontSize: 10, fontWeight: 600, color: T.faint }}>Kz/kg</span></span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <IconBtn icon={<Edit size={12}/>} title={t('profile.editProduct')} />
+                          <IconBtn icon={<Share2 size={12}/>} title={t('profile.promoteShare')} />
+                          {product.status !== 'removed' && <IconBtn icon={<Trash2 size={12}/>} danger onClick={() => deleteProduct(product.id)} title={t('profile.removeProduct')} />}
+                        </div>
+                      </CardTopBar>
+                      <Divider />
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                        <MetaRow icon={<Package size={11}/>} label={`${product.quantity.toLocaleString()} kg`} />
+                        <MetaRow icon={<Calendar size={11}/>} label={formatDate(product.harvest_date)} />
+                        <MetaRow icon={<MessageCircle size={11}/>} label={`${productStats[product.id]?.comments || 0} comentários`} />
+                        <MetaRow icon={<Heart size={11}/>} label={`${productStats[product.id]?.likes || 0} likes`} />
                       </div>
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        <IconBtn icon={<Edit size={13}/>} title={t('profile.editProduct')} />
-                        <IconBtn icon={<Share2 size={13}/>} title={t('profile.promoteShare')} />
-                        {product.status !== 'removed' && <IconBtn icon={<Trash2 size={13}/>} danger onClick={() => deleteProduct(product.id)} title={t('profile.removeProduct')} />}
-                      </div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
-                      <MetaRow icon={<Package size={11}/>} label={`${product.quantity.toLocaleString()} kg`} />
-                      <MetaRow icon={<Calendar size={11}/>} label={formatDate(product.harvest_date)} />
-                      <MetaRow icon={<MessageCircle size={11}/>} label={`${productStats[product.id]?.comments || 0} comentários`} />
-                      <MetaRow icon={<Heart size={11}/>} label={`${productStats[product.id]?.likes || 0} likes`} />
-                    </div>
-                  </ProductCardBlock>
-                ))
+                    </ProductCardBlock>
+                  ))
               )}
             </div>
           )}
@@ -719,18 +759,16 @@ const Profile = () => {
           {/* ── Sourcing ── */}
           {activeTab === 'sourcing' && isComprador && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <div>
-                  <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 18, fontWeight: 700, color: T.ink, margin: 0 }}>{t('sourcing.title')}</h3>
-                  <p style={{ fontSize: 12, color: T.faint, marginTop: 2 }}>{t('sourcing.subtitle')}</p>
-                </div>
-                <Btn variant="primary" size="sm" onClick={() => setShowSourcingForm(!showSourcingForm)}>
+              <SectionHeader
+                title={t('sourcing.title')}
+                sub={t('sourcing.subtitle')}
+                action={<Btn variant="primary" size="sm" onClick={() => setShowSourcingForm(!showSourcingForm)}>
                   {showSourcingForm ? t('common.cancel') : t('sourcing.newRequest')}
-                </Btn>
-              </div>
+                </Btn>}
+              />
 
               {showSourcingForm && (
-                <div style={{ background: T.white, borderRadius: 16, border: `1px solid ${T.rule}`, padding: 20, boxShadow: `0 2px 12px ${T.shadow}`, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ background: T.white, borderRadius: 12, border: `1px solid ${T.rule}`, padding: 20, boxShadow: `0 2px 12px ${T.shadow}`, display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }} className="sm:grid-cols-2">
                     <Input label={t('sourcing.productName')} value={sourcingForm.product_name} onChange={(e) => setSourcingForm(p => ({ ...p, product_name: e.target.value }))} placeholder={t('sourcing.productNamePlaceholder')} required />
                     <Input label={t('sourcing.quantity')} type="number" value={sourcingForm.quantity} onChange={(e) => setSourcingForm(p => ({ ...p, quantity: e.target.value }))} placeholder={t('sourcing.quantityPlaceholder')} required />
@@ -743,136 +781,147 @@ const Profile = () => {
                 </div>
               )}
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {sourcingRequests.length === 0 ? <EmptyState icon={<Search size={28} color={T.faint}/>} message={t('sourcing.noRequests')} /> : sourcingRequests.map((req, i) => (
-                  <div key={req.id} style={{ background: T.white, borderRadius: 14, border: `1px solid ${T.rule}`, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', animation: `fadeUp 0.35s cubic-bezier(0.22,1,0.36,1) ${i * 0.04}s both` }}>
-                    <div>
-                      <p style={{ fontSize: 14, fontWeight: 700, color: T.ink, margin: 0 }}>{req.product_name} · {req.quantity}kg</p>
-                      <p style={{ fontSize: 11, color: T.faint, marginTop: 2 }}>{t('sourcing.deliveryDate')}: {new Date(req.delivery_date).toLocaleDateString()}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {sourcingRequests.length === 0
+                  ? <EmptyState icon={<Search size={24}/>} message={t('sourcing.noRequests')} />
+                  : sourcingRequests.map((req, i) => (
+                    <div key={req.id} style={{ background: T.white, borderRadius: 10, border: `1px solid ${T.rule}`, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', animation: `fadeUp 0.35s cubic-bezier(0.22,1,0.36,1) ${i * 0.04}s both` }}>
+                      <div>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: T.ink, margin: 0, fontFamily: FONT, letterSpacing: '-0.02em' }}>{req.product_name} <span style={{ color: T.faint, fontWeight: 600 }}>· {req.quantity}kg</span></p>
+                        <p style={{ fontSize: 10, color: T.faint, marginTop: 3, fontFamily: FONT }}>{t('sourcing.deliveryDate')}: {new Date(req.delivery_date).toLocaleDateString()}</p>
+                      </div>
+                      <StatusPill status={req.status} />
                     </div>
-                    <StatusPill status={req.status} />
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           )}
 
           {/* ── Received Orders ── */}
           {activeTab === 'orders' && (isAgricultor || isAgente) && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 14 }}>
-              {receivedOrders.length === 0 ? (
-                <EmptyState icon={<ShoppingCart size={28} color={T.faint}/>} message={t('profile.noOrdersReceived')} sub={t('profile.ordersWillAppear')} />
-              ) : receivedOrders.map((order, i) => (
-                <ProductCardBlock key={order.id} delay={i * 0.04}>
-                  <div style={{ height: 3, borderRadius: 2, background: order.status === 'pending' ? T.goldL : order.status === 'accepted' ? T.g400 : '#EF4444', marginBottom: 14 }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                    <div>
-                      <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 17, fontWeight: 700, color: T.ink, margin: '0 0 4px' }}>{order.product?.product_type || t('profile.product')}</h3>
-                      <StatusPill status={order.status} />
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{ fontSize: 16, fontWeight: 900, color: T.g600, margin: 0, fontVariantNumeric: 'tabular-nums' }}>{order.quantity.toLocaleString()} kg</p>
-                      <p style={{ fontSize: 11, color: T.faint, margin: 0 }}>{((order.product?.price || 0) * order.quantity).toLocaleString()} Kz</p>
-                    </div>
-                  </div>
-                  <MetaRow icon={<User size={11}/>} label={order.buyer?.full_name || 'Comprador'} />
-                  <MetaRow icon={<Phone size={11}/>} label={order.buyer?.phone || t('profile.noPhone')} />
-                  <MetaRow icon={<MapPin size={11}/>} label={order.location} />
-                  <MetaRow icon={<Calendar size={11}/>} label={formatDate(order.created_at)} />
-                  {order.status === 'pending' ? (
-                    <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-                      <Btn variant="primary" size="sm" onClick={() => acceptOrder(order.id)} style={{ flex: 1 }}>
-                        <CheckCircle size={13}/> {t('profile.accept')}
-                      </Btn>
-                      <Btn variant="danger" size="sm" onClick={() => rejectOrder(order.id)} style={{ flex: 1 }}>
-                        <Trash2 size={13}/> {t('profile.reject')}
-                      </Btn>
-                      <Btn variant="outline" size="sm" onClick={() => contactBuyer(order)}>
-                        <Phone size={13}/>
-                      </Btn>
-                    </div>
-                  ) : (
-                    <div style={{ marginTop: 14 }}>
-                      <Btn variant="outline" size="sm" onClick={() => contactBuyer(order)} style={{ width: '100%' }}>
-                        <Phone size={13}/> {t('profile.contact')}
-                      </Btn>
-                    </div>
-                  )}
-                </ProductCardBlock>
-              ))}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 12 }}>
+              {receivedOrders.length === 0
+                ? <EmptyState icon={<ShoppingCart size={24}/>} message={t('profile.noOrdersReceived')} sub={t('profile.ordersWillAppear')} />
+                : receivedOrders.map((order, i) => (
+                  <ProductCardBlock key={order.id} delay={i * 0.04}>
+                    {/* Status accent bar */}
+                    <div style={{ height: 2, borderRadius: 2, background: order.status === 'pending' ? T.goldL : order.status === 'accepted' ? T.g500 : '#EF4444', marginBottom: 14 }} />
+                    <CardTopBar>
+                      <div>
+                        <h3 style={{ fontFamily: FONT, fontSize: 14, fontWeight: 800, color: T.ink, margin: '0 0 5px', letterSpacing: '-0.02em' }}>{order.product?.product_type || t('profile.product')}</h3>
+                        <StatusPill status={order.status} />
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{ fontSize: 18, fontWeight: 800, color: T.g700, margin: 0, fontVariantNumeric: 'tabular-nums', fontFamily: FONT, letterSpacing: '-0.03em' }}>{order.quantity.toLocaleString()} <span style={{ fontSize: 10, fontWeight: 600, color: T.faint }}>kg</span></p>
+                        <p style={{ fontSize: 10, color: T.faint, margin: 0, fontFamily: FONT }}>{((order.product?.price || 0) * order.quantity).toLocaleString()} Kz</p>
+                      </div>
+                    </CardTopBar>
+                    <Divider />
+                    <MetaRow icon={<User size={11}/>} label={order.buyer?.full_name || 'Comprador'} />
+                    <MetaRow icon={<Phone size={11}/>} label={order.buyer?.phone || t('profile.noPhone')} />
+                    <MetaRow icon={<MapPin size={11}/>} label={order.location} />
+                    <MetaRow icon={<Calendar size={11}/>} label={formatDate(order.created_at)} />
+                    {order.status === 'pending' ? (
+                      <div style={{ display: 'flex', gap: 7, marginTop: 14 }}>
+                        <Btn variant="primary" size="sm" onClick={() => acceptOrder(order.id)} style={{ flex: 1 }}>
+                          <CheckCircle size={12}/> {t('profile.accept')}
+                        </Btn>
+                        <Btn variant="danger" size="sm" onClick={() => rejectOrder(order.id)} style={{ flex: 1 }}>
+                          <Trash2 size={12}/> {t('profile.reject')}
+                        </Btn>
+                        <Btn variant="outline" size="sm" onClick={() => contactBuyer(order)}>
+                          <Phone size={12}/>
+                        </Btn>
+                      </div>
+                    ) : (
+                      <div style={{ marginTop: 14 }}>
+                        <Btn variant="outline" size="sm" onClick={() => contactBuyer(order)} style={{ width: '100%' }}>
+                          <Phone size={12}/> {t('profile.contact')}
+                        </Btn>
+                      </div>
+                    )}
+                  </ProductCardBlock>
+                ))}
             </div>
           )}
 
           {/* ── Referrals ── */}
           {activeTab === 'referrals' && isAgente && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {/* Summary row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                <div style={{ background: T.g900, borderRadius: 16, padding: '20px', textAlign: 'center', boxShadow: `0 4px 20px ${T.shadowMd}` }}>
-                  <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 36, fontWeight: 700, color: T.white }}>{agentStats?.totalReferrals || 0}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 4 }}>{t('profile.usersReferred')}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div style={{ background: T.g900, borderRadius: 12, padding: '22px 18px', position: 'relative', overflow: 'hidden', boxShadow: `0 4px 20px ${T.shadowMd}` }}>
+                  <div style={{ position: 'absolute', inset: 0, opacity: 0.06, backgroundImage: `linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)`, backgroundSize: '20px 20px' }}/>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8, fontFamily: FONT }}>{t('profile.usersReferred')}</div>
+                  <div style={{ fontFamily: FONT, fontSize: 40, fontWeight: 800, color: T.white, letterSpacing: '-0.05em', lineHeight: 1 }}>{agentStats?.totalReferrals || 0}</div>
                 </div>
-                <div style={{ background: `linear-gradient(135deg, ${T.gold}, ${T.goldL})`, borderRadius: 16, padding: '20px', textAlign: 'center', boxShadow: `0 4px 20px rgba(176,125,10,0.28)` }}>
-                  <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 36, fontWeight: 700, color: T.white }}>{agentStats?.totalPoints || 0}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 4 }}>{t('profile.pointsEarned')}</div>
+                <div style={{ background: `linear-gradient(135deg, ${T.gold} 0%, ${T.goldL} 100%)`, borderRadius: 12, padding: '22px 18px', boxShadow: `0 4px 20px rgba(146,102,10,0.25)` }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8, fontFamily: FONT }}>{t('profile.pointsEarned')}</div>
+                  <div style={{ fontFamily: FONT, fontSize: 40, fontWeight: 800, color: T.white, letterSpacing: '-0.05em', lineHeight: 1 }}>{agentStats?.totalPoints || 0}</div>
                 </div>
               </div>
 
-              {!agentStats?.recentReferrals?.length ? (
-                <EmptyState icon={<Users size={28} color={T.faint}/>} message={t('profile.noReferralsYet')} sub={t('profile.shareToEarnPoints')} />
-              ) : agentStats.recentReferrals.map((referral, i) => (
-                <div key={i} style={{ background: T.white, borderRadius: 14, border: `1px solid ${T.rule}`, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', animation: `fadeUp 0.35s cubic-bezier(0.22,1,0.36,1) ${i * 0.04}s both`, boxShadow: `0 1px 4px ${T.shadow}` }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 38, height: 38, borderRadius: '50%', background: T.g50, border: `1px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <User size={16} color={T.g600}/>
-                    </div>
-                    <div>
-                      <p style={{ fontSize: 14, fontWeight: 700, color: T.ink, margin: 0 }}>{referral.user_name}</p>
-                      <div style={{ display: 'flex', gap: 6, marginTop: 2, alignItems: 'center' }}>
-                        <StatusPill status={referral.user_type} />
-                        <span style={{ fontSize: 10, color: T.faint }}>{formatDate(referral.created_at)}</span>
+              {!agentStats?.recentReferrals?.length
+                ? <EmptyState icon={<Users size={24}/>} message={t('profile.noReferralsYet')} sub={t('profile.shareToEarnPoints')} />
+                : agentStats.recentReferrals.map((referral, i) => (
+                  <div key={i} style={{ background: T.white, borderRadius: 10, border: `1px solid ${T.rule}`, padding: '13px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', animation: `fadeUp 0.35s cubic-bezier(0.22,1,0.36,1) ${i * 0.04}s both`, boxShadow: `0 1px 4px ${T.shadow}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 9, background: T.g50, border: `1px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <User size={15} color={T.g600}/>
+                      </div>
+                      <div>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: T.ink, margin: 0, fontFamily: FONT, letterSpacing: '-0.02em' }}>{referral.user_name}</p>
+                        <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' }}>
+                          <StatusPill status={referral.user_type} />
+                          <span style={{ fontSize: 10, color: T.faint, fontFamily: FONT }}>{formatDate(referral.created_at)}</span>
+                        </div>
                       </div>
                     </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Star size={12} color={T.goldL} fill={T.goldL}/>
+                      <span style={{ fontFamily: FONT, fontSize: 18, fontWeight: 800, color: T.gold, letterSpacing: '-0.03em' }}>+{referral.points}</span>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Star size={13} color={T.goldL} fill={T.goldL}/>
-                    <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 20, fontWeight: 700, color: T.gold }}>+{referral.points}</span>
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
           )}
 
           {/* ── Statistics ── */}
           {activeTab === 'statistics' && (
-            <div style={{ background: T.white, borderRadius: 20, border: `1px solid ${T.rule}`, padding: 24, boxShadow: `0 1px 8px ${T.shadow}` }}>
-              <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 20, fontWeight: 700, color: T.ink, margin: '0 0 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <TrendingUp size={18} color={T.g500}/> {t('profile.performanceSummary')}
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            <div style={{ background: T.white, borderRadius: 14, border: `1px solid ${T.rule}`, overflow: 'hidden', boxShadow: `0 2px 12px ${T.shadow}` }}>
+              {/* Section header */}
+              <div style={{ padding: '18px 22px', borderBottom: `1px solid ${T.rule}`, display: 'flex', alignItems: 'center', gap: 10, background: T.surface }}>
+                <div style={{ width: 30, height: 30, borderRadius: 8, background: T.g900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <TrendingUp size={14} color={T.g200}/>
+                </div>
+                <div>
+                  <h3 style={{ fontFamily: FONT, fontSize: 13, fontWeight: 800, color: T.ink, margin: 0, letterSpacing: '-0.02em', textTransform: 'uppercase' }}>{t('profile.performanceSummary')}</h3>
+                  <p style={{ fontSize: 10, color: T.faint, margin: 0, fontFamily: FONT }}>Visão geral da conta</p>
+                </div>
+              </div>
+              <div style={{ padding: '0 22px' }}>
                 {(isAgente ? [
-                  { label: t('profile.totalReferrals'), val: agentStats?.totalReferrals || 0, color: T.g600 },
+                  { label: t('profile.totalReferrals'), val: agentStats?.totalReferrals || 0, color: T.g700 },
                   { label: t('profile.totalPoints'), val: agentStats?.totalPoints || 0, color: T.gold },
                 ] : isComprador ? [
-                  { label: t('profile.totalReceipts'), val: fichasRecebimento.length, color: T.g600 },
-                  { label: t('profile.purchasesSimulation'), val: buyerStats.completedOrders, color: T.g600 },
+                  { label: t('profile.totalReceipts'), val: fichasRecebimento.length, color: T.g700 },
+                  { label: t('profile.purchasesSimulation'), val: buyerStats.completedOrders, color: T.g700 },
                   { label: t('profile.favoritesSimulation'), val: buyerStats.favoriteProducts, color: T.gold },
                 ] : [
                   { label: t('profile.totalProductsPublished'), val: userProducts.length, color: T.ink },
-                  { label: t('profile.activeProducts'), val: activeProducts, color: T.g600 },
-                  { label: t('profile.totalComments'), val: totalComments, color: T.g600 },
+                  { label: t('profile.activeProducts'), val: activeProducts, color: T.g700 },
+                  { label: t('profile.totalComments'), val: totalComments, color: T.g700 },
                   { label: t('profile.totalLikes'), val: totalLikes, color: T.gold },
                 ]).map((row, i, arr) => (
-                  <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.rule}` : 'none' }}>
-                    <span style={{ fontSize: 13, color: T.muted, fontWeight: 500 }}>{row.label}</span>
-                    <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 22, fontWeight: 700, color: row.color, fontVariantNumeric: 'tabular-nums' }}>{typeof row.val === 'number' ? row.val.toLocaleString() : row.val}</span>
+                  <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.rule}` : 'none' }}>
+                    <span style={{ fontSize: 12, color: T.muted, fontWeight: 600, fontFamily: FONT, letterSpacing: '-0.01em' }}>{row.label}</span>
+                    <span style={{ fontFamily: FONT, fontSize: 24, fontWeight: 800, color: row.color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.04em' }}>{typeof row.val === 'number' ? row.val.toLocaleString() : row.val}</span>
                   </div>
                 ))}
               </div>
               {isAgente && (
-                <p style={{ fontSize: 11, color: T.faint, marginTop: 16, padding: '12px 14px', borderRadius: 10, background: T.g50, border: `1px solid ${T.gBorder}` }}>
-                  {t('profile.eachUserWorth')}
-                </p>
+                <div style={{ margin: '0 22px 22px', padding: '12px 14px', borderRadius: 8, background: T.g50, border: `1px solid ${T.gBorder}` }}>
+                  <p style={{ fontSize: 11, color: T.g700, fontFamily: FONT, fontWeight: 600, margin: 0 }}>{t('profile.eachUserWorth')}</p>
+                </div>
               )}
             </div>
           )}
@@ -881,26 +930,30 @@ const Profile = () => {
 
       {/* ═══ SETTINGS MODAL ═══════════════════════════════════════════════════ */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent style={{ maxWidth: 420, borderRadius: 20, border: `1px solid ${T.rule}`, boxShadow: `0 24px 80px ${T.shadowMd}` }}>
+        <DialogContent style={{ maxWidth: 400, borderRadius: 14, border: `1px solid ${T.rule}`, boxShadow: `0 24px 80px ${T.shadowLg}` }}>
           <DialogHeader>
-            <DialogTitle style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 20, fontWeight: 700, color: T.ink, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Settings size={17} color={T.g600}/> {t('profile.settings')}
+            <DialogTitle style={{ fontFamily: FONT, fontSize: 15, fontWeight: 800, color: T.ink, display: 'flex', alignItems: 'center', gap: 8, letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
+              <Settings size={15} color={T.g600}/> {t('profile.settings')}
             </DialogTitle>
           </DialogHeader>
           <div style={{ padding: '8px 0 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: T.ink, textTransform: 'uppercase', letterSpacing: '0.07em', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                <Globe size={13} color={T.g500}/> {t('common.language') || 'Idioma'}
+              <label style={{ fontSize: 10, fontWeight: 700, color: T.mid, textTransform: 'uppercase', letterSpacing: '0.09em', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, fontFamily: FONT }}>
+                <Globe size={12} color={T.g500}/> {t('common.language') || 'Idioma'}
               </label>
-              <Select value={i18n.language} onValueChange={(value) => { i18n.changeLanguage(value); localStorage.setItem('orbislink_language', value); toast({ title: t('common.success'), description: t('common.languageChanged') || 'Idioma alterado.' }) }}>
-                <SelectTrigger style={{ borderRadius: 10, border: `1px solid ${T.rule}`, height: 42, fontSize: 13, fontFamily: 'inherit' }}>
+              <Select value={i18n.language} onValueChange={(value) => {
+                i18n.changeLanguage(value)
+                localStorage.setItem('orbislink_language', value)
+                toast({ title: t('common.success'), description: t('common.languageChanged') || 'Idioma alterado.' })
+              }}>
+                <SelectTrigger style={{ borderRadius: 8, border: `1.5px solid ${T.rule}`, height: 40, fontSize: 13, fontFamily: FONT }}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent style={{ borderRadius: 14, border: `1px solid ${T.rule}`, boxShadow: `0 12px 40px ${T.shadowMd}` }}>
+                <SelectContent style={{ borderRadius: 10, border: `1px solid ${T.rule}`, boxShadow: `0 12px 40px ${T.shadowMd}` }}>
                   {[{ val: 'pt', flag: '🇦🇴', label: 'Português' }, { val: 'en', flag: '🇬🇧', label: 'English' }, { val: 'fr', flag: '🇫🇷', label: 'Français' }].map(l => (
-                    <SelectItem key={l.val} value={l.val} style={{ fontSize: 13 }}>
+                    <SelectItem key={l.val} value={l.val} style={{ fontSize: 13, fontFamily: FONT }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 16 }}>{l.flag}</span> {l.label}
+                        <span style={{ fontSize: 15 }}>{l.flag}</span> {l.label}
                       </div>
                     </SelectItem>
                   ))}
@@ -915,12 +968,15 @@ const Profile = () => {
       </Dialog>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600;700;800;900&display=swap');
         @keyframes spin    { to { transform: rotate(360deg) } }
-        @keyframes fadeUp  { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
+        @keyframes fadeUp  { from { opacity:0; transform:translateY(14px) } to { opacity:1; transform:translateY(0) } }
         * { box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: ${T.rule}; border-radius: 2px; }
         @media (min-width: 1024px) {
-          .lg\\:grid-cols-\\[320px_1fr\\] { grid-template-columns: 320px 1fr !important; }
+          .lg\\:grid-cols-\\[300px_1fr\\] { grid-template-columns: 300px 1fr !important; }
           .lg\\:grid-cols-1 { grid-template-columns: 1fr !important; }
         }
         @media (min-width: 640px) {
@@ -936,38 +992,61 @@ const Profile = () => {
 /* ─── Sub-layout helpers ─────────────────────────────────────────────────────── */
 const ProductCardBlock = ({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) => (
   <div style={{
-    background: T.white, borderRadius: 16, border: `1px solid ${T.rule}`,
-    padding: '18px', boxShadow: `0 1px 6px ${T.shadow}`,
-    transition: 'transform 0.18s, box-shadow 0.18s',
-    animation: `fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) ${delay}s both`,
+    background: T.white, borderRadius: 12, border: `1px solid ${T.rule}`,
+    padding: '16px', boxShadow: `0 1px 4px ${T.shadow}`,
+    transition: 'transform 0.15s, box-shadow 0.15s',
+    animation: `fadeUp 0.35s cubic-bezier(0.22,1,0.36,1) ${delay}s both`,
   }}
     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 24px ${T.shadowMd}` }}
-    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 1px 6px ${T.shadow}` }}
+    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 1px 4px ${T.shadow}` }}
   >{children}</div>
 )
 
+const CardTopBar = ({ children }: { children: React.ReactNode }) => (
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, gap: 8 }}>{children}</div>
+)
+
+const Divider = () => <div style={{ height: 1, background: T.rule, margin: '0 0 10px' }}/>
+
 const MetaRow = ({ icon, label }: { icon: React.ReactNode; label: string }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '4px 0' }}>
-    <span style={{ color: T.faint, flexShrink: 0 }}>{icon}</span>
-    <span style={{ fontSize: 12, color: T.muted, fontWeight: 500 }}>{label}</span>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '3px 0' }}>
+    <span style={{ color: T.faint, flexShrink: 0 }}>{React.cloneElement(icon as React.ReactElement, { color: T.faint })}</span>
+    <span style={{ fontSize: 12, color: T.muted, fontWeight: 500, fontFamily: FONT, letterSpacing: '-0.01em' }}>{label}</span>
   </div>
 )
 
 const IconBtn = ({ icon, title, danger = false, onClick }: { icon: React.ReactNode; title: string; danger?: boolean; onClick?: () => void }) => (
   <button title={title} onClick={onClick} style={{
-    width: 28, height: 28, borderRadius: 8, border: `1px solid ${danger ? '#FECACA' : T.rule}`,
-    background: danger ? '#FEF2F2' : T.canvas, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: danger ? '#DC2626' : T.muted, transition: 'all 0.15s',
+    width: 28, height: 28, borderRadius: 7,
+    border: `1.5px solid ${danger ? '#FECACA' : T.rule}`,
+    background: danger ? '#FEF2F2' : T.surface,
+    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    color: danger ? '#DC2626' : T.faint, transition: 'all 0.13s',
   }}
-    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = danger ? '#EF4444' : T.g600; (e.currentTarget as HTMLElement).style.color = danger ? '#DC2626' : T.g600 }}
-    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = danger ? '#FECACA' : T.rule; (e.currentTarget as HTMLElement).style.color = danger ? '#DC2626' : T.muted }}
-  >{icon}</button>
+    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = danger ? '#EF4444' : T.g600; (e.currentTarget as HTMLElement).style.color = danger ? '#DC2626' : T.g700; (e.currentTarget as HTMLElement).style.background = danger ? '#FEF2F2' : T.g50 }}
+    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = danger ? '#FECACA' : T.rule; (e.currentTarget as HTMLElement).style.color = danger ? '#DC2626' : T.faint; (e.currentTarget as HTMLElement).style.background = danger ? '#FEF2F2' : T.surface }}
+  >
+    {React.cloneElement(icon as React.ReactElement, { size: 12 })}
+  </button>
 )
 
 const EmptyState = ({ icon, message, sub }: { icon: React.ReactNode; message: string; sub?: string }) => (
-  <div style={{ gridColumn: '1/-1', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '64px 20px', textAlign: 'center' }}>
-    <div style={{ width: 60, height: 60, borderRadius: 16, background: T.g50, border: `1px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>{icon}</div>
-    <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 18, fontWeight: 700, color: T.ink, margin: 0 }}>{message}</p>
-    {sub && <p style={{ fontSize: 12, color: T.faint, marginTop: 6, maxWidth: 260, lineHeight: 1.6 }}>{sub}</p>}
+  <div style={{ gridColumn: '1/-1', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '56px 20px', textAlign: 'center' }}>
+    <div style={{ width: 52, height: 52, borderRadius: 12, background: T.g50, border: `1px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+      {React.cloneElement(icon as React.ReactElement, { color: T.faint })}
+    </div>
+    <p style={{ fontFamily: FONT, fontSize: 15, fontWeight: 800, color: T.ink, margin: 0, letterSpacing: '-0.02em' }}>{message}</p>
+    {sub && <p style={{ fontSize: 12, color: T.faint, marginTop: 6, maxWidth: 260, lineHeight: 1.6, fontFamily: FONT }}>{sub}</p>}
+  </div>
+)
+
+const SectionHeader = ({ title, sub, action }: { title: string; sub?: string; action?: React.ReactNode }) => (
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, gap: 12 }}>
+    <div>
+      <h3 style={{ fontFamily: FONT, fontSize: 15, fontWeight: 800, color: T.ink, margin: 0, letterSpacing: '-0.03em', textTransform: 'uppercase' }}>{title}</h3>
+      {sub && <p style={{ fontSize: 11, color: T.faint, marginTop: 2, fontFamily: FONT }}>{sub}</p>}
+    </div>
+    {action}
   </div>
 )
 
