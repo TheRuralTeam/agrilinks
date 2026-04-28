@@ -1,4 +1,14 @@
 {
+  "redirects": [
+    {
+      "source": "/confirmar-email",
+      "has": [
+        { "type": "query", "key": "oauth", "value": "google" }
+      ],
+      "destination": "/",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
