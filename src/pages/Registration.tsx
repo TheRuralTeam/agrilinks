@@ -16,6 +16,14 @@ import { toast } from "@/hooks/use-toast";
 import { CountryPhoneInput, countries, Country } from "@/components/CountryPhoneInput";
 import { changeLanguage, getSavedCountry } from "@/i18n";
 
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Erro inesperado ao criar conta.";
+};
+
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const T = {
   // Greens
@@ -208,7 +216,7 @@ const Registration = () => {
     setErrorMessage("");
     try {
       const fullPhone = `${selectedCountry.dialCode} ${phone}`;
-      const { error } = await register({
+      const { error, data } = await register({
         email, phone: fullPhone, password,
         full_name: fullName,
         identity_document: identityDocument,
@@ -223,10 +231,20 @@ const Registration = () => {
           : error.message || "Não foi possível criar a conta.");
         return;
       }
-      toast({ title: "Conta criada com sucesso!", description: "Bem-vindo ao AgriLink." });
-      navigate('/app', { replace: true });
-    } catch (error: any) {
-      setErrorMessage(error?.message || "Erro inesperado ao criar conta.");
+
+      if (data?.user?.email_confirmed_at) {
+        toast({ title: "Conta criada com sucesso!", description: "Bem-vindo ao AgriLink." });
+        navigate('/app', { replace: true });
+        return;
+      }
+
+      toast({
+        title: "Conta criada com sucesso!",
+        description: "Verifique o seu email para ativar a conta.",
+      });
+      navigate(`/confirmar-email?pending=1&email=${encodeURIComponent(email)}`, { replace: true });
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
     } finally {
       setLoading(false);
     }

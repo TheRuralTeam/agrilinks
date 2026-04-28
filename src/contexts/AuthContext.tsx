@@ -2,7 +2,30 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/integrations/supabase/client'
 import { User as UserProfile, RegisterData } from '@/types/database'
-import { toast } from '@/hooks/use-toast'
+
+type AuthActionError = {
+  message: string
+  needsEmailConfirmation?: boolean
+}
+
+type LoginResult = {
+  error: AuthActionError | null
+}
+
+type RegisterResult = {
+  error: AuthActionError | null
+  data?: {
+    user: User | null
+  } | null
+}
+
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return 'Ocorreu um erro inesperado. Tente novamente.'
+}
 
 interface AuthContextType {
   user: User | null
@@ -12,16 +35,17 @@ interface AuthContextType {
   isRootAdmin: boolean
   isSuperRoot: boolean
   isSupportAgent: boolean
-  login: (email: string, password: string) => Promise<{ error: any }>
-  register: (userData: RegisterData) => Promise<{ error: any; data?: any }>
+  login: (email: string, password: string) => Promise<LoginResult>
+  register: (userData: RegisterData) => Promise<RegisterResult>
   logout: () => Promise<void>
-  verifyEmail: (token: string) => Promise<{ error: any }>
-  resendVerification: () => Promise<{ error: any }>
-  resetPassword: (email: string) => Promise<{ error: any }>
+  verifyEmail: (token: string) => Promise<{ error: AuthActionError | null }>
+  resendVerification: () => Promise<{ error: AuthActionError | null }>
+  resetPassword: (email: string) => Promise<{ error: AuthActionError | null }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext)
   if (!context) {
@@ -163,7 +187,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe()
   }, [])
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<LoginResult> => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -172,24 +196,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) {
         let message = 'Erro ao fazer login'
+        let needsEmailConfirmation = false
         if (error.message === 'Invalid login credentials') {
           message = 'Email ou senha incorretos'
         } else if (error.message.includes('User not found')) {
           message = 'Usuário não encontrado'
         } else if (error.message.includes('Email not confirmed') || error.message.includes('email not confirmed')) {
-          // Tentar confirmar automaticamente se o usuário existir
           message = 'Email não confirmado. Por favor, verifique sua caixa de entrada.'
+          needsEmailConfirmation = true
         } else {
           message = error.message
         }
-        
-        toast({
-          title: "Erro no Login",
-          description: message,
-          variant: "destructive",
-        })
-        
-        return { error }
+
+        return {
+          error: {
+            message,
+            needsEmailConfirmation,
+          }
+        }
       }
 
       // Se login bem-sucedido, sincronizar email_verified na tabela public.users
@@ -202,18 +226,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       return { error: null }
-    } catch (err: any) {
-      console.error('Erro no login:', err)
-      toast({
-        title: "Erro no Login",
-        description: 'Ocorreu um erro inesperado. Tente novamente.',
-        variant: "destructive",
-      })
-      return { error: err }
+    } catch (error: unknown) {
+      console.error('Erro no login:', error)
+      return {
+        error: {
+          message: getErrorMessage(error),
+        }
+      }
     }
   }
 
-  const register = async (userData: RegisterData) => {
+  const register = async (userData: RegisterData): Promise<RegisterResult> => {
     const { user_type, province_id, municipality_id, full_name, identity_document, phone, password, email, referred_by_agent_id } = userData
     
     if (!email) {
@@ -245,14 +268,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       })
 
-      if (error) return { error, data: null }
+      if (error) {
+        return { error: { message: error.message }, data: null }
+      }
 
       // Triggers automáticos criam: perfil, carteira, código agente, referral
 
-      return { error: null, data }
-    } catch (err: any) {
-      console.error('Erro no registro:', err)
-      return { error: err, data: null }
+      return { error: null, data: data ? { user: data.user } : null }
+    } catch (error: unknown) {
+      console.error('Erro no registro:', error)
+      return { error: { message: getErrorMessage(error) }, data: null }
     }
   }
 

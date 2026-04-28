@@ -6,6 +6,14 @@ import { supabase } from '@/integrations/supabase/client'
 import orbisLinkLogo from '@/assets/orbislink-logo.png'
 import { toast } from '@/hooks/use-toast'
 
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return 'Erro inesperado.'
+}
+
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const T = {
   // Greens
@@ -88,7 +96,9 @@ const LoginPage = () => {
     try {
       const { error } = await login(email, password)
       if (error) {
+        const requiresEmailConfirmation = Boolean(error.needsEmailConfirmation)
         if (
+          requiresEmailConfirmation ||
           error.message.includes('email not confirmed') ||
           error.message.includes('User not confirmed') ||
           error.message.includes('Email not confirmed')
@@ -109,17 +119,17 @@ const LoginPage = () => {
               description: 'Enviamos um novo link de confirmação para o seu e-mail.',
             })
             setErrorMsg('Conta ainda não confirmada. Verifique o seu e-mail e clique no link de confirmação.')
-          } catch (resendErr: any) {
-            setErrorMsg(resendErr?.message || 'Conta não confirmada. Não foi possível reenviar o link agora.')
+          } catch (error) {
+            setErrorMsg(getErrorMessage(error) || 'Conta não confirmada. Não foi possível reenviar o link agora.')
           }
         } else {
-          setErrorMsg('Credenciais inválidas. Verifique e tente novamente.')
+          setErrorMsg(error.message || 'Credenciais inválidas. Verifique e tente novamente.')
         }
         return
       }
       navigate('/app')
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Erro inesperado.')
+    } catch (error) {
+      setErrorMsg(getErrorMessage(error))
     } finally {
       setLoading(false)
     }
@@ -136,8 +146,8 @@ const LoginPage = () => {
       if (error) throw error
       toast({ title: 'Email enviado', description: 'Verifique a sua caixa de entrada.' })
       setShowForgotPassword(false)
-    } catch (err: any) {
-      toast({ title: 'Erro', description: err.message, variant: 'destructive' })
+    } catch (error) {
+      toast({ title: 'Erro', description: getErrorMessage(error), variant: 'destructive' })
     } finally {
       setResetLoading(false)
     }
@@ -156,8 +166,8 @@ const LoginPage = () => {
       })
       if (error) throw error
       toast({ title: 'Email reenviado', description: 'Verifique a sua caixa de entrada ou spam.' })
-    } catch (err: any) {
-      toast({ title: 'Erro', description: err.message, variant: 'destructive' })
+    } catch (error) {
+      toast({ title: 'Erro', description: getErrorMessage(error), variant: 'destructive' })
     } finally {
       setResendLoading(false)
     }

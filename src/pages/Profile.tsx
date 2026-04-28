@@ -64,6 +64,62 @@ interface SourcingRequest {
   description: string | null; status: string; admin_notes: string | null; created_at: string
 }
 
+interface AgentReferral {
+  user_name: string
+  user_type: string
+  created_at: string
+  points: number
+}
+
+interface ProfileExtras {
+  verified?: boolean
+  agent_code?: string | null
+  avatar_url?: string | null
+}
+
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost'
+
+interface BtnProps {
+  children: React.ReactNode
+  onClick?: () => void
+  variant?: ButtonVariant
+  disabled?: boolean
+  size?: 'sm' | 'md' | 'lg'
+  style?: React.CSSProperties
+}
+
+interface InputFieldProps {
+  label?: string
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  type?: React.HTMLInputTypeAttribute
+  placeholder?: string
+  required?: boolean
+}
+
+interface TextareaFieldProps {
+  label?: string
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+  placeholder?: string
+  rows?: number
+}
+
+interface ProfileTab {
+  id: string
+  label: string
+  icon: React.ReactNode
+  badge?: number
+}
+
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return 'Erro inesperado'
+}
+
 /* ─── Micro components ───────────────────────────────────────────────────────── */
 const StatCard = ({ icon, value, label, color = T.g600 }: { icon: React.ReactNode; value: number | string; label: string; color?: string }) => (
   <div style={{
@@ -111,7 +167,7 @@ const TabBtn = ({ active, onClick, icon, label, badge }: { active: boolean; onCl
   </button>
 )
 
-const Btn = ({ children, onClick, variant = 'primary', disabled = false, size = 'md', style: extraStyle = {} }: any) => {
+const Btn = ({ children, onClick, variant = 'primary', disabled = false, size = 'md', style: extraStyle = {} }: BtnProps) => {
   const base: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
     borderRadius: 10, cursor: disabled ? 'not-allowed' : 'pointer',
@@ -136,7 +192,7 @@ const Btn = ({ children, onClick, variant = 'primary', disabled = false, size = 
   )
 }
 
-const Input = ({ label, value, onChange, type = 'text', placeholder = '', required = false }: any) => (
+const Input = ({ label, value, onChange, type = 'text', placeholder = '', required = false }: InputFieldProps) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
     {label && (
       <label style={{ fontSize: 11, fontWeight: 700, color: T.ink, textTransform: 'uppercase', letterSpacing: '0.07em', display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -155,7 +211,7 @@ const Input = ({ label, value, onChange, type = 'text', placeholder = '', requir
   </div>
 )
 
-const Textarea = ({ label, value, onChange, placeholder = '', rows = 4 }: any) => (
+const Textarea = ({ label, value, onChange, placeholder = '', rows = 4 }: TextareaFieldProps) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
     {label && <label style={{ fontSize: 11, fontWeight: 700, color: T.ink, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</label>}
     <textarea value={value} onChange={onChange} placeholder={placeholder} rows={rows} style={{
@@ -196,6 +252,7 @@ const Profile = () => {
   const { t } = useTranslation()
   const { user, userProfile, logout } = useAuth()
   const navigate = useNavigate()
+  const profileExtras = userProfile as (typeof userProfile & ProfileExtras) | null
 
   const [activeTab, setActiveTab] = useState('products')
   const [userProducts, setUserProducts] = useState<UserProduct[]>([])
@@ -205,7 +262,7 @@ const Profile = () => {
   const [editMode, setEditMode] = useState(false)
   const [avatarLoading, setAvatarLoading] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [agentStats, setAgentStats] = useState<{ totalReferrals: number; totalPoints: number; recentReferrals: any[] } | null>(null)
+  const [agentStats, setAgentStats] = useState<{ totalReferrals: number; totalPoints: number; recentReferrals: AgentReferral[] } | null>(null)
   const [buyerStats, setBuyerStats] = useState<{ completedOrders: number; favoriteProducts: number }>({ completedOrders: 0, favoriteProducts: 0 })
   const [productStats, setProductStats] = useState<{ [productId: string]: { likes: number; comments: number } }>({})
   const [provinceName, setProvinceName] = useState('')
@@ -240,9 +297,9 @@ const Profile = () => {
 
   const fetchFichasRecebimento = async () => {
     try {
-      const { data, error } = await supabase.from('fichas_recebimento' as any).select('*').eq('user_id', user?.id).order('created_at', { ascending: false })
+      const { data, error } = await supabase.from('fichas_recebimento').select('*').eq('user_id', user?.id).order('created_at', { ascending: false })
       if (error) throw error
-      setFichasRecebimento((data || []) as any)
+      setFichasRecebimento((data || []) as FichaRecebimento[])
     } catch (error) { console.error(error) }
   }
 
@@ -303,23 +360,24 @@ const Profile = () => {
       setSourcingForm({ product_name: '', quantity: '', delivery_date: '', description: '' })
       setShowSourcingForm(false)
       fetchSourcingRequests()
-    } catch (error: any) {
-      toast({ title: 'Erro', description: error.message || 'Erro ao enviar pedido', variant: 'destructive' })
+    } catch (error: unknown) {
+      toast({ title: 'Erro', description: getErrorMessage(error), variant: 'destructive' })
     } finally { setSubmittingSourcing(false) }
   }
 
   const shareAgentCode = async () => {
-    const agentCode = (userProfile as any)?.agent_code; if (!agentCode) return
+    const agentCode = profileExtras?.agent_code; if (!agentCode) return
     const shareMessage = `${t('profile.shareMessage')}: ${agentCode}\n\nCadastrar: ${window.location.origin}/cadastro`
     if (navigator.share) { try { await navigator.share({ title: 'AgriLink - Código de Agente', text: shareMessage }) } catch { copyAgentCode() } } else { copyAgentCode() }
   }
 
   const copyAgentCode = () => {
-    const agentCode = (userProfile as any)?.agent_code; if (!agentCode) return
+    const agentCode = profileExtras?.agent_code; if (!agentCode) return
     navigator.clipboard.writeText(agentCode)
     toast({ title: t('profile.codeCopied') })
   }
 
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     if (!user) return
     if (userProfile?.user_type === 'comprador') { fetchFichasRecebimento(); fetchSourcingRequests(); fetchBuyerStats() }
@@ -327,6 +385,7 @@ const Profile = () => {
     if (userProfile?.user_type === 'agente') fetchAgentStats()
     setLoading(false)
   }, [user, userProfile])
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   useEffect(() => {
     if (userProfile) {
@@ -343,7 +402,7 @@ const Profile = () => {
       if (error) throw error
       toast({ title: 'Perfil actualizado com sucesso.' })
       setEditMode(false)
-    } catch (error: any) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }) }
+    } catch (error: unknown) { toast({ title: 'Erro', description: getErrorMessage(error), variant: 'destructive' }) }
   }
 
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -356,7 +415,7 @@ const Profile = () => {
       if (uploadError) throw uploadError
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
       await supabase.from('users').update({ avatar_url: publicUrl, updated_at: new Date().toISOString() }).eq('id', user?.id)
-    } catch (error: any) { toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' }) }
+    } catch (error: unknown) { toast({ title: 'Erro no upload', description: getErrorMessage(error), variant: 'destructive' }) }
     finally { setAvatarLoading(false) }
   }
 
@@ -375,7 +434,7 @@ const Profile = () => {
       if (error) throw error
       setReceivedOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'accepted' } : o))
       toast({ title: 'Pedido aceite.' })
-    } catch { toast({ title: 'Erro ao aceitar pedido', variant: 'destructive' } as any) }
+    } catch { toast({ title: 'Erro ao aceitar pedido', description: 'Não foi possível actualizar o pedido.', variant: 'destructive' }) }
   }
 
   const rejectOrder = async (orderId: string) => {
@@ -417,7 +476,7 @@ const Profile = () => {
   const isAgente = userProfile?.user_type === 'agente'
   const isAgricultor = userProfile?.user_type === 'agricultor'
 
-  const tabs = [
+  const tabs: ProfileTab[] = [
     { id: 'products', label: isComprador ? t('profile.myFichas') : t('profile.myProducts'), icon: isComprador ? <ClipboardList size={15}/> : <Package size={15}/> },
     ...(isComprador ? [{ id: 'sourcing', label: t('profile.sourcing'), icon: <Search size={15}/> }] : []),
     ...(isAgricultor || isAgente ? [{ id: 'orders', label: t('profile.receivedOrders'), icon: <ShoppingCart size={15}/>, badge: receivedOrders.filter(o => o.status === 'pending').length }] : []),
@@ -503,7 +562,7 @@ const Profile = () => {
                   <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 22, fontWeight: 700, color: T.ink, margin: 0, letterSpacing: '-0.01em' }}>
                     {profileData.full_name || 'Utilizador'}
                   </h2>
-                  {(userProfile as any)?.verified && (
+                  {profileExtras?.verified && (
                     <div style={{ width: 20, height: 20, borderRadius: '50%', background: T.g50, border: `1.5px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <BadgeCheck size={12} color={T.g600}/>
                     </div>
@@ -522,10 +581,10 @@ const Profile = () => {
                   <InfoRow icon={<MapPin size={13} color={T.g500}/>} value={`${provinceName}${municipalityName ? ', ' + municipalityName : ''}`} />
 
                   {/* Agent code */}
-                  {isAgente && (userProfile as any)?.agent_code && (
+                  {isAgente && profileExtras?.agent_code && (
                     <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 12, background: T.g50, border: `1px solid ${T.gBorder}` }}>
                       <p style={{ fontSize: 10, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{t('profile.agentCode')}</p>
-                      <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 24, fontWeight: 700, color: T.g600, letterSpacing: '0.08em', margin: 0 }}>{(userProfile as any).agent_code}</p>
+                      <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 24, fontWeight: 700, color: T.g600, letterSpacing: '0.08em', margin: 0 }}>{profileExtras.agent_code}</p>
                     </div>
                   )}
 
@@ -542,9 +601,9 @@ const Profile = () => {
                 </>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}>
-                  <Input label={t('profile.fullName')} value={profileData.full_name} onChange={(e: any) => setProfileData(p => ({ ...p, full_name: e.target.value }))} />
-                  <Input label={t('profile.phone')} value={profileData.phone} onChange={(e: any) => setProfileData(p => ({ ...p, phone: e.target.value }))} />
-                  <Input label={t('profile.email')} type="email" value={profileData.email} onChange={(e: any) => setProfileData(p => ({ ...p, email: e.target.value }))} />
+                  <Input label={t('profile.fullName')} value={profileData.full_name} onChange={(e) => setProfileData(p => ({ ...p, full_name: e.target.value }))} />
+                  <Input label={t('profile.phone')} value={profileData.phone} onChange={(e) => setProfileData(p => ({ ...p, phone: e.target.value }))} />
+                  <Input label={t('profile.email')} type="email" value={profileData.email} onChange={(e) => setProfileData(p => ({ ...p, email: e.target.value }))} />
                   <div style={{ display: 'flex', gap: 8 }}>
                     <Btn variant="primary" onClick={updateProfile} style={{ flex: 1 }}>{t('common.save')}</Btn>
                     <Btn variant="outline" onClick={() => setEditMode(false)} style={{ flex: 1 }}>{t('common.cancel')}</Btn>
@@ -596,7 +655,7 @@ const Profile = () => {
                 onClick={() => setActiveTab(tab.id)}
                 icon={tab.icon}
                 label={tab.label}
-                badge={(tab as any).badge}
+                badge={tab.badge}
               />
             ))}
           </div>
@@ -673,11 +732,11 @@ const Profile = () => {
               {showSourcingForm && (
                 <div style={{ background: T.white, borderRadius: 16, border: `1px solid ${T.rule}`, padding: 20, boxShadow: `0 2px 12px ${T.shadow}`, display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }} className="sm:grid-cols-2">
-                    <Input label={t('sourcing.productName')} value={sourcingForm.product_name} onChange={(e: any) => setSourcingForm(p => ({ ...p, product_name: e.target.value }))} placeholder={t('sourcing.productNamePlaceholder')} required />
-                    <Input label={t('sourcing.quantity')} type="number" value={sourcingForm.quantity} onChange={(e: any) => setSourcingForm(p => ({ ...p, quantity: e.target.value }))} placeholder={t('sourcing.quantityPlaceholder')} required />
+                    <Input label={t('sourcing.productName')} value={sourcingForm.product_name} onChange={(e) => setSourcingForm(p => ({ ...p, product_name: e.target.value }))} placeholder={t('sourcing.productNamePlaceholder')} required />
+                    <Input label={t('sourcing.quantity')} type="number" value={sourcingForm.quantity} onChange={(e) => setSourcingForm(p => ({ ...p, quantity: e.target.value }))} placeholder={t('sourcing.quantityPlaceholder')} required />
                   </div>
-                  <Input label={t('sourcing.deliveryDate')} type="date" value={sourcingForm.delivery_date} onChange={(e: any) => setSourcingForm(p => ({ ...p, delivery_date: e.target.value }))} required />
-                  <Textarea label={t('sourcing.description')} value={sourcingForm.description} onChange={(e: any) => setSourcingForm(p => ({ ...p, description: e.target.value }))} placeholder={t('sourcing.descriptionPlaceholder')} />
+                  <Input label={t('sourcing.deliveryDate')} type="date" value={sourcingForm.delivery_date} onChange={(e) => setSourcingForm(p => ({ ...p, delivery_date: e.target.value }))} required />
+                  <Textarea label={t('sourcing.description')} value={sourcingForm.description} onChange={(e) => setSourcingForm(p => ({ ...p, description: e.target.value }))} placeholder={t('sourcing.descriptionPlaceholder')} />
                   <Btn variant="primary" onClick={submitSourcingRequest} disabled={submittingSourcing} style={{ width: '100%' }}>
                     {submittingSourcing ? t('common.processing') : t('sourcing.submitRequest')}
                   </Btn>
@@ -761,7 +820,7 @@ const Profile = () => {
 
               {!agentStats?.recentReferrals?.length ? (
                 <EmptyState icon={<Users size={28} color={T.faint}/>} message={t('profile.noReferralsYet')} sub={t('profile.shareToEarnPoints')} />
-              ) : agentStats.recentReferrals.map((referral: any, i: number) => (
+              ) : agentStats.recentReferrals.map((referral, i) => (
                 <div key={i} style={{ background: T.white, borderRadius: 14, border: `1px solid ${T.rule}`, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', animation: `fadeUp 0.35s cubic-bezier(0.22,1,0.36,1) ${i * 0.04}s both`, boxShadow: `0 1px 4px ${T.shadow}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 38, height: 38, borderRadius: '50%', background: T.g50, border: `1px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

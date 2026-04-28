@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,39 +18,84 @@ const paymentMethods = [
   { value: "unitel", label: "Unitel Money" },
 ];
 
+type WalletData = {
+  id: string;
+  user_id: string;
+  blocked_balance: number | null;
+};
+
+type WalletTransaction = {
+  id: string;
+  wallet_id: string;
+  type: string;
+  status: string;
+  amount: number;
+  description: string;
+  created_at: string;
+};
+
+type WalletCommission = {
+  id: string;
+  amount: number;
+  description: string;
+};
+
+type WalletSummary = WalletData & {
+  total_earned: number;
+  total_spent: number;
+  available_balance: number;
+  blocked_balance: number;
+};
+
+type FormProps = {
+  wallet: WalletSummary;
+  loadWalletData: () => Promise<void>;
+};
+
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Erro inesperado";
+};
+
 export default function Wallet() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [wallet, setWallet] = useState<any>(null);
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [commissions, setCommissions] = useState<any[]>([]);
+  const [wallet, setWallet] = useState<WalletSummary | null>(null);
+  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [commissions, setCommissions] = useState<WalletCommission[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) loadWalletData();
-  }, [user]);
+  const loadWalletData = useCallback(async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
 
-  const loadWalletData = async () => {
     try {
       setLoading(true);
 
       // Carregar ou criar carteira
-      let { data: walletData, error } = await supabase
+      const { data: walletDataResponse, error: walletError } = await supabase
         .from("wallets")
         .select("*")
         .eq("user_id", user?.id)
         .maybeSingle();
-      if (error) throw error;
+      if (walletError) throw walletError;
+
+      let walletData = walletDataResponse as WalletData | null;
 
       if (!walletData) {
         const { data: newWallet, error: createError } = await supabase
           .from("wallets")
-          .insert({ user_id: user?.id })
+          .insert({ user_id: user.id })
           .select()
           .single();
         if (createError) throw createError;
-        walletData = newWallet;
+        walletData = newWallet as WalletData;
       }
 
       // Carregar transações
@@ -65,14 +110,17 @@ export default function Wallet() {
       const { data: commData } = await supabase
         .from("commissions")
         .select("*")
-        .eq("user_id", user?.id)
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(10);
 
       // Atualizar saldo baseado nas transações
-      const totalEarned = txData?.filter(tx => tx.type === "deposit" && tx.status === "completed")
+      const parsedTxData = (txData || []) as WalletTransaction[];
+      const parsedCommData = (commData || []) as WalletCommission[];
+
+      const totalEarned = parsedTxData.filter(tx => tx.type === "deposit" && tx.status === "completed")
         .reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
-      const totalSpent = txData?.filter(tx => tx.type === "internal_transfer" && tx.status === "completed")
+      const totalSpent = parsedTxData.filter(tx => tx.type === "internal_transfer" && tx.status === "completed")
         .reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
 
       setWallet({
@@ -83,20 +131,28 @@ export default function Wallet() {
         blocked_balance: walletData.blocked_balance || 0,
       });
 
-      setTransactions(txData || []);
-      setCommissions(commData || []);
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Erro ao carregar carteira", description: err.message });
+      setTransactions(parsedTxData);
+      setCommissions(parsedCommData);
+    } catch (error: unknown) {
+      toast({ variant: "destructive", title: "Erro ao carregar carteira", description: getErrorMessage(error) });
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, user?.id]);
+
+  useEffect(() => {
+    loadWalletData();
+  }, [loadWalletData]);
 
   if (loading) return (
     <div className="flex justify-center items-center min-h-screen">
       <div className="animate-spin h-10 w-10 border-b-2 border-green-600 rounded-full"></div>
     </div>
   );
+
+  if (!wallet) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen p-4 bg-background">
@@ -168,7 +224,7 @@ function WalletCard({ title, amount, color = "gray" }: { title: string; amount: 
   );
 }
 
-function DepositForm({ wallet, loadWalletData }: any) {
+function DepositForm({ wallet, loadWalletData }: FormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [depositAmount, setDepositAmount] = useState("");
@@ -191,8 +247,8 @@ function DepositForm({ wallet, loadWalletData }: any) {
       toast({ title: "Depósito realizado", description: formatCurrency(parseFloat(depositAmount)) });
       setDepositAmount("");
       loadWalletData();
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Erro no depósito", description: err.message });
+    } catch (error: unknown) {
+      toast({ variant: "destructive", title: "Erro no depósito", description: getErrorMessage(error) });
     } finally { setProcessingDeposit(false); }
   };
 
@@ -217,7 +273,7 @@ function DepositForm({ wallet, loadWalletData }: any) {
   );
 }
 
-function TransferForm({ wallet, loadWalletData }: any) {
+function TransferForm({ wallet, loadWalletData }: FormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [transferAmount, setTransferAmount] = useState("");
@@ -248,8 +304,8 @@ function TransferForm({ wallet, loadWalletData }: any) {
       setTransferAmount("");
       setTransferEmail("");
       loadWalletData();
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Erro na transferência", description: err.message });
+    } catch (error: unknown) {
+      toast({ variant: "destructive", title: "Erro na transferência", description: getErrorMessage(error) });
     } finally { setProcessingTransfer(false); }
   };
 

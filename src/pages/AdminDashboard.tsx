@@ -87,6 +87,7 @@ interface User {
   verified?: boolean;
   verified_at?: string | null;
   is_root_admin?: boolean;
+  is_super_root?: boolean;
 }
 
 interface Order {
@@ -164,6 +165,27 @@ interface Referral {
   agent_code: string;
   referred_user_name: string;
 }
+
+interface ReferralRow {
+  id: string;
+  agent_id: string;
+  referred_user_id: string;
+  points: number;
+  created_at: string;
+}
+
+interface ReferralAgentStats {
+  agent_id: string;
+  agent_name: string;
+  agent_avatar: string | null;
+  agent_code: string;
+  total_referrals: number;
+  total_points: number;
+  referred_users: string[];
+}
+
+type GenericRow = { id: string };
+type DeletableTable = "transactions" | "notifications" | "fichas_recebimento" | "sourcing_requests" | "pre_orders";
 
 // --- Componentes Auxiliares ---
 const MetricCard = ({ title, value, icon, trend, color }: {
@@ -276,7 +298,7 @@ const AdminDashboard = () => {
         setUserPermissions(["manage_users", "manage_products", "manage_orders", "manage_support", "manage_sourcing", "view_analytics", "manage_admins"]);
       }
       
-      if ((userData as any)?.is_super_root) {
+      if (userData?.is_super_root) {
         setIsSuperRoot(true);
       }
 
@@ -355,7 +377,7 @@ const AdminDashboard = () => {
       // Process referrals with user data
       if (referralsRes.data && usersRes.data) {
         const usersMap = new Map(usersRes.data.map(u => [u.id, u]));
-        const processedReferrals: Referral[] = referralsRes.data.map((r: any) => {
+        const processedReferrals: Referral[] = (referralsRes.data as ReferralRow[]).map((r) => {
           const agent = usersMap.get(r.agent_id);
           const referred = usersMap.get(r.referred_user_id);
           return {
@@ -403,7 +425,7 @@ const AdminDashboard = () => {
     }
   }, [targetUser, notificationMessage, notificationTitle, notificationType]);
 
-  const handleDelete = useCallback(async (table: string, id: string, setter: Function) => {
+  const handleDelete = useCallback(async <T extends GenericRow>(table: string, id: string, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
     if (!confirm("Deseja realmente apagar? Esta ação não pode ser desfeita.")) return;
     try {
       if (table === "users") {
@@ -413,7 +435,7 @@ const AdminDashboard = () => {
           toast.error("Erro ao apagar usuário: " + error.message);
           return;
         }
-        setter((prev: any[]) => prev.filter((item: any) => item.id !== id));
+        setter((prev) => prev.filter((item) => item.id !== id));
         setProducts((prev) => prev.filter((p) => p.user_id !== id));
         toast.success("Usuário e dados relacionados apagados com sucesso");
       } else if (table === "products") {
@@ -423,16 +445,16 @@ const AdminDashboard = () => {
           toast.error("Erro ao apagar produto: " + error.message);
           return;
         }
-        setter((prev: any[]) => prev.filter((item: any) => item.id !== id));
+        setter((prev) => prev.filter((item) => item.id !== id));
         toast.success("Produto e dados relacionados apagados com sucesso");
       } else {
-        const { error } = await supabase.from(table as any).delete().eq("id", id);
+        const { error } = await supabase.from(table as DeletableTable).delete().eq("id", id);
         if (error) {
           console.error("Erro ao apagar:", error);
           toast.error("Erro ao apagar: " + error.message);
           return;
         }
-        setter((prev: any[]) => prev.filter((item: any) => item.id !== id));
+        setter((prev) => prev.filter((item) => item.id !== id));
         toast.success("Item apagado com sucesso");
       }
     } catch (err) {
@@ -441,7 +463,7 @@ const AdminDashboard = () => {
     }
   }, []);
 
-  const handleBulkDelete = useCallback(async (table: string, ids: Set<string>, setter: Function, clearSelection: () => void) => {
+  const handleBulkDelete = useCallback(async <T extends GenericRow>(table: string, ids: Set<string>, setter: React.Dispatch<React.SetStateAction<T[]>>, clearSelection: () => void) => {
     if (ids.size === 0) { toast.error("Nenhum item selecionado"); return; }
     if (!confirm(`Deseja realmente apagar ${ids.size} item(s)? Esta ação não pode ser desfeita.`)) return;
     try {
@@ -453,7 +475,7 @@ const AdminDashboard = () => {
           toast.error("Erro ao apagar usuários: " + error.message);
           return;
         }
-        setter((prev: any[]) => prev.filter((item: any) => !ids.has(item.id)));
+        setter((prev) => prev.filter((item) => !ids.has(item.id)));
         setProducts((prev) => prev.filter((p) => !ids.has(p.user_id)));
         clearSelection();
         toast.success(`${data || idsArray.length} usuário(s) e dados relacionados apagados com sucesso`);
@@ -464,17 +486,17 @@ const AdminDashboard = () => {
           toast.error("Erro ao apagar produtos: " + error.message);
           return;
         }
-        setter((prev: any[]) => prev.filter((item: any) => !ids.has(item.id)));
+        setter((prev) => prev.filter((item) => !ids.has(item.id)));
         clearSelection();
         toast.success(`${data || idsArray.length} produto(s) e dados relacionados apagados com sucesso`);
       } else {
-        const { error } = await supabase.from(table as any).delete().in("id", idsArray);
+        const { error } = await supabase.from(table as DeletableTable).delete().in("id", idsArray);
         if (error) {
           console.error("Erro ao apagar itens:", error);
           toast.error("Erro ao apagar itens: " + error.message);
           return;
         }
-        setter((prev: any[]) => prev.filter((item: any) => !ids.has(item.id)));
+        setter((prev) => prev.filter((item) => !ids.has(item.id)));
         clearSelection();
         toast.success(`${idsArray.length} item(s) apagado(s) com sucesso`);
       }
@@ -1828,7 +1850,7 @@ const AdminDashboard = () => {
                         agent.total_points += r.points;
                         agent.referred_users.push(r.referred_user_name);
                         return acc;
-                      }, new Map<string, any>())
+                      }, new Map<string, ReferralAgentStats>())
                     ).map(([agentId, stats]) => (
                       <div key={agentId} className="p-3 border rounded-xl bg-muted/20">
                         <div className="flex items-center gap-3 mb-2">
