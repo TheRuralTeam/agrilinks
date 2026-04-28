@@ -4,7 +4,6 @@ import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, ShieldCheck, X } from 'l
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
 import orbisLinkLogo from '@/assets/orbislink-logo.png'
-import { OtpVerificationModal } from '@/components/OtpVerificationModal'
 import { toast } from '@/hooks/use-toast'
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
@@ -76,9 +75,6 @@ const LoginPage = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
   const [resendLoading, setResendLoading] = useState(false)
-  const [showOtpModal, setShowOtpModal] = useState(false)
-  const [pendingUserId, setPendingUserId] = useState('')
-  const [pendingUserName, setPendingUserName] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
 
   const { login } = useAuth()
@@ -97,24 +93,24 @@ const LoginPage = () => {
           error.message.includes('User not confirmed') ||
           error.message.includes('Email not confirmed')
         ) {
-          const { data: userData } = await supabase
-            .from('users')
-            .select('id, full_name, email_verified')
-            .eq('email', email)
-            .maybeSingle()
+          try {
+            const { error: resendError } = await supabase.auth.resend({
+              type: 'signup',
+              email,
+              options: {
+                emailRedirectTo: `${window.location.origin}/confirmar-email`,
+              },
+            })
 
-          if (userData && !userData.email_verified) {
-            setPendingUserId(userData.id)
-            setPendingUserName(userData.full_name || 'Usuário')
-            try {
-              await supabase.functions.invoke('send-otp-email', {
-                body: { user_id: userData.id, email, full_name: userData.full_name || 'Usuário' },
-              })
-              toast({ title: 'Código enviado!', description: 'Verifique o seu e-mail.' })
-            } catch (otpErr) {
-              console.error('OTP error:', otpErr)
-            }
-            setShowOtpModal(true)
+            if (resendError) throw resendError
+
+            toast({
+              title: 'Confirmação necessária',
+              description: 'Enviamos um novo link de confirmação para o seu e-mail.',
+            })
+            setErrorMsg('Conta ainda não confirmada. Verifique o seu e-mail e clique no link de confirmação.')
+          } catch (resendErr: any) {
+            setErrorMsg(resendErr?.message || 'Conta não confirmada. Não foi possível reenviar o link agora.')
           }
         } else {
           setErrorMsg('Credenciais inválidas. Verifique e tente novamente.')
@@ -151,27 +147,19 @@ const LoginPage = () => {
     if (!email) { toast({ title: 'Atenção', description: 'Insira o seu email primeiro.' }); return }
     setResendLoading(true)
     try {
-      const { error } = await supabase.auth.resend({ type: 'signup', email })
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/confirmar-email`,
+        },
+      })
       if (error) throw error
       toast({ title: 'Email reenviado', description: 'Verifique a sua caixa de entrada ou spam.' })
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' })
     } finally {
       setResendLoading(false)
-    }
-  }
-
-  const handleOtpSuccess = async () => {
-    setShowOtpModal(false)
-    toast({ title: 'Email verificado!', description: 'Faça login novamente.' })
-    if (email && password) {
-      setLoading(true)
-      try {
-        const { error } = await login(email, password)
-        if (!error) navigate('/app')
-      } finally {
-        setLoading(false)
-      }
     }
   }
 
@@ -559,17 +547,6 @@ const LoginPage = () => {
         </div>
       )}
 
-      {/* OTP Modal */}
-      {showOtpModal && (
-        <OtpVerificationModal
-          isOpen={showOtpModal}
-          onClose={() => setShowOtpModal(false)}
-          onSuccess={handleOtpSuccess}
-          userId={pendingUserId}
-          userName={pendingUserName}
-          email={email}
-        />
-      )}
     </div>
   )
 }
