@@ -53,6 +53,12 @@ interface ProductStats {
   totalQuantity: number;
 }
 
+interface MarketProduct {
+  product_type: string;
+  price: number;
+  quantity: number;
+}
+
 interface MarketAnalysis {
   analysis: string;
   stats: ProductStats[];
@@ -66,9 +72,9 @@ const MarketData = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [marketData, setMarketData] = useState<MarketAnalysis | null>(null);
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<MarketProduct[]>([]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (): Promise<MarketProduct[]> => {
     try {
       const { data, error: fetchError } = await supabase
         .from("products")
@@ -77,8 +83,9 @@ const MarketData = () => {
         .order("created_at", { ascending: false });
 
       if (fetchError) throw fetchError;
-      setProducts(data || []);
-      return data || [];
+      const parsedData = (data || []) as MarketProduct[];
+      setProducts(parsedData);
+      return parsedData;
     } catch (err) {
       console.error("Erro ao buscar produtos:", err);
       setError("Erro ao carregar produtos");
@@ -86,8 +93,8 @@ const MarketData = () => {
     }
   };
 
-  const calculateLocalStats = (productsData: any[]): ProductStats[] => {
-    const productsByType: Record<string, any[]> = {};
+  const calculateLocalStats = (productsData: MarketProduct[]): ProductStats[] => {
+    const productsByType: Record<string, MarketProduct[]> = {};
     
     productsData.forEach((p) => {
       if (!productsByType[p.product_type]) {
@@ -110,7 +117,7 @@ const MarketData = () => {
     }).sort((a, b) => b.count - a.count);
   };
 
-  const generateAnalysis = async (productsData: any[]) => {
+  const generateAnalysis = async (productsData: MarketProduct[]) => {
     if (productsData.length === 0) {
       setError("Nenhum produto disponível para análise");
       return;
@@ -126,7 +133,7 @@ const MarketData = () => {
 
       setMarketData(data);
       setError(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Erro na análise de mercado:", err);
       const localStats = calculateLocalStats(productsData);
       setMarketData({

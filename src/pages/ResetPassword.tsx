@@ -10,6 +10,14 @@ import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import agrilinkLogo from '@/assets/agrilink-logo.png'
 
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return 'Erro desconhecido'
+}
+
 const ResetPassword = () => {
   const { t } = useTranslation()
   const [password, setPassword] = useState('')
@@ -49,7 +57,7 @@ const ResetPassword = () => {
       subscription.unsubscribe()
       clearTimeout(timer)
     }
-  }, [navigate])
+  }, [navigate, t])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -79,9 +87,9 @@ const ResetPassword = () => {
       setTimeout(() => {
         navigate('/app')
       }, 2000)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating password:', error)
-      toast.error(t('resetPassword.errorUpdating') + ': ' + error.message)
+      toast.error(t('resetPassword.errorUpdating') + ': ' + getErrorMessage(error))
     } finally {
       setLoading(false)
     }

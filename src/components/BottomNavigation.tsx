@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Home, Map, Bell, MessageSquare, User, Plus, LayoutDashboard, BarChart3 } from 'lucide-react'
+import { Home, Map, Bell, MessageSquare, User, Plus, LayoutDashboard, BarChart3, type LucideIcon } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
 
@@ -21,6 +21,14 @@ const B = {
   // Transparencies
   glass:      'rgba(255, 255, 255, 0.9)', // Vidro branco
   shadow:     'rgba(10, 12, 11, 0.08)',
+}
+
+interface NavItem {
+  icon: LucideIcon
+  label: string
+  path: string
+  isAction?: boolean
+  badge?: number
 }
 
 const BottomNavigation = () => {
@@ -57,7 +65,7 @@ const BottomNavigation = () => {
   }, [user?.id])
 
   // Item de publicação (Ação principal)
-  const publishItem = { 
+  const publishItem: NavItem = { 
     icon: Plus, 
     label: t('navigation.publish'), 
     path: '/publicar-produto', 
@@ -65,7 +73,7 @@ const BottomNavigation = () => {
   }
 
   // Itens de navegação (7 itens no total)
-  const navItems = [
+  const navItems: NavItem[] = [
     { icon: Home, label: t('navigation.home'), path: '/app' },
     isAdmin
       ? { icon: LayoutDashboard, label: 'Admin', path: '/admindashboard' }
@@ -102,7 +110,7 @@ const BottomNavigation = () => {
         }}>
           {navItems.map((item) => {
             const active = isActive(item.path)
-            const isAction = (item as any).isAction
+            const isAction = item.isAction
 
             return (
               <button
@@ -142,7 +150,7 @@ const BottomNavigation = () => {
                     }
                     style={{ transition:'all 0.2s' }}
                   />
-                  {(item as any).badge > 0 && (
+                  {(item.badge || 0) > 0 && (
                     <span style={{
                       position:'absolute', top: -4, right: -6,
                       minWidth: 14, height: 14, borderRadius: '50%',
@@ -151,7 +159,7 @@ const BottomNavigation = () => {
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 8, fontWeight: 800, color: B.white,
                     }}>
-                      {(item as any).badge > 99 ? '99+' : (item as any).badge}
+                      {(item.badge || 0) > 99 ? '99+' : item.badge}
                     </span>
                   )}
                 </div>

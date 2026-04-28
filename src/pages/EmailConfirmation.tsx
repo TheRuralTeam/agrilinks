@@ -8,15 +8,28 @@ import orbisLinkLogo from "@/assets/orbislink-logo.png";
 
 const EmailConfirmation = () => {
   const navigate = useNavigate();
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "pending" | "success" | "error">("loading");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     const confirmEmail = async () => {
       try {
+        const queryParams = new URLSearchParams(window.location.search);
+        const isPendingView = queryParams.get('pending') === '1';
+        const pendingEmail = queryParams.get('email');
+
+        if (isPendingView) {
+          setStatus("pending");
+          setMessage(
+            pendingEmail
+              ? `Enviámos um link de confirmação para ${pendingEmail}. Abra o email e clique no link para ativar a sua conta.`
+              : "Enviámos um link de confirmação para o seu email. Abra o email e clique no link para ativar a sua conta."
+          );
+          return;
+        }
+
         // Verificar se há tokens na URL (hash ou query params)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const queryParams = new URLSearchParams(window.location.search);
         
         const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
@@ -140,6 +153,33 @@ const EmailConfirmation = () => {
                     <p className="text-sm text-muted-foreground">
                       Redirecionando para o app...
                     </p>
+                  </div>
+                </>
+              )}
+
+              {status === "pending" && (
+                <>
+                  <CheckCircle2 className="h-16 w-16 text-primary" />
+                  <div className="text-center space-y-4">
+                    <p className="text-lg font-semibold text-primary">
+                      Verifique o seu e-mail
+                    </p>
+                    <p className="text-muted-foreground">{message}</p>
+                    <div className="flex flex-col gap-3">
+                      <Button
+                        onClick={() => navigate("/login")}
+                        className="w-full"
+                      >
+                        Ir para Login
+                      </Button>
+                      <Button
+                        onClick={() => navigate("/cadastro")}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        Voltar ao Cadastro
+                      </Button>
+                    </div>
                   </div>
                 </>
               )}

@@ -1401,7 +1401,7 @@ const AdminDashboard = () => {
               <Leaf size={18} color="#0f4526" />
             </div>
             <div className="adm-brand-text">
-              <span className="adm-brand-title">AgriLink Admin</span>
+              <span className="adm-brand-title">OrbisLink Admin</span>
               <span className="adm-brand-sub">Painel de Controle Agrícola</span>
             </div>
           </div>

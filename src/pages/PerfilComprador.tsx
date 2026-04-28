@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   Card, CardContent, CardHeader, CardTitle
 } from '@/components/ui/card'
@@ -20,11 +20,12 @@ import { toast } from '@/hooks/use-toast'
 
 interface FichaRecebimento {
   id: string
-  codigo: string
-  data_recebimento: string
-  fornecedor: string
-  valor_total: number
+  codigo?: string
+  data_recebimento?: string
+  fornecedor?: string
+  valor_total?: number
   status: string
+  created_at?: string
 }
 
 interface Order {
@@ -69,30 +70,23 @@ const PerfilComprador = () => {
     }
   }, [userProfile, navigate])
 
-  useEffect(() => { 
-    if (user) {
-      fetchFichas()
-      fetchOrders()
-    }
-  }, [user])
-
-  const fetchFichas = async () => {
+  const fetchFichas = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .from('fichas_recebimento' as any)
+        .from('fichas_recebimento')
         .select('*')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
       if (error) throw error
-      setFichas(data as any || [])
+      setFichas((data as FichaRecebimento[]) || [])
     } catch (error) {
       console.error('Erro ao buscar fichas:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id])
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('orders')
@@ -108,7 +102,14 @@ const PerfilComprador = () => {
     } catch (error) {
       console.error('Erro ao buscar pedidos:', error)
     }
-  }
+  }, [user?.id])
+
+  useEffect(() => {
+    if (user) {
+      fetchFichas()
+      fetchOrders()
+    }
+  }, [fetchFichas, fetchOrders, user])
 
   const updateProfile = async () => {
     if (!user) return
@@ -119,8 +120,9 @@ const PerfilComprador = () => {
       if (error) throw error
       toast({ title: 'Sucesso', description: 'Perfil atualizado com sucesso!' })
       setSettingsOpen(false)
-    } catch (error: any) {
-      toast({ title: 'Erro', description: error.message || 'Erro desconhecido', variant: 'destructive' })
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro desconhecido'
+      toast({ title: 'Erro', description: message, variant: 'destructive' })
     }
   }
 
@@ -179,8 +181,9 @@ const PerfilComprador = () => {
       fetchOrders()
       setCancelDialogOpen(false)
       setSelectedOrderId(null)
-    } catch (error: any) {
-      toast({ title: 'Erro', description: error.message || 'Erro ao cancelar pedido', variant: 'destructive' })
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro ao cancelar pedido'
+      toast({ title: 'Erro', description: message, variant: 'destructive' })
     }
   }
 

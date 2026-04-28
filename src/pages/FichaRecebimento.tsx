@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"; 
+import React, { useRef, useState, useEffect } from "react"; 
 import { useNavigate } from "react-router-dom";
 import mapboxgl from "mapbox-gl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,14 +35,14 @@ const FichaRecebimento = () => {
   });
 
   const [localTemp, setLocalTemp] = useState({ descricao: "", coordenadas: null as { lat: number; lng: number } | null });
-  const [map, setMap] = useState<any>(null);
-  const [marker, setMarker] = useState<any>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const markerRef = useRef<mapboxgl.Marker | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Inicializar mapa Mapbox
   useEffect(() => {
-    if (!mapboxgl.supported({ failIfMajorPerformanceCaveat: true } as any)) {
+    if (!mapboxgl.supported()) {
       setMapError('Seu navegador/dispositivo não suporta WebGL suficiente para o mapa.');
       return;
     }
@@ -64,17 +64,17 @@ const FichaRecebimento = () => {
         const coords = { lat: e.lngLat.lat, lng: e.lngLat.lng };
         setLocalTemp(prev => ({ ...prev, coordenadas: coords }));
 
-        if (marker) {
-          marker.setLngLat([coords.lng, coords.lat]);
+        if (markerRef.current) {
+          markerRef.current.setLngLat([coords.lng, coords.lat]);
         } else {
           const newMarker = new mapboxgl.Marker({ color: '#22c55e' })
             .setLngLat([coords.lng, coords.lat])
             .addTo(mapbox);
-          setMarker(newMarker);
+          markerRef.current = newMarker;
         }
       });
 
-      setMap(mapbox);
+      mapRef.current = mapbox;
       return () => mapbox.remove();
     } catch (err) {
       console.error('Erro ao inicializar Mapbox:', err);
@@ -89,8 +89,8 @@ const FichaRecebimento = () => {
         locaisEntrega: [...prev.locaisEntrega, localTemp],
       }));
       setLocalTemp({ descricao: "", coordenadas: null });
-      if (marker) marker.remove();
-      setMarker(null);
+      if (markerRef.current) markerRef.current.remove();
+      markerRef.current = null;
     }
   };
 

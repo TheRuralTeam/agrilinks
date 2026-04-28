@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { User } from "@supabase/supabase-js";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageWelcomeBanner } from "@/components/LanguageWelcomeBanner";
 // Pages
@@ -35,6 +36,8 @@ import UserProfile from "./pages/UserProfile";
 
 const queryClient = new QueryClient();
 
+const isEmailConfirmed = (user: User | null) => Boolean(user?.email_confirmed_at)
+
 // Protected Route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -54,6 +57,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" replace />;
   }
 
+  if (!isEmailConfirmed(user)) {
+    const email = user.email ? `&email=${encodeURIComponent(user.email)}` : ""
+    return <Navigate to={`/confirmar-email?pending=1${email}`} replace />;
+  }
+
   return <>{children}</>;
 };
 
@@ -68,7 +76,9 @@ const AppRoutes = () => {
       </div>
     </div>
   ) : user ? (
-    <Navigate to="/app" replace />
+    isEmailConfirmed(user)
+      ? <Navigate to="/app" replace />
+      : <Navigate to={`/confirmar-email?pending=1${user.email ? `&email=${encodeURIComponent(user.email)}` : ""}`} replace />
   ) : (
     <Navigate to="/login" replace />
   );
@@ -77,7 +87,16 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={rootElement} />
       <Route path="/site" element={<Index />} />
-      <Route path="/login" element={user ? <Navigate to="/app" replace /> : <LoginPage />} />
+      <Route
+        path="/login"
+        element={
+          user
+            ? isEmailConfirmed(user)
+              ? <Navigate to="/app" replace />
+              : <Navigate to={`/confirmar-email?pending=1${user.email ? `&email=${encodeURIComponent(user.email)}` : ""}`} replace />
+            : <LoginPage />
+        }
+      />
       <Route path="/cadastro" element={<Registration />} />
       <Route path="/confirmar-email" element={<EmailConfirmation />} />
       <Route path="/reset-password" element={<ResetPassword />} />

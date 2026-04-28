@@ -63,10 +63,19 @@ interface Product {
   image_url?: string;
   location_lat: number | null;
   location_lng: number | null;
-  weatherData?: any;
+  weatherData?: {
+    main?: { temp?: number; humidity?: number };
+    wind?: { speed?: number };
+    weather?: Array<{ description?: string }>;
+  };
   roadCondition?: string;
   status?: string;
   created_at?: string;
+}
+
+interface MapboxSearchResult {
+  center: [number, number];
+  place_name: string;
 }
 
 interface Farmer {
@@ -345,7 +354,7 @@ const MapView = () => {
 
   // Busca e Filtros
   const [searchText, setSearchText] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<MapboxSearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showProductsList, setShowProductsList] = useState(true);
@@ -416,7 +425,7 @@ const MapView = () => {
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${value}.json`,
         { params: { access_token: mapboxToken, limit: 5 } }
       );
-      setSearchResults(response.data.features || []);
+      setSearchResults((response.data.features || []) as MapboxSearchResult[]);
     } catch (error) {
       console.error('Erro na busca:', error);
     } finally {
@@ -424,7 +433,7 @@ const MapView = () => {
     }
   }, [mapboxToken]);
 
-  const selectSearchResult = useCallback((result: any) => {
+  const selectSearchResult = useCallback((result: MapboxSearchResult) => {
     if (result.center) {
       map.current?.flyTo({ center: result.center, zoom: 12 });
       setSearchText('');
@@ -458,7 +467,7 @@ const MapView = () => {
   useEffect(() => {
     if (!mapContainer.current || !mapboxToken) return;
 
-    if (!mapboxgl.supported({ failIfMajorPerformanceCaveat: true } as any)) {
+    if (!mapboxgl.supported()) {
       setMapError('Seu navegador não suporta o mapa.');
       return;
     }
