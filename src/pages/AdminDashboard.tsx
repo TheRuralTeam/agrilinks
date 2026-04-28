@@ -11,213 +11,1060 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
-  ArrowLeft,
-  Bell,
-  Menu,
-  X,
-  Users,
-  ShoppingCart,
-  DollarSign,
-  Activity,
-  Send,
-  MessageSquare,
-  Eye,
-  Trash2,
-  Search,
-  CheckCircle,
-  Clock,
-  MapPin,
-  MoreVertical,
-  Package,
-  FileText,
-  TrendingUp,
-  RefreshCw,
-  BadgeCheck,
-  ShieldCheck,
-  ShieldX,
-  Check,
-  AlertCircle,
-  Crown,
-  Shield,
-  UserCog,
-  Lock,
-  Star,
-  Truck,
+  ArrowLeft, Bell, Menu, X, Users, ShoppingCart, DollarSign, Activity, Send,
+  MessageSquare, Eye, Trash2, Search, CheckCircle, Clock, MapPin, MoreVertical,
+  Package, FileText, TrendingUp, RefreshCw, BadgeCheck, ShieldCheck, ShieldX,
+  Check, AlertCircle, Crown, Shield, UserCog, Lock, Star, Truck, Leaf,
+  BarChart3, Wheat, Sprout, Mountain, Globe, ChevronRight, Filter, Download,
+  Settings, Zap, ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis,
+  CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, Legend,
+} from "recharts";
 import OrbisLinkLogo from "@/assets/orbislink-logo.png";
 import AdminManagement from "@/components/admin/AdminManagement";
 import DeliveryTracking from "@/components/admin/DeliveryTracking";
 import WorkSessionTimer from "@/components/admin/WorkSessionTimer";
 import { useWorkSession } from "@/hooks/useWorkSession";
 
-type AdminPermission = "manage_users" | "manage_products" | "manage_orders" | "manage_support" | "manage_sourcing" | "view_analytics" | "manage_admins";
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-// --- Tipos ---
+type AdminPermission =
+  | "manage_users" | "manage_products" | "manage_orders"
+  | "manage_support" | "manage_sourcing" | "view_analytics" | "manage_admins";
+
+type TabType =
+  | "dashboard" | "products" | "users" | "transactions" | "notifications"
+  | "orders" | "fichas" | "sourcing" | "market" | "admins" | "referrals" | "deliveries";
+
 interface Product {
-  id: string;
-  product_type: string;
-  quantity: number;
-  price: number;
-  logistics_access: string;
-  user_id: string;
-  created_at: string;
+  id: string; product_type: string; quantity: number; price: number;
+  logistics_access: string; user_id: string; created_at: string;
 }
-
 interface User {
-  id: string;
-  full_name: string;
-  email?: string | null;
-  phone?: string | null;
-  user_type?: string | null;
-  created_at?: string | null;
-  verified?: boolean;
-  verified_at?: string | null;
-  is_root_admin?: boolean;
+  id: string; full_name: string; email?: string | null; phone?: string | null;
+  user_type?: string | null; created_at?: string | null; verified?: boolean;
+  verified_at?: string | null; is_root_admin?: boolean;
 }
-
 interface Order {
-  id: string;
-  user_id: string;
-  product_id: string;
-  quantity: number;
-  location: string;
-  status: string;
-  created_at: string;
+  id: string; user_id: string; product_id: string; quantity: number;
+  location: string; status: string; created_at: string;
 }
-
 interface Transaction {
-  id: string;
-  wallet_id: string;
-  type: string;
-  status: string;
-  amount: number;
-  description?: string | null;
-  related_user_id?: string | null;
-  created_at: string;
+  id: string; wallet_id: string; type: string; status: string; amount: number;
+  description?: string | null; related_user_id?: string | null; created_at: string;
 }
-
 interface Notification {
-  id: string;
-  user_id: string;
-  type: string;
-  title: string;
-  message: string;
-  read: boolean;
-  created_at: string;
+  id: string; user_id: string; type: string; title: string;
+  message: string; read: boolean; created_at: string;
 }
-
 interface Ficha {
-  id: string;
-  user_id: string;
-  nome_ficha: string;
-  produto: string;
-  tipo_negocio: string;
-  qualidade?: string;
-  telefone?: string;
-  created_at: string;
+  id: string; user_id: string; nome_ficha: string; produto: string;
+  tipo_negocio: string; qualidade?: string; telefone?: string; created_at: string;
 }
-
-type TabType = "dashboard" | "products" | "users" | "transactions" | "notifications" | "orders" | "fichas" | "sourcing" | "market" | "admins" | "referrals" | "deliveries";
-
 interface SourcingRequest {
-  id: string;
-  user_id: string;
-  product_name: string;
-  quantity: number;
-  delivery_date: string;
-  description: string | null;
-  status: string;
-  admin_notes: string | null;
-  created_at: string;
+  id: string; user_id: string; product_name: string; quantity: number;
+  delivery_date: string; description: string | null; status: string;
+  admin_notes: string | null; created_at: string;
 }
-
 interface TopAgent {
-  agent_id: string;
-  agent_name: string;
-  agent_avatar: string | null;
-  total_referrals: number;
-  total_points: number;
+  agent_id: string; agent_name: string; agent_avatar: string | null;
+  total_referrals: number; total_points: number;
 }
-
 interface Referral {
-  id: string;
-  agent_id: string;
-  referred_user_id: string;
-  points: number;
-  created_at: string;
-  agent_name: string;
-  agent_avatar: string | null;
-  agent_code: string;
-  referred_user_name: string;
+  id: string; agent_id: string; referred_user_id: string; points: number;
+  created_at: string; agent_name: string; agent_avatar: string | null;
+  agent_code: string; referred_user_name: string;
 }
 
-// --- Componentes Auxiliares ---
-const MetricCard = ({ title, value, icon, trend, color }: {
-  title: string;
-  value: number | string;
-  icon: React.ReactNode;
-  trend?: number;
-  color: string;
+// ─── Design Tokens ────────────────────────────────────────────────────────────
+
+const AGRO_COLORS = {
+  primary: "#1a6b3c",
+  primaryDark: "#0f4526",
+  primaryLight: "#2d8a52",
+  accent: "#e8a012",
+  accentLight: "#f5c842",
+  earth: "#7a5c3a",
+  soil: "#4a3728",
+  harvest: "#c4501a",
+  sky: "#1e6b9e",
+  sage: "#5a8a6a",
+  cream: "#faf8f0",
+  bark: "#6b4c2a",
+};
+
+const CHART_COLORS = ["#1a6b3c", "#e8a012", "#c4501a", "#1e6b9e", "#5a8a6a", "#7a5c3a"];
+
+const STATUS_MAP: Record<string, { label: string; cls: string }> = {
+  completed:   { label: "Concluído",   cls: "status-success" },
+  concluida:   { label: "Concluída",   cls: "status-success" },
+  pending:     { label: "Pendente",    cls: "status-warning" },
+  aguardando:  { label: "Aguardando",  cls: "status-warning" },
+  in_progress: { label: "Em Progresso",cls: "status-info" },
+  failed:      { label: "Falhou",      cls: "status-danger" },
+  cancelado:   { label: "Cancelado",   cls: "status-danger" },
+  cancelled:   { label: "Cancelado",   cls: "status-danger" },
+  blocked:     { label: "Bloqueado",   cls: "status-neutral" },
+};
+
+// ─── CSS Injection ────────────────────────────────────────────────────────────
+
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@600;700&display=swap');
+
+  :root {
+    --agro-primary: #1a6b3c;
+    --agro-primary-dark: #0f4526;
+    --agro-primary-light: #2d8a52;
+    --agro-accent: #e8a012;
+    --agro-accent-light: #f5c842;
+    --agro-earth: #7a5c3a;
+    --agro-harvest: #c4501a;
+    --agro-sky: #1e6b9e;
+    --agro-sage: #5a8a6a;
+    --agro-cream: #faf8f0;
+    --agro-bark: #6b4c2a;
+    --r-sm: 6px;
+    --r-md: 10px;
+    --r-lg: 14px;
+    --r-xl: 20px;
+    --shadow-card: 0 1px 3px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.04);
+    --shadow-elevated: 0 4px 16px rgba(0,0,0,.10), 0 0 0 1px rgba(0,0,0,.04);
+  }
+
+  * { box-sizing: border-box; }
+
+  body, .admin-root {
+    font-family: 'DM Sans', sans-serif;
+    background: #f4f2ec;
+    color: #1c1a16;
+  }
+
+  /* ── Header ── */
+  .adm-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #0f4526;
+    border-bottom: 2px solid #1a6b3c;
+  }
+
+  .adm-header-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 58px;
+    gap: 16px;
+  }
+
+  .adm-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .adm-brand-text { display: flex; flex-direction: column; }
+
+  .adm-brand-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
+  .adm-brand-sub {
+    font-size: 10px;
+    color: rgba(255,255,255,.5);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .adm-logo-badge {
+    width: 36px; height: 36px;
+    background: var(--agro-accent);
+    border-radius: var(--r-md);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .adm-header-actions { display: flex; align-items: center; gap: 8px; }
+
+  .adm-icon-btn {
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: var(--r-md);
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,.8);
+    cursor: pointer;
+    transition: background .15s;
+  }
+
+  .adm-icon-btn:hover { background: rgba(255,255,255,.15); }
+
+  .adm-notif-badge {
+    position: absolute;
+    top: -4px; right: -4px;
+    background: var(--agro-accent);
+    color: #1c1a16;
+    font-size: 9px;
+    font-weight: 700;
+    min-width: 16px; height: 16px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 3px;
+  }
+
+  /* ── Nav Tabs ── */
+  .adm-nav {
+    background: #0a3a1e;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+
+  .adm-nav-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .adm-nav-inner::-webkit-scrollbar { display: none; }
+
+  .adm-tab {
+    display: flex; align-items: center; gap: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255,255,255,.5);
+    white-space: nowrap;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all .15s;
+    position: relative;
+    letter-spacing: 0.02em;
+  }
+
+  .adm-tab:hover { color: rgba(255,255,255,.8); }
+
+  .adm-tab.active {
+    color: #fff;
+    border-bottom-color: var(--agro-accent);
+  }
+
+  .adm-tab-badge {
+    background: var(--agro-accent);
+    color: #1c1a16;
+    font-size: 9px;
+    font-weight: 700;
+    min-width: 16px; height: 16px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 3px;
+  }
+
+  /* ── Main Layout ── */
+  .adm-main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* ── Page Header ── */
+  .adm-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .adm-page-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--agro-primary-dark);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .adm-page-subtitle {
+    font-size: 13px;
+    color: #6b6458;
+    margin-top: 2px;
+  }
+
+  /* ── Root Admin Banner ── */
+  .adm-root-banner {
+    background: linear-gradient(135deg, #0f4526 0%, #1a6b3c 100%);
+    border-radius: var(--r-lg);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .adm-root-banner-icon {
+    width: 38px; height: 38px;
+    background: var(--agro-accent);
+    border-radius: var(--r-md);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .adm-root-banner-text { flex: 1; }
+  .adm-root-banner-label { font-size: 11px; color: rgba(255,255,255,.6); text-transform: uppercase; letter-spacing: 0.08em; }
+  .adm-root-banner-value { font-size: 14px; font-weight: 600; color: #fff; margin-top: 1px; }
+
+  /* ── Metric Cards ── */
+  .adm-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+
+  @media (max-width: 900px) { .adm-metrics-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 500px) { .adm-metrics-grid { grid-template-columns: 1fr 1fr; } }
+
+  .adm-metric-card {
+    background: #fff;
+    border-radius: var(--r-lg);
+    padding: 18px 20px;
+    box-shadow: var(--shadow-card);
+    border: 1px solid rgba(0,0,0,.05);
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow .2s, transform .2s;
+  }
+
+  .adm-metric-card:hover {
+    box-shadow: var(--shadow-elevated);
+    transform: translateY(-1px);
+  }
+
+  .adm-metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .adm-metric-card.green::before  { background: var(--agro-primary); }
+  .adm-metric-card.amber::before  { background: var(--agro-accent); }
+  .adm-metric-card.orange::before { background: var(--agro-harvest); }
+  .adm-metric-card.blue::before   { background: var(--agro-sky); }
+
+  .adm-metric-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9b9285;
+  }
+
+  .adm-metric-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1c1a16;
+    line-height: 1;
+    margin: 8px 0 10px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .adm-metric-trend {
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+  }
+
+  .adm-metric-trend.up   { color: var(--agro-primary); }
+  .adm-metric-trend.down { color: var(--agro-harvest); }
+
+  .adm-metric-icon {
+    position: absolute;
+    right: 16px; top: 20px;
+    opacity: .07;
+  }
+
+  /* ── Cards ── */
+  .adm-card {
+    background: #fff;
+    border-radius: var(--r-lg);
+    border: 1px solid rgba(0,0,0,.06);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+
+  .adm-card-header {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid #f0ede6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .adm-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1c1a16;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.01em;
+  }
+
+  .adm-card-title .adm-title-icon {
+    width: 28px; height: 28px;
+    background: #f0f5ee;
+    border-radius: var(--r-sm);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--agro-primary);
+  }
+
+  .adm-card-body { padding: 20px; }
+  .adm-card-body.no-pad { padding: 0; }
+
+  /* ── Tables ── */
+  .adm-table-wrap { overflow-x: auto; }
+
+  .adm-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .adm-table thead tr {
+    background: #f7f5ef;
+    border-bottom: 2px solid #ede9df;
+  }
+
+  .adm-table thead th {
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #7a7268;
+    white-space: nowrap;
+    text-align: left;
+  }
+
+  .adm-table tbody tr {
+    border-bottom: 1px solid #f0ede6;
+    transition: background .1s;
+  }
+
+  .adm-table tbody tr:hover { background: #faf9f5; }
+  .adm-table tbody tr.selected { background: #f0f6ee; }
+
+  .adm-table tbody td {
+    padding: 12px 14px;
+    color: #2d2b27;
+    vertical-align: middle;
+  }
+
+  .adm-table .cell-mono {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: #8a8178;
+  }
+
+  .adm-table .cell-name {
+    font-weight: 600;
+    color: #1c1a16;
+  }
+
+  .adm-table .cell-muted {
+    font-size: 12px;
+    color: #8a8178;
+  }
+
+  /* ── Status Badges ── */
+  .adm-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .adm-status::before {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status-success { background: #e8f5ee; color: #1a6b3c; }
+  .status-success::before { background: #1a6b3c; }
+
+  .status-warning { background: #fef4e0; color: #b37d0a; }
+  .status-warning::before { background: #e8a012; }
+
+  .status-info { background: #e3f0f8; color: #1e6b9e; }
+  .status-info::before { background: #1e6b9e; }
+
+  .status-danger { background: #fbeaea; color: #c4501a; }
+  .status-danger::before { background: #c4501a; }
+
+  .status-neutral { background: #f0ede6; color: #6b6458; }
+  .status-neutral::before { background: #9b9285; }
+
+  /* ── Type Badges ── */
+  .adm-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: var(--r-sm);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+
+  .badge-outline {
+    background: transparent;
+    border: 1px solid #d0cdc5;
+    color: #6b6458;
+  }
+
+  .badge-green {
+    background: #e8f5ee;
+    color: #1a6b3c;
+  }
+
+  .badge-amber {
+    background: #fef4e0;
+    color: #b37d0a;
+  }
+
+  .badge-blue {
+    background: #e3f0f8;
+    color: #1e6b9e;
+  }
+
+  /* ── Action Buttons ── */
+  .adm-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--r-md);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .adm-btn-primary {
+    background: var(--agro-primary);
+    color: #fff;
+  }
+  .adm-btn-primary:hover { background: var(--agro-primary-dark); }
+
+  .adm-btn-accent {
+    background: var(--agro-accent);
+    color: #1c1a16;
+  }
+  .adm-btn-accent:hover { background: #d4920f; }
+
+  .adm-btn-ghost {
+    background: transparent;
+    color: #6b6458;
+    border: 1px solid #ddd9d0;
+  }
+  .adm-btn-ghost:hover { background: #f0ede6; }
+
+  .adm-btn-danger {
+    background: #fbeaea;
+    color: #c4501a;
+    border: 1px solid #f5c5b5;
+  }
+  .adm-btn-danger:hover { background: #f8d8d0; }
+
+  .adm-btn-icon {
+    width: 32px; height: 32px;
+    padding: 0;
+    justify-content: center;
+    background: transparent;
+    color: #8a8178;
+    border: 1px solid #e0ddd6;
+    border-radius: var(--r-sm);
+  }
+  .adm-btn-icon:hover { background: #f0ede6; color: #1c1a16; }
+  .adm-btn-icon.danger:hover { background: #fbeaea; color: #c4501a; border-color: #f5c5b5; }
+  .adm-btn-icon.success:hover { background: #e8f5ee; color: #1a6b3c; border-color: #c0dfc8; }
+  .adm-btn-icon.warning:hover { background: #fef4e0; color: #b37d0a; border-color: #f5d890; }
+
+  /* ── Search Bar ── */
+  .adm-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .adm-search-icon {
+    position: absolute;
+    left: 10px;
+    color: #9b9285;
+    pointer-events: none;
+  }
+
+  .adm-search input {
+    width: 220px;
+    height: 34px;
+    padding: 0 10px 0 34px;
+    border: 1px solid #ddd9d0;
+    border-radius: var(--r-md);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    background: #faf9f5;
+    color: #1c1a16;
+    transition: border-color .15s, box-shadow .15s;
+  }
+
+  .adm-search input:focus {
+    outline: none;
+    border-color: var(--agro-primary);
+    box-shadow: 0 0 0 3px rgba(26,107,60,.1);
+    background: #fff;
+  }
+
+  /* ── Chart Cards Grid ── */
+  .adm-charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  @media (max-width: 800px) { .adm-charts-grid { grid-template-columns: 1fr; } }
+
+  .adm-chart-full { grid-column: 1 / -1; }
+
+  /* ── Leaderboard ── */
+  .adm-leaderboard {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  @media (max-width: 700px) { .adm-leaderboard { grid-template-columns: 1fr; } }
+
+  .adm-leader-card {
+    border-radius: var(--r-lg);
+    padding: 16px;
+    border: 1px solid;
+    position: relative;
+    overflow: hidden;
+    transition: transform .2s;
+  }
+
+  .adm-leader-card:hover { transform: translateY(-2px); }
+
+  .adm-leader-card.rank-1 {
+    background: linear-gradient(135deg, #fffbf0, #fff8e0);
+    border-color: #f5d890;
+  }
+  .adm-leader-card.rank-2 {
+    background: linear-gradient(135deg, #f5f5f5, #ececec);
+    border-color: #d0cdc5;
+  }
+  .adm-leader-card.rank-3 {
+    background: linear-gradient(135deg, #fff3ef, #ffebe5);
+    border-color: #f5c5b5;
+  }
+
+  .adm-rank-badge {
+    position: absolute;
+    top: 12px; right: 12px;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .adm-rank-badge.r1 { background: var(--agro-accent); color: #1c1a16; }
+  .adm-rank-badge.r2 { background: #b0b0b0; color: #fff; }
+  .adm-rank-badge.r3 { background: #cd7c4a; color: #fff; }
+
+  /* ── Notification Items ── */
+  .adm-notif-item {
+    padding: 14px 16px;
+    border-radius: var(--r-md);
+    border: 1px solid #e8e4da;
+    cursor: pointer;
+    transition: background .1s;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .adm-notif-item:hover { background: #faf9f5; }
+
+  .adm-notif-item.unread {
+    background: #f0f6ee;
+    border-color: #c0dfc8;
+  }
+
+  .adm-notif-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--agro-primary);
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+
+  .adm-notif-title { font-size: 13px; font-weight: 600; color: #1c1a16; }
+  .adm-notif-msg { font-size: 12px; color: #6b6458; margin-top: 2px; }
+  .adm-notif-time { font-size: 11px; color: #9b9285; margin-top: 4px; }
+
+  /* ── Filter Tabs ── */
+  .adm-filter-tabs {
+    display: inline-flex;
+    background: #f0ede6;
+    border-radius: var(--r-md);
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .adm-filter-tab {
+    padding: 5px 14px;
+    border-radius: var(--r-sm);
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b6458;
+    cursor: pointer;
+    transition: all .15s;
+    border: none;
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .adm-filter-tab.active {
+    background: #fff;
+    color: var(--agro-primary);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0,0,0,.1);
+  }
+
+  /* ── Modal ── */
+  .adm-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 24px 0;
+  }
+
+  .adm-modal-icon {
+    width: 38px; height: 38px;
+    background: #f0f5ee;
+    border-radius: var(--r-md);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--agro-primary);
+  }
+
+  .adm-modal-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1c1a16;
+  }
+
+  .adm-form-group { display: flex; flex-direction: column; gap: 5px; }
+
+  .adm-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #6b6458;
+  }
+
+  .adm-select, .adm-input, .adm-textarea {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #ddd9d0;
+    border-radius: var(--r-md);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    background: #faf9f5;
+    color: #1c1a16;
+    transition: border-color .15s, box-shadow .15s;
+  }
+
+  .adm-select:focus, .adm-input:focus, .adm-textarea:focus {
+    outline: none;
+    border-color: var(--agro-primary);
+    box-shadow: 0 0 0 3px rgba(26,107,60,.1);
+    background: #fff;
+  }
+
+  /* ── Empty States ── */
+  .adm-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 20px;
+    color: #9b9285;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .adm-empty-icon {
+    width: 56px; height: 56px;
+    background: #f0ede6;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 4px;
+  }
+
+  .adm-empty-title { font-size: 14px; font-weight: 600; color: #6b6458; }
+  .adm-empty-sub { font-size: 12px; }
+
+  /* ── Loading ── */
+  .adm-loading {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: #0f4526;
+    gap: 16px;
+  }
+
+  .adm-loading-ring {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,.15);
+    border-top-color: var(--agro-accent);
+    animation: adm-spin .8s linear infinite;
+  }
+
+  @keyframes adm-spin { to { transform: rotate(360deg); } }
+
+  .adm-loading-text {
+    font-size: 14px;
+    color: rgba(255,255,255,.6);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* ── Separator ── */
+  .adm-sep {
+    height: 1px;
+    background: #f0ede6;
+    margin: 4px 0;
+  }
+
+  /* ── Sourcing detail cards ── */
+  .adm-detail-card {
+    padding: 16px;
+    background: #faf9f5;
+    border-radius: var(--r-lg);
+    border: 1px solid #e8e4da;
+  }
+
+  .adm-notes-block {
+    padding: 10px 12px;
+    background: #f0f6ee;
+    border-left: 3px solid var(--agro-primary);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    font-size: 12px;
+    color: #2d5a3a;
+    margin-top: 8px;
+  }
+
+  /* ── AI Analysis ── */
+  .adm-ai-block {
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #f0f5ee, #faf9f5);
+    border-radius: var(--r-lg);
+    border: 1px solid #c0dfc8;
+    line-height: 1.7;
+    font-size: 14px;
+    color: #2d2b27;
+    white-space: pre-wrap;
+  }
+
+  /* ── Avatar ── */
+  .adm-avatar {
+    border-radius: 50%;
+    background: var(--agro-primary);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+    font-size: 12px;
+  }
+
+  /* ── Referral stat cards ── */
+  .adm-stat-card {
+    border-radius: var(--r-lg);
+    padding: 16px 18px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .adm-stat-card::after {
+    content: '';
+    position: absolute;
+    right: -10px; bottom: -10px;
+    width: 70px; height: 70px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.08);
+  }
+
+  .adm-stat-label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; opacity: .7; }
+  .adm-stat-value { font-size: 28px; font-weight: 700; line-height: 1; margin: 6px 0 0; font-variant-numeric: tabular-nums; }
+
+  /* ── Checkbox override ── */
+  [data-state="checked"] { background: var(--agro-primary) !important; border-color: var(--agro-primary) !important; }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    .adm-main { padding: 14px 12px; gap: 14px; }
+    .adm-metric-value { font-size: 24px; }
+    .adm-search input { width: 160px; }
+  }
+`;
+
+// ─── Style Injector ───────────────────────────────────────────────────────────
+
+const StyleInjector = () => {
+  useEffect(() => {
+    const id = "adm-styles";
+    if (document.getElementById(id)) return;
+    const el = document.createElement("style");
+    el.id = id;
+    el.textContent = CSS;
+    document.head.appendChild(el);
+    return () => { document.getElementById(id)?.remove(); };
+  }, []);
+  return null;
+};
+
+// ─── Metric Card ─────────────────────────────────────────────────────────────
+
+const MetricCard = ({
+  title, value, icon, trend, color, suffix,
+}: {
+  title: string; value: number | string; icon: React.ReactNode;
+  trend?: number; color: string; suffix?: string;
 }) => (
-  <div className={`rounded-2xl p-3 sm:p-5 ${color} transition-all hover:scale-[1.02] hover:shadow-lg`}>
-    <div className="flex items-center justify-between gap-2">
-      <div className="min-w-0 flex-1">
-        <p className="text-xs sm:text-sm font-medium text-white/80 truncate">{title}</p>
-        <p className="text-xl sm:text-3xl font-bold text-white mt-1">{value}</p>
-        {trend !== undefined && (
-          <p className="text-xs sm:text-sm mt-1 text-white/70 flex items-center gap-1">
-            <TrendingUp className="h-3 w-3" />
-            {trend >= 0 ? "+" : ""}{trend}%
-          </p>
-        )}
+  <div className={`adm-metric-card ${color}`}>
+    <div className="adm-metric-icon">
+      <div style={{ transform: "scale(4)", opacity: 1 }}>{icon}</div>
+    </div>
+    <div className="adm-metric-label">{title}</div>
+    <div className="adm-metric-value">
+      {typeof value === "number" ? value.toLocaleString() : value}
+      {suffix && <span style={{ fontSize: 16, fontWeight: 400, color: "#6b6458" }}> {suffix}</span>}
+    </div>
+    {trend !== undefined && (
+      <div className={`adm-metric-trend ${trend >= 0 ? "up" : "down"}`}>
+        {trend >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+        {Math.abs(trend)}% este mês
       </div>
-      <div className="p-2 sm:p-3 bg-white/20 rounded-xl text-white flex-shrink-0">
-        {icon}
+    )}
+  </div>
+);
+
+// ─── Status Badge ─────────────────────────────────────────────────────────────
+
+const StatusBadge = ({ status }: { status: string }) => {
+  const s = STATUS_MAP[status] || { label: status, cls: "status-neutral" };
+  return <span className={`adm-status ${s.cls}`}>{s.label}</span>;
+};
+
+// ─── Custom Tooltip ───────────────────────────────────────────────────────────
+
+const AgroTooltip = ({ active, payload, label, unit = "" }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{
+      background: "#0f4526", border: "1px solid #1a6b3c", borderRadius: 8,
+      padding: "8px 14px", fontSize: 12, color: "#fff",
+    }}>
+      <div style={{ color: "rgba(255,255,255,.6)", marginBottom: 2 }}>{label}</div>
+      {payload.map((p: any, i: number) => (
+        <div key={i} style={{ fontWeight: 600 }}>
+          {typeof p.value === "number" ? p.value.toLocaleString() : p.value}{unit}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ─── Table Toolbar ────────────────────────────────────────────────────────────
+
+const TableToolbar = ({
+  title, count, icon, search, setSearch, bulkCount, onBulkDelete, extra,
+}: {
+  title: string; count: number; icon: React.ReactNode;
+  search: string; setSearch: (v: string) => void;
+  bulkCount?: number; onBulkDelete?: () => void;
+  extra?: React.ReactNode;
+}) => (
+  <div className="adm-card-header">
+    <div className="adm-card-title">
+      <div className="adm-title-icon">{icon}</div>
+      {title}
+      <span style={{ fontSize: 12, fontWeight: 400, color: "#9b9285", marginLeft: 2 }}>({count})</span>
+    </div>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      {extra}
+      {bulkCount != null && bulkCount > 0 && onBulkDelete && (
+        <button className="adm-btn adm-btn-danger" onClick={onBulkDelete}>
+          <Trash2 size={13} /> Apagar {bulkCount} selecionado{bulkCount > 1 ? "s" : ""}
+        </button>
+      )}
+      <div className="adm-search">
+        <Search size={14} className="adm-search-icon" />
+        <input
+          placeholder="Buscar…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
       </div>
     </div>
   </div>
 );
 
-const TabButton = ({ active, onClick, children, badge }: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-  badge?: number;
-}) => (
-  <button
-    onClick={onClick}
-    className={`px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-xl font-medium text-xs sm:text-sm transition-all flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
-      active 
-        ? "bg-primary text-primary-foreground shadow-md" 
-        : "bg-card text-foreground hover:bg-muted border border-border"
-    }`}
-  >
-    {children}
-    {badge !== undefined && badge > 0 && (
-      <span className="bg-destructive text-destructive-foreground text-[10px] sm:text-xs font-bold rounded-full min-w-[18px] sm:min-w-[20px] h-4 sm:h-5 px-1 sm:px-1.5 flex items-center justify-center">
-        {badge > 99 ? '99+' : badge}
-      </span>
-    )}
-  </button>
-);
+// ─── Main Component ───────────────────────────────────────────────────────────
 
-const COLORS = ['#22c55e', '#f59e0b', '#ef4444', '#3b82f6'];
-
-// --- Componente Principal ---
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -232,10 +1079,10 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
-  const [notificationModalOpen, setNotificationModalOpen] = useState(false);
-  const [notificationMessage, setNotificationMessage] = useState("");
-  const [notificationTitle, setNotificationTitle] = useState("");
-  const [notificationType, setNotificationType] = useState("info");
+  const [notifModalOpen, setNotifModalOpen] = useState(false);
+  const [notifMessage, setNotifMessage] = useState("");
+  const [notifTitle, setNotifTitle] = useState("");
+  const [notifType, setNotifType] = useState("info");
   const [targetUser, setTargetUser] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -248,93 +1095,71 @@ const AdminDashboard = () => {
   const [userPermissions, setUserPermissions] = useState<AdminPermission[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
-  // Work session tracking for support agents
-  const {
-    elapsedTimeFormatted,
-    isSessionActive,
-    stats: workSessionStats,
-    endSession
-  } = useWorkSession(currentUserId, isSupportAgent);
 
-  // Check admin permissions on mount
+  const { elapsedTimeFormatted, isSessionActive, stats: workSessionStats, endSession } =
+    useWorkSession(currentUserId, isSupportAgent);
+
+  // ── Auth / Permission check ──────────────────────────────────────────────────
   useEffect(() => {
-    const checkAdminStatus = async () => {
+    (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      
       setCurrentUserId(user.id);
 
-      // Check if root admin or super root
       const { data: userData } = await supabase
-        .from("users")
-        .select("is_root_admin, is_super_root")
-        .eq("id", user.id)
-        .single();
-      
+        .from("users").select("is_root_admin, is_super_root")
+        .eq("id", user.id).single();
+
       if (userData?.is_root_admin) {
         setIsRootAdmin(true);
-        setUserPermissions(["manage_users", "manage_products", "manage_orders", "manage_support", "manage_sourcing", "view_analytics", "manage_admins"]);
+        setUserPermissions([
+          "manage_users", "manage_products", "manage_orders",
+          "manage_support", "manage_sourcing", "view_analytics", "manage_admins",
+        ]);
       }
-      
-      if ((userData as any)?.is_super_root) {
-        setIsSuperRoot(true);
-      }
+      if ((userData as any)?.is_super_root) setIsSuperRoot(true);
 
-      // Check if support agent
-      const { data: isSupportAgentData } = await supabase.rpc('is_support_agent', { _user_id: user.id });
-      if (isSupportAgentData) {
-        setIsSupportAgent(true);
-      }
+      const { data: isSA } = await supabase.rpc("is_support_agent", { _user_id: user.id });
+      if (isSA) setIsSupportAgent(true);
 
-      // Get specific permissions for non-root admins
       if (!userData?.is_root_admin) {
-        const { data: permissions } = await supabase
-          .from("admin_permissions")
-          .select("permission")
-          .eq("user_id", user.id);
-        
-        if (permissions) {
-          setUserPermissions(permissions.map((p) => p.permission as AdminPermission));
-        }
+        const { data: perms } = await supabase
+          .from("admin_permissions").select("permission").eq("user_id", user.id);
+        if (perms) setUserPermissions(perms.map(p => p.permission as AdminPermission));
       }
-    };
-    
-    checkAdminStatus();
+    })();
   }, []);
 
-  // Helper to check if user has a specific permission
-  const hasPermission = useCallback((permission: AdminPermission) => {
-    return isRootAdmin || userPermissions.includes(permission);
-  }, [isRootAdmin, userPermissions]);
+  const hasPermission = useCallback(
+    (p: AdminPermission) => isRootAdmin || userPermissions.includes(p),
+    [isRootAdmin, userPermissions],
+  );
 
+  // ── Data fetch ───────────────────────────────────────────────────────────────
   useEffect(() => {
     fetchAllData();
-    const interval = setInterval(fetchAllData, 30000);
-    return () => clearInterval(interval);
+    const iv = setInterval(fetchAllData, 30000);
+    return () => clearInterval(iv);
   }, []);
 
   useEffect(() => {
-    const channel = supabase
+    const ch = supabase
       .channel("notifications")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload) => {
-        setNotifications((prev) => [payload.new as Notification, ...prev]);
-      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" },
+        payload => setNotifications(prev => [payload.new as Notification, ...prev]))
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { supabase.removeChannel(ch); };
   }, []);
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      const { data } = await supabase.from("pre_orders").select("*").order("created_at", { ascending: false });
-      if (data) setOrders(data);
-    };
-    fetchOrders();
+    supabase.from("pre_orders").select("*").order("created_at", { ascending: false })
+      .then(({ data }) => { if (data) setOrders(data); });
   }, []);
 
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [prodRes, usersRes, transRes, notRes, fichasRes, sourcingRes, topAgentsRes, referralsRes] = await Promise.all([
+      const [prodR, usersR, transR, notR, fichasR, srcR, agentsR, refR] = await Promise.all([
         supabase.from("products").select("*").order("created_at", { ascending: false }),
         supabase.from("users").select("*").order("created_at", { ascending: false }),
         supabase.from("transactions").select("*").order("created_at", { ascending: false }),
@@ -344,396 +1169,294 @@ const AdminDashboard = () => {
         supabase.rpc("get_top_agents_by_referrals", { limit_count: 3 }),
         supabase.from("agent_referrals").select("*").order("created_at", { ascending: false }),
       ]);
-      setProducts(prodRes.data || []);
-      setUsers(usersRes.data || []);
-      setTransactions(transRes.data || []);
-      setNotifications(notRes.data || []);
-      setFichas(fichasRes.data || []);
-      setSourcingRequests(sourcingRes.data || []);
-      setTopAgents(topAgentsRes.data || []);
-      
-      // Process referrals with user data
-      if (referralsRes.data && usersRes.data) {
-        const usersMap = new Map(usersRes.data.map(u => [u.id, u]));
-        const processedReferrals: Referral[] = referralsRes.data.map((r: any) => {
-          const agent = usersMap.get(r.agent_id);
-          const referred = usersMap.get(r.referred_user_id);
-          return {
-            id: r.id,
-            agent_id: r.agent_id,
-            referred_user_id: r.referred_user_id,
-            points: r.points,
-            created_at: r.created_at,
-            agent_name: agent?.full_name || 'Agente não encontrado',
-            agent_avatar: agent?.avatar_url || null,
-            agent_code: agent?.agent_code || 'N/A',
-            referred_user_name: referred?.full_name || 'Usuário não encontrado',
-          };
-        });
-        setAllReferrals(processedReferrals);
+      setProducts(prodR.data || []);
+      setUsers(usersR.data || []);
+      setTransactions(transR.data || []);
+      setNotifications(notR.data || []);
+      setFichas(fichasR.data || []);
+      setSourcingRequests(srcR.data || []);
+      setTopAgents(agentsR.data || []);
+
+      if (refR.data && usersR.data) {
+        const um = new Map(usersR.data.map(u => [u.id, u]));
+        setAllReferrals(refR.data.map((r: any) => ({
+          ...r,
+          agent_name: um.get(r.agent_id)?.full_name || "—",
+          agent_avatar: um.get(r.agent_id) ? null : null,
+          agent_code: (um.get(r.agent_id) as any)?.agent_code || "N/A",
+          referred_user_name: um.get(r.referred_user_id)?.full_name || "—",
+        })));
       }
-    } catch (error) {
-      console.error("Erro ao carregar dados:", error);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
+  // ── Actions ──────────────────────────────────────────────────────────────────
   const sendNotification = useCallback(async () => {
-    if (!targetUser || !notificationMessage.trim() || !notificationTitle.trim()) {
-      toast.error("Preencha todos os campos!");
-      return;
+    if (!targetUser || !notifMessage.trim() || !notifTitle.trim()) {
+      toast.error("Preencha todos os campos!"); return;
     }
     try {
       const { error } = await supabase.rpc("create_notification", {
-        p_user_id: targetUser,
-        p_type: notificationType,
-        p_title: notificationTitle,
-        p_message: notificationMessage,
-        p_metadata: {}
+        p_user_id: targetUser, p_type: notifType,
+        p_title: notifTitle, p_message: notifMessage, p_metadata: {},
       });
       if (error) throw error;
-      setNotificationModalOpen(false);
-      setNotificationMessage("");
-      setNotificationTitle("");
-      setTargetUser(null);
-      toast.success("Notificação enviada!");
-    } catch {
-      toast.error("Erro ao enviar notificação");
-    }
-  }, [targetUser, notificationMessage, notificationTitle, notificationType]);
+      setNotifModalOpen(false); setNotifMessage(""); setNotifTitle(""); setTargetUser(null);
+      toast.success("Notificação enviada com sucesso!");
+    } catch { toast.error("Erro ao enviar notificação"); }
+  }, [targetUser, notifMessage, notifTitle, notifType]);
 
   const handleDelete = useCallback(async (table: string, id: string, setter: Function) => {
-    if (!confirm("Deseja realmente apagar? Esta ação não pode ser desfeita.")) return;
+    if (!confirm("Confirmar exclusão? Esta ação é irreversível.")) return;
     try {
       if (table === "users") {
         const { error } = await supabase.rpc("admin_delete_user", { p_user_id: id });
-        if (error) {
-          console.error("Erro ao apagar usuário:", error);
-          toast.error("Erro ao apagar usuário: " + error.message);
-          return;
-        }
-        setter((prev: any[]) => prev.filter((item: any) => item.id !== id));
-        setProducts((prev) => prev.filter((p) => p.user_id !== id));
-        toast.success("Usuário e dados relacionados apagados com sucesso");
+        if (error) { toast.error("Erro: " + error.message); return; }
+        setter((p: any[]) => p.filter(i => i.id !== id));
+        setProducts(p => p.filter(x => x.user_id !== id));
+        toast.success("Usuário excluído com sucesso");
       } else if (table === "products") {
         const { error } = await supabase.rpc("admin_delete_product", { p_product_id: id });
-        if (error) {
-          console.error("Erro ao apagar produto:", error);
-          toast.error("Erro ao apagar produto: " + error.message);
-          return;
-        }
-        setter((prev: any[]) => prev.filter((item: any) => item.id !== id));
-        toast.success("Produto e dados relacionados apagados com sucesso");
+        if (error) { toast.error("Erro: " + error.message); return; }
+        setter((p: any[]) => p.filter(i => i.id !== id));
+        toast.success("Produto excluído com sucesso");
       } else {
         const { error } = await supabase.from(table as any).delete().eq("id", id);
-        if (error) {
-          console.error("Erro ao apagar:", error);
-          toast.error("Erro ao apagar: " + error.message);
-          return;
-        }
-        setter((prev: any[]) => prev.filter((item: any) => item.id !== id));
-        toast.success("Item apagado com sucesso");
+        if (error) { toast.error("Erro: " + error.message); return; }
+        setter((p: any[]) => p.filter(i => i.id !== id));
+        toast.success("Item excluído");
       }
-    } catch (err) {
-      console.error("Erro ao apagar:", err);
-      toast.error("Erro ao apagar");
-    }
+    } catch { toast.error("Erro ao excluir"); }
   }, []);
 
-  const handleBulkDelete = useCallback(async (table: string, ids: Set<string>, setter: Function, clearSelection: () => void) => {
-    if (ids.size === 0) { toast.error("Nenhum item selecionado"); return; }
-    if (!confirm(`Deseja realmente apagar ${ids.size} item(s)? Esta ação não pode ser desfeita.`)) return;
+  const handleBulkDelete = useCallback(async (
+    table: string, ids: Set<string>, setter: Function, clear: () => void,
+  ) => {
+    if (!ids.size) { toast.error("Nenhum item selecionado"); return; }
+    if (!confirm(`Excluir ${ids.size} item(s)? Esta ação é irreversível.`)) return;
+    const arr = Array.from(ids);
     try {
-      const idsArray = Array.from(ids);
       if (table === "users") {
-        const { data, error } = await supabase.rpc("admin_bulk_delete_users", { p_user_ids: idsArray });
-        if (error) {
-          console.error("Erro ao apagar usuários:", error);
-          toast.error("Erro ao apagar usuários: " + error.message);
-          return;
-        }
-        setter((prev: any[]) => prev.filter((item: any) => !ids.has(item.id)));
-        setProducts((prev) => prev.filter((p) => !ids.has(p.user_id)));
-        clearSelection();
-        toast.success(`${data || idsArray.length} usuário(s) e dados relacionados apagados com sucesso`);
+        const { data, error } = await supabase.rpc("admin_bulk_delete_users", { p_user_ids: arr });
+        if (error) { toast.error(error.message); return; }
+        setter((p: any[]) => p.filter(i => !ids.has(i.id)));
+        setProducts(p => p.filter(x => !ids.has(x.user_id)));
+        clear(); toast.success(`${data || arr.length} usuário(s) excluído(s)`);
       } else if (table === "products") {
-        const { data, error } = await supabase.rpc("admin_bulk_delete_products", { p_product_ids: idsArray });
-        if (error) {
-          console.error("Erro ao apagar produtos:", error);
-          toast.error("Erro ao apagar produtos: " + error.message);
-          return;
-        }
-        setter((prev: any[]) => prev.filter((item: any) => !ids.has(item.id)));
-        clearSelection();
-        toast.success(`${data || idsArray.length} produto(s) e dados relacionados apagados com sucesso`);
+        const { data, error } = await supabase.rpc("admin_bulk_delete_products", { p_product_ids: arr });
+        if (error) { toast.error(error.message); return; }
+        setter((p: any[]) => p.filter(i => !ids.has(i.id)));
+        clear(); toast.success(`${data || arr.length} produto(s) excluído(s)`);
       } else {
-        const { error } = await supabase.from(table as any).delete().in("id", idsArray);
-        if (error) {
-          console.error("Erro ao apagar itens:", error);
-          toast.error("Erro ao apagar itens: " + error.message);
-          return;
-        }
-        setter((prev: any[]) => prev.filter((item: any) => !ids.has(item.id)));
-        clearSelection();
-        toast.success(`${idsArray.length} item(s) apagado(s) com sucesso`);
+        const { error } = await supabase.from(table as any).delete().in("id", arr);
+        if (error) { toast.error(error.message); return; }
+        setter((p: any[]) => p.filter(i => !ids.has(i.id)));
+        clear(); toast.success(`${arr.length} item(s) excluído(s)`);
       }
-    } catch (err) {
-      console.error("Erro ao apagar itens:", err);
-      toast.error("Erro ao apagar itens");
-    }
+    } catch { toast.error("Erro ao excluir"); }
   }, []);
 
   const toggleSelectUser = useCallback((id: string) => {
-    setSelectedUsers(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
+    setSelectedUsers(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
   }, []);
-
   const toggleSelectProduct = useCallback((id: string) => {
-    setSelectedProducts(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
+    setSelectedProducts(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }, []);
+  const toggleAllUsers = useCallback((list: User[]) => {
+    setSelectedUsers(p => p.size === list.length ? new Set() : new Set(list.map(u => u.id)));
+  }, []);
+  const toggleAllProducts = useCallback((list: Product[]) => {
+    setSelectedProducts(p => p.size === list.length ? new Set() : new Set(list.map(x => x.id)));
   }, []);
 
-  const toggleSelectAllUsers = useCallback((allUsers: User[]) => {
-    setSelectedUsers(prev => prev.size === allUsers.length ? new Set() : new Set(allUsers.map(u => u.id)));
-  }, []);
-
-  const toggleSelectAllProducts = useCallback((allProducts: Product[]) => {
-    setSelectedProducts(prev => prev.size === allProducts.length ? new Set() : new Set(allProducts.map(p => p.id)));
-  }, []);
-
-  const markNotificationAsRead = useCallback(async (id: string) => {
+  const markRead = useCallback(async (id: string) => {
     await supabase.from("notifications").update({ read: true }).eq("id", id);
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    setNotifications(p => p.map(n => n.id === id ? { ...n, read: true } : n));
   }, []);
 
-  const updateOrderStatus = useCallback(async (orderId: string, newStatus: string) => {
-    const { error } = await supabase.from("pre_orders").update({ status: newStatus }).eq("id", orderId);
-    if (!error) {
-      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
-      toast.success(`Status atualizado para ${newStatus}`);
-    }
+  const updateOrderStatus = useCallback(async (id: string, status: string) => {
+    const { error } = await supabase.from("pre_orders").update({ status }).eq("id", id);
+    if (!error) { setOrders(p => p.map(o => o.id === id ? { ...o, status } : o)); toast.success("Status atualizado"); }
   }, []);
 
-  const updateSourcingStatus = useCallback(async (id: string, newStatus: string, adminNotes?: string) => {
-    const updateData: { status: string; admin_notes?: string } = { status: newStatus };
-    if (adminNotes !== undefined) updateData.admin_notes = adminNotes;
-    
-    const { error } = await supabase.from("sourcing_requests").update(updateData).eq("id", id);
-    if (!error) {
-      setSourcingRequests((prev) => prev.map((s) => (s.id === id ? { ...s, ...updateData } : s)));
-      toast.success(`Pedido de sourcing atualizado`);
-    } else {
-      toast.error("Erro ao atualizar pedido");
-    }
+  const updateSourcingStatus = useCallback(async (id: string, status: string, notes?: string) => {
+    const upd: any = { status };
+    if (notes !== undefined) upd.admin_notes = notes;
+    const { error } = await supabase.from("sourcing_requests").update(upd).eq("id", id);
+    if (!error) { setSourcingRequests(p => p.map(s => s.id === id ? { ...s, ...upd } : s)); toast.success("Atualizado"); }
+    else toast.error("Erro ao atualizar");
   }, []);
 
-  const toggleUserVerification = useCallback(async (userId: string, currentVerified: boolean) => {
+  const toggleVerification = useCallback(async (userId: string, current: boolean) => {
     try {
-      const { error } = await supabase
-        .from("users")
-        .update({ 
-          verified: !currentVerified,
-          verified_at: !currentVerified ? new Date().toISOString() : null
-        })
+      const { error } = await supabase.from("users")
+        .update({ verified: !current, verified_at: !current ? new Date().toISOString() : null })
         .eq("id", userId);
-      
       if (error) throw error;
-      
-      setUsers((prev) => prev.map((u) => 
-        u.id === userId ? { ...u, verified: !currentVerified, verified_at: !currentVerified ? new Date().toISOString() : null } : u
-      ));
-      
-      toast.success(!currentVerified ? "Usuário verificado com sucesso!" : "Verificação removida");
-    } catch (error) {
-      console.error("Erro ao atualizar verificação:", error);
-      toast.error("Erro ao atualizar status de verificação");
-    }
+      setUsers(p => p.map(u => u.id === userId ? { ...u, verified: !current } : u));
+      toast.success(!current ? "Usuário verificado!" : "Verificação removida");
+    } catch { toast.error("Erro ao atualizar verificação"); }
   }, []);
 
-  const generateMarketAnalysis = useCallback(async () => {
-    if (products.length === 0) {
-      toast.error("Sem produtos para analisar");
-      return;
-    }
+  const generateAnalysis = useCallback(async () => {
+    if (!products.length) { toast.error("Sem produtos para analisar"); return; }
     setAnalyzingMarket(true);
     try {
-      const savedLang = localStorage.getItem('orbislink_language') || 'pt';
-      const { data, error } = await supabase.functions.invoke('market-analysis', {
-        body: { products, language: savedLang }
+      const lang = localStorage.getItem("orbislink_language") || "pt";
+      const { data, error } = await supabase.functions.invoke("market-analysis", {
+        body: { products, language: lang },
       });
       if (error) throw error;
       setAiAnalysis(data.analysis);
-      toast.success("Análise gerada com sucesso!");
-    } catch (error) {
-      console.error("Error generating analysis:", error);
-      toast.error("Erro ao gerar análise");
-    } finally {
-      setAnalyzingMarket(false);
-    }
+      toast.success("Análise gerada!");
+    } catch { toast.error("Erro ao gerar análise"); }
+    finally { setAnalyzingMarket(false); }
   }, [products]);
 
-  // --- Dados para Gráficos ---
-  const chartDataRevenue = useMemo(() => {
-    const data: Record<string, number> = {};
-    transactions.forEach((t) => {
-      const date = new Date(t.created_at).toLocaleDateString("pt-BR", { month: "short", day: "numeric" });
-      data[date] = (data[date] || 0) + t.amount;
+  // ── Memoized data ─────────────────────────────────────────────────────────────
+  const chartRevenue = useMemo(() => {
+    const m: Record<string, number> = {};
+    transactions.forEach(t => {
+      const d = new Date(t.created_at).toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
+      m[d] = (m[d] || 0) + t.amount;
     });
-    return Object.entries(data).slice(-7).map(([date, amount]) => ({ date, amount }));
+    return Object.entries(m).slice(-10).map(([date, amount]) => ({ date, amount }));
   }, [transactions]);
 
-  const chartDataProducts = useMemo(() => {
-    const data: Record<string, number> = {};
-    products.forEach((p) => { data[p.product_type] = (data[p.product_type] || 0) + 1; });
-    return Object.entries(data).slice(0, 5).map(([name, value]) => ({ name, value }));
+  const chartProducts = useMemo(() => {
+    const m: Record<string, number> = {};
+    products.forEach(p => { m[p.product_type] = (m[p.product_type] || 0) + 1; });
+    return Object.entries(m).slice(0, 8).map(([name, value]) => ({ name, value }));
   }, [products]);
 
-  const chartDataTransactionStatus = useMemo(() => {
-    const data: Record<string, number> = { completed: 0, pending: 0, failed: 0, blocked: 0 };
-    transactions.forEach((t) => { if (data[t.status] !== undefined) data[t.status]++; });
-    return Object.entries(data).filter(([, v]) => v > 0).map(([name, value]) => ({ name, value }));
+  const chartTxStatus = useMemo(() => {
+    const m: Record<string, number> = { completed: 0, pending: 0, failed: 0, blocked: 0 };
+    transactions.forEach(t => { if (m[t.status] !== undefined) m[t.status]++; });
+    return Object.entries(m).filter(([, v]) => v > 0).map(([name, value]) => ({ name, value }));
   }, [transactions]);
 
-  const unreadCount = useMemo(() => notifications.filter((n) => !n.read).length, [notifications]);
-  
-  const filteredNotifications = useMemo(() => {
-    return notifications.filter((n) => {
-      if (filterStatus === "unread") return !n.read;
-      if (filterStatus === "read") return n.read;
-      return true;
-    });
-  }, [notifications, filterStatus]);
+  const unread = useMemo(() => notifications.filter(n => !n.read).length, [notifications]);
 
-  const filteredProducts = useMemo(() => products.filter((p) => p.product_type.toLowerCase().includes(searchTerm.toLowerCase())), [products, searchTerm]);
-  const filteredUsers = useMemo(() => users.filter((u) => (u.full_name || "").toLowerCase().includes(searchTerm.toLowerCase())), [users, searchTerm]);
-  const filteredFichas = useMemo(() => fichas.filter((f) => f.nome_ficha.toLowerCase().includes(searchTerm.toLowerCase()) || f.produto.toLowerCase().includes(searchTerm.toLowerCase())), [fichas, searchTerm]);
+  const filteredNotifs = useMemo(() => notifications.filter(n => {
+    if (filterStatus === "unread") return !n.read;
+    if (filterStatus === "read") return n.read;
+    return true;
+  }), [notifications, filterStatus]);
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      completed: "bg-green-100 text-green-700",
-      concluida: "bg-green-100 text-green-700",
-      pending: "bg-amber-100 text-amber-700",
-      aguardando: "bg-amber-100 text-amber-700",
-      in_progress: "bg-blue-100 text-blue-700",
-      failed: "bg-red-100 text-red-700",
-      cancelado: "bg-red-100 text-red-700",
-      cancelled: "bg-red-100 text-red-700",
-      blocked: "bg-gray-100 text-gray-700",
-    };
-    return colors[status] || "bg-gray-100 text-gray-600";
-  };
+  const filteredProducts = useMemo(() =>
+    products.filter(p => p.product_type.toLowerCase().includes(searchTerm.toLowerCase())),
+    [products, searchTerm]);
 
-  if (loading && products.length === 0) {
+  const filteredUsers = useMemo(() =>
+    users.filter(u => (u.full_name || "").toLowerCase().includes(searchTerm.toLowerCase())),
+    [users, searchTerm]);
+
+  const filteredFichas = useMemo(() =>
+    fichas.filter(f =>
+      f.nome_ficha.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      f.produto.toLowerCase().includes(searchTerm.toLowerCase())),
+    [fichas, searchTerm]);
+
+  // ── Nav tabs config ───────────────────────────────────────────────────────────
+  const tabs: Array<{ id: TabType; label: string; icon: React.ReactNode; badge?: number; guard?: boolean }> = [
+    { id: "dashboard",     label: "Dashboard",    icon: <BarChart3 size={13} /> },
+    { id: "orders",        label: "Pedidos",      icon: <ShoppingCart size={13} /> },
+    { id: "products",      label: "Produtos",     icon: <Wheat size={13} />,     guard: !hasPermission("manage_products") },
+    { id: "users",         label: "Usuários",     icon: <Users size={13} />,     guard: !hasPermission("manage_users") },
+    { id: "transactions",  label: "Transações",   icon: <DollarSign size={13} /> },
+    { id: "notifications", label: "Notificações", icon: <Bell size={13} />,      badge: unread },
+    { id: "fichas",        label: "Fichas",       icon: <FileText size={13} /> },
+    { id: "sourcing",      label: "Sourcing",     icon: <Globe size={13} />,     badge: sourcingRequests.filter(s => s.status === "pending").length, guard: !hasPermission("manage_sourcing") },
+    { id: "market",        label: "Mercado",      icon: <TrendingUp size={13} />,guard: !hasPermission("view_analytics") },
+    { id: "admins",        label: "Admins",       icon: <Crown size={13} />,     guard: !isRootAdmin && !hasPermission("manage_admins") },
+    { id: "referrals",     label: "Indicações",   icon: <Star size={13} />,      badge: allReferrals.length, guard: !hasPermission("view_analytics") },
+    { id: "deliveries",    label: "Entregas",     icon: <Truck size={13} />,     guard: !isSupportAgent && !hasPermission("manage_orders") },
+  ].filter(t => !t.guard);
+
+  // ── Loading screen ────────────────────────────────────────────────────────────
+  if (loading && !products.length) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
-          <p className="text-muted-foreground">Carregando dashboard...</p>
-        </div>
+      <div className="adm-loading">
+        <StyleInjector />
+        <Leaf size={28} color={AGRO_COLORS.accent} />
+        <div className="adm-loading-ring" />
+        <div className="adm-loading-text">Carregando painel agrícola…</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header Moderno */}
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src={OrbisLinkLogo} alt="OrbisLink" className="h-9" />
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-bold text-foreground">Painel Admin</h1>
-                <p className="text-xs text-muted-foreground">Gerenciamento OrbisLink</p>
-              </div>
-            </div>
+    <div className="admin-root">
+      <StyleInjector />
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setActiveTab("notifications")}
-                className="relative p-2 hover:bg-gray-100 rounded-xl transition-colors"
-              >
-                <Bell className="h-5 w-5 text-gray-600" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
-              <button onClick={() => navigate("/")} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
-                <ArrowLeft className="h-5 w-5 text-gray-600" />
-              </button>
-              <button className="md:hidden p-2 hover:bg-gray-100 rounded-xl" onClick={() => setMenuOpen(!menuOpen)}>
-                {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </button>
+      {/* ── Header ── */}
+      <header className="adm-header">
+        <div className="adm-header-inner">
+          <div className="adm-brand">
+            <div className="adm-logo-badge">
+              <Leaf size={18} color="#0f4526" />
+            </div>
+            <div className="adm-brand-text">
+              <span className="adm-brand-title">AgriLink Admin</span>
+              <span className="adm-brand-sub">Painel de Controle Agrícola</span>
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className={`mt-3 overflow-x-auto pb-1 ${menuOpen ? "flex" : "hidden md:flex"} flex-wrap gap-2`}>
-            <TabButton active={activeTab === "dashboard"} onClick={() => { setActiveTab("dashboard"); setMenuOpen(false); }}>
-              <Activity className="h-4 w-4" /> Dashboard
-            </TabButton>
-            <TabButton active={activeTab === "orders"} onClick={() => { setActiveTab("orders"); setMenuOpen(false); }}>
-              <ShoppingCart className="h-4 w-4" /> Pedidos
-            </TabButton>
-            {hasPermission("manage_products") && (
-              <TabButton active={activeTab === "products"} onClick={() => { setActiveTab("products"); setMenuOpen(false); }}>
-                <Package className="h-4 w-4" /> Produtos
-              </TabButton>
-            )}
-            {hasPermission("manage_users") && (
-              <TabButton active={activeTab === "users"} onClick={() => { setActiveTab("users"); setMenuOpen(false); }}>
-                <Users className="h-4 w-4" /> Usuários
-              </TabButton>
-            )}
-            <TabButton active={activeTab === "transactions"} onClick={() => { setActiveTab("transactions"); setMenuOpen(false); }}>
-              <DollarSign className="h-4 w-4" /> Transações
-            </TabButton>
-            <TabButton active={activeTab === "notifications"} onClick={() => { setActiveTab("notifications"); setMenuOpen(false); }} badge={unreadCount}>
-              <Bell className="h-4 w-4" /> Notificações
-            </TabButton>
-            <TabButton active={activeTab === "fichas"} onClick={() => { setActiveTab("fichas"); setMenuOpen(false); }}>
-              <FileText className="h-4 w-4" /> Fichas
-            </TabButton>
-            {hasPermission("manage_sourcing") && (
-              <TabButton active={activeTab === "sourcing"} onClick={() => { setActiveTab("sourcing"); setMenuOpen(false); }} badge={sourcingRequests.filter(s => s.status === 'pending').length}>
-                <TrendingUp className="h-4 w-4" /> Sourcing
-              </TabButton>
-            )}
-            {hasPermission("view_analytics") && (
-              <TabButton active={activeTab === "market"} onClick={() => { setActiveTab("market"); setMenuOpen(false); }}>
-                <Activity className="h-4 w-4" /> Mercado
-              </TabButton>
-            )}
-            {(isRootAdmin || hasPermission("manage_admins")) && (
-              <TabButton active={activeTab === "admins"} onClick={() => { setActiveTab("admins"); setMenuOpen(false); }}>
-                <Crown className="h-4 w-4" /> Admins
-              </TabButton>
-            )}
-            {hasPermission("view_analytics") && (
-              <TabButton active={activeTab === "referrals"} onClick={() => { setActiveTab("referrals"); setMenuOpen(false); }} badge={allReferrals.length}>
-                <Star className="h-4 w-4" /> Indicações
-              </TabButton>
-            )}
-            {(isSupportAgent || hasPermission("manage_orders")) && (
-              <TabButton active={activeTab === "deliveries"} onClick={() => { setActiveTab("deliveries"); setMenuOpen(false); }}>
-                <Truck className="h-4 w-4" /> Entregas
-              </TabButton>
-            )}
+          <div className="adm-header-actions">
+            <div style={{ position: "relative" }}>
+              <button
+                className="adm-icon-btn"
+                onClick={() => setActiveTab("notifications")}
+              >
+                <Bell size={15} />
+              </button>
+              {unread > 0 && (
+                <span className="adm-notif-badge">{unread > 99 ? "99+" : unread}</span>
+              )}
+            </div>
+            <button className="adm-icon-btn" onClick={fetchAllData} title="Atualizar dados">
+              <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+            </button>
+            <button className="adm-icon-btn" onClick={() => navigate("/")}>
+              <ArrowLeft size={15} />
+            </button>
+            <button
+              className="adm-icon-btn md:hidden"
+              onClick={() => setMenuOpen(!menuOpen)}
+            >
+              {menuOpen ? <X size={15} /> : <Menu size={15} />}
+            </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto p-4 space-y-6">
-        {/* Support Agent Work Timer */}
+      {/* ── Nav ── */}
+      <nav className="adm-nav">
+        <div className="adm-nav-inner">
+          {tabs.map(t => (
+            <button
+              key={t.id}
+              className={`adm-tab ${activeTab === t.id ? "active" : ""}`}
+              onClick={() => { setActiveTab(t.id); setMenuOpen(false); }}
+            >
+              {t.icon}
+              {t.label}
+              {t.badge != null && t.badge > 0 && (
+                <span className="adm-tab-badge">{t.badge > 99 ? "99+" : t.badge}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </nav>
+
+      {/* ── Main ── */}
+      <main className="adm-main">
+
+        {/* Work Timer */}
         {isSupportAgent && (
           <WorkSessionTimer
             elapsedTimeFormatted={elapsedTimeFormatted}
@@ -743,77 +1466,86 @@ const AdminDashboard = () => {
           />
         )}
 
-        {/* Root Admin Badge */}
+        {/* Root Admin Banner */}
         {isRootAdmin && (
-          <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-200 rounded-xl">
-            <Crown className="h-5 w-5 text-amber-600" />
-            <span className="text-sm font-medium text-amber-800">
-              Você é um Root Admin - Acesso total ao sistema
-            </span>
+          <div className="adm-root-banner">
+            <div className="adm-root-banner-icon">
+              <Crown size={18} color="#0f4526" />
+            </div>
+            <div className="adm-root-banner-text">
+              <div className="adm-root-banner-label">Nível de Acesso</div>
+              <div className="adm-root-banner-value">
+                Root Admin — Controle Total do Sistema{isSuperRoot ? " · Super Root" : ""}
+              </div>
+            </div>
+            <Zap size={18} color="rgba(255,255,255,.3)" />
           </div>
         )}
 
-        {/* DASHBOARD */}
+        {/* ══════════════════════════════════════════════════════════════
+            DASHBOARD
+        ══════════════════════════════════════════════════════════════ */}
         {activeTab === "dashboard" && (
           <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-              <MetricCard title="Produtos" value={products.length} icon={<Package className="h-5 w-5 sm:h-6 sm:w-6" />} trend={12} color="bg-gradient-to-br from-emerald-500 to-green-600" />
-              <MetricCard title="Usuários" value={users.length} icon={<Users className="h-5 w-5 sm:h-6 sm:w-6" />} trend={8} color="bg-gradient-to-br from-blue-500 to-indigo-600" />
-              <MetricCard title="Pedidos" value={orders.length} icon={<ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" />} trend={15} color="bg-gradient-to-br from-amber-500 to-orange-600" />
-              <MetricCard title="Transações" value={transactions.length} icon={<DollarSign className="h-5 w-5 sm:h-6 sm:w-6" />} trend={5} color="bg-gradient-to-br from-purple-500 to-pink-600" />
+            {/* Page Header */}
+            <div className="adm-page-header">
+              <div>
+                <div className="adm-page-title">
+                  <Sprout size={22} color={AGRO_COLORS.primary} />
+                  Visão Geral do Sistema
+                </div>
+                <div className="adm-page-subtitle">
+                  Dados actualizados automaticamente a cada 30 segundos
+                </div>
+              </div>
+              <button className="adm-btn adm-btn-ghost" style={{ fontSize: 12, padding: "6px 14px" }}>
+                <Download size={13} /> Exportar Relatório
+              </button>
             </div>
 
-            {/* Top 3 Agentes Leaderboard */}
-            <Card className="border border-border shadow-soft bg-card">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
-                  <Crown className="h-5 w-5 text-amber-500" />
-                  Top 3 Agentes - Maiores Indicadores
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {topAgents.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-4 text-sm">Nenhum agente com indicações ainda</p>
+            {/* Metrics */}
+            <div className="adm-metrics-grid">
+              <MetricCard title="Produtos Activos" value={products.length} icon={<Wheat />} trend={12} color="green" />
+              <MetricCard title="Utilizadores" value={users.length} icon={<Users />} trend={8} color="amber" />
+              <MetricCard title="Encomendas" value={orders.length} icon={<ShoppingCart />} trend={15} color="orange" />
+              <MetricCard title="Transacções" value={transactions.length} icon={<DollarSign />} trend={5} color="blue" />
+            </div>
+
+            {/* Leaderboard */}
+            <div className="adm-card">
+              <div className="adm-card-header">
+                <div className="adm-card-title">
+                  <div className="adm-title-icon"><Crown size={14} /></div>
+                  Top 3 Agentes — Maiores Indicadores
+                </div>
+              </div>
+              <div className="adm-card-body">
+                {!topAgents.length ? (
+                  <div className="adm-empty">
+                    <div className="adm-empty-icon"><Star size={22} color="#9b9285" /></div>
+                    <div className="adm-empty-title">Sem indicações ainda</div>
+                  </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                    {topAgents.map((agent, index) => (
-                      <div
-                        key={agent.agent_id}
-                        className={`relative p-3 sm:p-4 rounded-xl border transition-all hover:scale-[1.02] ${
-                          index === 0 
-                            ? 'bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200 dark:from-amber-900/20 dark:to-amber-800/20 dark:border-amber-700' 
-                            : index === 1 
-                            ? 'bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200 dark:from-slate-800/50 dark:to-slate-700/50 dark:border-slate-600'
-                            : 'bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 dark:from-orange-900/20 dark:to-orange-800/20 dark:border-orange-700'
-                        }`}
-                      >
-                        <div className={`absolute -top-2 -left-2 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold ${
-                          index === 0 
-                            ? 'bg-amber-500 text-white' 
-                            : index === 1 
-                            ? 'bg-slate-400 text-white'
-                            : 'bg-orange-400 text-white'
-                        }`}>
-                          {index + 1}º
-                        </div>
-                        <div className="flex items-center gap-2 sm:gap-3 mt-2">
-                          <Avatar className="h-10 w-10 sm:h-12 sm:w-12 ring-2 ring-primary/20">
-                            <AvatarImage src={agent.agent_avatar || ""} />
-                            <AvatarFallback className="bg-primary text-primary-foreground text-xs sm:text-sm font-bold">
-                              {agent.agent_name?.charAt(0) || 'A'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-xs sm:text-sm truncate">{agent.agent_name}</p>
-                            <div className="flex items-center gap-2 sm:gap-3 mt-1">
-                              <div className="flex items-center gap-1">
-                                <Users className="h-3 w-3 text-primary" />
-                                <span className="text-xs font-medium">{agent.total_referrals}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Star className="h-3 w-3 text-amber-500" />
-                                <span className="text-xs font-medium">{agent.total_points} pts</span>
-                              </div>
+                  <div className="adm-leaderboard">
+                    {topAgents.map((a, i) => (
+                      <div key={a.agent_id} className={`adm-leader-card rank-${i + 1}`}>
+                        <span className={`adm-rank-badge r${i + 1}`}>{i + 1}°</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div
+                            className="adm-avatar"
+                            style={{ width: 44, height: 44, fontSize: 14, background: CHART_COLORS[i] }}
+                          >
+                            {a.agent_name?.charAt(0) || "A"}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: 13, color: "#1c1a16" }}>{a.agent_name}</div>
+                            <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
+                              <span style={{ fontSize: 12, color: "#6b6458", display: "flex", alignItems: "center", gap: 4 }}>
+                                <Users size={11} /> {a.total_referrals} indicações
+                              </span>
+                              <span style={{ fontSize: 12, color: "#b37d0a", display: "flex", alignItems: "center", gap: 4 }}>
+                                <Star size={11} /> {a.total_points} pts
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -821,784 +1553,780 @@ const AdminDashboard = () => {
                     ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
-
-            <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
-              <Card className="border border-border shadow-soft bg-card">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm sm:text-base font-semibold">Receita por Data</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={180}>
-                    <LineChart data={chartDataRevenue}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                      <YAxis tick={{ fontSize: 10 }} />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="amount" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ fill: "hsl(var(--primary))", r: 3 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <Card className="border border-border shadow-soft bg-card">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm sm:text-base font-semibold">Top Produtos</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={180}>
-                    <BarChart data={chartDataProducts} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis type="number" tick={{ fontSize: 10 }} />
-                      <YAxis dataKey="name" type="category" width={60} tick={{ fontSize: 10 }} />
-                      <Tooltip />
-                      <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <Card className="border border-border shadow-soft bg-card lg:col-span-2">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm sm:text-base font-semibold">Status das Transações</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
-                    <ResponsiveContainer width={160} height={160}>
-                      <PieChart>
-                        <Pie data={chartDataTransactionStatus} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" label={({ value }) => `${value}`}>
-                          {chartDataTransactionStatus.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="space-y-2">
-                      {chartDataTransactionStatus.map((item, i) => (
-                        <div key={item.name} className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                          <span className="text-xs sm:text-sm text-muted-foreground capitalize">{item.name}: {item.value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </>
-        )}
-
-        {/* PEDIDOS */}
-        {activeTab === "orders" && (
-          <Card className="border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5 text-primary" /> Pedidos ({orders.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50/80">
-                    <TableHead>Produto</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Qtd</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orders.map((order) => {
-                    const user = users.find((u) => u.id === order.user_id);
-                    const product = products.find((p) => p.id === order.product_id);
-                    return (
-                      <TableRow key={order.id} className="hover:bg-gray-50/50">
-                        <TableCell className="font-medium">{product?.product_type || "-"}</TableCell>
-                        <TableCell>{user?.full_name || "-"}</TableCell>
-                        <TableCell>{order.quantity} kg</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-gray-500">{new Date(order.created_at).toLocaleDateString("pt-BR")}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-green-600" onClick={() => updateOrderStatus(order.id, "concluida")} disabled={order.status === "concluida"}>
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-600" onClick={() => updateOrderStatus(order.id, "cancelado")} disabled={order.status === "cancelado"}>
-                              <X className="h-4 w-4" />
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-amber-600" onClick={() => updateOrderStatus(order.id, "aguardando")} disabled={order.status === "aguardando"}>
-                              <Clock className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* PRODUTOS */}
-        {activeTab === "products" && (
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Package className="h-5 w-5 text-primary" /> Produtos ({filteredProducts.length})
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                {selectedProducts.size > 0 && (
-                  <Button size="sm" variant="destructive" className="gap-1" onClick={() => handleBulkDelete("products", selectedProducts, setProducts, () => setSelectedProducts(new Set()))}>
-                    <Trash2 className="h-4 w-4" /> Apagar ({selectedProducts.size})
-                  </Button>
-                )}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 w-48 h-9" />
-                </div>
               </div>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50/80">
-                    <TableHead className="w-10">
-                      <Checkbox
-                        checked={filteredProducts.length > 0 && selectedProducts.size === filteredProducts.length}
-                        onCheckedChange={() => toggleSelectAllProducts(filteredProducts)}
-                      />
-                    </TableHead>
-                    <TableHead>Produto</TableHead>
-                    <TableHead>Qtd</TableHead>
-                    <TableHead>Preço</TableHead>
-                    <TableHead>Usuário</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredProducts.map((product) => {
-                    const user = users.find((u) => u.id === product.user_id);
-                    return (
-                      <TableRow key={product.id} className={`hover:bg-gray-50/50 ${selectedProducts.has(product.id) ? "bg-primary/5" : ""}`}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedProducts.has(product.id)}
-                            onCheckedChange={() => toggleSelectProduct(product.id)}
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium">{product.product_type}</TableCell>
-                        <TableCell>{product.quantity} kg</TableCell>
-                        <TableCell>{product.price?.toFixed(2)} Kz</TableCell>
-                        <TableCell>{user?.full_name || "-"}</TableCell>
-                        <TableCell className="text-sm text-gray-500">{new Date(product.created_at).toLocaleDateString("pt-BR")}</TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><MoreVertical className="h-4 w-4" /></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => { setTargetUser(product.user_id); setNotificationModalOpen(true); }}>
-                                <Bell className="h-4 w-4 mr-2" /> Notificar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDelete("products", product.id, setProducts)} className="text-red-600">
-                                <Trash2 className="h-4 w-4 mr-2" /> Apagar
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* USUÁRIOS */}
-        {activeTab === "users" && (
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" /> Usuários ({filteredUsers.length})
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                {selectedUsers.size > 0 && (
-                  <Button size="sm" variant="destructive" className="gap-1" onClick={() => handleBulkDelete("users", selectedUsers, setUsers, () => setSelectedUsers(new Set()))}>
-                    <Trash2 className="h-4 w-4" /> Apagar ({selectedUsers.size})
-                  </Button>
-                )}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 w-48 h-9" />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50/80">
-                    <TableHead className="w-10">
-                      <Checkbox
-                        checked={filteredUsers.length > 0 && selectedUsers.size === filteredUsers.length}
-                        onCheckedChange={() => toggleSelectAllUsers(filteredUsers)}
-                      />
-                    </TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user) => (
-                    <TableRow key={user.id} className={`hover:bg-gray-50/50 ${selectedUsers.has(user.id) ? "bg-primary/5" : ""}`}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedUsers.has(user.id)}
-                          onCheckedChange={() => toggleSelectUser(user.id)}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          {user.full_name}
-                          {user.verified && (
-                            <BadgeCheck className="h-4 w-4 text-primary" />
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-500">{user.email || "-"}</TableCell>
-                      <TableCell className="text-sm">{user.phone || "-"}</TableCell>
-                      <TableCell><Badge variant="outline" className="capitalize">{user.user_type || "user"}</Badge></TableCell>
-                      <TableCell>
-                        {user.verified ? (
-                          <Badge className="bg-primary/10 text-primary flex items-center gap-1 w-fit">
-                            <BadgeCheck className="h-3 w-3" /> Verificado
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-gray-500">Não verificado</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-500">{user.created_at ? new Date(user.created_at).toLocaleDateString("pt-BR") : "-"}</TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><MoreVertical className="h-4 w-4" /></Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {user.verified ? (
-                              <DropdownMenuItem onClick={() => toggleUserVerification(user.id, true)} className="text-amber-600">
-                                <ShieldX className="h-4 w-4 mr-2" /> Remover Verificação
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem onClick={() => toggleUserVerification(user.id, false)} className="text-primary">
-                                <ShieldCheck className="h-4 w-4 mr-2" /> Verificar Usuário
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => { setTargetUser(user.id); setNotificationModalOpen(true); }}>
-                              <Bell className="h-4 w-4 mr-2" /> Notificar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete("users", user.id, setUsers)} className="text-red-600">
-                              <Trash2 className="h-4 w-4 mr-2" /> Apagar
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* TRANSAÇÕES */}
-        {activeTab === "transactions" && (
-          <Card className="border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-primary" /> Transações ({transactions.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50/80">
-                    <TableHead>ID</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Data</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.map((t) => (
-                    <TableRow key={t.id} className="hover:bg-gray-50/50">
-                      <TableCell className="font-mono text-xs">{t.id.substring(0, 8)}...</TableCell>
-                      <TableCell className="capitalize text-sm">{t.type.replace(/_/g, " ")}</TableCell>
-                      <TableCell className="font-semibold">{t.amount.toFixed(2)} Kz</TableCell>
-                      <TableCell><Badge className={getStatusColor(t.status)}>{t.status}</Badge></TableCell>
-                      <TableCell className="text-sm text-gray-500">{new Date(t.created_at).toLocaleDateString("pt-BR")}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* NOTIFICAÇÕES */}
-        {activeTab === "notifications" && (
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Bell className="h-5 w-5 text-primary" /> Notificações
-              </CardTitle>
-              <div className="flex gap-2">
-                <div className="flex rounded-lg border overflow-hidden">
-                  <button onClick={() => setFilterStatus("all")} className={`px-3 py-1.5 text-xs ${filterStatus === "all" ? "bg-primary text-white" : "bg-white text-gray-600"}`}>Todas</button>
-                  <button onClick={() => setFilterStatus("unread")} className={`px-3 py-1.5 text-xs ${filterStatus === "unread" ? "bg-primary text-white" : "bg-white text-gray-600"}`}>Não Lidas</button>
-                  <button onClick={() => setFilterStatus("read")} className={`px-3 py-1.5 text-xs ${filterStatus === "read" ? "bg-primary text-white" : "bg-white text-gray-600"}`}>Lidas</button>
-                </div>
-                <Button size="sm" onClick={() => setNotificationModalOpen(true)}>
-                  <Send className="h-4 w-4 mr-1" /> Enviar
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {filteredNotifications.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">Nenhuma notificação</p>
-              ) : (
-                filteredNotifications.map((n) => (
-                  <div key={n.id} className={`p-4 rounded-xl border transition-all cursor-pointer ${n.read ? "bg-gray-50 border-gray-100" : "bg-blue-50 border-blue-200"}`} onClick={() => markNotificationAsRead(n.id)}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-medium text-sm truncate">{n.title}</h4>
-                          {!n.read && <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">Novo</span>}
-                        </div>
-                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">{n.message}</p>
-                        <p className="text-xs text-gray-400 mt-1">{new Date(n.created_at).toLocaleString("pt-BR")}</p>
-                      </div>
-                      {n.read ? <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" /> : <Clock className="h-5 w-5 text-gray-400 flex-shrink-0" />}
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* FICHAS */}
-        {activeTab === "fichas" && (
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" /> Fichas de Recebimento ({filteredFichas.length})
-              </CardTitle>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 w-48 h-9" />
-              </div>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50/80">
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Produto</TableHead>
-                    <TableHead>Negócio</TableHead>
-                    <TableHead>Qualidade</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredFichas.map((f) => (
-                    <TableRow key={f.id} className="hover:bg-gray-50/50">
-                      <TableCell className="font-medium">{f.nome_ficha}</TableCell>
-                      <TableCell>{f.produto}</TableCell>
-                      <TableCell><Badge className={f.tipo_negocio === "compra" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}>{f.tipo_negocio}</Badge></TableCell>
-                      <TableCell>{f.qualidade || "-"}</TableCell>
-                      <TableCell>{f.telefone || "-"}</TableCell>
-                      <TableCell className="text-sm text-gray-500">{new Date(f.created_at).toLocaleDateString("pt-BR")}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => { setTargetUser(f.user_id); setNotificationModalOpen(true); }}>
-                            <Bell className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-600" onClick={() => handleDelete("fichas_recebimento", f.id, setFichas)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* AGRILINK SOURCING */}
-        {activeTab === "sourcing" && (
-          <Card className="border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" /> OrbisLink Sourcing - Pedidos Especiais ({sourcingRequests.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
-              {sourcingRequests.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">Nenhum pedido de sourcing</p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50/80">
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Produto</TableHead>
-                      <TableHead>Qtd (kg)</TableHead>
-                      <TableHead>Entrega</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sourcingRequests.map((req) => {
-                      const user = users.find((u) => u.id === req.user_id);
-                      return (
-                        <TableRow key={req.id} className="hover:bg-gray-50/50">
-                          <TableCell className="font-medium">{user?.full_name || "-"}</TableCell>
-                          <TableCell>{req.product_name}</TableCell>
-                          <TableCell>{req.quantity}</TableCell>
-                          <TableCell className="text-sm">{new Date(req.delivery_date).toLocaleDateString("pt-BR")}</TableCell>
-                          <TableCell>
-                            <Badge className={getStatusColor(req.status)}>{req.status}</Badge>
-                          </TableCell>
-                          <TableCell className="text-sm text-gray-500">{new Date(req.created_at).toLocaleDateString("pt-BR")}</TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><MoreVertical className="h-4 w-4" /></Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuItem onClick={() => updateSourcingStatus(req.id, "in_progress")}>
-                                  <Clock className="h-4 w-4 mr-2 text-amber-500" /> Em Progresso
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => updateSourcingStatus(req.id, "completed")}>
-                                  <Check className="h-4 w-4 mr-2 text-green-500" /> Concluído
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => updateSourcingStatus(req.id, "cancelled")}>
-                                  <X className="h-4 w-4 mr-2 text-red-500" /> Cancelado
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => {
-                                  const notes = prompt("Notas do Admin:", req.admin_notes || "");
-                                  if (notes !== null) updateSourcingStatus(req.id, req.status, notes);
-                                }}>
-                                  <MessageSquare className="h-4 w-4 mr-2" /> Adicionar Notas
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => { setTargetUser(req.user_id); setNotificationModalOpen(true); }}>
-                                  <Bell className="h-4 w-4 mr-2" /> Notificar Cliente
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-              
-              {/* Detalhes expandidos */}
-              <div className="mt-6 space-y-4">
-                <h3 className="font-semibold text-sm text-gray-700">Detalhes dos Pedidos</h3>
-                {sourcingRequests.filter(r => r.description || r.admin_notes).map((req) => {
-                  const user = users.find((u) => u.id === req.user_id);
-                  return (
-                    <div key={req.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <span className="font-medium">{req.product_name}</span>
-                          <span className="text-sm text-gray-500 ml-2">- {user?.full_name}</span>
-                        </div>
-                        <Badge className={getStatusColor(req.status)}>{req.status}</Badge>
-                      </div>
-                      {req.description && (
-                        <div className="mb-2">
-                          <p className="text-xs text-gray-500 font-medium">Descrição do Cliente:</p>
-                          <p className="text-sm text-gray-700">{req.description}</p>
-                        </div>
-                      )}
-                      {req.admin_notes && (
-                        <div className="mt-2 p-2 bg-blue-50 rounded-lg">
-                          <p className="text-xs text-blue-600 font-medium">Notas do Admin:</p>
-                          <p className="text-sm text-blue-800">{req.admin_notes}</p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* MARKET DATA */}
-        {activeTab === "market" && (
-          <div className="space-y-6">
-            {/* Estatísticas do Mercado */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <MetricCard
-                title="Total Produtos"
-                value={products.length}
-                icon={<Package className="h-6 w-6" />}
-                color="bg-gradient-to-br from-blue-500 to-blue-600"
-              />
-              <MetricCard
-                title="Volume Total (kg)"
-                value={products.reduce((acc, p) => acc + p.quantity, 0).toLocaleString()}
-                icon={<TrendingUp className="h-6 w-6" />}
-                color="bg-gradient-to-br from-green-500 to-green-600"
-              />
-              <MetricCard
-                title="Preço Médio (AOA)"
-                value={products.length > 0 ? Math.round(products.reduce((acc, p) => acc + p.price, 0) / products.length).toLocaleString() : 0}
-                icon={<DollarSign className="h-6 w-6" />}
-                color="bg-gradient-to-br from-amber-500 to-amber-600"
-              />
-              <MetricCard
-                title="Tipos de Produtos"
-                value={new Set(products.map(p => p.product_type)).size}
-                icon={<Activity className="h-6 w-6" />}
-                color="bg-gradient-to-br from-purple-500 to-purple-600"
-              />
             </div>
 
-            {/* Gráficos */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Gráfico de Preços por Produto */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-primary" /> Preço Médio por Produto
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={(() => {
-                      const grouped: Record<string, { total: number; count: number }> = {};
-                      products.forEach(p => {
-                        if (!grouped[p.product_type]) grouped[p.product_type] = { total: 0, count: 0 };
-                        grouped[p.product_type].total += p.price;
-                        grouped[p.product_type].count++;
-                      });
-                      return Object.entries(grouped)
-                        .map(([name, data]) => ({ name, avgPrice: Math.round(data.total / data.count) }))
-                        .sort((a, b) => b.avgPrice - a.avgPrice)
-                        .slice(0, 8);
-                    })()}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" height={80} />
-                      <YAxis tick={{ fontSize: 12 }} />
-                      <Tooltip formatter={(value: number) => [`${value.toLocaleString()} AOA`, 'Preço Médio']} />
-                      <Bar dataKey="avgPrice" fill="#22c55e" radius={[4, 4, 0, 0]} />
+            {/* Charts */}
+            <div className="adm-charts-grid">
+              <div className="adm-card">
+                <div className="adm-card-header">
+                  <div className="adm-card-title">
+                    <div className="adm-title-icon"><TrendingUp size={14} /></div>
+                    Receita — Últimos 10 Dias
+                  </div>
+                </div>
+                <div className="adm-card-body">
+                  <ResponsiveContainer width="100%" height={200}>
+                    <AreaChart data={chartRevenue}>
+                      <defs>
+                        <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={AGRO_COLORS.primary} stopOpacity={0.15} />
+                          <stop offset="95%" stopColor={AGRO_COLORS.primary} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0ede6" vertical={false} />
+                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#9b9285" }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: "#9b9285" }} axisLine={false} tickLine={false} />
+                      <Tooltip content={<AgroTooltip unit=" Kz" />} />
+                      <Area type="monotone" dataKey="amount" stroke={AGRO_COLORS.primary} strokeWidth={2} fill="url(#revGrad)" dot={{ fill: AGRO_COLORS.primary, r: 3, strokeWidth: 0 }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="adm-card">
+                <div className="adm-card-header">
+                  <div className="adm-card-title">
+                    <div className="adm-title-icon"><Package size={14} /></div>
+                    Top Produtos por Oferta
+                  </div>
+                </div>
+                <div className="adm-card-body">
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={chartProducts} layout="vertical" barSize={10}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0ede6" horizontal={false} />
+                      <XAxis type="number" tick={{ fontSize: 11, fill: "#9b9285" }} axisLine={false} tickLine={false} />
+                      <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11, fill: "#9b9285" }} axisLine={false} tickLine={false} />
+                      <Tooltip content={<AgroTooltip />} />
+                      <Bar dataKey="value" fill={AGRO_COLORS.primary} radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              {/* Gráfico de Volume por Produto */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary" /> Volume por Produto (kg)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={(() => {
-                      const grouped: Record<string, number> = {};
-                      products.forEach(p => {
-                        grouped[p.product_type] = (grouped[p.product_type] || 0) + p.quantity;
-                      });
-                      return Object.entries(grouped)
-                        .map(([name, volume]) => ({ name, volume }))
-                        .sort((a, b) => b.volume - a.volume)
-                        .slice(0, 8);
-                    })()}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="name" tick={{ fontSize: 12 }} angle={-45} textAnchor="end" height={80} />
-                      <YAxis tick={{ fontSize: 12 }} />
-                      <Tooltip formatter={(value: number) => [`${value.toLocaleString()} kg`, 'Volume']} />
-                      <Bar dataKey="volume" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* Distribuição por Tipo */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <Package className="h-5 w-5 text-primary" /> Distribuição por Tipo
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
+              <div className="adm-card adm-chart-full">
+                <div className="adm-card-header">
+                  <div className="adm-card-title">
+                    <div className="adm-title-icon"><Activity size={14} /></div>
+                    Distribuição de Transações por Status
+                  </div>
+                </div>
+                <div className="adm-card-body" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 40, flexWrap: "wrap" }}>
+                  <ResponsiveContainer width={200} height={200}>
                     <PieChart>
-                      <Pie
-                        data={chartDataProducts}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={100}
-                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                        labelLine={false}
-                      >
-                        {chartDataProducts.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
+                      <Pie data={chartTxStatus} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={3}>
+                        {chartTxStatus.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                       </Pie>
                       <Tooltip />
                     </PieChart>
                   </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* Histórico de Preços */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-primary" /> Tendência de Publicações
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={(() => {
-                      const grouped: Record<string, number> = {};
-                      products.forEach(p => {
-                        const date = new Date(p.created_at).toLocaleDateString("pt-BR", { month: "short", day: "numeric" });
-                        grouped[date] = (grouped[date] || 0) + 1;
-                      });
-                      return Object.entries(grouped).slice(-14).map(([date, count]) => ({ date, count }));
-                    })()}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                      <YAxis tick={{ fontSize: 12 }} />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="count" stroke="#22c55e" strokeWidth={2} dot={{ fill: '#22c55e' }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Tabela de Preços por Produto */}
-            <Card className="border-0 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-primary" /> Tabela de Preços do Mercado
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50/80">
-                      <TableHead>Produto</TableHead>
-                      <TableHead>Qtd Ofertas</TableHead>
-                      <TableHead>Preço Min</TableHead>
-                      <TableHead>Preço Médio</TableHead>
-                      <TableHead>Preço Máx</TableHead>
-                      <TableHead>Volume Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(() => {
-                      const grouped: Record<string, { prices: number[]; quantities: number[] }> = {};
-                      products.forEach(p => {
-                        if (!grouped[p.product_type]) grouped[p.product_type] = { prices: [], quantities: [] };
-                        grouped[p.product_type].prices.push(p.price);
-                        grouped[p.product_type].quantities.push(p.quantity);
-                      });
-                      return Object.entries(grouped)
-                        .map(([name, data]) => ({
-                          name,
-                          count: data.prices.length,
-                          minPrice: Math.min(...data.prices),
-                          avgPrice: Math.round(data.prices.reduce((a, b) => a + b, 0) / data.prices.length),
-                          maxPrice: Math.max(...data.prices),
-                          totalVolume: data.quantities.reduce((a, b) => a + b, 0)
-                        }))
-                        .sort((a, b) => b.count - a.count);
-                    })().map((item) => (
-                      <TableRow key={item.name} className="hover:bg-gray-50/50">
-                        <TableCell className="font-medium">{item.name}</TableCell>
-                        <TableCell>{item.count}</TableCell>
-                        <TableCell className="text-green-600">{item.minPrice.toLocaleString()} AOA</TableCell>
-                        <TableCell className="font-semibold">{item.avgPrice.toLocaleString()} AOA</TableCell>
-                        <TableCell className="text-red-600">{item.maxPrice.toLocaleString()} AOA</TableCell>
-                        <TableCell>{item.totalVolume.toLocaleString()} kg</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-
-            {/* Análise IA */}
-            <Card className="border-0 shadow-sm">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-primary" /> Análise de Mercado com IA (Google Gemini)
-                  </CardTitle>
-                  <Button onClick={generateMarketAnalysis} disabled={analyzingMarket} className="gap-2">
-                    {analyzingMarket ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 animate-spin" /> Analisando...
-                      </>
-                    ) : (
-                      <>
-                        <Activity className="h-4 w-4" /> Gerar Análise
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {aiAnalysis ? (
-                  <div className="prose prose-sm max-w-none">
-                    <div className="p-4 bg-gradient-to-br from-green-50 to-blue-50 rounded-xl border border-green-100">
-                      <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                        {aiAnalysis}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {chartTxStatus.map((item, i) => (
+                      <div key={item.name} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ width: 10, height: 10, borderRadius: 2, background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                        <span style={{ fontSize: 13, color: "#6b6458", textTransform: "capitalize", minWidth: 80 }}>
+                          {item.name.replace(/_/g, " ")}
+                        </span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "#1c1a16", fontVariantNumeric: "tabular-nums" }}>
+                          {item.value}
+                        </span>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ) : (
-                  <div className="text-center py-12 text-gray-500">
-                    <Activity className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>Clique em "Gerar Análise" para obter insights do mercado com IA</p>
-                    <p className="text-sm mt-2">A análise inclui: resumo do mercado, preços, tendências e recomendações</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════
+            ORDERS
+        ══════════════════════════════════════════════════════════════ */}
+        {activeTab === "orders" && (
+          <div className="adm-card">
+            <div className="adm-card-header">
+              <div className="adm-card-title">
+                <div className="adm-title-icon"><ShoppingCart size={14} /></div>
+                Encomendas
+                <span style={{ fontSize: 12, fontWeight: 400, color: "#9b9285" }}>({orders.length})</span>
+              </div>
+            </div>
+            <div className="adm-card-body no-pad">
+              <div className="adm-table-wrap">
+                <table className="adm-table">
+                  <thead>
+                    <tr>
+                      <th>Produto</th>
+                      <th>Cliente</th>
+                      <th>Qtd</th>
+                      <th>Status</th>
+                      <th>Data</th>
+                      <th>Acções</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map(order => {
+                      const user = users.find(u => u.id === order.user_id);
+                      const product = products.find(p => p.id === order.product_id);
+                      return (
+                        <tr key={order.id}>
+                          <td className="cell-name">{product?.product_type || "—"}</td>
+                          <td>{user?.full_name || "—"}</td>
+                          <td><span className="adm-badge badge-green">{order.quantity} kg</span></td>
+                          <td><StatusBadge status={order.status} /></td>
+                          <td className="cell-muted">{new Date(order.created_at).toLocaleDateString("pt-BR")}</td>
+                          <td>
+                            <div style={{ display: "flex", gap: 4 }}>
+                              <button className="adm-btn-icon adm-btn success" title="Concluir" onClick={() => updateOrderStatus(order.id, "concluida")} disabled={order.status === "concluida"}>
+                                <Check size={13} />
+                              </button>
+                              <button className="adm-btn-icon adm-btn warning" title="Aguardando" onClick={() => updateOrderStatus(order.id, "aguardando")} disabled={order.status === "aguardando"}>
+                                <Clock size={13} />
+                              </button>
+                              <button className="adm-btn-icon adm-btn danger" title="Cancelar" onClick={() => updateOrderStatus(order.id, "cancelado")} disabled={order.status === "cancelado"}>
+                                <X size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* ADMIN MANAGEMENT */}
+        {/* ══════════════════════════════════════════════════════════════
+            PRODUCTS
+        ══════════════════════════════════════════════════════════════ */}
+        {activeTab === "products" && (
+          <div className="adm-card">
+            <TableToolbar
+              title="Produtos"
+              count={filteredProducts.length}
+              icon={<Wheat size={14} />}
+              search={searchTerm}
+              setSearch={setSearchTerm}
+              bulkCount={selectedProducts.size}
+              onBulkDelete={() => handleBulkDelete("products", selectedProducts, setProducts, () => setSelectedProducts(new Set()))}
+            />
+            <div className="adm-card-body no-pad">
+              <div className="adm-table-wrap">
+                <table className="adm-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: 36 }}>
+                        <Checkbox
+                          checked={filteredProducts.length > 0 && selectedProducts.size === filteredProducts.length}
+                          onCheckedChange={() => toggleAllProducts(filteredProducts)}
+                        />
+                      </th>
+                      <th>Produto</th>
+                      <th>Qtd (kg)</th>
+                      <th>Preço</th>
+                      <th>Fornecedor</th>
+                      <th>Data</th>
+                      <th>Acções</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredProducts.map(p => {
+                      const user = users.find(u => u.id === p.user_id);
+                      return (
+                        <tr key={p.id} className={selectedProducts.has(p.id) ? "selected" : ""}>
+                          <td><Checkbox checked={selectedProducts.has(p.id)} onCheckedChange={() => toggleSelectProduct(p.id)} /></td>
+                          <td className="cell-name">{p.product_type}</td>
+                          <td>{p.quantity.toLocaleString()}</td>
+                          <td style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{p.price.toLocaleString("pt-AO")} Kz</td>
+                          <td>{user?.full_name || "—"}</td>
+                          <td className="cell-muted">{new Date(p.created_at).toLocaleDateString("pt-BR")}</td>
+                          <td>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button className="adm-btn-icon adm-btn"><MoreVertical size={13} /></button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" style={{ minWidth: 160 }}>
+                                <DropdownMenuItem onClick={() => { setTargetUser(p.user_id); setNotifModalOpen(true); }}>
+                                  <Bell size={13} className="mr-2" /> Notificar Fornecedor
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-red-600" onClick={() => handleDelete("products", p.id, setProducts)}>
+                                  <Trash2 size={13} className="mr-2" /> Excluir Produto
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════
+            USERS
+        ══════════════════════════════════════════════════════════════ */}
+        {activeTab === "users" && (
+          <div className="adm-card">
+            <TableToolbar
+              title="Utilizadores"
+              count={filteredUsers.length}
+              icon={<Users size={14} />}
+              search={searchTerm}
+              setSearch={setSearchTerm}
+              bulkCount={selectedUsers.size}
+              onBulkDelete={() => handleBulkDelete("users", selectedUsers, setUsers, () => setSelectedUsers(new Set()))}
+            />
+            <div className="adm-card-body no-pad">
+              <div className="adm-table-wrap">
+                <table className="adm-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: 36 }}>
+                        <Checkbox
+                          checked={filteredUsers.length > 0 && selectedUsers.size === filteredUsers.length}
+                          onCheckedChange={() => toggleAllUsers(filteredUsers)}
+                        />
+                      </th>
+                      <th>Nome</th>
+                      <th>Email</th>
+                      <th>Telefone</th>
+                      <th>Tipo</th>
+                      <th>Verificação</th>
+                      <th>Data</th>
+                      <th>Acções</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredUsers.map(user => (
+                      <tr key={user.id} className={selectedUsers.has(user.id) ? "selected" : ""}>
+                        <td><Checkbox checked={selectedUsers.has(user.id)} onCheckedChange={() => toggleSelectUser(user.id)} /></td>
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div className="adm-avatar" style={{ width: 30, height: 30, background: AGRO_COLORS.sage }}>
+                              {user.full_name?.charAt(0) || "U"}
+                            </div>
+                            <span className="cell-name">{user.full_name}</span>
+                            {user.verified && <BadgeCheck size={14} color={AGRO_COLORS.primary} />}
+                          </div>
+                        </td>
+                        <td className="cell-muted">{user.email || "—"}</td>
+                        <td style={{ fontFamily: "DM Mono, monospace", fontSize: 12 }}>{user.phone || "—"}</td>
+                        <td>
+                          <span className="adm-badge badge-outline" style={{ textTransform: "capitalize" }}>
+                            {user.user_type || "user"}
+                          </span>
+                        </td>
+                        <td>
+                          {user.verified
+                            ? <span className="adm-status status-success"><BadgeCheck size={11} /> Verificado</span>
+                            : <span className="adm-status status-neutral">Não verificado</span>
+                          }
+                        </td>
+                        <td className="cell-muted">
+                          {user.created_at ? new Date(user.created_at).toLocaleDateString("pt-BR") : "—"}
+                        </td>
+                        <td>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="adm-btn-icon adm-btn"><MoreVertical size={13} /></button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" style={{ minWidth: 180 }}>
+                              {user.verified ? (
+                                <DropdownMenuItem onClick={() => toggleVerification(user.id, true)}>
+                                  <ShieldX size={13} className="mr-2" /> Remover Verificação
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem onClick={() => toggleVerification(user.id, false)}>
+                                  <ShieldCheck size={13} className="mr-2" /> Verificar Utilizador
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onClick={() => { setTargetUser(user.id); setNotifModalOpen(true); }}>
+                                <Bell size={13} className="mr-2" /> Enviar Notificação
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-red-600" onClick={() => handleDelete("users", user.id, setUsers)}>
+                                <Trash2 size={13} className="mr-2" /> Excluir Utilizador
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════
+            TRANSACTIONS
+        ══════════════════════════════════════════════════════════════ */}
+        {activeTab === "transactions" && (
+          <div className="adm-card">
+            <div className="adm-card-header">
+              <div className="adm-card-title">
+                <div className="adm-title-icon"><DollarSign size={14} /></div>
+                Transacções
+                <span style={{ fontSize: 12, fontWeight: 400, color: "#9b9285" }}>({transactions.length})</span>
+              </div>
+            </div>
+            <div className="adm-card-body no-pad">
+              <div className="adm-table-wrap">
+                <table className="adm-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Tipo</th>
+                      <th>Valor</th>
+                      <th>Status</th>
+                      <th>Data</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.map(t => (
+                      <tr key={t.id}>
+                        <td className="cell-mono">{t.id.substring(0, 12)}…</td>
+                        <td style={{ textTransform: "capitalize", fontSize: 13 }}>{t.type.replace(/_/g, " ")}</td>
+                        <td style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{t.amount.toLocaleString("pt-AO")} Kz</td>
+                        <td><StatusBadge status={t.status} /></td>
+                        <td className="cell-muted">{new Date(t.created_at).toLocaleDateString("pt-BR")}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════
+            NOTIFICATIONS
+        ══════════════════════════════════════════════════════════════ */}
+        {activeTab === "notifications" && (
+          <div className="adm-card">
+            <div className="adm-card-header">
+              <div className="adm-card-title">
+                <div className="adm-title-icon"><Bell size={14} /></div>
+                Notificações
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div className="adm-filter-tabs">
+                  {["all", "unread", "read"].map(s => (
+                    <button
+                      key={s}
+                      className={`adm-filter-tab ${filterStatus === s ? "active" : ""}`}
+                      onClick={() => setFilterStatus(s)}
+                    >
+                      {s === "all" ? "Todas" : s === "unread" ? "Não Lidas" : "Lidas"}
+                    </button>
+                  ))}
+                </div>
+                <button className="adm-btn adm-btn-primary" style={{ padding: "7px 14px", fontSize: 12 }} onClick={() => setNotifModalOpen(true)}>
+                  <Send size={12} /> Enviar
+                </button>
+              </div>
+            </div>
+            <div className="adm-card-body" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {!filteredNotifs.length ? (
+                <div className="adm-empty">
+                  <div className="adm-empty-icon"><Bell size={22} color="#9b9285" /></div>
+                  <div className="adm-empty-title">Sem notificações</div>
+                </div>
+              ) : filteredNotifs.map(n => (
+                <div key={n.id} className={`adm-notif-item ${!n.read ? "unread" : ""}`} onClick={() => markRead(n.id)}>
+                  {!n.read && <div className="adm-notif-dot" />}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div className="adm-notif-title">{n.title}</div>
+                      {!n.read && <span className="adm-badge badge-green" style={{ fontSize: 10 }}>Novo</span>}
+                    </div>
+                    <div className="adm-notif-msg">{n.message}</div>
+                    <div className="adm-notif-time">{new Date(n.created_at).toLocaleString("pt-BR")}</div>
+                  </div>
+                  {n.read ? <CheckCircle size={16} color={AGRO_COLORS.primary} /> : <Clock size={16} color="#9b9285" />}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════
+            FICHAS
+        ══════════════════════════════════════════════════════════════ */}
+        {activeTab === "fichas" && (
+          <div className="adm-card">
+            <TableToolbar
+              title="Fichas de Recebimento"
+              count={filteredFichas.length}
+              icon={<FileText size={14} />}
+              search={searchTerm}
+              setSearch={setSearchTerm}
+            />
+            <div className="adm-card-body no-pad">
+              <div className="adm-table-wrap">
+                <table className="adm-table">
+                  <thead>
+                    <tr>
+                      <th>Nome</th>
+                      <th>Produto</th>
+                      <th>Negócio</th>
+                      <th>Qualidade</th>
+                      <th>Telefone</th>
+                      <th>Data</th>
+                      <th>Acções</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredFichas.map(f => (
+                      <tr key={f.id}>
+                        <td className="cell-name">{f.nome_ficha}</td>
+                        <td>{f.produto}</td>
+                        <td>
+                          <span className={`adm-badge ${f.tipo_negocio === "compra" ? "badge-green" : "badge-blue"}`} style={{ textTransform: "capitalize" }}>
+                            {f.tipo_negocio}
+                          </span>
+                        </td>
+                        <td className="cell-muted">{f.qualidade || "—"}</td>
+                        <td style={{ fontFamily: "DM Mono, monospace", fontSize: 12 }}>{f.telefone || "—"}</td>
+                        <td className="cell-muted">{new Date(f.created_at).toLocaleDateString("pt-BR")}</td>
+                        <td>
+                          <div style={{ display: "flex", gap: 4 }}>
+                            <button className="adm-btn-icon adm-btn" onClick={() => { setTargetUser(f.user_id); setNotifModalOpen(true); }}>
+                              <Bell size={13} />
+                            </button>
+                            <button className="adm-btn-icon adm-btn danger" onClick={() => handleDelete("fichas_recebimento", f.id, setFichas)}>
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════
+            SOURCING
+        ══════════════════════════════════════════════════════════════ */}
+        {activeTab === "sourcing" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div className="adm-card">
+              <div className="adm-card-header">
+                <div className="adm-card-title">
+                  <div className="adm-title-icon"><Globe size={14} /></div>
+                  OrbisLink Sourcing — Pedidos Especiais
+                  <span style={{ fontSize: 12, fontWeight: 400, color: "#9b9285" }}>({sourcingRequests.length})</span>
+                </div>
+              </div>
+              {!sourcingRequests.length ? (
+                <div className="adm-card-body">
+                  <div className="adm-empty">
+                    <div className="adm-empty-icon"><Globe size={22} color="#9b9285" /></div>
+                    <div className="adm-empty-title">Sem pedidos de sourcing</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="adm-card-body no-pad">
+                  <div className="adm-table-wrap">
+                    <table className="adm-table">
+                      <thead>
+                        <tr>
+                          <th>Cliente</th>
+                          <th>Produto</th>
+                          <th>Qtd (kg)</th>
+                          <th>Entrega</th>
+                          <th>Status</th>
+                          <th>Data</th>
+                          <th>Acções</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sourcingRequests.map(req => {
+                          const user = users.find(u => u.id === req.user_id);
+                          return (
+                            <tr key={req.id}>
+                              <td className="cell-name">{user?.full_name || "—"}</td>
+                              <td>{req.product_name}</td>
+                              <td>{req.quantity.toLocaleString()}</td>
+                              <td className="cell-muted">{new Date(req.delivery_date).toLocaleDateString("pt-BR")}</td>
+                              <td><StatusBadge status={req.status} /></td>
+                              <td className="cell-muted">{new Date(req.created_at).toLocaleDateString("pt-BR")}</td>
+                              <td>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button className="adm-btn-icon adm-btn"><MoreVertical size={13} /></button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" style={{ minWidth: 180 }}>
+                                    <DropdownMenuItem onClick={() => updateSourcingStatus(req.id, "in_progress")}>
+                                      <Clock size={13} className="mr-2" /> Em Progresso
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => updateSourcingStatus(req.id, "completed")}>
+                                      <Check size={13} className="mr-2" /> Concluído
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => updateSourcingStatus(req.id, "cancelled")}>
+                                      <X size={13} className="mr-2" /> Cancelado
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => {
+                                      const n = prompt("Notas do Admin:", req.admin_notes || "");
+                                      if (n !== null) updateSourcingStatus(req.id, req.status, n);
+                                    }}>
+                                      <MessageSquare size={13} className="mr-2" /> Adicionar Notas
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => { setTargetUser(req.user_id); setNotifModalOpen(true); }}>
+                                      <Bell size={13} className="mr-2" /> Notificar Cliente
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {sourcingRequests.filter(r => r.description || r.admin_notes).length > 0 && (
+              <div className="adm-card">
+                <div className="adm-card-header">
+                  <div className="adm-card-title">
+                    <div className="adm-title-icon"><FileText size={14} /></div>
+                    Detalhes e Notas
+                  </div>
+                </div>
+                <div className="adm-card-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {sourcingRequests.filter(r => r.description || r.admin_notes).map(req => {
+                    const user = users.find(u => u.id === req.user_id);
+                    return (
+                      <div key={req.id} className="adm-detail-card">
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                          <div>
+                            <span style={{ fontWeight: 600, fontSize: 14 }}>{req.product_name}</span>
+                            <span className="cell-muted" style={{ marginLeft: 8 }}>— {user?.full_name}</span>
+                          </div>
+                          <StatusBadge status={req.status} />
+                        </div>
+                        {req.description && (
+                          <div>
+                            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "#9b9285", marginBottom: 4 }}>
+                              Descrição do Cliente
+                            </div>
+                            <div style={{ fontSize: 13, color: "#2d2b27" }}>{req.description}</div>
+                          </div>
+                        )}
+                        {req.admin_notes && (
+                          <div className="adm-notes-block">
+                            <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2, color: AGRO_COLORS.primary }}>
+                              Nota do Admin
+                            </div>
+                            {req.admin_notes}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════
+            MARKET
+        ══════════════════════════════════════════════════════════════ */}
+        {activeTab === "market" && (() => {
+          const grouped: Record<string, { prices: number[]; quantities: number[] }> = {};
+          products.forEach(p => {
+            if (!grouped[p.product_type]) grouped[p.product_type] = { prices: [], quantities: [] };
+            grouped[p.product_type].prices.push(p.price);
+            grouped[p.product_type].quantities.push(p.quantity);
+          });
+          const tableData = Object.entries(grouped).map(([name, d]) => ({
+            name,
+            count: d.prices.length,
+            minPrice: Math.min(...d.prices),
+            avgPrice: Math.round(d.prices.reduce((a, b) => a + b, 0) / d.prices.length),
+            maxPrice: Math.max(...d.prices),
+            totalVolume: d.quantities.reduce((a, b) => a + b, 0),
+          })).sort((a, b) => b.count - a.count);
+
+          const avgPriceChart = tableData.slice(0, 8).map(r => ({ name: r.name, value: r.avgPrice }));
+          const volumeChart = tableData.slice(0, 8).map(r => ({ name: r.name, value: r.totalVolume }));
+          const trendChart = (() => {
+            const m: Record<string, number> = {};
+            products.forEach(p => {
+              const d = new Date(p.created_at).toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
+              m[d] = (m[d] || 0) + 1;
+            });
+            return Object.entries(m).slice(-14).map(([date, count]) => ({ date, count }));
+          })();
+
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div className="adm-metrics-grid">
+                <MetricCard title="Total Produtos" value={products.length} icon={<Package />} color="green" />
+                <MetricCard title="Volume Total" value={products.reduce((a, p) => a + p.quantity, 0)} suffix="kg" icon={<Mountain />} color="amber" />
+                <MetricCard title="Preço Médio" value={products.length ? Math.round(products.reduce((a, p) => a + p.price, 0) / products.length).toLocaleString() : 0} suffix="AOA" icon={<DollarSign />} color="orange" />
+                <MetricCard title="Tipos de Produto" value={new Set(products.map(p => p.product_type)).size} icon={<Leaf />} color="blue" />
+              </div>
+
+              <div className="adm-charts-grid">
+                <div className="adm-card">
+                  <div className="adm-card-header">
+                    <div className="adm-card-title"><div className="adm-title-icon"><DollarSign size={14} /></div>Preço Médio por Produto (AOA)</div>
+                  </div>
+                  <div className="adm-card-body">
+                    <ResponsiveContainer width="100%" height={260}>
+                      <BarChart data={avgPriceChart} barSize={16}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0ede6" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#9b9285" }} angle={-35} textAnchor="end" height={70} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: "#9b9285" }} axisLine={false} tickLine={false} />
+                        <Tooltip content={<AgroTooltip unit=" AOA" />} />
+                        <Bar dataKey="value" fill={AGRO_COLORS.primary} radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="adm-card">
+                  <div className="adm-card-header">
+                    <div className="adm-card-title"><div className="adm-title-icon"><TrendingUp size={14} /></div>Volume por Produto (kg)</div>
+                  </div>
+                  <div className="adm-card-body">
+                    <ResponsiveContainer width="100%" height={260}>
+                      <BarChart data={volumeChart} barSize={16}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0ede6" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#9b9285" }} angle={-35} textAnchor="end" height={70} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: "#9b9285" }} axisLine={false} tickLine={false} />
+                        <Tooltip content={<AgroTooltip unit=" kg" />} />
+                        <Bar dataKey="value" fill={AGRO_COLORS.sky} radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="adm-card">
+                  <div className="adm-card-header">
+                    <div className="adm-card-title"><div className="adm-title-icon"><Package size={14} /></div>Distribuição por Tipo</div>
+                  </div>
+                  <div className="adm-card-body">
+                    <ResponsiveContainer width="100%" height={260}>
+                      <PieChart>
+                        <Pie data={chartProducts} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} innerRadius={40} paddingAngle={3}
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          labelLine={{ stroke: "#d0cdc5", strokeWidth: 1 }}
+                        >
+                          {chartProducts.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="adm-card">
+                  <div className="adm-card-header">
+                    <div className="adm-card-title"><div className="adm-title-icon"><Activity size={14} /></div>Tendência de Publicações</div>
+                  </div>
+                  <div className="adm-card-body">
+                    <ResponsiveContainer width="100%" height={260}>
+                      <AreaChart data={trendChart}>
+                        <defs>
+                          <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={AGRO_COLORS.accent} stopOpacity={0.2} />
+                            <stop offset="95%" stopColor={AGRO_COLORS.accent} stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0ede6" vertical={false} />
+                        <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#9b9285" }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: "#9b9285" }} axisLine={false} tickLine={false} />
+                        <Tooltip content={<AgroTooltip />} />
+                        <Area type="monotone" dataKey="count" stroke={AGRO_COLORS.accent} strokeWidth={2} fill="url(#trendGrad)" dot={{ fill: AGRO_COLORS.accent, r: 3, strokeWidth: 0 }} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+
+              {/* Price Table */}
+              <div className="adm-card">
+                <div className="adm-card-header">
+                  <div className="adm-card-title"><div className="adm-title-icon"><DollarSign size={14} /></div>Tabela de Preços do Mercado</div>
+                </div>
+                <div className="adm-card-body no-pad">
+                  <div className="adm-table-wrap">
+                    <table className="adm-table">
+                      <thead>
+                        <tr>
+                          <th>Produto</th>
+                          <th>Ofertas</th>
+                          <th>Mín (AOA)</th>
+                          <th>Médio (AOA)</th>
+                          <th>Máx (AOA)</th>
+                          <th>Volume Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tableData.map(row => (
+                          <tr key={row.name}>
+                            <td className="cell-name">{row.name}</td>
+                            <td>{row.count}</td>
+                            <td style={{ color: AGRO_COLORS.primary, fontWeight: 600 }}>{row.minPrice.toLocaleString()}</td>
+                            <td style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{row.avgPrice.toLocaleString()}</td>
+                            <td style={{ color: AGRO_COLORS.harvest, fontWeight: 600 }}>{row.maxPrice.toLocaleString()}</td>
+                            <td><span className="adm-badge badge-green">{row.totalVolume.toLocaleString()} kg</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Analysis */}
+              <div className="adm-card">
+                <div className="adm-card-header">
+                  <div className="adm-card-title"><div className="adm-title-icon"><Zap size={14} /></div>Análise de Mercado com IA — Google Gemini</div>
+                  <button
+                    className={`adm-btn ${analyzingMarket ? "adm-btn-ghost" : "adm-btn-primary"}`}
+                    onClick={generateAnalysis}
+                    disabled={analyzingMarket}
+                  >
+                    {analyzingMarket ? <><RefreshCw size={13} className="animate-spin" /> A analisar…</> : <><Zap size={13} /> Gerar Análise</>}
+                  </button>
+                </div>
+                <div className="adm-card-body">
+                  {aiAnalysis ? (
+                    <div className="adm-ai-block">{aiAnalysis}</div>
+                  ) : (
+                    <div className="adm-empty">
+                      <div className="adm-empty-icon"><Zap size={22} color="#9b9285" /></div>
+                      <div className="adm-empty-title">Análise de IA não gerada</div>
+                      <div className="adm-empty-sub">Clique em "Gerar Análise" para obter insights de mercado com inteligência artificial</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ══════════════════════════════════════════════════════════════
+            ADMINS
+        ══════════════════════════════════════════════════════════════ */}
         {activeTab === "admins" && currentUserId && (
           <AdminManagement
             currentUserId={currentUserId}
@@ -1610,110 +2338,54 @@ const AdminDashboard = () => {
           />
         )}
 
-        {/* REFERRALS TAB */}
+        {/* ══════════════════════════════════════════════════════════════
+            REFERRALS
+        ══════════════════════════════════════════════════════════════ */}
         {activeTab === "referrals" && (
-          <div className="space-y-6">
-            {/* Summary Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl p-4 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-white/80">Total Indicações</p>
-                    <p className="text-2xl font-bold mt-1">{allReferrals.length}</p>
-                  </div>
-                  <div className="p-2 bg-white/20 rounded-xl">
-                    <Users className="h-5 w-5" />
-                  </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div className="adm-metrics-grid">
+              {[
+                { label: "Total Indicações", value: allReferrals.length, bg: "#1a6b3c", icon: <Users size={16} /> },
+                { label: "Total Pontos", value: allReferrals.reduce((s, r) => s + r.points, 0), bg: "#e8a012", icon: <Star size={16} /> },
+                { label: "Agentes Activos", value: new Set(allReferrals.map(r => r.agent_id)).size, bg: "#1e6b9e", icon: <BadgeCheck size={16} /> },
+                { label: "Média Pts/Indicação", value: allReferrals.length ? Math.round(allReferrals.reduce((s, r) => s + r.points, 0) / allReferrals.length) : 0, bg: "#7a5c3a", icon: <TrendingUp size={16} /> },
+              ].map(c => (
+                <div key={c.label} className="adm-stat-card" style={{ background: c.bg }}>
+                  <div className="adm-stat-label">{c.label}</div>
+                  <div className="adm-stat-value">{c.value.toLocaleString()}</div>
                 </div>
-              </div>
-              <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-4 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-white/80">Total Pontos</p>
-                    <p className="text-2xl font-bold mt-1">{allReferrals.reduce((sum, r) => sum + r.points, 0)}</p>
-                  </div>
-                  <div className="p-2 bg-white/20 rounded-xl">
-                    <Star className="h-5 w-5" />
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-4 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-white/80">Agentes Ativos</p>
-                    <p className="text-2xl font-bold mt-1">{new Set(allReferrals.map(r => r.agent_id)).size}</p>
-                  </div>
-                  <div className="p-2 bg-white/20 rounded-xl">
-                    <BadgeCheck className="h-5 w-5" />
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl p-4 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-white/80">Média Pts/Indicação</p>
-                    <p className="text-2xl font-bold mt-1">
-                      {allReferrals.length > 0 ? Math.round(allReferrals.reduce((sum, r) => sum + r.points, 0) / allReferrals.length) : 0}
-                    </p>
-                  </div>
-                  <div className="p-2 bg-white/20 rounded-xl">
-                    <TrendingUp className="h-5 w-5" />
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
 
-            {/* Top 3 Agents Leaderboard */}
-            <Card className="border border-border shadow-soft bg-card">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
-                  <Crown className="h-5 w-5 text-amber-500" />
-                  Ranking de Agentes - Dados em Tempo Real
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {topAgents.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-4 text-sm">Nenhuma indicação registrada no banco de dados</p>
+            {/* Leaderboard */}
+            <div className="adm-card">
+              <div className="adm-card-header">
+                <div className="adm-card-title"><div className="adm-title-icon"><Crown size={14} /></div>Ranking de Agentes — Tempo Real</div>
+              </div>
+              <div className="adm-card-body">
+                {!topAgents.length ? (
+                  <div className="adm-empty">
+                    <div className="adm-empty-icon"><Users size={22} color="#9b9285" /></div>
+                    <div className="adm-empty-title">Nenhum agente com indicações</div>
+                  </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                    {topAgents.map((agent, index) => (
-                      <div
-                        key={agent.agent_id}
-                        className={`relative p-3 sm:p-4 rounded-xl border transition-all hover:scale-[1.02] ${
-                          index === 0 
-                            ? 'bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200 dark:from-amber-900/20 dark:to-amber-800/20 dark:border-amber-700' 
-                            : index === 1 
-                            ? 'bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200 dark:from-slate-800/50 dark:to-slate-700/50 dark:border-slate-600'
-                            : 'bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 dark:from-orange-900/20 dark:to-orange-800/20 dark:border-orange-700'
-                        }`}
-                      >
-                        <div className={`absolute -top-2 -left-2 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold ${
-                          index === 0 
-                            ? 'bg-amber-500 text-white' 
-                            : index === 1 
-                            ? 'bg-slate-400 text-white'
-                            : 'bg-orange-400 text-white'
-                        }`}>
-                          {index + 1}º
-                        </div>
-                        <div className="flex items-center gap-2 sm:gap-3 mt-2">
-                          <Avatar className="h-10 w-10 sm:h-12 sm:w-12 ring-2 ring-primary/20">
-                            <AvatarImage src={agent.agent_avatar || ""} />
-                            <AvatarFallback className="bg-primary text-primary-foreground text-xs sm:text-sm font-bold">
-                              {agent.agent_name?.charAt(0) || 'A'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-xs sm:text-sm truncate">{agent.agent_name}</p>
-                            <div className="flex items-center gap-2 sm:gap-3 mt-1">
-                              <div className="flex items-center gap-1">
-                                <Users className="h-3 w-3 text-primary" />
-                                <span className="text-xs font-medium">{agent.total_referrals} indicações</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Star className="h-3 w-3 text-amber-500" />
-                                <span className="text-xs font-medium">{agent.total_points} pts</span>
-                              </div>
+                  <div className="adm-leaderboard">
+                    {topAgents.map((a, i) => (
+                      <div key={a.agent_id} className={`adm-leader-card rank-${i + 1}`}>
+                        <span className={`adm-rank-badge r${i + 1}`}>{i + 1}°</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
+                          <div className="adm-avatar" style={{ width: 44, height: 44, fontSize: 16, background: CHART_COLORS[i] }}>
+                            {a.agent_name?.charAt(0) || "A"}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: 14, color: "#1c1a16" }}>{a.agent_name}</div>
+                            <div style={{ display: "flex", gap: 12, marginTop: 5 }}>
+                              <span style={{ fontSize: 12, color: "#6b6458", display: "flex", alignItems: "center", gap: 4 }}>
+                                <Users size={11} /> {a.total_referrals}
+                              </span>
+                              <span style={{ fontSize: 12, color: "#b37d0a", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                                <Star size={11} /> {a.total_points} pts
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1721,199 +2393,183 @@ const AdminDashboard = () => {
                     ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            {/* Complete Referrals Table */}
-            <Card className="border border-border shadow-soft bg-card">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-primary" />
-                  Histórico Completo de Indicações ({allReferrals.length} registros)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {allReferrals.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Users className="h-12 w-12 mx-auto text-muted-foreground/50 mb-2" />
-                    <p className="text-muted-foreground">Nenhuma indicação registrada no banco de dados</p>
-                    <p className="text-xs text-muted-foreground mt-1">As indicações aparecerão aqui quando os agentes indicarem novos usuários</p>
+            {/* Referrals Table */}
+            <div className="adm-card">
+              <div className="adm-card-header">
+                <div className="adm-card-title">
+                  <div className="adm-title-icon"><FileText size={14} /></div>
+                  Histórico Completo de Indicações
+                  <span style={{ fontSize: 12, fontWeight: 400, color: "#9b9285" }}>({allReferrals.length} registos)</span>
+                </div>
+              </div>
+              {!allReferrals.length ? (
+                <div className="adm-card-body">
+                  <div className="adm-empty">
+                    <div className="adm-empty-icon"><Star size={22} color="#9b9285" /></div>
+                    <div className="adm-empty-title">Sem indicações registadas</div>
+                    <div className="adm-empty-sub">As indicações aparecerão aqui quando os agentes indicarem novos utilizadores</div>
                   </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-xs">#</TableHead>
-                          <TableHead className="text-xs">Agente</TableHead>
-                          <TableHead className="text-xs">Código</TableHead>
-                          <TableHead className="text-xs">Usuário Indicado</TableHead>
-                          <TableHead className="text-xs">Pontos</TableHead>
-                          <TableHead className="text-xs">Data</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {allReferrals.map((referral, idx) => (
-                          <TableRow key={referral.id} className="hover:bg-muted/50">
-                            <TableCell className="text-xs font-mono text-muted-foreground">{idx + 1}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Avatar className="h-7 w-7">
-                                  <AvatarImage src={referral.agent_avatar || ""} />
-                                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                                    {referral.agent_name?.charAt(0) || 'A'}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span className="text-xs font-medium truncate max-w-[120px]">{referral.agent_name}</span>
+                </div>
+              ) : (
+                <div className="adm-card-body no-pad">
+                  <div className="adm-table-wrap">
+                    <table className="adm-table">
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <th>Agente</th>
+                          <th>Código</th>
+                          <th>Utilizador Indicado</th>
+                          <th>Pontos</th>
+                          <th>Data</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allReferrals.map((r, idx) => (
+                          <tr key={r.id}>
+                            <td className="cell-mono">{idx + 1}</td>
+                            <td>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <div className="adm-avatar" style={{ width: 28, height: 28, background: AGRO_COLORS.sage }}>
+                                  {r.agent_name?.charAt(0) || "A"}
+                                </div>
+                                <span style={{ fontWeight: 600, fontSize: 13 }}>{r.agent_name}</span>
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="font-mono text-xs">
-                                {referral.agent_code}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-xs">{referral.referred_user_name}</TableCell>
-                            <TableCell>
-                              <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 text-xs">
-                                <Star className="h-3 w-3 mr-1" />
-                                {referral.points}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-xs text-muted-foreground">
-                              {new Date(referral.created_at).toLocaleDateString('pt-BR', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </TableCell>
-                          </TableRow>
+                            </td>
+                            <td>
+                              <span className="adm-badge badge-outline" style={{ fontFamily: "DM Mono, monospace", fontSize: 11 }}>
+                                {r.agent_code}
+                              </span>
+                            </td>
+                            <td style={{ fontSize: 13 }}>{r.referred_user_name}</td>
+                            <td>
+                              <span className="adm-badge badge-amber" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                <Star size={10} /> {r.points}
+                              </span>
+                            </td>
+                            <td className="cell-muted">
+                              {new Date(r.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                            </td>
+                          </tr>
                         ))}
-                      </TableBody>
-                    </Table>
+                      </tbody>
+                    </table>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </div>
+              )}
+            </div>
 
-            {/* Stats by Agent */}
-            <Card className="border border-border shadow-soft bg-card">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-primary" />
-                  Estatísticas por Agente
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {allReferrals.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-4 text-sm">Sem dados para exibir</p>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {Array.from(
-                      allReferrals.reduce((acc, r) => {
-                        if (!acc.has(r.agent_id)) {
-                          acc.set(r.agent_id, {
-                            agent_id: r.agent_id,
-                            agent_name: r.agent_name,
-                            agent_avatar: r.agent_avatar,
-                            agent_code: r.agent_code,
-                            total_referrals: 0,
-                            total_points: 0,
-                            referred_users: [] as string[]
-                          });
-                        }
-                        const agent = acc.get(r.agent_id)!;
-                        agent.total_referrals += 1;
-                        agent.total_points += r.points;
-                        agent.referred_users.push(r.referred_user_name);
-                        return acc;
-                      }, new Map<string, any>())
-                    ).map(([agentId, stats]) => (
-                      <div key={agentId} className="p-3 border rounded-xl bg-muted/20">
-                        <div className="flex items-center gap-3 mb-2">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={stats.agent_avatar || ""} />
-                            <AvatarFallback className="bg-primary text-primary-foreground">
-                              {stats.agent_name?.charAt(0) || 'A'}
-                            </AvatarFallback>
-                          </Avatar>
+            {/* Per-agent Stats */}
+            {allReferrals.length > 0 && (
+              <div className="adm-card">
+                <div className="adm-card-header">
+                  <div className="adm-card-title"><div className="adm-title-icon"><BarChart3 size={14} /></div>Estatísticas por Agente</div>
+                </div>
+                <div className="adm-card-body">
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
+                    {Array.from(allReferrals.reduce((acc, r) => {
+                      if (!acc.has(r.agent_id)) acc.set(r.agent_id, { ...r, total_referrals: 0, total_points: 0, names: [] as string[] });
+                      const ag = acc.get(r.agent_id)!;
+                      ag.total_referrals++; ag.total_points += r.points; ag.names.push(r.referred_user_name);
+                      return acc;
+                    }, new Map<string, any>()).values()).map(ag => (
+                      <div key={ag.agent_id} style={{ padding: 14, border: "1px solid #e8e4da", borderRadius: 10, background: "#faf9f5" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                          <div className="adm-avatar" style={{ width: 40, height: 40, background: AGRO_COLORS.primary }}>
+                            {ag.agent_name?.charAt(0) || "A"}
+                          </div>
                           <div>
-                            <p className="font-semibold text-sm truncate">{stats.agent_name}</p>
-                            <Badge variant="outline" className="font-mono text-xs">{stats.agent_code}</Badge>
+                            <div style={{ fontWeight: 700, fontSize: 13 }}>{ag.agent_name}</div>
+                            <span className="adm-badge badge-outline" style={{ fontFamily: "DM Mono, monospace", fontSize: 10 }}>{ag.agent_code}</span>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 text-center">
-                          <div className="bg-background p-2 rounded-lg">
-                            <p className="text-lg font-bold text-primary">{stats.total_referrals}</p>
-                            <p className="text-xs text-muted-foreground">Indicações</p>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+                          <div style={{ textAlign: "center", padding: "8px 0", background: "#fff", borderRadius: 8, border: "1px solid #e8e4da" }}>
+                            <div style={{ fontSize: 20, fontWeight: 700, color: AGRO_COLORS.primary }}>{ag.total_referrals}</div>
+                            <div style={{ fontSize: 11, color: "#9b9285" }}>Indicações</div>
                           </div>
-                          <div className="bg-background p-2 rounded-lg">
-                            <p className="text-lg font-bold text-amber-500">{stats.total_points}</p>
-                            <p className="text-xs text-muted-foreground">Pontos</p>
+                          <div style={{ textAlign: "center", padding: "8px 0", background: "#fff", borderRadius: 8, border: "1px solid #e8e4da" }}>
+                            <div style={{ fontSize: 20, fontWeight: 700, color: AGRO_COLORS.accent }}>{ag.total_points}</div>
+                            <div style={{ fontSize: 11, color: "#9b9285" }}>Pontos</div>
                           </div>
                         </div>
-                        <div className="mt-2 pt-2 border-t">
-                          <p className="text-xs text-muted-foreground mb-1">Usuários indicados:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {stats.referred_users.slice(0, 3).map((name: string, i: number) => (
-                              <Badge key={i} variant="secondary" className="text-xs">{name}</Badge>
-                            ))}
-                            {stats.referred_users.length > 3 && (
-                              <Badge variant="secondary" className="text-xs">+{stats.referred_users.length - 3}</Badge>
-                            )}
-                          </div>
+                        <div style={{ fontSize: 11, color: "#9b9285", marginBottom: 5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                          Utilizadores indicados
+                        </div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                          {ag.names.slice(0, 3).map((n: string, i: number) => (
+                            <span key={i} className="adm-badge badge-outline" style={{ fontSize: 10 }}>{n}</span>
+                          ))}
+                          {ag.names.length > 3 && (
+                            <span className="adm-badge badge-outline" style={{ fontSize: 10 }}>+{ag.names.length - 3}</span>
+                          )}
                         </div>
                       </div>
                     ))}
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* DELIVERIES TAB */}
+        {/* ══════════════════════════════════════════════════════════════
+            DELIVERIES
+        ══════════════════════════════════════════════════════════════ */}
         {activeTab === "deliveries" && currentUserId && (
           <DeliveryTracking currentUserId={currentUserId} />
         )}
       </main>
 
-      {/* Modal de Notificação */}
-      <Dialog open={notificationModalOpen} onOpenChange={setNotificationModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Enviar Notificação</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700">Usuário</label>
-              <select value={targetUser || ""} onChange={(e) => setTargetUser(e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary">
-                <option value="">Selecione um usuário</option>
-                {users.map((u) => <option key={u.id} value={u.id}>{u.full_name} ({u.email})</option>)}
+      {/* ══════════════════════════════════════════════════════════════
+          NOTIFICATION MODAL
+      ══════════════════════════════════════════════════════════════ */}
+      <Dialog open={notifModalOpen} onOpenChange={setNotifModalOpen}>
+        <DialogContent style={{ maxWidth: 460, padding: 0, overflow: "hidden", borderRadius: 16 }}>
+          <div className="adm-modal-header">
+            <div className="adm-modal-icon"><Send size={16} /></div>
+            <div className="adm-modal-title">Enviar Notificação</div>
+          </div>
+          <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
+            <div className="adm-form-group">
+              <label className="adm-label">Destinatário</label>
+              <select
+                className="adm-select"
+                value={targetUser || ""}
+                onChange={e => setTargetUser(e.target.value)}
+              >
+                <option value="">Seleccionar utilizador…</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>{u.full_name}{u.email ? ` — ${u.email}` : ""}</option>
+                ))}
               </select>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Tipo</label>
-              <select value={notificationType} onChange={(e) => setNotificationType(e.target.value)} className="w-full mt-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary">
+            <div className="adm-form-group">
+              <label className="adm-label">Tipo</label>
+              <select className="adm-select" value={notifType} onChange={e => setNotifType(e.target.value)}>
                 <option value="info">Informação</option>
                 <option value="alert">Alerta</option>
                 <option value="success">Sucesso</option>
               </select>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Título</label>
-              <Input placeholder="Título" value={notificationTitle} onChange={(e) => setNotificationTitle(e.target.value)} />
+            <div className="adm-form-group">
+              <label className="adm-label">Título</label>
+              <input className="adm-input" placeholder="Título da notificação" value={notifTitle} onChange={e => setNotifTitle(e.target.value)} />
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Mensagem</label>
-              <Textarea placeholder="Digite a mensagem" value={notificationMessage} onChange={(e) => setNotificationMessage(e.target.value)} rows={3} />
+            <div className="adm-form-group">
+              <label className="adm-label">Mensagem</label>
+              <textarea className="adm-textarea" placeholder="Corpo da mensagem…" value={notifMessage} onChange={e => setNotifMessage(e.target.value)} rows={3} style={{ resize: "vertical" }} />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setNotificationModalOpen(false)}>Cancelar</Button>
-            <Button onClick={sendNotification}><Send className="h-4 w-4 mr-1" /> Enviar</Button>
-          </DialogFooter>
+          <div style={{ padding: "14px 24px 20px", display: "flex", justifyContent: "flex-end", gap: 8, borderTop: "1px solid #f0ede6" }}>
+            <button className="adm-btn adm-btn-ghost" onClick={() => setNotifModalOpen(false)}>Cancelar</button>
+            <button className="adm-btn adm-btn-primary" onClick={sendNotification}>
+              <Send size={13} /> Enviar Notificação
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
