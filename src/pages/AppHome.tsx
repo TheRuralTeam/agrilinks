@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import {
   Search, LayoutDashboard, ShoppingCart, Bell,
   ChevronDown, CheckCircle2, Package, Activity,
-  MapPin, TrendingUp, Globe2, Zap, Menu, X
+  MapPin, TrendingUp, Globe2, Zap, Menu, X, MessageSquare
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -85,60 +85,6 @@ const ProductSkeleton = () => (
   </div>
 )
 
-/* ─── Country selector ──────────────────────────────────────────────────────── */
-const CountrySelector = ({
-  selectedCountry, onCountryChange
-}: {
-  selectedCountry: typeof COUNTRIES[0]
-  onCountryChange: (c: typeof COUNTRIES[0]) => void
-}) => (
-  <DropdownMenu>
-    <DropdownMenuTrigger asChild>
-      <button style={{
-        display:'flex', alignItems:'center', gap: 6, padding:'7px 12px',
-        borderRadius: 10, border: `1px solid ${T.rule}`,
-        background: T.white, cursor:'pointer', transition:'all 0.18s',
-        color: T.ink, fontSize: 13, fontWeight: 600,
-        boxShadow: `0 1px 3px ${T.shadow}`,
-      }}
-        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = T.g600 }}
-        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = T.rule }}
-      >
-        <Globe2 size={13} color={T.g600}/>
-        <span style={{ fontSize: 15 }}>{selectedCountry.flag}</span>
-        <ChevronDown size={11} color={T.muted}/>
-      </button>
-    </DropdownMenuTrigger>
-    <DropdownMenuContent align="end" style={{
-      width: 230, borderRadius: 16, border: `1px solid ${T.rule}`,
-      boxShadow: `0 16px 48px ${T.shadowMd}`, background: T.white, padding: '6px',
-    }}>
-      <div style={{ padding:'8px 12px 6px', fontSize:10, fontWeight:800, color: T.g600, textTransform:'uppercase', letterSpacing:'0.1em', borderBottom:`1px solid ${T.rule}`, marginBottom: 4 }}>
-        Região de Operação
-      </div>
-      {COUNTRIES.map(c => (
-        <DropdownMenuItem key={c.code} onClick={() => onCountryChange(c)} style={{
-          display:'flex', alignItems:'center', gap: 10, padding:'8px 10px', cursor:'pointer',
-          borderRadius: 10, margin:'1px 0',
-          background: selectedCountry.code === c.code ? T.g50 : 'transparent',
-          color: selectedCountry.code === c.code ? T.g600 : T.ink,
-          fontWeight: selectedCountry.code === c.code ? 700 : 400,
-          transition: 'background 0.15s',
-        }}>
-          <span style={{ fontSize: 18 }}>{c.flag}</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>{c.name}</div>
-            <div style={{ fontSize: 10, color: T.faint }}>{c.currency}</div>
-          </div>
-          {selectedCountry.code === c.code && (
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: T.g500 }}/>
-          )}
-        </DropdownMenuItem>
-      ))}
-    </DropdownMenuContent>
-  </DropdownMenu>
-)
-
 /* ─── Live Ticker ────────────────────────────────────────────────────────────── */
 const LiveTicker = ({ products }: { products: Product[] }) => {
   const total = products.reduce((s, p) => s + (p.quantity || 0), 0)
@@ -146,21 +92,19 @@ const LiveTicker = ({ products }: { products: Product[] }) => {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 0,
-      background: T.g900, overflow: 'hidden',
-      borderBottom: `1px solid rgba(255,255,255,0.06)`,
+      background: T.g700, overflow: 'hidden',
+      borderBottom: `1px solid rgba(255,255,255,0.05)`,
     }}>
-      {/* Live badge */}
       <div style={{
-        flexShrink: 0, padding: '8px 18px',
+        flexShrink: 0, padding: '7px 18px',
         display: 'flex', alignItems: 'center', gap: 7,
         borderRight: '1px solid rgba(255,255,255,0.08)',
-        background: 'rgba(255,255,255,0.04)',
+        background: 'rgba(255,255,255,0.03)',
       }}>
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ADE80', display: 'block', animation: 'breathe 2s ease-in-out infinite' }}/>
-        <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Ao vivo</span>
+        <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Ao vivo</span>
       </div>
-      {/* Scrolling items */}
-      <div style={{ flex: 1, overflow: 'hidden', padding: '8px 20px' }}>
+      <div style={{ flex: 1, overflow: 'hidden', padding: '7px 20px' }}>
         <div style={{ display: 'flex', gap: 32, animation: 'tickerScroll 18s linear infinite' }}>
           {[
             `${products.length} produtos activos`,
@@ -177,9 +121,9 @@ const LiveTicker = ({ products }: { products: Product[] }) => {
             'Verificação em tempo real',
             'B2B · Directo · Rastreável',
           ]).map((item, i) => (
-            <span key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap', fontWeight: 500, letterSpacing: '0.02em' }}>
+            <span key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap', fontWeight: 500, letterSpacing: '0.02em' }}>
               {item}
-              {i < 11 && <span style={{ marginLeft: 32, color: 'rgba(255,255,255,0.18)' }}>◆</span>}
+              {i < 11 && <span style={{ marginLeft: 32, color: 'rgba(255,255,255,0.15)' }}>◆</span>}
             </span>
           ))}
         </div>
@@ -214,7 +158,7 @@ const AppHome = () => {
         const r = await fetch('https://ipapi.co/json/')
         const d = await r.json()
         const found = COUNTRIES.find(c => c.code === d.country_code)
-        if (found) { setSelectedCountry(found); toast.success(`Região: ${found.name}`, { duration: 2000 }) }
+        if (found) { setSelectedCountry(found) }
       } catch {}
     }
     detect()
@@ -314,6 +258,21 @@ const AppHome = () => {
   const totalPrice = useMemo(() => selectedProduct ? orderData.quantity * selectedProduct.price * (1 + TAX) : 0, [selectedProduct, orderData.quantity])
   const fmt = (p: number) => `${p.toLocaleString('pt-AO')} ${selectedCountry.currency}`
 
+  /* ── Helper: greeting by hour ── */
+  const greeting = () => {
+    const h = new Date().getHours()
+    if (h < 12) return 'Bom dia'
+    if (h < 18) return 'Boa tarde'
+    return 'Boa noite'
+  }
+
+  /* ── User display name ── */
+  const displayName = user?.user_metadata?.full_name
+    || user?.email?.split('@')[0]
+    || 'Equipe'
+
+  const avatarLetter = displayName[0]?.toUpperCase() ?? 'U'
+
   /* ── Loading ── */
   if (loading) return (
     <div style={{
@@ -321,7 +280,6 @@ const AppHome = () => {
       minHeight:'100vh', background: T.canvas,
     }}>
       <div style={{ position:'relative', width: 64, height: 64 }}>
-        {/* Spinning ring */}
         <div style={{
           position:'absolute', inset: 0,
           borderRadius:'50%',
@@ -329,148 +287,229 @@ const AppHome = () => {
           borderTopColor: T.g500,
           animation:'spin 1s linear infinite',
         }}/>
-        {/* Logo centred */}
         <div style={{
           position:'absolute', inset: 0,
           display:'flex', alignItems:'center', justifyContent:'center',
         }}>
-          <img
-            src={orbisLinkLogo}
-            alt="OrbisLink"
-            style={{ width: 32, height: 32, objectFit: 'contain' }}
-          />
+          <img src={orbisLinkLogo} alt="OrbisLink" style={{ width: 32, height: 32, objectFit: 'contain' }}/>
         </div>
       </div>
     </div>
   )
 
-  /* ── Main render ── */
+  /* ══════════════════════════════════════════════════════════════════════════
+     RENDER
+     ══════════════════════════════════════════════════════════════════════════ */
   return (
     <div style={{ minHeight:'100vh', background: T.canvas, fontFamily:"'DM Sans', system-ui, sans-serif" }}>
 
       {/* ═══ LIVE TICKER ═══════════════════════════════════════════════════ */}
       <LiveTicker products={products}/>
 
-      {/* ═══ HEADER ════════════════════════════════════════════════════════ */}
+      {/* ═══ HEADER — dark green, matching screenshot ══════════════════════ */}
       <header style={{
-        position:'sticky', top:0, zIndex:30,
-        background:'rgba(247,249,247,0.97)', backdropFilter:'blur(20px)',
-        borderBottom:`1px solid ${T.rule}`,
-        boxShadow: `0 1px 0 ${T.rule}, 0 4px 24px rgba(13,43,18,0.04)`,
+        position: 'sticky', top: 0, zIndex: 30,
+        background: T.g900,
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        boxShadow: '0 2px 16px rgba(0,0,0,0.28)',
       }}>
-        <div style={{ maxWidth:1320, margin:'0 auto', padding:'0 20px', height:62, display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
+        <div style={{
+          maxWidth: 1320, margin: '0 auto', padding: '0 20px',
+          height: 58, display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', gap: 16,
+        }}>
 
-          {/* Logo */}
-          <div
-            style={{ display:'flex', alignItems:'center', cursor:'pointer', flexShrink: 0 }}
-            onClick={() => navigate('/')}
-          >
-            <img
-              src={orbisLinkLogo}
-              alt="OrbisLink"
-              style={{ height: 32, width: 'auto', objectFit: 'contain', display: 'block' }}
-            />
-          </div>
-
-          {/* Search bar — visible only sm and above (≥ 640px) */}
-          <div
-            style={{
-              flex:1, maxWidth:460, display:'flex', alignItems:'center', gap:10,
-              padding:'9px 16px', borderRadius:12,
-              border:`1px solid ${T.rule}`, background: T.white,
-              cursor:'pointer', transition:'all 0.18s',
-              boxShadow: `0 1px 4px ${T.shadow}`,
-            }}
-            onClick={() => navigate('/search')}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = T.g600; (e.currentTarget as HTMLElement).style.boxShadow = `0 1px 8px ${T.shadowMd}` }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = T.rule; (e.currentTarget as HTMLElement).style.boxShadow = `0 1px 4px ${T.shadow}` }}
-            className="hidden sm:flex"
-          >
-            <Search size={14} color={T.g500}/>
-            <span style={{ fontSize:13, color: T.faint }}>Pesquisar produtos, fornecedores...</span>
-            <span style={{ marginLeft:'auto', fontSize:10, color: T.faint, padding:'2px 7px', borderRadius:6, border:`1px solid ${T.rule}`, fontWeight:600 }}>⌘K</span>
-          </div>
-
-          {/* Search icon — visible only below sm (< 640px) */}
-          <button
-            style={{
-              padding:'8px', borderRadius:10, border:`1px solid ${T.rule}`, background: T.white,
-              cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-              color: T.mid, transition:'all 0.18s',
-              boxShadow: `0 1px 3px ${T.shadow}`,
-            }}
-            onClick={() => navigate('/search')}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = T.g600 }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = T.rule }}
-            className="sm:hidden"
-          >
-            <Search size={16}/>
-          </button>
-
-          {/* Right actions */}
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <div className="hidden sm:flex">
-              <CountrySelector selectedCountry={selectedCountry} onCountryChange={(c) => { setSelectedCountry(c); toast.success(`${c.flag} ${c.name}`) }}/>
+          {/* ── Left: Avatar + Greeting ── */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.14)',
+              border: '1.5px solid rgba(255,255,255,0.22)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 15, fontWeight: 800, color: T.white,
+              letterSpacing: '-0.01em', flexShrink: 0,
+              userSelect: 'none',
+            }}>
+              {avatarLetter}
             </div>
+            <div className="hidden sm:block">
+              <p style={{ fontSize: 13, fontWeight: 700, color: T.white, margin: 0, lineHeight: 1.25 }}>
+                {greeting()}, {displayName}
+              </p>
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.42)', margin: 0, fontWeight: 500 }}>
+                AgriLink Marketplace
+              </p>
+            </div>
+          </div>
 
-            {isAdmin && (
-              <button
-                style={{
-                  padding:'7px 14px', borderRadius:10, border:`1px solid ${T.rule}`, background: T.white,
-                  cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontSize:13,
-                  fontWeight:600, color: T.ink, transition:'all 0.18s',
-                  boxShadow: `0 1px 3px ${T.shadow}`,
-                }}
-                onClick={() => navigate('/admindashboard')}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = T.g600; (e.currentTarget as HTMLElement).style.color = T.g600 }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = T.rule; (e.currentTarget as HTMLElement).style.color = T.ink }}
-                className="hidden sm:flex"
-              >
-                <LayoutDashboard size={14} color={T.g500}/>
-                <span>Dashboard</span>
-              </button>
-            )}
+          {/* ── Centre: Search bar ── */}
+          <div
+            style={{
+              flex: 1, maxWidth: 640,
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '9px 16px', borderRadius: 10,
+              background: 'rgba(255,255,255,0.09)',
+              border: '1px solid rgba(255,255,255,0.13)',
+              cursor: 'pointer', transition: 'background 0.18s, border-color 0.18s',
+            }}
+            onClick={() => navigate('/search')}
+            onMouseEnter={e => {
+              const el = e.currentTarget as HTMLElement
+              el.style.background = 'rgba(255,255,255,0.14)'
+              el.style.borderColor = 'rgba(255,255,255,0.24)'
+            }}
+            onMouseLeave={e => {
+              const el = e.currentTarget as HTMLElement
+              el.style.background = 'rgba(255,255,255,0.09)'
+              el.style.borderColor = 'rgba(255,255,255,0.13)'
+            }}
+          >
+            <Search size={14} color="rgba(255,255,255,0.42)" />
+            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', fontWeight: 400 }}>
+              Pesquisar produtos, fornecedores...
+            </span>
+          </div>
 
-            {/* Mobile Menu Toggle */}
+          {/* ── Right: Icon buttons ── */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+
+            {/* Notifications */}
+            <button
+              title="Notificações"
+              style={{
+                position: 'relative', width: 38, height: 38, borderRadius: 10,
+                background: 'rgba(255,255,255,0.07)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 0.18s', color: 'rgba(255,255,255,0.75)',
+              }}
+              onClick={() => navigate('/notifications')}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.14)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)' }}
+            >
+              <Bell size={17} />
+              {/* Red badge dot */}
+              <span style={{
+                position: 'absolute', top: 7, right: 7,
+                width: 7, height: 7, borderRadius: '50%',
+                background: '#EF4444',
+                border: `1.5px solid ${T.g900}`,
+              }}/>
+            </button>
+
+            {/* Messages */}
+            <button
+              title="Mensagens"
+              style={{
+                width: 38, height: 38, borderRadius: 10,
+                background: 'rgba(255,255,255,0.07)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 0.18s', color: 'rgba(255,255,255,0.75)',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.14)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)' }}
+            >
+              <MessageSquare size={17} />
+            </button>
+
+            {/* Apps / Dashboard grid icon */}
+            <button
+              title="Dashboard"
+              style={{
+                width: 38, height: 38, borderRadius: 10,
+                background: 'rgba(255,255,255,0.07)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 0.18s', color: 'rgba(255,255,255,0.75)',
+              }}
+              onClick={() => isAdmin ? navigate('/admindashboard') : navigate('/')}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.14)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)' }}
+              className="hidden sm:flex"
+            >
+              {/* 2×2 grid dots icon */}
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="3"  y="3"  width="7" height="7" rx="1.5"/>
+                <rect x="14" y="3"  width="7" height="7" rx="1.5"/>
+                <rect x="3"  y="14" width="7" height="7" rx="1.5"/>
+                <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+              </svg>
+            </button>
+
+            {/* Mobile menu toggle */}
             <button
               style={{
-                padding:'8px', borderRadius:10, border:`1px solid ${T.rule}`, background: T.white,
-                cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-                color: T.mid, transition:'all 0.18s',
-                boxShadow: `0 1px 3px ${T.shadow}`,
+                width: 38, height: 38, borderRadius: 10,
+                background: 'rgba(255,255,255,0.07)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 0.18s', color: 'rgba(255,255,255,0.75)',
               }}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="sm:hidden"
             >
-              {mobileMenuOpen ? <X size={20}/> : <Menu size={20}/>}
+              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Navigation Menu */}
+        {/* Mobile dropdown */}
         {mobileMenuOpen && (
           <div style={{
-            position: 'absolute', top: 62, left: 0, right: 0,
-            background: T.white, borderBottom: `1px solid ${T.rule}`,
-            padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12,
-            boxShadow: `0 10px 20px ${T.shadow}`,
-            animation: 'cardEnter 0.3s ease-out'
+            position: 'absolute', top: 58, left: 0, right: 0,
+            background: T.g900,
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            padding: '14px 20px',
+            display: 'flex', flexDirection: 'column', gap: 10,
+            boxShadow: '0 16px 32px rgba(0,0,0,0.35)',
+            animation: 'cardEnter 0.25s ease-out',
+            zIndex: 20,
           }} className="sm:hidden">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>Região</span>
-              <CountrySelector selectedCountry={selectedCountry} onCountryChange={(c) => { setSelectedCountry(c); toast.success(`${c.flag} ${c.name}`) }}/>
+
+            {/* Search row */}
+            <div
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 14px', borderRadius: 10,
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                cursor: 'pointer', color: 'rgba(255,255,255,0.65)',
+                fontSize: 13, fontWeight: 500,
+              }}
+              onClick={() => { navigate('/search'); setMobileMenuOpen(false) }}
+            >
+              <Search size={14} />
+              Pesquisar produtos, fornecedores...
             </div>
+
+            {/* Notifications */}
+            <button
+              style={{
+                padding: '10px 14px', borderRadius: 10,
+                background: 'rgba(255,255,255,0.07)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.75)', width: '100%',
+              }}
+              onClick={() => { navigate('/notifications'); setMobileMenuOpen(false) }}
+            >
+              <Bell size={15} /> Notificações
+            </button>
+
+            {/* Dashboard (admin only) */}
             {isAdmin && (
               <button
                 style={{
-                  padding:'10px', borderRadius:10, border:`1px solid ${T.rule}`, background: T.g50,
-                  cursor:'pointer', display:'flex', alignItems:'center', gap:10, fontSize:14,
-                  fontWeight:600, color: T.g600, width: '100%'
+                  padding: '10px 14px', borderRadius: 10,
+                  background: 'rgba(255,255,255,0.07)',
+                  border: '1px solid rgba(255,255,255,0.10)',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
+                  fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.75)', width: '100%',
                 }}
                 onClick={() => { navigate('/admindashboard'); setMobileMenuOpen(false) }}
               >
-                <LayoutDashboard size={16}/>
-                Dashboard Administrativo
+                <LayoutDashboard size={15} /> Dashboard Administrativo
               </button>
             )}
           </div>
@@ -513,7 +552,6 @@ const AppHome = () => {
           </div>
 
           <div style={{ display:'flex', flexWrap:'wrap', gap:'clamp(32px, 5vw, 80px)', alignItems:'flex-end' }}>
-            {/* Left: headline */}
             <div style={{ flex:'1 1 320px', maxWidth: 580 }}>
               <h1 style={{
                 fontFamily:"'Cormorant Garamond', Georgia, serif",
@@ -531,7 +569,6 @@ const AppHome = () => {
               <p style={{ fontSize:'clamp(13px, 1.4vw, 15px)', color:'rgba(255,255,255,0.50)', lineHeight:1.7, maxWidth:420, margin:'0 0 32px' }}>
                 Agricultores certificados. Compradores industriais. Transacções directas, transparentes e rastreáveis num único lugar.
               </p>
-              {/* CTA row */}
               <div style={{ display:'flex', flexWrap:'wrap', gap:10 }}>
                 <button
                   onClick={() => navigate('/search')}
@@ -557,7 +594,6 @@ const AppHome = () => {
       {/* ═══ PRODUCT GRID ═══════════════════════════════════════════════════ */}
       <main id="products-grid" style={{ maxWidth:1320, margin:'0 auto', padding:'clamp(24px, 4vw, 48px) 20px clamp(80px, 12vw, 140px)' }}>
 
-        {/* Section header */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:28, flexWrap:'wrap', gap:12 }}>
           <div>
             <h2 style={{
@@ -578,10 +614,8 @@ const AppHome = () => {
           </div>
         </div>
 
-        {/* Divider */}
         <div style={{ height:1, background: T.rule, marginBottom:28 }}/>
 
-        {/* Grid */}
         <div style={{
           display:'grid',
           gridTemplateColumns:'repeat(auto-fill, minmax(min(100%, 288px), 1fr))',
@@ -605,7 +639,6 @@ const AppHome = () => {
           }
         </div>
 
-        {/* Empty state */}
         {!loading && products.length === 0 && (
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'100px 20px', textAlign:'center' }}>
             <div style={{ width:56, height:56, borderRadius:16, background: T.g50, border:`1px solid ${T.gBorder}`, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:20 }}>
@@ -627,7 +660,6 @@ const AppHome = () => {
           maxWidth:500, padding:0, overflow:'hidden', borderRadius:20,
           border:`1px solid ${T.rule}`, boxShadow:`0 24px 80px rgba(13,43,18,0.22)`,
         }}>
-          {/* Header */}
           <div style={{ padding:'20px 24px 16px', background: T.white, borderBottom:`1px solid ${T.rule}` }}>
             <div style={{ display:'flex', alignItems:'center', gap:12 }}>
               <div style={{ width:40, height:40, borderRadius:11, background: T.g50, border:`1px solid ${T.gBorder}`, display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -644,10 +676,7 @@ const AppHome = () => {
             </div>
           </div>
 
-          {/* Body */}
           <div style={{ padding:'20px 24px', background: T.canvas, maxHeight:'60vh', overflowY:'auto', display:'flex', flexDirection:'column', gap:14 }}>
-
-            {/* Info notice */}
             <div style={{ display:'flex', gap:11, padding:'11px 14px', borderRadius:12, background: T.white, border:`1px solid ${T.rule}` }}>
               <Bell size={15} color={T.g500} style={{ flexShrink:0, marginTop:1 }}/>
               <p style={{ fontSize:12, color: T.muted, lineHeight:1.6, margin:0 }}>
@@ -655,7 +684,6 @@ const AppHome = () => {
               </p>
             </div>
 
-            {/* Contact */}
             <div style={{ padding:'12px 14px', borderRadius:12, background: T.ePale, border:`1px solid ${T.eBorder}` }}>
               <p style={{ fontSize:11, fontWeight:700, color: T.e500, marginBottom:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>Contacto Directo</p>
               <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
@@ -672,7 +700,6 @@ const AppHome = () => {
               </div>
             </div>
 
-            {/* Quantity */}
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               <label style={{ fontSize:12, fontWeight:700, color: T.ink, display:'flex', alignItems:'center', gap:8 }}>
                 Quantidade (kg)
@@ -698,7 +725,6 @@ const AppHome = () => {
               </p>
             </div>
 
-            {/* Location */}
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               <label style={{ fontSize:12, fontWeight:700, color: T.ink, display:'flex', alignItems:'center', gap:8 }}>
                 Local de Entrega
@@ -718,7 +744,6 @@ const AppHome = () => {
               />
             </div>
 
-            {/* Summary */}
             <div style={{ padding:'14px 16px', borderRadius:12, background: T.white, border:`1px solid ${T.rule}` }}>
               <p style={{ fontSize:10, fontWeight:800, color: T.g600, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:12 }}>Resumo</p>
               {[
@@ -737,7 +762,6 @@ const AppHome = () => {
             </div>
           </div>
 
-          {/* Footer */}
           <div style={{ padding:'14px 24px', display:'flex', gap:10, background: T.white, borderTop:`1px solid ${T.rule}` }}>
             <button
               onClick={() => setModalOpen(false)}
@@ -816,7 +840,7 @@ const AppHome = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ── Global keyframes & utility styles ── */}
+      {/* ── Global keyframes ── */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@400;500;600;700;800;900&display=swap');
 
