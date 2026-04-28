@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "./ui/button";
 import { Menu, X, ShoppingCart, Phone, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import OrbisLinkLogo from "@/assets/orbislink-logo.png";
+import AgriLinkLogo from "@/assets/agrilink-logo.png";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -20,7 +20,7 @@ const Header = () => {
     <header className="bg-card border-b border-border sticky top-0 z-50 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <img src={OrbisLinkLogo} alt="OrbisLink Logo" className="h-9 sm:h-10 drop-shadow-sm" />
+          <img src={AgriLinkLogo} alt="AgriLink Logo" className="h-11 sm:h-12 drop-shadow-sm" />
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:block">

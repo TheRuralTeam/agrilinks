@@ -7,12 +7,12 @@ import { useNavigate } from 'react-router-dom'
 // Substitua pelos seus paths reais ou remova as importações e use URLs
 // Em vez de @/assets/, use ./assets/ ou ../assets/
 import orbisLinkLogo from '../assets/orbislink-logo.png';
-import fotoFeliciano from '../assets/feliciano.jpeg';
-import fotoMoises from '../assets/moises.jpeg';
-import fotoLizeth from '../assets/lizeth.jpeg';
-import fotoClaudio from '../assets/claudio.jpeg';
-import comunidadeImg from '../assets/comunidade.png';
-import comunidadeImg2 from '../assets/comunidade2.jpeg';
+import fotoFeliciano from '../assets/FELICIANO.jpeg';
+import fotoMoises from '../assets/MOISES.jpeg';
+import fotoLizeth from '../assets/LIZETH.jpeg';
+import fotoClaudio from '../assets/CLAUDIO.jpeg';
+import comunidadeImg from '../assets/Comunidade.png';
+import comunidadeImg2 from '../assets/COMUNIDADE2.jpeg';
 
 /* ─── Design Tokens ─ Luxo Editorial Minimalista ───────────────────────────── */
 const T = {

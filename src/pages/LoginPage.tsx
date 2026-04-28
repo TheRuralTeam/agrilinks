@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, ShieldCheck, X } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
-import orbisLinkLogo from '@/assets/orbislink-logo.png'
+import agriLinkLogo from '@/assets/agrilink-logo.png'
 import { toast } from '@/hooks/use-toast'
 
 const GoogleGIcon = ({ size = 22 }: { size?: number }) => (
@@ -35,7 +35,7 @@ const getErrorMessage = (error: unknown) => {
   return 'Erro inesperado.'
 }
 
-// ��������� Design Tokens ������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������
+// Design tokens
 const T = {
   // Greens
   g700: '#1A5C24',
@@ -309,7 +309,7 @@ const LoginPage = () => {
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <img
-            src={orbisLinkLogo}
+            src={agriLinkLogo}
             alt="AgriLink"
             style={{ height: 80, margin: '0 auto 14px', display: 'block', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.08))' }}
           />

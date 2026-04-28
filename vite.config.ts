@@ -11,16 +11,18 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-  ],
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
   build: {
+    // Adicione estas opções para debug
     sourcemap: true,
     rollupOptions: {
       onwarn(warning, warn) {
+        // Mostrar todos os warnings
         if (warning.code === 'MODULE_LEVEL_DIRECTIVE') {
           return;
         }
@@ -29,5 +31,5 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
-  logLevel: 'info',
+  logLevel: 'info', // Mostrar mais logs
 }));

@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageWelcomeBanner } from "@/components/LanguageWelcomeBanner";
@@ -32,15 +32,40 @@ import SearchPage from "./pages/SearchPage";
 import EmailConfirmation from "./pages/EmailConfirmation";
 import ResetPassword from "./pages/ResetPassword";
 import UserProfile from "./pages/UserProfile";
- import B2BProfile from "./pages/B2BProfile";
+import B2BProfile from "./pages/B2BProfile";
+import ChooseAccountType from "./pages/ChooseAccountType";
 
 const queryClient = new QueryClient();
 
 const isEmailConfirmed = (user: User | null) => Boolean(user?.email_confirmed_at)
 
+// OAuth callback handler – processes #access_token at the root URL
+const OAuthCallbackHandler = () => {
+  const { user, loading, profileLoading, userProfile } = useAuth();
+
+  // While auth or profile is still loading, show spinner
+  if (loading || profileLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="text-sm text-muted-foreground">A autenticar...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate to="/login" replace />;
+
+  // New Google user – no profile yet
+  if (!userProfile) return <Navigate to="/escolher-tipo-conta" replace />;
+
+  return <Navigate to="/app" replace />;
+};
+
 // Protected Route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, profileLoading, userProfile } = useAuth();
 
   if (loading) {
     return (
@@ -53,20 +78,43 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!user) return <Navigate to="/login" replace />;
 
   if (!isEmailConfirmed(user)) {
     const email = user.email ? `&email=${encodeURIComponent(user.email)}` : ""
     return <Navigate to={`/confirmar-email?pending=1${email}`} replace />;
   }
 
+  // Wait for profile to load before deciding if user needs to set up account
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // OAuth user with no profile → send to account setup
+  if (!userProfile) return <Navigate to="/escolher-tipo-conta" replace />;
+
   return <>{children}</>;
 };
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
+  const location = useLocation();
+
+  // Handle OAuth implicit flow: Supabase sends #access_token to the root URL
+  if (location.hash.includes('access_token=')) {
+    return (
+      <Routes>
+        <Route path="*" element={<OAuthCallbackHandler />} />
+      </Routes>
+    );
+  }
 
   const rootElement = loading ? (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -87,6 +135,12 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={rootElement} />
       <Route path="/site" element={<Index />} />
+      <Route
+        path="/escolher-tipo-conta"
+        element={
+          user ? <ChooseAccountType /> : <Navigate to="/login" replace />
+        }
+      />
       <Route
         path="/login"
         element={

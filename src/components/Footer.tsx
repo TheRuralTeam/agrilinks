@@ -9,7 +9,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
           <div>
-            <h3 className="text-2xl font-bold mb-4 text-accent">OrbisLink</h3>
+            <h3 className="text-2xl font-bold mb-4 text-accent">AgriLink</h3>
             <p className="text-white/70 mb-4 text-sm leading-relaxed">
               Conectando produtores a grandes compradores com transparência,
               qualidade e eficiência no mercado agrícola.
@@ -59,7 +59,7 @@ const Footer = () => {
               </div>
               <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4 text-accent shrink-0" />
-                <span className="text-white/70 text-sm">contacts.orbislink@gmail.com</span>
+                <span className="text-white/70 text-sm">contactos@agrilink.ao</span>
               </div>
               <div className="flex items-start gap-3">
                 <MapPin className="h-4 w-4 text-accent shrink-0 mt-0.5" />
@@ -78,7 +78,7 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="border-t border-white/10 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-white/40 text-sm">
-            © {currentYear} OrbisLink. Todos os direitos reservados.
+            © {currentYear} AgriLink. Todos os direitos reservados.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             {["Política de Privacidade", "Termos de Uso", "Cookies"].map((link) => (

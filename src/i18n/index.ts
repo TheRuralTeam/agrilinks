@@ -34,7 +34,7 @@ const detectBrowserLanguage = (): string => {
 // Get saved language or detect from browser
 const getSavedLanguage = () => {
   try {
-    const saved = localStorage.getItem('orbislink_language');
+    const saved = localStorage.getItem('agrilink_language') || localStorage.getItem('orbislink_language');
     if (saved && supportedLanguages.includes(saved)) {
       return saved;
     }
@@ -64,13 +64,13 @@ i18n
 export const changeLanguage = (countryCode: string) => {
   const lang = countryToLanguage[countryCode] || 'pt';
   i18n.changeLanguage(lang);
-  localStorage.setItem('orbislink_language', lang);
-  localStorage.setItem('orbislink_country', countryCode);
+  localStorage.setItem('agrilink_language', lang);
+  localStorage.setItem('agrilink_country', countryCode);
 };
 
 export const getSavedCountry = () => {
   try {
-    return localStorage.getItem('orbislink_country') || 'AO';
+    return localStorage.getItem('agrilink_country') || localStorage.getItem('orbislink_country') || 'AO';
   } catch {
     return 'AO';
   }

@@ -11,6 +11,27 @@ const EmailConfirmation = () => {
   const [status, setStatus] = useState<"loading" | "pending" | "success" | "error">("loading");
   const [message, setMessage] = useState("");
 
+  const clearSensitiveAuthParamsFromUrl = () => {
+    const queryParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+
+    const hasSensitiveQuery =
+      queryParams.has("access_token") ||
+      queryParams.has("refresh_token") ||
+      queryParams.has("provider_token") ||
+      queryParams.has("code");
+
+    const hasSensitiveHash =
+      hashParams.has("access_token") ||
+      hashParams.has("refresh_token") ||
+      hashParams.has("provider_token") ||
+      hashParams.has("code");
+
+    if (hasSensitiveQuery || hasSensitiveHash) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  };
+
   useEffect(() => {
     const confirmEmail = async () => {
       try {
@@ -34,6 +55,9 @@ const EmailConfirmation = () => {
         const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
         const type = hashParams.get('type') || queryParams.get('type');
+
+        // Remove tokens/codes from the URL bar as early as possible.
+        clearSensitiveAuthParamsFromUrl();
         
         console.log("Email confirmation - type:", type, "has tokens:", !!accessToken);
 
@@ -65,9 +89,7 @@ const EmailConfirmation = () => {
         }
 
         // Tentar o método PKCE (formato mais novo)
-        const { data, error } = await supabase.auth.exchangeCodeForSession(
-          window.location.href
-        );
+        const { data, error } = await supabase.auth.exchangeCodeForSession(window.location.href);
 
         if (error) {
           console.error("Erro no exchangeCodeForSession:", error);

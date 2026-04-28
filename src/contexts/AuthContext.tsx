@@ -31,6 +31,7 @@ interface AuthContextType {
   user: User | null
   userProfile: UserProfile | null
   loading: boolean
+  profileLoading: boolean
   isAdmin: boolean
   isRootAdmin: boolean
   isSuperRoot: boolean
@@ -69,6 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   })
   const [loading, setLoading] = useState(true)
+  const [profileLoading, setProfileLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isRootAdmin, setIsRootAdmin] = useState(false)
   const [isSuperRoot, setIsSuperRoot] = useState(false)
@@ -122,6 +124,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const fetchUserProfile = async (userId: string) => {
+    setProfileLoading(true)
     try {
       const { data, error } = await supabase
         .from('users')
@@ -131,6 +134,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('Error fetching user profile:', error)
+        setProfileLoading(false)
         return
       }
 
@@ -149,6 +153,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error) {
       console.error('Error fetching user profile:', error)
+    } finally {
+      setProfileLoading(false)
     }
   }
 
@@ -166,6 +172,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           setUserProfile(null)
           setIsAdmin(false)
+          setProfileLoading(false)
           setIsRootAdmin(false)
           setIsSuperRoot(false)
           setIsSupportAgent(false)
@@ -348,6 +355,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     user,
     userProfile,
     loading,
+    profileLoading,
     isAdmin,
     isRootAdmin,
     isSuperRoot,
