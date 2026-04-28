@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, ShieldCheck, X } from 'lucide-react'
+import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, ShieldCheck, X, Chrome } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
 import orbisLinkLogo from '@/assets/orbislink-logo.png'
@@ -85,8 +85,9 @@ const LoginPage = () => {
   const [resendLoading, setResendLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
 
-  const { login } = useAuth()
+  const { login, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
+  const [googleLoading, setGoogleLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -170,6 +171,22 @@ const LoginPage = () => {
       toast({ title: 'Erro', description: getErrorMessage(error), variant: 'destructive' })
     } finally {
       setResendLoading(false)
+    }
+  }
+
+  const handleGoogleLogin = async () => {
+    setErrorMsg('')
+    setGoogleLoading(true)
+
+    try {
+      const { error } = await signInWithGoogle('login')
+      if (error) {
+        setErrorMsg(error.message || 'Não foi possível iniciar login com Google.')
+      }
+    } catch (error) {
+      setErrorMsg(getErrorMessage(error))
+    } finally {
+      setGoogleLoading(false)
     }
   }
 
@@ -439,6 +456,31 @@ const LoginPage = () => {
               </span>
               <div style={{ flex: 1, height: 1, backgroundColor: T.rule }} />
             </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={googleLoading || loading}
+              style={{
+                width: '100%',
+                height: 50,
+                borderRadius: 16,
+                border: `1.5px solid ${T.rule}`,
+                backgroundColor: T.white,
+                color: T.ink,
+                fontSize: 14,
+                fontWeight: 800,
+                cursor: googleLoading || loading ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                opacity: googleLoading || loading ? 0.6 : 1,
+              }}
+            >
+              <Chrome style={{ width: 18, height: 18 }} />
+              {googleLoading ? 'A redirecionar...' : 'Entrar com Google'}
+            </button>
 
             {/* Register */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

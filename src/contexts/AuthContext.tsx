@@ -36,6 +36,7 @@ interface AuthContextType {
   isSuperRoot: boolean
   isSupportAgent: boolean
   login: (email: string, password: string) => Promise<LoginResult>
+  signInWithGoogle: (mode?: 'login' | 'signup') => Promise<{ error: AuthActionError | null }>
   register: (userData: RegisterData) => Promise<RegisterResult>
   logout: () => Promise<void>
   verifyEmail: (token: string) => Promise<{ error: AuthActionError | null }>
@@ -236,6 +237,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  const signInWithGoogle = async (mode: 'login' | 'signup' = 'login') => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/confirmar-email?oauth=google&mode=${mode}`,
+          queryParams: {
+            prompt: 'select_account',
+          },
+        },
+      })
+
+      if (error) {
+        return { error: { message: error.message } }
+      }
+
+      return { error: null }
+    } catch (error: unknown) {
+      return {
+        error: {
+          message: getErrorMessage(error),
+        },
+      }
+    }
+  }
+
   const register = async (userData: RegisterData): Promise<RegisterResult> => {
     const { user_type, province_id, municipality_id, full_name, identity_document, phone, password, email, referred_by_agent_id } = userData
     
@@ -326,6 +353,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isSuperRoot,
     isSupportAgent,
     login,
+    signInWithGoogle,
     register,
     logout,
     verifyEmail,

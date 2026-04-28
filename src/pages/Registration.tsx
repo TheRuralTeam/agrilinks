@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   User, CreditCard, Mail, Lock, Eye, EyeOff,
-  UserPlus, ShieldCheck, ArrowRight, Check, X, ChevronDown
+  UserPlus, ShieldCheck, ArrowRight, Check, X, ChevronDown, Chrome
 } from "lucide-react";
 import { getProvincesForCountry, getProvinceLabel, getMunicipalityLabel } from "@/data/country-locations";
 import { useAuth } from "@/contexts/AuthContext";
@@ -152,7 +152,7 @@ const FieldLabel = ({ children }: { children: React.ReactNode }) => (
 const Registration = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { register, user } = useAuth();
+  const { register, signInWithGoogle, user } = useAuth();
 
   const [selectedProvince, setSelectedProvince] = useState("");
   const [selectedMunicipality, setSelectedMunicipality] = useState("");
@@ -171,6 +171,7 @@ const Registration = () => {
   const [agentCode, setAgentCode] = useState("");
   const [validatingCode, setValidatingCode] = useState(false);
   const [agentCodeValid, setAgentCodeValid] = useState<boolean | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const [selectedCountry, setSelectedCountry] = useState<Country>(() => {
     const savedCode = getSavedCountry();
@@ -247,6 +248,23 @@ const Registration = () => {
       setErrorMessage(getErrorMessage(error));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    setErrorMessage('');
+    setGoogleLoading(true);
+
+    try {
+      const { error } = await signInWithGoogle('signup');
+
+      if (error) {
+        setErrorMessage(error.message || 'Não foi possível iniciar cadastro com Google.');
+      }
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -683,6 +701,47 @@ const Registration = () => {
               >
                 {loading ? 'Criando Conta...' : 'Finalizar Registo'}
                 <ArrowRight style={{ width: 20, height: 20 }} />
+              </button>
+
+              <div style={{ position: 'relative', margin: '4px 0', display: 'flex', alignItems: 'center' }}>
+                <div style={{ flex: 1, height: 1, backgroundColor: T.rule }} />
+                <span style={{
+                  padding: '0 14px',
+                  fontSize: 10,
+                  fontWeight: 900,
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                  color: T.faint,
+                  backgroundColor: T.white,
+                }}>
+                  Ou
+                </span>
+                <div style={{ flex: 1, height: 1, backgroundColor: T.rule }} />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleSignup}
+                disabled={googleLoading || loading}
+                style={{
+                  width: '100%',
+                  height: 52,
+                  borderRadius: 16,
+                  border: `1.5px solid ${T.rule}`,
+                  backgroundColor: T.white,
+                  color: T.ink,
+                  fontSize: 14,
+                  fontWeight: 800,
+                  cursor: googleLoading || loading ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  opacity: googleLoading || loading ? 0.6 : 1,
+                }}
+              >
+                <Chrome style={{ width: 18, height: 18 }} />
+                {googleLoading ? 'A redirecionar...' : 'Cadastrar com Google'}
               </button>
 
               <p style={{ textAlign: 'center', fontSize: 14, color: T.muted, fontWeight: 500, margin: 0 }}>
