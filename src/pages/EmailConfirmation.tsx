@@ -36,8 +36,16 @@ const EmailConfirmation = () => {
     const confirmEmail = async () => {
       try {
         const queryParams = new URLSearchParams(window.location.search);
+        const isGoogleOauth = queryParams.get('oauth') === 'google';
         const isPendingView = queryParams.get('pending') === '1';
         const pendingEmail = queryParams.get('email');
+
+        // Google OAuth callback should be handled at root route, not in email confirmation page.
+        if (isGoogleOauth) {
+          clearSensitiveAuthParamsFromUrl();
+          navigate('/', { replace: true });
+          return;
+        }
 
         if (isPendingView) {
           setStatus("pending");

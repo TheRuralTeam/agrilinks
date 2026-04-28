@@ -251,7 +251,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         options: {
           redirectTo: `${window.location.origin}/`,
           queryParams: {
-            prompt: 'select_account',
+            // Force account chooser and consent screen to avoid silent reuse.
+            prompt: 'consent select_account',
           },
         },
       })
