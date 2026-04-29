@@ -1,0 +1,243 @@
+[33m5ca1eb5[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m commitado o perfil
+[33m33bdf93[m fix(auth): forcar consentimento Google e bloquear callback em confirmar-email
+[33mc9099a6[m fix(auth): corrigir callback Google OAuth (PKCE) e 404 na Vercel
+[33m1012c11[m feat: descrição do que foi feito
+[33m68b8f28[m fix: corrigir capitalização dos nomes das imagens
+[33mbab95f8[m resolvi o problema da imagem
+[33m9d5d1e3[m minhas alterações locais dashboard
+[33m858af37[m minhas alterações locais
+[33m30a7b21[m minhas alterações locais
+[33m8b2e435[m Last App Version MVP 0.1.7 Full-Cicle (Finishing UI/UX and data base conection updating google auth)
+[33mb64f3a9[m Last App Version MVP 0.1.7 Full-Cicle (Finishing UI/UX and data base conection updating google auth)
+[33m0242d7f[m Last App Version MVP 0.1.7 Full-Cicle (Finishing UI/UX and data base conection updating google auth)
+[33m33fc8e2[m Last App Version MVP 0.1.7 Full-Cicle (Finishing UI/UX and data base conection updating 01)
+[33m8ad5a0c[m Merge branch 'main' of https://github.com/TheRuralTeam/agrilinks
+[33mafed613[m Teste commit 001
+[33md60d7c6[m resolvido problema da fotgrafia e bulding
+[33mfbe5d91[m resolvido problema da fotgrafia
+[33m6bacf80[m chore: add email deliverability and SMTP configuration docs
+[33mb757829[m 0.0.1 version
+[33mf27faa5[m Update Index.tsx
+[33maabceb2[m modifiquei a plataforma para a nova versao com landing page e outras...5
+[33m3ba7b32[m modifiquei a plataforma para a nova versao com landing page e outras...4
+[33m1582fcc[m modifiquei a plataforma para a nova versao com landing page e outras...3
+[33m32e56fd[m modifiquei a plataforma para a nova versao com landing page e outras...2
+[33mbb1da9d[m modifiquei os nomes das imagens
+[33m216f6d3[m modifiquei a plataforma para a nova versao com landing page e outras...
+[33m9b36095[m Redesigned landing sections
+[33m9a14892[m Redesign landing components
+[33m47663b8[m Aprimorou landing marketplace
+[33m21050ce[m Atualizei landing page
+[33mc6871d7[m Alinhou landing ao OrbisLink
+[33m8f3de65[m Work in progress
+[33m9170637[m Enable real cascade deletions
+[33m8337f78[m Changes
+[33ma4e34fe[m Enable cascade delete for users
+[33mbcf73a3[m Changes
+[33m4f5d988[m Atualizei painéis administrativos e navegação
+[33m4fcd57a[m Changes
+[33m146e5a3[m melhorias nos cards e noapphome
+[33m12b4ad5[m mudei o brading da pagina principal
+[33mdc863b9[m style: transform landing page to vivid/animated Mercado Livre style and remove prices
+[33m5cd37f0[m Implemented B2B institutional profile page
+[33m72a2c09[m Changes
+[33m0f83510[m Registration page white background
+[33md425e7e[m Changes
+[33mbeff839[m Ajustei fundos para branco
+[33m9bf60b9[m Changes
+[33m5894723[m OrbisLink branding applied
+[33m18df104[m Changes
+[33m3cd54f4[m Melhorar contraste de cards
+[33m349a04b[m Changes
+[33m5271f99[m Update feed navbar visuals
+[33mbfb0de9[m Changes
+[33m41c3f22[m Atualizou feed e tab bar
+[33m846d939[m Changes
+[33ma12f042[m Atualizou branding para OrbisLink
+[33m388ed70[m Changes
+[33m2d9dfc4[m OrbisLink UI overhaul
+[33maeeabbf[m Changes
+[33m020fc6b[m Migrate branding to OrbisLink
+[33ma812bd5[m Changes
+[33m5c36ce6[m OrbisLink branding applied
+[33md0f231a[m Changes
+[33m21cf65c[m Lovable update
+[33m160601d[m Changes
+[33m4eab19f[m Translate app pages to i18n
+[33me09a354[m Changes
+[33m312b031[m Fix reset password flow
+[33m95b1e6c[m Changes
+[33m3374db1[m Add welcome language banner
+[33m3ed2351[m Changes
+[33m7170936[m Detect browser language for i18n
+[33m0c57cc6[m Changes
+[33m4602bc8[m Enable i18n across app
+[33m461bea6[m Changes
+[33m22a7a03[m Add language switch in profile
+[33m212d77b[m Changes
+[33m7866884[m Exhibit pending orders in add delivery modal
+[33m70dfc34[m Changes
+[33mec126f9[m Show delivery details for agents
+[33m4c25ff1[m Changes
+[33m7b6518b[m Lovable update
+[33mcd9ca63[m Changes
+[33meeace80[m Lovable update
+[33m428a0fd[m Changes
+[33m162c6e1[m Allow admins access to Admins page
+[33m15996b8[m Changes
+[33m882c670[m Add support agent tab and tracking
+[33m89095f5[m Changes
+[33m81821ee[m Lovable update
+[33m69e6157[m Changes
+[33m049c337[m Add super root support
+[33m68192e4[m Changes
+[33mb4f533d[m Lovable update
+[33mcf1d0b7[m Changes
+[33m039326b[m Lovable update
+[33m67e6922[m Changes
+[33m966378c[m Lovable update
+[33m075fe0d[m Changes
+[33m488206f[m Aprimorar Indicações admin
+[33m4a74436[m Changes
+[33md9272e5[m Refine profile data flow
+[33mc6e7c4f[m Changes
+[33m129e2d1[m Refine data integrity across UI
+[33mf664303[m Changes
+[33m4143ca7[m Enhance admin dashboard mobile
+[33m8cb2b2a[m Changes
+[33me7122e9[m Polish header and login UI
+[33m6a08fc6[m Changes
+[33md70c669[m Aprimorar design responsivo
+[33m16ea2cd[m Changes
+[33maec2b27[m Lovable update
+[33m5994198[m Changes
+[33mba82372[m Add root admin revamp
+[33m59c76c5[m Changes
+[33m6eb38d7[m Implement admin admin system
+[33m94fa515[m Changes
+[33mc6cabb5[m Verificar ícones verde
+[33mcc18413[m Changes
+[33med2278d[m Add verify badge to admin
+[33mce08a1c[m Changes
+[33m609ed54[m Remove mock frontend products
+[33md03eaee[m Changes
+[33m26d0d35[m Atualizar províncias Angola
+[33mecb6eb4[m Changes
+[33me32b89b[m Fix OTP import and AppHome mock
+[33m13f66f4[m Changes
+[33m6535fb0[m Comment out mock product 'mock-1'
+[33m9266375[m Comment out first mock product in AppHome
+[33m050d520[m Comment out mockProducts array in AppHome
+[33mabf0f80[m Disable mockProducts array in AppHome component
+[33mbf5c516[m Improve map cards UI and search
+[33m2512222[m Changes
+[33m484451c[m Add market dashboard charts
+[33mcd534b3[m Changes
+[33m1227c12[m Dynamic multilingual UI
+[33m4abf770[m Changes
+[33m434a83b[m Implement sourcing panel admin
+[33m19ada4f[m Changes
+[33mb44ec6d[m Implement Sourcing UI and i18n
+[33m6449142[m Changes
+[33m1f37b37[m Atualizar cadastro direto
+[33mbaaf803[m Changes
+[33m6c3dee4[m Add i18n and country selector
+[33m0b38eff[m Changes
+[33mf110c36[m Fix signup flow to require OTP
+[33m7c55e31[m Changes
+[33m35bde56[m Use default resend sender
+[33ma27d318[m Changes
+[33m9d08f66[m Use Resend for OTP emails
+[33m3b4e7e3[m Changes
+[33m61f2dee[m Fix signup flow and OTP
+[33mfe7cae0[m Changes
+[33m40fea21[m Use custom OTP email flow
+[33m6e62876[m Changes
+[33m366e433[m Fix sign up emails issue
+[33m764506d[m Changes
+[33mff84c40[m fix(supabase): Corrige erro de cast de 'referred_by_agent_id' no trigger handle_new_user
+[33m2b47b22[m Add nav back buttons
+[33m58b3b97[m Changes
+[33mb4d6b0e[m Improve search and add badges
+[33m233be38[m Changes
+[33mbf64771[m Fix profile undefined name
+[33m49ed50f[m Changes
+[33m2cfbf8d[m Hide bottom bar on profile pages
+[33m21ac3cd[m Changes
+[33m876c8a7[m Refactor UI: icons tabs
+[33m9c48cfd[m Changes
+[33m84834f0[m Show tab bar on message list
+[33m6ad50fa[m Changes
+[33m248feb3[m Hide tab bar list messages
+[33m4d507ac[m Changes
+[33m9218af9[m Hide bottom bar on map and messages
+[33ma480cff[m Changes
+[33maa49d4c[m Fix admin data visibility and persist likes/replies
+[33mf1a5d38[m Changes
+[33m2dc6827[m Fix comment saves and admin view
+[33m6ea70c5[m Changes
+[33mf8c6470[m Implement reset password page
+[33m490cfff[m Changes
+[33m0417b46[m Atualizar dashboard admin UI
+[33m5b66d31[m Changes
+[33me077a42[m Enforce admin RLS access
+[33me877ef7[m Changes
+[33mf0ba7e2[m Atualiza ícone dashboard e rota
+[33m1275718[m Changes
+[33mdd5b337[m Alterar ícone Dados de Mercado
+[33m6bf1762[m Changes
+[33mc755dbd[m Config admin access
+[33m171906d[m Changes
+[33m9de452f[m Config admin users and nav
+[33md8fbe4d[m Changes
+[33m6628b99[m Add unread notifications badge
+[33ma05edca[m Changes
+[33mb5d0e1f[m Add resend email button on login
+[33mc2aa892[m Changes
+[33m3456d20[m Simplify to email confirmation
+[33mfdee4da[m Changes
+[33m461071b[m Use OTP from Supabase Auth
+[33m5fc6752[m Changes
+[33m2992cd4[m Implement otp email flow
+[33mdfe37e5[m Changes
+[33m1c81080[m Update meta description for SEO improvements
+[33m219f254[m Update author name in meta tag
+[33mf8440ba[m Update author meta tag in index.html
+[33m73bce6d[m Update Open Graph and Twitter image paths
+[33m4c4019a[m Update Twitter site meta tag to @AgriLink_Dev
+[33m3d64f8c[m Fix email confirm flow
+[33m3e89bd7[m Changes
+[33m25fe29a[m Enable email verification sync
+[33mce30b0d[m Changes
+[33m2df5f0f[m Add fichas tab to AdminDashboard
+[33ma16b513[m Changes
+[33m1993bc4[m Habilita AdminFicha table
+[33ma46a7f0[m Changes
+[33m30fd14d[m Fix push edge type error
+[33m928a6d5[m Changes
+[33mc18586d[m alteração do icone que aparece na url partilhada - By CH
+[33me0085cb[m git push origin main adicioneo generate e a confirmacao adicioneo generate e a confirmacao
+[33m00b00f7[m Config push-notifs, fix builds
+[33m38f81e1[m Changes
+[33m5c811cf[m Enable push notifications flow
+[33m6d96dd8[m Changes
+[33m462ea7e[m Add push sound support
+[33me1c390c[m Changes
+[33mf018ac9[m  login,registro, dashboard
+[33m775e6f7[m pedidos2
+[33m20472fb[m pedidos
+[33m63795ce[m dashboard, confirm,notifcacao,app
+[33m6191d18[m notific,sms,perfil,dasboard
+[33m32ec705[m resolvido o maior problema
+[33md729e92[m Actualização do sistema de mensagem
+[33m44045d3[m[33m ([m[1;31morigin/DevBranch[m[33m)[m Rename verceljson to vercel.json
+[33m809dc36[m Create verceljson
+[33m92c6701[m Add base path configuration for Vite
+[33mfacfd33[m mudamos o mundo
+[33med5cbf6[m Fix email confirmation issues
+[33mb514dba[m claudio configurou o smtp
+[33m1096687[m Fix user registration and routing
+[33m9898838[m Fix user registration and routing
+[33m676af04[m Fix user registration and routing
+[33m219907b[m Fix user registration and routing
+[33ma247c14[m Initial commit
