@@ -17,7 +17,6 @@ import {
   AlertCircle,
   Zap,
   ArrowLeft,
-  CheckCircle,
 } from 'lucide-react';
 import orbisLinkLogo from '@/assets/orbislink-logo.png';
 import { useNavigate } from 'react-router-dom';
