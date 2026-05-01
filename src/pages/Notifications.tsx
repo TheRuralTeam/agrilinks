@@ -227,11 +227,11 @@ const NotificationToast: React.FC<NotificationToastProps> = ({
 const Notifications = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const pushNotifications = usePushNotifications();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [toastNotifications, setToastNotifications] = useState<ToastNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [pushEnabled] = useState(false);
   const soundManagerRef = useRef<SoundManager>(new SoundManager());
 
   const fetchNotifications = useCallback(async () => {
