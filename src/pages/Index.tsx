@@ -10,8 +10,7 @@ import orbisLinkLogo from '../assets/orbislink-logo.png';
 import fotoFeliciano from '../assets/FELICIANO.jpeg';
 import fotoMoises from '../assets/MOISES.jpeg';
 import fotoLizeth from '../assets/LIZETH.jpeg';
-import fotoClaudio from '../assets/CLAUDIO.jpeg';
-import comunidadeImg from '../assets/Comunidade.png';
+import fotoClaudio from '../assets/CLAUDIO.jpeg';import comunidadeImg from '../assets/Comunidade.png';
 import comunidadeImg2 from '../assets/COMUNIDADE2.jpeg';
 
 /* ─── Design Tokens ─ Luxo Editorial Minimalista ───────────────────────────── */
