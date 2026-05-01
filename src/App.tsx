@@ -107,11 +107,14 @@ const AppRoutes = () => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  // Handle OAuth callback: PKCE sends ?code= in query, implicit sends #access_token in hash
-  const isPKCECallback = location.search.includes('code=') && location.search.includes('state=')
+  // Handle OAuth callback: PKCE usually sends ?code=, implicit sends #access_token.
+  // Also support legacy Google redirects landing on /confirmar-email?oauth=google.
+  const isPKCECallback = location.search.includes('code=')
   const isImplicitCallback = location.hash.includes('access_token=')
+  const isLegacyGoogleOauthRoute =
+    location.pathname === '/confirmar-email' && location.search.includes('oauth=google')
 
-  if (isPKCECallback || isImplicitCallback) {
+  if (isPKCECallback || isImplicitCallback || isLegacyGoogleOauthRoute) {
     return (
       <Routes>
         <Route path="*" element={<OAuthCallbackHandler />} />
