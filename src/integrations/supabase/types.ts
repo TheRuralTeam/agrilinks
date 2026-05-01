@@ -1498,6 +1498,10 @@ export type Database = {
       }
     }
     Functions: {
+      admin_approve_product: {
+        Args: { p_product_id: string }
+        Returns: boolean
+      }
       admin_bulk_delete_products: {
         Args: { p_product_ids: string[] }
         Returns: number
@@ -1508,6 +1512,10 @@ export type Database = {
       }
       admin_delete_product: { Args: { p_product_id: string }; Returns: boolean }
       admin_delete_user: { Args: { p_user_id: string }; Returns: boolean }
+      admin_reject_product: {
+        Args: { p_product_id: string; p_reason?: string }
+        Returns: boolean
+      }
       block_funds: {
         Args: {
           p_amount: number
