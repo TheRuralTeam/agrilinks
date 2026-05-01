@@ -566,7 +566,7 @@ const LoginPage = () => {
           onClose={() => setShowOtpModal(false)}
           onSuccess={handleOtpSuccess}
           userId={pendingUserId}
-          userName={pendingUserName}
+          fullName={pendingUserName}
           email={email}
         />
       )}

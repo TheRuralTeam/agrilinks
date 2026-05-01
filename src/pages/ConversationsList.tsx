@@ -482,7 +482,7 @@ const ConversationsList = () => {
         {!loading && searchTerm.trim() === "" && conversationResults.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in-95">
             <div className="bg-white p-8 rounded-full shadow-sm mb-6">
-              <MessageSquare className="h-12 w-12" style={{ color: T.g200 || T.g100 }} />
+              <MessageSquare className="h-12 w-12" style={{ color: T.g100 }} />
             </div>
             <p className="font-bold text-lg" style={{ color: T.ink }}>{t('messages.noConversations')}</p>
             <p className="text-sm mt-2 max-w-[240px]" style={{ color: T.muted }}>
