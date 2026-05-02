@@ -89,10 +89,15 @@ const ProductSkeleton = () => (
 const LiveTicker = ({ products }: { products: Product[] }) => {
   const total = products.reduce((s, p) => s + (p.quantity || 0), 0)
   const engagement = products.reduce((s, p) => s + (p.likes_count || 0), 0)
+  const priced = products.filter(p => Number(p.price || 0) > 0)
+  const avgPrice = priced.length
+    ? priced.reduce((s, p) => s + Number(p.price || 0), 0) / priced.length
+    : 0
   const items = [
     `${products.length} produtos activos`,
     `${total.toLocaleString('pt-AO')} kg disponíveis`,
     `${engagement} interacções`,
+    avgPrice > 0 ? `Preço médio ${avgPrice.toLocaleString('pt-AO', { maximumFractionDigits: 0 })} Kz` : 'Preço médio em atualização',
     '7 países cobertos',
     'Verificação em tempo real',
     'B2B · Directo · Rastreável',

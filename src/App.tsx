@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -39,12 +39,36 @@ const queryClient = new QueryClient();
 
 const isEmailConfirmed = (user: User | null) => Boolean(user?.email_confirmed_at)
 
-// OAuth callback handler – processes #access_token at the root URL
+// OAuth callback handler – processes PKCE/implicit token at the root URL
 const OAuthCallbackHandler = () => {
-  const { user, loading, profileLoading, userProfile } = useAuth();
+  const { user, loading, profileLoading, userProfile, completePendingGoogleOnboarding } = useAuth();
+  const [completing, setCompleting] = useState(false);
+  const [done, setDone] = useState(false);
 
-  // While auth or profile is still loading, show spinner
-  if (loading || profileLoading) {
+  useEffect(() => {
+    if (loading || profileLoading || completing || done) return;
+    if (!user) return;
+
+    const hasPending = localStorage.getItem('pendingGoogleOnboarding');
+    if (!hasPending) return; // no pending data – let render logic handle redirect
+
+    // If user already has a profile (returning user), just clear pending data and go to /app
+    if (userProfile) {
+      localStorage.removeItem('pendingGoogleOnboarding');
+      setDone(true);
+      return;
+    }
+
+    // New user: create profile from pending onboarding data
+    setCompleting(true);
+    completePendingGoogleOnboarding(user).then(({ completed }) => {
+      setDone(completed);
+      setCompleting(false);
+    });
+  }, [user, loading, profileLoading, userProfile]);
+
+  // Show spinner while auth, profile, or onboarding completion is in progress
+  if (loading || profileLoading || completing) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -57,10 +81,11 @@ const OAuthCallbackHandler = () => {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  // New Google user – no profile yet
-  if (!userProfile) return <Navigate to="/escolher-tipo-conta" replace />;
+  // Profile was just created from pending onboarding data OR already existed
+  if (done || userProfile) return <Navigate to="/app" replace />;
 
-  return <Navigate to="/app" replace />;
+  // No pending data and no profile → go to account setup
+  return <Navigate to="/escolher-tipo-conta" replace />;
 };
 
 // Protected Route component

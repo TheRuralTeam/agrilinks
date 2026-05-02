@@ -106,9 +106,8 @@ const LoginPage = () => {
   const [resendLoading, setResendLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
 
-  const { login, signInWithGoogle } = useAuth()
+  const { login } = useAuth()
   const navigate = useNavigate()
-  const [googleLoading, setGoogleLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -195,20 +194,10 @@ const LoginPage = () => {
     }
   }
 
-  const handleGoogleLogin = async () => {
-    setErrorMsg('')
-    setGoogleLoading(true)
-
-    try {
-      const { error } = await signInWithGoogle('login')
-      if (error) {
-        setErrorMsg(error.message || 'N+�o foi poss+�vel iniciar login com Google.')
-      }
-    } catch (error) {
-      setErrorMsg(getErrorMessage(error))
-    } finally {
-      setGoogleLoading(false)
-    }
+  const handleGoogleLogin = () => {
+    // Navigate to pre-auth onboarding – user picks type + phone before Google OAuth.
+    // For returning users, OAuthCallbackHandler will detect existing profile and skip onboarding.
+    navigate('/escolher-tipo-conta')
   }
 
   return (
@@ -487,7 +476,7 @@ const LoginPage = () => {
                 <button
                   type="button"
                   onClick={handleGoogleLogin}
-                  disabled={googleLoading || loading}
+                  disabled={loading}
                   aria-label="Entrar com Google"
                   title="Entrar com Google"
                   style={{
@@ -497,11 +486,11 @@ const LoginPage = () => {
                     border: `1.5px solid ${T.rule}`,
                     backgroundColor: T.white,
                     color: T.ink,
-                    cursor: googleLoading || loading ? 'not-allowed' : 'pointer',
+                    cursor: loading ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    opacity: googleLoading || loading ? 0.6 : 1,
+                    opacity: loading ? 0.6 : 1,
                     flexShrink: 0,
                   }}
                 >

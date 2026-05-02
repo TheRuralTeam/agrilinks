@@ -19,6 +19,15 @@ type RegisterResult = {
   } | null
 }
 
+export type PendingGoogleOnboarding = {
+  user_type: 'agricultor' | 'agente' | 'comprador'
+  phone: string
+  province_id: string
+  municipality_id: string
+}
+
+const PENDING_GOOGLE_ONBOARDING_KEY = 'pendingGoogleOnboarding'
+
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) {
     return error.message
@@ -37,7 +46,8 @@ interface AuthContextType {
   isSuperRoot: boolean
   isSupportAgent: boolean
   login: (email: string, password: string) => Promise<LoginResult>
-  signInWithGoogle: (mode?: 'login' | 'signup') => Promise<{ error: AuthActionError | null }>
+  signInWithGoogle: (mode?: 'login' | 'signup', onboarding?: PendingGoogleOnboarding | null) => Promise<{ error: AuthActionError | null }>
+  completePendingGoogleOnboarding: (authUser?: User | null) => Promise<{ error: AuthActionError | null; completed: boolean }>
   register: (userData: RegisterData) => Promise<RegisterResult>
   logout: () => Promise<void>
   verifyEmail: (token: string) => Promise<{ error: AuthActionError | null }>
@@ -46,6 +56,36 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+const savePendingGoogleOnboarding = (onboarding: PendingGoogleOnboarding | null | undefined) => {
+  if (!onboarding) {
+    localStorage.removeItem(PENDING_GOOGLE_ONBOARDING_KEY)
+    return
+  }
+
+  localStorage.setItem(PENDING_GOOGLE_ONBOARDING_KEY, JSON.stringify(onboarding))
+}
+
+const readPendingGoogleOnboarding = (): PendingGoogleOnboarding | null => {
+  try {
+    const raw = localStorage.getItem(PENDING_GOOGLE_ONBOARDING_KEY)
+    if (!raw) return null
+
+    const parsed = JSON.parse(raw) as Partial<PendingGoogleOnboarding>
+    if (!parsed.user_type || !parsed.phone || !parsed.province_id || !parsed.municipality_id) {
+      return null
+    }
+
+    return {
+      user_type: parsed.user_type,
+      phone: parsed.phone,
+      province_id: parsed.province_id,
+      municipality_id: parsed.municipality_id,
+    }
+  } catch {
+    return null
+  }
+}
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
@@ -244,8 +284,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  const signInWithGoogle = async (mode: 'login' | 'signup' = 'login') => {
+  const signInWithGoogle = async (
+    mode: 'login' | 'signup' = 'login',
+    onboarding: PendingGoogleOnboarding | null = null,
+  ) => {
     try {
+      savePendingGoogleOnboarding(onboarding)
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -268,6 +313,56 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           message: getErrorMessage(error),
         },
       }
+    }
+  }
+
+  const completePendingGoogleOnboarding = async (authUser: User | null = user) => {
+    if (!authUser) {
+      return { completed: false, error: null }
+    }
+
+    const onboarding = readPendingGoogleOnboarding()
+    if (!onboarding) {
+      return { completed: false, error: null }
+    }
+
+    setProfileLoading(true)
+    try {
+      await supabase.rpc('sync_user_email_verified', { p_user_id: authUser.id })
+
+      const { error } = await supabase.from('users').upsert(
+        {
+          id: authUser.id,
+          email: authUser.email,
+          full_name: authUser.user_metadata?.full_name ?? authUser.email?.split('@')[0] ?? 'Utilizador',
+          identity_document: '',
+          user_type: onboarding.user_type,
+          province_id: onboarding.province_id,
+          municipality_id: onboarding.municipality_id,
+          phone: onboarding.phone,
+          email_verified: true,
+          phone_verified: false,
+        },
+        { onConflict: 'id' }
+      )
+
+      if (error) {
+        throw error
+      }
+
+      savePendingGoogleOnboarding(null)
+      await fetchUserProfile(authUser.id)
+
+      return { completed: true, error: null }
+    } catch (error: unknown) {
+      return {
+        completed: false,
+        error: {
+          message: getErrorMessage(error),
+        },
+      }
+    } finally {
+      setProfileLoading(false)
     }
   }
 
@@ -363,6 +458,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isSupportAgent,
     login,
     signInWithGoogle,
+    completePendingGoogleOnboarding,
     register,
     logout,
     verifyEmail,

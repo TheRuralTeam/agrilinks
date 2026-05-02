@@ -251,21 +251,8 @@ const Registration = () => {
     }
   };
 
-  const handleGoogleSignup = async () => {
-    setErrorMessage('');
-    setGoogleLoading(true);
-
-    try {
-      const { error } = await signInWithGoogle('signup');
-
-      if (error) {
-        setErrorMessage(error.message || 'Não foi possível iniciar cadastro com Google.');
-      }
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error));
-    } finally {
-      setGoogleLoading(false);
-    }
+  const handleGoogleSignup = () => {
+    navigate('/escolher-tipo-conta');
   };
 
   const userTypeOptions = [
