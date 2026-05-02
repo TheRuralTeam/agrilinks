@@ -76,6 +76,8 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={rootElement} />
+      <Route path="/index" element={<Navigate to="/" replace />} />
+      <Route path="/home" element={<Navigate to="/" replace />} />
       <Route path="/site" element={<Index />} />
       <Route path="/login" element={user ? <Navigate to="/app" replace /> : <LoginPage />} />
       <Route path="/cadastro" element={<Registration />} />
