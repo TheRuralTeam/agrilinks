@@ -257,6 +257,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  const signInWithGoogle = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/completar-perfil`,
+          queryParams: { access_type: 'offline', prompt: 'consent' },
+        },
+      })
+      if (error) {
+        toast({ title: 'Erro Google', description: error.message, variant: 'destructive' })
+      }
+      return { error }
+    } catch (err: any) {
+      return { error: err }
+    }
+  }
+
   const logout = async () => {
     await supabase.auth.signOut()
     setUser(null)
