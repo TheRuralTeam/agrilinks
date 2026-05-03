@@ -309,3 +309,42 @@ export default function ChooseAccountType() {
     </div>
   )
 }
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '10px 12px',
+  borderRadius: 10,
+  border: '1.5px solid #E5EDE6',
+  fontSize: 13,
+  fontFamily: "'DM Sans', system-ui, sans-serif",
+  background: '#F7F9F7',
+  color: '#111714',
+  outline: 'none',
+  boxSizing: 'border-box',
+}
+
+const btnPrimary: React.CSSProperties = {
+  flex: 1,
+  padding: '11px 0',
+  borderRadius: 10,
+  background: '#2D7D3A',
+  border: 'none',
+  cursor: 'pointer',
+  fontSize: 13,
+  fontWeight: 700,
+  color: '#fff',
+  transition: 'background 0.18s',
+}
+
+const btnSecondary: React.CSSProperties = {
+  flex: 1,
+  padding: '11px 0',
+  borderRadius: 10,
+  background: '#F2FAF3',
+  border: '1.5px solid #C8E6CA',
+  cursor: 'pointer',
+  fontSize: 13,
+  fontWeight: 600,
+  color: '#3D4D40',
+  transition: 'background 0.18s',
+}
