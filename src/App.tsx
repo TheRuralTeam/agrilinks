@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { AuthProvider, GOOGLE_PASSWORD_SETUP_REQUIRED_KEY, useAuth } from "@/contexts/AuthContext";
 import { LanguageWelcomeBanner } from "@/components/LanguageWelcomeBanner";
 // Pages
 import Index from "./pages/Index";
@@ -46,7 +46,11 @@ const OAuthCallbackHandler = () => {
   const [completing, setCompleting] = useState(false);
   const [done, setDone] = useState(false);
   const isGoogleUser = user?.app_metadata?.provider === 'google';
-  const requiresGooglePasswordSetup = isGoogleUser && user?.user_metadata?.google_password_set !== true;
+  const shouldForceGooglePasswordSetup = localStorage.getItem(GOOGLE_PASSWORD_SETUP_REQUIRED_KEY) === '1';
+  const requiresGooglePasswordSetup =
+    isGoogleUser &&
+    shouldForceGooglePasswordSetup &&
+    user?.user_metadata?.google_password_set !== true;
 
   useEffect(() => {
     if (loading || profileLoading || completing || done) return;
@@ -86,6 +90,14 @@ const OAuthCallbackHandler = () => {
 
   // Profile was just created from pending onboarding data OR already existed
   if (done || userProfile) {
+    if (user?.user_metadata?.google_password_set === true) {
+      localStorage.removeItem(GOOGLE_PASSWORD_SETUP_REQUIRED_KEY);
+    }
+
+    if (user?.user_metadata?.google_password_set === true) {
+      localStorage.removeItem(GOOGLE_PASSWORD_SETUP_REQUIRED_KEY);
+    }
+
     if (requiresGooglePasswordSetup) {
       return <Navigate to="/definir-senha-google" replace />;
     }

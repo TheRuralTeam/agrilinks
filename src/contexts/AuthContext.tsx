@@ -28,6 +28,7 @@ export type PendingGoogleOnboarding = {
 
 const PENDING_GOOGLE_ONBOARDING_KEY = 'pendingGoogleOnboarding'
 export const GOOGLE_DEVICE_HISTORY_KEY = 'googleDeviceHistory'
+export const GOOGLE_PASSWORD_SETUP_REQUIRED_KEY = 'googlePasswordSetupRequired'
 
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) {
@@ -91,6 +92,15 @@ const readPendingGoogleOnboarding = (): PendingGoogleOnboarding | null => {
 
 const markGoogleDeviceUsed = () => {
   localStorage.setItem(GOOGLE_DEVICE_HISTORY_KEY, '1')
+}
+
+const setGooglePasswordSetupRequired = (required: boolean) => {
+  if (required) {
+    localStorage.setItem(GOOGLE_PASSWORD_SETUP_REQUIRED_KEY, '1')
+    return
+  }
+
+  localStorage.removeItem(GOOGLE_PASSWORD_SETUP_REQUIRED_KEY)
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -212,6 +222,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(session?.user ?? null)
         if (session?.user?.app_metadata?.provider === 'google') {
           markGoogleDeviceUsed()
+          if (session.user.user_metadata?.google_password_set === true) {
+            setGooglePasswordSetupRequired(false)
+          }
         }
         if (session?.user) {
           setTimeout(() => {
@@ -236,6 +249,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null)
       if (session?.user?.app_metadata?.provider === 'google') {
         markGoogleDeviceUsed()
+        if (session.user.user_metadata?.google_password_set === true) {
+          setGooglePasswordSetupRequired(false)
+        }
       }
       if (session?.user) {
         fetchUserProfile(session.user.id)
@@ -302,6 +318,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     try {
       savePendingGoogleOnboarding(onboarding)
+      setGooglePasswordSetupRequired(mode === 'signup')
 
       const queryParams = mode === 'signup'
         ? {
@@ -403,6 +420,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (data.user?.app_metadata?.provider === 'google') {
         markGoogleDeviceUsed()
       }
+
+      setGooglePasswordSetupRequired(false)
 
       return { error: null }
     } catch (error: unknown) {
