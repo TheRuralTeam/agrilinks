@@ -175,8 +175,8 @@ const CompletarPerfil = () => {
             <CountryPhoneInput
               selectedCountry={selectedCountry}
               onCountryChange={setSelectedCountry}
-              phone={phone}
-              onPhoneChange={setPhone}
+              value={phone}
+              onChange={setPhone}
             />
           </div>
 
