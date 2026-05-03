@@ -40,8 +40,8 @@ const isProfileComplete = (p: any) =>
   !!(p && p.user_type && p.identity_document && p.province_id && p.municipality_id);
 
 // Protected Route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+const ProtectedRoute = ({ children, allowIncomplete = false }: { children: React.ReactNode; allowIncomplete?: boolean }) => {
+  const { user, userProfile, loading } = useAuth();
 
   if (loading) {
     return (
@@ -56,6 +56,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (!allowIncomplete && userProfile && !isProfileComplete(userProfile)) {
+    return <Navigate to="/completar-perfil" replace />;
   }
 
   return <>{children}</>;
