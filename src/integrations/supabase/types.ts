@@ -1290,13 +1290,13 @@ export type Database = {
           email_verified: boolean | null
           full_name: string
           id: string
-          identity_document: string
+          identity_document: string | null
           is_root_admin: boolean | null
           is_super_root: boolean | null
-          municipality_id: string
+          municipality_id: string | null
           phone: string | null
           phone_verified: boolean | null
-          province_id: string
+          province_id: string | null
           referred_by_agent_id: string | null
           updated_at: string | null
           user_type: Database["public"]["Enums"]["user_type_enum"] | null
@@ -1312,13 +1312,13 @@ export type Database = {
           email_verified?: boolean | null
           full_name: string
           id: string
-          identity_document: string
+          identity_document?: string | null
           is_root_admin?: boolean | null
           is_super_root?: boolean | null
-          municipality_id: string
+          municipality_id?: string | null
           phone?: string | null
           phone_verified?: boolean | null
-          province_id: string
+          province_id?: string | null
           referred_by_agent_id?: string | null
           updated_at?: string | null
           user_type?: Database["public"]["Enums"]["user_type_enum"] | null
@@ -1334,13 +1334,13 @@ export type Database = {
           email_verified?: boolean | null
           full_name?: string
           id?: string
-          identity_document?: string
+          identity_document?: string | null
           is_root_admin?: boolean | null
           is_super_root?: boolean | null
-          municipality_id?: string
+          municipality_id?: string | null
           phone?: string | null
           phone_verified?: boolean | null
-          province_id?: string
+          province_id?: string | null
           referred_by_agent_id?: string | null
           updated_at?: string | null
           user_type?: Database["public"]["Enums"]["user_type_enum"] | null
