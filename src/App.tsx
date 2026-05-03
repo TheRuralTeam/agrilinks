@@ -32,8 +32,12 @@ import EmailConfirmation from "./pages/EmailConfirmation";
 import ResetPassword from "./pages/ResetPassword";
 import UserProfile from "./pages/UserProfile";
  import B2BProfile from "./pages/B2BProfile";
+import CompletarPerfil from "./pages/CompletarPerfil";
 
 const queryClient = new QueryClient();
+
+const isProfileComplete = (p: any) =>
+  !!(p && p.user_type && p.identity_document && p.province_id && p.municipality_id);
 
 // Protected Route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
