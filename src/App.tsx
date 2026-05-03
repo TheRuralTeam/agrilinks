@@ -34,6 +34,7 @@ import ResetPassword from "./pages/ResetPassword";
 import UserProfile from "./pages/UserProfile";
 import B2BProfile from "./pages/B2BProfile";
 import ChooseAccountType from "./pages/ChooseAccountType";
+import SetGooglePassword from "./pages/SetGooglePassword";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,8 @@ const OAuthCallbackHandler = () => {
   const { user, loading, profileLoading, userProfile, completePendingGoogleOnboarding } = useAuth();
   const [completing, setCompleting] = useState(false);
   const [done, setDone] = useState(false);
+  const isGoogleUser = user?.app_metadata?.provider === 'google';
+  const requiresGooglePasswordSetup = isGoogleUser && user?.user_metadata?.google_password_set !== true;
 
   useEffect(() => {
     if (loading || profileLoading || completing || done) return;
@@ -65,7 +68,7 @@ const OAuthCallbackHandler = () => {
       setDone(completed);
       setCompleting(false);
     });
-  }, [user, loading, profileLoading, userProfile]);
+  }, [user, loading, profileLoading, userProfile, completing, done, completePendingGoogleOnboarding]);
 
   // Show spinner while auth, profile, or onboarding completion is in progress
   if (loading || profileLoading || completing) {
@@ -82,7 +85,13 @@ const OAuthCallbackHandler = () => {
   if (!user) return <Navigate to="/login" replace />;
 
   // Profile was just created from pending onboarding data OR already existed
-  if (done || userProfile) return <Navigate to="/app" replace />;
+  if (done || userProfile) {
+    if (requiresGooglePasswordSetup) {
+      return <Navigate to="/definir-senha-google" replace />;
+    }
+
+    return <Navigate to="/app" replace />;
+  }
 
   // No pending data and no profile → go to account setup
   return <Navigate to="/escolher-tipo-conta" replace />;
@@ -183,6 +192,7 @@ const AppRoutes = () => {
       <Route path="/cadastro" element={<Registration />} />
       <Route path="/confirmar-email" element={<EmailConfirmation />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/definir-senha-google" element={<SetGooglePassword />} />
       <Route path="/termos-publicidade" element={<TermsOfService />} />
 
       {/* App Routes */}

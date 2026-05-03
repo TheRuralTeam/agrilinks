@@ -27,6 +27,7 @@ export type PendingGoogleOnboarding = {
 }
 
 const PENDING_GOOGLE_ONBOARDING_KEY = 'pendingGoogleOnboarding'
+export const GOOGLE_DEVICE_HISTORY_KEY = 'googleDeviceHistory'
 
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) {
@@ -48,6 +49,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<LoginResult>
   signInWithGoogle: (mode?: 'login' | 'signup', onboarding?: PendingGoogleOnboarding | null) => Promise<{ error: AuthActionError | null }>
   completePendingGoogleOnboarding: (authUser?: User | null) => Promise<{ error: AuthActionError | null; completed: boolean }>
+  setGooglePassword: (password: string) => Promise<{ error: AuthActionError | null }>
   register: (userData: RegisterData) => Promise<RegisterResult>
   logout: () => Promise<void>
   verifyEmail: (token: string) => Promise<{ error: AuthActionError | null }>
@@ -85,6 +87,10 @@ const readPendingGoogleOnboarding = (): PendingGoogleOnboarding | null => {
   } catch {
     return null
   }
+}
+
+const markGoogleDeviceUsed = () => {
+  localStorage.setItem(GOOGLE_DEVICE_HISTORY_KEY, '1')
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -204,6 +210,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       (event, session) => {
         setSession(session)
         setUser(session?.user ?? null)
+        if (session?.user?.app_metadata?.provider === 'google') {
+          markGoogleDeviceUsed()
+        }
         if (session?.user) {
           setTimeout(() => {
             fetchUserProfile(session.user.id)
@@ -225,6 +234,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
+      if (session?.user?.app_metadata?.provider === 'google') {
+        markGoogleDeviceUsed()
+      }
       if (session?.user) {
         fetchUserProfile(session.user.id)
         checkAdminRole(session.user.id)
@@ -291,14 +303,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       savePendingGoogleOnboarding(onboarding)
 
+      const queryParams = mode === 'signup'
+        ? {
+            // Force account chooser and consent screen when onboarding is required.
+            prompt: 'consent select_account',
+          }
+        : undefined
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/`,
-          queryParams: {
-            // Force account chooser and consent screen to avoid silent reuse.
-            prompt: 'consent select_account',
-          },
+          queryParams,
         },
       })
 
@@ -363,6 +379,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } finally {
       setProfileLoading(false)
+    }
+  }
+
+  const setGooglePassword = async (password: string) => {
+    if (!user) {
+      return { error: { message: 'Utilizador não autenticado.' } }
+    }
+
+    try {
+      const { data, error } = await supabase.auth.updateUser({
+        password,
+        data: {
+          ...(user.user_metadata ?? {}),
+          google_password_set: true,
+        },
+      })
+
+      if (error) {
+        return { error: { message: error.message } }
+      }
+
+      if (data.user?.app_metadata?.provider === 'google') {
+        markGoogleDeviceUsed()
+      }
+
+      return { error: null }
+    } catch (error: unknown) {
+      return {
+        error: {
+          message: getErrorMessage(error),
+        },
+      }
     }
   }
 
@@ -459,6 +507,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     login,
     signInWithGoogle,
     completePendingGoogleOnboarding,
+    setGooglePassword,
     register,
     logout,
     verifyEmail,

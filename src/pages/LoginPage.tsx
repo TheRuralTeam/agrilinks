@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, ShieldCheck, X } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
+import { GOOGLE_DEVICE_HISTORY_KEY, useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
 import agriLinkLogo from '@/assets/agrilink-logo.png'
 import { toast } from '@/hooks/use-toast'
@@ -106,7 +106,7 @@ const LoginPage = () => {
   const [resendLoading, setResendLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
 
-  const { login } = useAuth()
+  const { login, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -194,10 +194,27 @@ const LoginPage = () => {
     }
   }
 
-  const handleGoogleLogin = () => {
-    // Navigate to pre-auth onboarding – user picks type + phone before Google OAuth.
-    // For returning users, OAuthCallbackHandler will detect existing profile and skip onboarding.
-    navigate('/escolher-tipo-conta')
+  const handleGoogleLogin = async () => {
+    const isKnownGoogleDevice = localStorage.getItem(GOOGLE_DEVICE_HISTORY_KEY) === '1'
+
+    if (!isKnownGoogleDevice) {
+      // First Google login in this device: collect account type + contact data first.
+      navigate('/escolher-tipo-conta')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const { error } = await signInWithGoogle('login')
+      if (error) {
+        setErrorMsg(error.message)
+        setLoading(false)
+      }
+      // Successful OAuth start redirects browser.
+    } catch (error) {
+      setErrorMsg(getErrorMessage(error))
+      setLoading(false)
+    }
   }
 
   return (
