@@ -80,9 +80,15 @@ const LoginPage = () => {
   const [pendingUserId, setPendingUserId] = useState('')
   const [pendingUserName, setPendingUserName] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+  const [googleLoading, setGoogleLoading] = useState(false)
 
-  const { login } = useAuth()
+  const { login, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true)
+    try { await signInWithGoogle() } finally { setGoogleLoading(false) }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
