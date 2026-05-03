@@ -321,6 +321,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isSupportAgent,
     login,
     register,
+    signInWithGoogle,
     logout,
     verifyEmail,
     resendVerification,
