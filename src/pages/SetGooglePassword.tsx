@@ -16,8 +16,20 @@ const inputStyle: CSSProperties = {
 }
 
 const getPasswordValidationError = (password: string, confirmPassword: string) => {
-  if (password.length < 6) {
-    return 'A palavra-passe deve ter no mínimo 6 caracteres.'
+  if (password.length < 8) {
+    return 'A palavra-passe deve ter no mínimo 8 caracteres.'
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    return 'A palavra-passe deve incluir pelo menos uma letra maiúscula.'
+  }
+
+  if (!/[a-z]/.test(password)) {
+    return 'A palavra-passe deve incluir pelo menos uma letra minúscula.'
+  }
+
+  if (!/[0-9]/.test(password)) {
+    return 'A palavra-passe deve incluir pelo menos um número.'
   }
 
   if (password !== confirmPassword) {
@@ -108,6 +120,9 @@ export default function SetGooglePassword() {
           Esta palavra-passe ficara associada ao seu e-mail e sera gravada no backend de autenticacao.
           Depois podera entrar tanto com Google quanto com e-mail e palavra-passe.
         </p>
+        <p style={{ marginTop: -8, marginBottom: 20, color: '#3f5346', fontSize: 12, lineHeight: 1.5 }}>
+          Requisitos: minimo de 8 caracteres, com letra maiúscula, letra minúscula e número.
+        </p>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
@@ -121,7 +136,7 @@ export default function SetGooglePassword() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 style={inputStyle}
-                placeholder="Minimo de 6 caracteres"
+                placeholder="Minimo de 8 caracteres"
                 autoComplete="new-password"
                 required
               />

@@ -217,6 +217,17 @@ export default function ChooseAccountType() {
               <p style={{ fontSize: 13, color: T.muted, margin: '0 0 24px', lineHeight: 1.6 }}>
                 Estes dados sÃ£o usados para conectar com compradores e fornecedores.
               </p>
+              <div style={{
+                background: '#F2FAF3',
+                border: `1px solid ${T.gBorder}`,
+                borderRadius: 10,
+                padding: '10px 12px',
+                marginBottom: 14,
+              }}>
+                <p style={{ margin: 0, fontSize: 12, color: T.mid, lineHeight: 1.5 }}>
+                  ApÃ³s autenticar com Google, vamos pedir para definir uma palavra-passe para o seu e-mail.
+                </p>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: T.mid, display: 'block', marginBottom: 6 }}>
