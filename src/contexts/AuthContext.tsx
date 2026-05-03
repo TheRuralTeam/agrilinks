@@ -14,6 +14,7 @@ interface AuthContextType {
   isSupportAgent: boolean
   login: (email: string, password: string) => Promise<{ error: any }>
   register: (userData: RegisterData) => Promise<{ error: any; data?: any }>
+  signInWithGoogle: () => Promise<{ error: any }>
   logout: () => Promise<void>
   verifyEmail: (token: string) => Promise<{ error: any }>
   resendVerification: () => Promise<{ error: any }>
@@ -256,6 +257,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  const signInWithGoogle = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/completar-perfil`,
+          queryParams: { access_type: 'offline', prompt: 'consent' },
+        },
+      })
+      if (error) {
+        toast({ title: 'Erro Google', description: error.message, variant: 'destructive' })
+      }
+      return { error }
+    } catch (err: any) {
+      return { error: err }
+    }
+  }
+
   const logout = async () => {
     await supabase.auth.signOut()
     setUser(null)
@@ -302,6 +321,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isSupportAgent,
     login,
     register,
+    signInWithGoogle,
     logout,
     verifyEmail,
     resendVerification,

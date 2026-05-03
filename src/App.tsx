@@ -32,12 +32,16 @@ import EmailConfirmation from "./pages/EmailConfirmation";
 import ResetPassword from "./pages/ResetPassword";
 import UserProfile from "./pages/UserProfile";
  import B2BProfile from "./pages/B2BProfile";
+import CompletarPerfil from "./pages/CompletarPerfil";
 
 const queryClient = new QueryClient();
 
+const isProfileComplete = (p: any) =>
+  !!(p && p.user_type && p.identity_document && p.province_id && p.municipality_id);
+
 // Protected Route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+const ProtectedRoute = ({ children, allowIncomplete = false }: { children: React.ReactNode; allowIncomplete?: boolean }) => {
+  const { user, userProfile, loading } = useAuth();
 
   if (loading) {
     return (
@@ -52,6 +56,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (!allowIncomplete && userProfile && !isProfileComplete(userProfile)) {
+    return <Navigate to="/completar-perfil" replace />;
   }
 
   return <>{children}</>;
@@ -243,6 +251,15 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <TechnicalSheet />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/completar-perfil"
+        element={
+          <ProtectedRoute allowIncomplete>
+            <CompletarPerfil />
           </ProtectedRoute>
         }
       />

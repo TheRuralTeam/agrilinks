@@ -80,9 +80,15 @@ const LoginPage = () => {
   const [pendingUserId, setPendingUserId] = useState('')
   const [pendingUserName, setPendingUserName] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+  const [googleLoading, setGoogleLoading] = useState(false)
 
-  const { login } = useAuth()
+  const { login, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true)
+    try { await signInWithGoogle() } finally { setGoogleLoading(false) }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -441,6 +447,29 @@ const LoginPage = () => {
               </span>
               <div style={{ flex: 1, height: 1, backgroundColor: T.rule }} />
             </div>
+
+            {/* Google Sign-in */}
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={googleLoading}
+              style={{
+                width: '100%', height: 50, borderRadius: 16,
+                border: `1.5px solid ${T.rule}`, backgroundColor: T.white,
+                color: T.ink, fontSize: 14, fontWeight: 800, cursor: googleLoading ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                marginBottom: 12,
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.4-.4-3.5z"/>
+                <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16.1 19 13 24 13c3 0 5.7 1.1 7.8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.4 6.3 14.7z"/>
+                <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.5-5.2l-6.2-5.2c-2 1.4-4.5 2.4-7.3 2.4-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.6 39.5 16.2 44 24 44z"/>
+                <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.6l6.2 5.2c-.4.4 6.7-4.9 6.7-14.8 0-1.2-.1-2.4-.4-3.5z"/>
+              </svg>
+              {googleLoading ? 'A conectar...' : 'Continuar com Google'}
+            </button>
+
 
             {/* Register */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
