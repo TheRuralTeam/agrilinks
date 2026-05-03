@@ -168,9 +168,7 @@ const AppRoutes = () => {
       <Route path="/site" element={<Index />} />
       <Route
         path="/escolher-tipo-conta"
-        element={
-          user ? <ChooseAccountType /> : <Navigate to="/login" replace />
-        }
+        element={<ChooseAccountType />}
       />
       <Route
         path="/login"
