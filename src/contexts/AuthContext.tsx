@@ -14,6 +14,7 @@ interface AuthContextType {
   isSupportAgent: boolean
   login: (email: string, password: string) => Promise<{ error: any }>
   register: (userData: RegisterData) => Promise<{ error: any; data?: any }>
+  signInWithGoogle: () => Promise<{ error: any }>
   logout: () => Promise<void>
   verifyEmail: (token: string) => Promise<{ error: any }>
   resendVerification: () => Promise<{ error: any }>
