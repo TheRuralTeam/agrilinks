@@ -255,6 +255,15 @@ const AppRoutes = () => {
         }
       />
 
+      <Route
+        path="/completar-perfil"
+        element={
+          <ProtectedRoute allowIncomplete>
+            <CompletarPerfil />
+          </ProtectedRoute>
+        }
+      />
+
       {/* Catch-all */}
       <Route path="*" element={<NotFound />} />
     </Routes>
