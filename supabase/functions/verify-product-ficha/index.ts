@@ -129,19 +129,6 @@ Responde APENAS com JSON válido.`;
         });
       }
 
-      // Notify admins via helper
-      await supabase.rpc('create_notification' as any, {
-        p_user_id: product.user_id, // dummy; admin notif done below
-        p_type: 'verification',
-        p_title: '',
-        p_message: '',
-      }).then(() => {}).catch(() => {});
-
-      // Better: use create_admin_notifications via SQL
-      await supabase.from('notifications').insert({
-        user_id: product.user_id, // placeholder, we use proper RPC instead
-        type: 'noop', title: '', message: '',
-      }).then(() => {}).catch(() => {});
     }
 
     // Notify all admins once with summary
