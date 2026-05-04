@@ -171,7 +171,7 @@ const FichaRecebimento = () => {
         setLoading(false);
         return;
       }
-      const { error } = await supabase.from("fichas_recebimento").insert([
+      const { data: insertedFicha, error } = await supabase.from("fichas_recebimento").insert([
         {
           user_id: user.id,
           nome_ficha: formData.nomeFicha,
@@ -185,8 +185,16 @@ const FichaRecebimento = () => {
           descricao_final: formData.descricaoFinal,
           observacoes: formData.observacoes,
         },
-      ]);
+      ]).select('id').single();
       if (error) throw error;
+
+      // Trigger AI verification against existing products (fire-and-forget)
+      if (insertedFicha?.id) {
+        supabase.functions.invoke('verify-product-ficha', {
+          body: { ficha_id: insertedFicha.id },
+        }).catch((e) => console.error('verify error', e));
+      }
+
       toast.success("Ficha de recebimento criada com sucesso!");
       navigate(-1);
     } catch (err) {
