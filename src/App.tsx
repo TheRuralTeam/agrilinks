@@ -40,7 +40,7 @@ const isProfileComplete = (p: any) =>
   !!(p && p.user_type && p.identity_document && p.province_id && p.municipality_id);
 
 // Protected Route component
-const ProtectedRoute = ({ children, allowIncomplete = false }: { children: React.ReactNode; allowIncomplete?: boolean }) => {
+const ProtectedRoute = ({ children, allowIncomplete = false, allowUnverified = false }: { children: React.ReactNode; allowIncomplete?: boolean; allowUnverified?: boolean }) => {
   const { user, userProfile, loading } = useAuth();
 
   if (loading) {
@@ -56,6 +56,12 @@ const ProtectedRoute = ({ children, allowIncomplete = false }: { children: React
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Bloqueia acesso se email não estiver confirmado
+  const emailConfirmed = !!(user as any)?.email_confirmed_at || !!userProfile?.email_verified;
+  if (!allowUnverified && !emailConfirmed) {
+    return <Navigate to="/confirmar-email" replace />;
   }
 
   if (!allowIncomplete && userProfile && !isProfileComplete(userProfile)) {
