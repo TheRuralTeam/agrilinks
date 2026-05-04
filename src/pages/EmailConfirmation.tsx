@@ -185,14 +185,22 @@ const EmailConfirmation = () => {
                   <XCircle className="h-16 w-16 text-destructive" />
                   <div className="text-center space-y-4">
                     <p className="text-lg font-semibold text-destructive">
-                      Erro na confirmação
+                      Confirmação pendente
                     </p>
                     <p className="text-muted-foreground">{message}</p>
                     <Button
-                      onClick={() => navigate("/login")}
+                      onClick={handleResend}
+                      disabled={resending}
                       className="w-full"
                     >
-                      Ir para Login
+                      {resending ? "Reenviando..." : "Reenviar email de confirmação"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={async () => { await supabase.auth.signOut(); navigate("/login"); }}
+                      className="w-full"
+                    >
+                      Voltar para Login
                     </Button>
                   </div>
                 </>
