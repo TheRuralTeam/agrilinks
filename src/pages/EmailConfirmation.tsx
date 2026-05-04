@@ -11,7 +11,43 @@ const EmailConfirmation = () => {
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("");
 
+  const [resending, setResending] = useState(false);
+
+  const hasToken = () => {
+    const hash = new URLSearchParams(window.location.hash.substring(1));
+    const query = new URLSearchParams(window.location.search);
+    return !!(hash.get('access_token') || query.get('access_token') || query.get('code') || hash.get('type'));
+  };
+
+  const handleResend = async () => {
+    setResending(true);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const email = sess?.session?.user?.email;
+      if (!email) {
+        setMessage("Faça login para reenviar o email.");
+        setResending(false);
+        return;
+      }
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: { emailRedirectTo: `${window.location.origin}/confirmar-email` },
+      });
+      if (error) setMessage("Erro ao reenviar: " + error.message);
+      else setMessage("Email de confirmação reenviado! Verifique sua caixa de entrada.");
+    } finally {
+      setResending(false);
+    }
+  };
+
   useEffect(() => {
+    // Se não há token na URL, mostrar tela de "aguardando confirmação"
+    if (!hasToken()) {
+      setStatus("error");
+      setMessage("Seu email ainda não foi confirmado. Verifique sua caixa de entrada (e a pasta de spam) e clique no link de confirmação que enviamos.");
+      return;
+    }
     const confirmEmail = async () => {
       try {
         // Verificar se há tokens na URL (hash ou query params)
@@ -149,14 +185,22 @@ const EmailConfirmation = () => {
                   <XCircle className="h-16 w-16 text-destructive" />
                   <div className="text-center space-y-4">
                     <p className="text-lg font-semibold text-destructive">
-                      Erro na confirmação
+                      Confirmação pendente
                     </p>
                     <p className="text-muted-foreground">{message}</p>
                     <Button
-                      onClick={() => navigate("/login")}
+                      onClick={handleResend}
+                      disabled={resending}
                       className="w-full"
                     >
-                      Ir para Login
+                      {resending ? "Reenviando..." : "Reenviar email de confirmação"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={async () => { await supabase.auth.signOut(); navigate("/login"); }}
+                      className="w-full"
+                    >
+                      Voltar para Login
                     </Button>
                   </div>
                 </>
