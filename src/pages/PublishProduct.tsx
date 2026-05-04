@@ -185,6 +185,11 @@ const PublishProduct = () => {
 
       if (error) throw error;
 
+      // Trigger AI verification against fichas técnicas (fire-and-forget)
+      supabase.functions.invoke('verify-product-ficha', {
+        body: { product_id: undefined, product_type: formData.product_type },
+      }).catch(() => {});
+
       toast({ title: "Produto publicado!", description: "Seu produto foi publicado com sucesso e já está visível para compradores." });
       navigate('/perfil');
     } catch (error: any) {
