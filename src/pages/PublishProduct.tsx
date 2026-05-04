@@ -164,7 +164,7 @@ const PublishProduct = () => {
         uploadedUrls.push(publicUrl);
       }
 
-     const { error } = await supabase.from('products').insert({
+     const { data: inserted, error } = await supabase.from('products').insert({
   user_id: user.id,
   product_type: formData.product_type,
   quantity: parseFloat(formData.quantity),
@@ -180,15 +180,17 @@ const PublishProduct = () => {
   photos: uploadedUrls,
   location_lat: location?.lat || null,
   location_lng: location?.lng || null
-});
+}).select('id').single();
 
 
       if (error) throw error;
 
       // Trigger AI verification against fichas técnicas (fire-and-forget)
-      supabase.functions.invoke('verify-product-ficha', {
-        body: { product_id: undefined, product_type: formData.product_type },
-      }).catch(() => {});
+      if (inserted?.id) {
+        supabase.functions.invoke('verify-product-ficha', {
+          body: { product_id: inserted.id },
+        }).catch((e) => console.error('verify error', e));
+      }
 
       toast({ title: "Produto publicado!", description: "Seu produto foi publicado com sucesso e já está visível para compradores." });
       navigate('/perfil');
