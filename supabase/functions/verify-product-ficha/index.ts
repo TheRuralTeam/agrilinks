@@ -9,9 +9,9 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { product_id } = await req.json();
-    if (!product_id) {
-      return new Response(JSON.stringify({ error: 'product_id required' }), {
+    const { product_id, ficha_id } = await req.json();
+    if (!product_id && !ficha_id) {
+      return new Response(JSON.stringify({ error: 'product_id or ficha_id required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -24,26 +24,35 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY missing');
 
-    // Fetch product
-    const { data: product, error: pErr } = await supabase
-      .from('products').select('*').eq('id', product_id).maybeSingle();
-    if (pErr || !product) throw new Error('Product not found');
+    // Build (product, ficha) pairs
+    let pairs: Array<{ product: any; ficha: any }> = [];
 
-    // Find compatible fichas (same product type, case-insensitive)
-    const { data: fichas } = await supabase
-      .from('fichas_recebimento')
-      .select('*')
-      .ilike('produto', `%${product.product_type}%`);
+    if (product_id) {
+      const { data: product } = await supabase.from('products').select('*').eq('id', product_id).maybeSingle();
+      if (!product) throw new Error('Product not found');
+      const { data: fichas } = await supabase
+        .from('fichas_recebimento').select('*')
+        .ilike('produto', `%${product.product_type}%`);
+      pairs = (fichas || []).map((f) => ({ product, ficha: f }));
+    } else {
+      const { data: ficha } = await supabase.from('fichas_recebimento').select('*').eq('id', ficha_id).maybeSingle();
+      if (!ficha) throw new Error('Ficha not found');
+      const { data: products } = await supabase
+        .from('products').select('*').eq('status', 'active')
+        .ilike('product_type', `%${ficha.produto}%`);
+      pairs = (products || []).map((p) => ({ product: p, ficha }));
+    }
 
-    if (!fichas || fichas.length === 0) {
-      return new Response(JSON.stringify({ message: 'No matching fichas', verifications: [] }), {
+    if (pairs.length === 0) {
+      return new Response(JSON.stringify({ message: 'No matches found', verifications: [] }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const results: any[] = [];
 
-    for (const ficha of fichas) {
+    for (const { product, ficha } of pairs) {
+
       // Ask AI to compare
       const prompt = `És um verificador agrícola. Compara o PRODUTO publicado com a FICHA TÉCNICA do comprador e devolve JSON com: match_score (0-100), status ("match" se >=80, "partial" se 50-79, "mismatch" se <50), issues (array de strings curtas em português) e summary (1 frase).
 
