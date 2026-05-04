@@ -950,6 +950,45 @@ export type Database = {
           },
         ]
       }
+      product_verifications: {
+        Row: {
+          ai_analysis: Json | null
+          buyer_id: string
+          created_at: string
+          ficha_id: string
+          id: string
+          issues: string[] | null
+          match_score: number
+          producer_id: string
+          product_id: string
+          status: string
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          buyer_id: string
+          created_at?: string
+          ficha_id: string
+          id?: string
+          issues?: string[] | null
+          match_score?: number
+          producer_id: string
+          product_id: string
+          status?: string
+        }
+        Update: {
+          ai_analysis?: Json | null
+          buyer_id?: string
+          created_at?: string
+          ficha_id?: string
+          id?: string
+          issues?: string[] | null
+          match_score?: number
+          producer_id?: string
+          product_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           contact: string
