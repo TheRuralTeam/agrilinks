@@ -586,7 +586,7 @@ const AppHome = () => {
               Produtos disponíveis
             </h2>
             <p style={{ fontSize:12, color: T.faint, marginTop:4, fontWeight:500 }}>
-              {products.length} listings · ordenados por relevância
+              {filteredProducts.length} listings · ordenados por relevância
             </p>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
