@@ -522,82 +522,56 @@ const AppHome = () => {
         )}
       </header>
 
-      {/* ═══ HERO ════════════════════════════════════════════════════════════ */}
+      {/* ═══ CATEGORY FILTERS ════════════════════════════════════════════════ */}
       <section style={{
-        background: T.g900,
-        padding: 'clamp(40px, 6vw, 72px) 20px clamp(44px, 6vw, 72px)',
-        position: 'relative',
-        overflow: 'hidden',
+        background: T.white,
+        borderBottom: `1px solid ${T.rule}`,
+        padding: '14px 0',
       }}>
-        {/* Subtle grid pattern */}
         <div style={{
-          position: 'absolute', inset: 0, opacity: 0.04,
-          backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-          backgroundSize: '48px 48px',
-          pointerEvents: 'none',
-        }}/>
-        {/* Radial glow */}
-        <div style={{
-          position: 'absolute', top: '-30%', right: '-10%',
-          width: 600, height: 600, borderRadius: '50%',
-          background: `radial-gradient(circle, rgba(61,154,72,0.18) 0%, transparent 70%)`,
-          pointerEvents: 'none',
-        }}/>
-
-        <div style={{ maxWidth:1320, margin:'0 auto', position:'relative', zIndex:1 }}>
-          {/* Tag */}
-          <div style={{
-            display:'inline-flex', alignItems:'center', gap:8,
-            padding:'5px 14px 5px 8px', borderRadius:20,
-            background:'rgba(255,255,255,0.06)',
-            border:'1px solid rgba(255,255,255,0.1)',
-            marginBottom:28,
-          }}>
-            <div style={{ padding:'3px 8px', borderRadius:12, background: T.g500, fontSize:9, fontWeight:800, color: T.white, letterSpacing:'0.1em', textTransform:'uppercase' }}>B2B</div>
-            <span style={{ fontSize:11, color:'rgba(255,255,255,0.55)', fontWeight:600, letterSpacing:'0.04em' }}>Mercado Agrícola de Futuros Digital</span>
-          </div>
-
-          <div style={{ display:'flex', flexWrap:'wrap', gap:'clamp(32px, 5vw, 80px)', alignItems:'flex-end' }}>
-            {/* Left: headline */}
-            <div style={{ flex:'1 1 320px', maxWidth: 580 }}>
-              <h1 style={{
-                fontFamily:"'Cormorant Garamond', Georgia, serif",
-                fontSize:'clamp(32px, 5vw, 56px)',
-                fontWeight:700,
-                color: T.white,
-                lineHeight:1.12,
-                margin:'0 0 18px',
-                letterSpacing:'-0.02em',
-              }}>
-                Do campo à fábrica,
-                <br/>
-                <span style={{ color: T.g400 }}>em tempo real.</span>
-              </h1>
-              <p style={{ fontSize:'clamp(13px, 1.4vw, 15px)', color:'rgba(255,255,255,0.50)', lineHeight:1.7, maxWidth:420, margin:'0 0 32px' }}>
-                Agricultores certificados. Compradores industriais. Transacções directas, transparentes e rastreáveis num único lugar.
-              </p>
-              {/* CTA row */}
-              <div style={{ display:'flex', flexWrap:'wrap', gap:10 }}>
-                <button
-                  onClick={() => navigate('/search')}
-                  style={{
-                    padding:'11px 22px', borderRadius:12,
-                    background:`linear-gradient(135deg, ${T.g500}, ${T.g600})`,
-                    border:'none', cursor:'pointer', fontSize:13, fontWeight:700, color: T.white,
-                    display:'flex', alignItems:'center', gap:8,
-                    boxShadow:`0 4px 20px rgba(0, 255, 30, 0.35)`,
-                    transition:'all 0.2s',
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 28px rgba(61,154,72,0.45)` }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 20px rgba(61,154,72,0.35)` }}
-                >
-                  <Search size={14}/> Explorar Mercado
-                </button>
-              </div>
-            </div>
-          </div>
+          maxWidth: 1320, margin: '0 auto', padding: '0 20px',
+          display: 'flex', gap: 10, overflowX: 'auto', scrollbarWidth: 'none',
+        }} className="hide-scrollbar">
+          {CATEGORIES.map(cat => {
+            const active = activeCategory === cat.id
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                title={cat.label}
+                style={{
+                  flexShrink: 0,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  gap: 6, padding: '10px 14px', minWidth: 76,
+                  borderRadius: 14,
+                  border: `1.5px solid ${active ? cat.color : T.rule}`,
+                  background: active ? `${cat.color}10` : T.white,
+                  cursor: 'pointer', transition: 'all 0.18s',
+                  boxShadow: active ? `0 2px 8px ${cat.color}25` : `0 1px 3px ${T.shadow}`,
+                }}
+              >
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: active ? cat.color : `${cat.color}15`,
+                  transition: 'all 0.18s',
+                }}>
+                  <FontAwesomeIcon
+                    icon={cat.icon}
+                    style={{ fontSize: 16, color: active ? T.white : cat.color }}
+                  />
+                </div>
+                <span style={{
+                  fontSize: 11, fontWeight: 700,
+                  color: active ? cat.color : T.mid,
+                  letterSpacing: '0.01em',
+                }}>{cat.label}</span>
+              </button>
+            )
+          })}
         </div>
       </section>
+
 
       {/* ═══ PRODUCT GRID ═══════════════════════════════════════════════════ */}
       <main id="products-grid" style={{ maxWidth:1320, margin:'0 auto', padding:'clamp(24px, 4vw, 48px) 20px clamp(80px, 12vw, 140px)' }}>
