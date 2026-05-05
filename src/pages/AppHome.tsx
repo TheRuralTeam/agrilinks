@@ -608,7 +608,7 @@ const AppHome = () => {
         }}>
           {loading
             ? Array.from({ length: 8 }).map((_, i) => <ProductSkeleton key={i}/>)
-            : products.map((product, i) => (
+            : filteredProducts.map((product, i) => (
               <div
                 key={product.id}
                 style={{ animation:`cardEnter 0.5s cubic-bezier(0.22,1,0.36,1) both`, animationDelay:`${Math.min(i * 0.05, 0.35)}s` }}
