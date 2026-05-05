@@ -228,6 +228,29 @@ const AppHome = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0])
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [activeCategory, setActiveCategory] = useState<string>('all')
+
+  const filteredProducts = useMemo(() => {
+    if (activeCategory === 'all') return products
+    return products.filter(p => {
+      const t = (p.product_type || '').toLowerCase()
+      const map: Record<string, string[]> = {
+        frutas:   ['fruta','manga','banana','abacate','maçã','maca','ananás','ananas','papaia','mamão','mamao','pera','uva','melancia','melao','melão'],
+        citrus:   ['laranja','limão','limao','tangerina','lima','citrino'],
+        legumes:  ['cenoura','batata','beterraba','mandioca','inhame','abóbora','abobora','tomate','cebola','alho'],
+        verduras: ['alface','couve','espinafre','folha','rúcula','rucula','agrião','agriao','verdura'],
+        cereais:  ['milho','arroz','trigo','feijão','feijao','soja','aveia','cereal'],
+        tempero:  ['pimenta','jindungo','gengibre','tempero','salsa','coentro','manjericão','manjericao'],
+        pescado:  ['peixe','pescado','camarão','camarao','marisco','bacalhau'],
+        carnes:   ['carne','frango','vaca','porco','cabrito'],
+        ovos:     ['ovo'],
+        paes:     ['pão','pao','padaria','biscoito'],
+        lacteos:  ['leite','queijo','iogurte','manteiga','lácteo','lacteo'],
+        bebidas:  ['suco','sumo','bebida','café','cafe','chá','cha'],
+      }
+      return (map[activeCategory] || []).some(k => t.includes(k))
+    })
+  }, [products, activeCategory])
 
   /* Country auto-detect */
   useEffect(() => {
