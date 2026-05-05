@@ -19,6 +19,28 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 import { useNavigate } from 'react-router-dom'
 import { ProductCard, Product } from '@/components/ProductCard'
 import orbisLinkLogo from '@/assets/orbislink-logo.png'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+  faAppleWhole, faCarrot, faSeedling, faWheatAwn, faLemon,
+  faPepperHot, faFish, faDrumstickBite, faEgg, faBreadSlice,
+  faCheese, faMugHot, faLayerGroup
+} from '@fortawesome/free-solid-svg-icons'
+
+const CATEGORIES = [
+  { id: 'all',     label: 'Todos',      icon: faLayerGroup,    color: '#1A5C24' },
+  { id: 'frutas',  label: 'Frutas',     icon: faAppleWhole,    color: '#E63946' },
+  { id: 'citrus',  label: 'Cítricos',   icon: faLemon,         color: '#F4A100' },
+  { id: 'legumes', label: 'Legumes',    icon: faCarrot,        color: '#E07A12' },
+  { id: 'verduras',label: 'Verduras',   icon: faSeedling,      color: '#3D9A48' },
+  { id: 'cereais', label: 'Cereais',    icon: faWheatAwn,      color: '#B07D0A' },
+  { id: 'tempero', label: 'Temperos',   icon: faPepperHot,     color: '#C53030' },
+  { id: 'pescado', label: 'Pescado',    icon: faFish,          color: '#2563B0' },
+  { id: 'carnes',  label: 'Carnes',     icon: faDrumstickBite, color: '#8B2E2E' },
+  { id: 'ovos',    label: 'Ovos',       icon: faEgg,           color: '#D4A24C' },
+  { id: 'paes',    label: 'Pães',       icon: faBreadSlice,    color: '#A0522D' },
+  { id: 'lacteos', label: 'Lácteos',    icon: faCheese,        color: '#E5A020' },
+  { id: 'bebidas', label: 'Bebidas',    icon: faMugHot,        color: '#5C3317' },
+]
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoibHVjYW1iYSIsImEiOiJjbWdqY293Z2QwaGRwMmlyNGlwNW4xYXhwIn0.qOjQNe8kbbfmdK5G0MHWDA'
 
@@ -206,6 +228,29 @@ const AppHome = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0])
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [activeCategory, setActiveCategory] = useState<string>('all')
+
+  const filteredProducts = useMemo(() => {
+    if (activeCategory === 'all') return products
+    return products.filter(p => {
+      const t = (p.product_type || '').toLowerCase()
+      const map: Record<string, string[]> = {
+        frutas:   ['fruta','manga','banana','abacate','maçã','maca','ananás','ananas','papaia','mamão','mamao','pera','uva','melancia','melao','melão'],
+        citrus:   ['laranja','limão','limao','tangerina','lima','citrino'],
+        legumes:  ['cenoura','batata','beterraba','mandioca','inhame','abóbora','abobora','tomate','cebola','alho'],
+        verduras: ['alface','couve','espinafre','folha','rúcula','rucula','agrião','agriao','verdura'],
+        cereais:  ['milho','arroz','trigo','feijão','feijao','soja','aveia','cereal'],
+        tempero:  ['pimenta','jindungo','gengibre','tempero','salsa','coentro','manjericão','manjericao'],
+        pescado:  ['peixe','pescado','camarão','camarao','marisco','bacalhau'],
+        carnes:   ['carne','frango','vaca','porco','cabrito'],
+        ovos:     ['ovo'],
+        paes:     ['pão','pao','padaria','biscoito'],
+        lacteos:  ['leite','queijo','iogurte','manteiga','lácteo','lacteo'],
+        bebidas:  ['suco','sumo','bebida','café','cafe','chá','cha'],
+      }
+      return (map[activeCategory] || []).some(k => t.includes(k))
+    })
+  }, [products, activeCategory])
 
   /* Country auto-detect */
   useEffect(() => {
@@ -477,82 +522,56 @@ const AppHome = () => {
         )}
       </header>
 
-      {/* ═══ HERO ════════════════════════════════════════════════════════════ */}
+      {/* ═══ CATEGORY FILTERS ════════════════════════════════════════════════ */}
       <section style={{
-        background: T.g900,
-        padding: 'clamp(40px, 6vw, 72px) 20px clamp(44px, 6vw, 72px)',
-        position: 'relative',
-        overflow: 'hidden',
+        background: T.white,
+        borderBottom: `1px solid ${T.rule}`,
+        padding: '14px 0',
       }}>
-        {/* Subtle grid pattern */}
         <div style={{
-          position: 'absolute', inset: 0, opacity: 0.04,
-          backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-          backgroundSize: '48px 48px',
-          pointerEvents: 'none',
-        }}/>
-        {/* Radial glow */}
-        <div style={{
-          position: 'absolute', top: '-30%', right: '-10%',
-          width: 600, height: 600, borderRadius: '50%',
-          background: `radial-gradient(circle, rgba(61,154,72,0.18) 0%, transparent 70%)`,
-          pointerEvents: 'none',
-        }}/>
-
-        <div style={{ maxWidth:1320, margin:'0 auto', position:'relative', zIndex:1 }}>
-          {/* Tag */}
-          <div style={{
-            display:'inline-flex', alignItems:'center', gap:8,
-            padding:'5px 14px 5px 8px', borderRadius:20,
-            background:'rgba(255,255,255,0.06)',
-            border:'1px solid rgba(255,255,255,0.1)',
-            marginBottom:28,
-          }}>
-            <div style={{ padding:'3px 8px', borderRadius:12, background: T.g500, fontSize:9, fontWeight:800, color: T.white, letterSpacing:'0.1em', textTransform:'uppercase' }}>B2B</div>
-            <span style={{ fontSize:11, color:'rgba(255,255,255,0.55)', fontWeight:600, letterSpacing:'0.04em' }}>Mercado Agrícola de Futuros Digital</span>
-          </div>
-
-          <div style={{ display:'flex', flexWrap:'wrap', gap:'clamp(32px, 5vw, 80px)', alignItems:'flex-end' }}>
-            {/* Left: headline */}
-            <div style={{ flex:'1 1 320px', maxWidth: 580 }}>
-              <h1 style={{
-                fontFamily:"'Cormorant Garamond', Georgia, serif",
-                fontSize:'clamp(32px, 5vw, 56px)',
-                fontWeight:700,
-                color: T.white,
-                lineHeight:1.12,
-                margin:'0 0 18px',
-                letterSpacing:'-0.02em',
-              }}>
-                Do campo à fábrica,
-                <br/>
-                <span style={{ color: T.g400 }}>em tempo real.</span>
-              </h1>
-              <p style={{ fontSize:'clamp(13px, 1.4vw, 15px)', color:'rgba(255,255,255,0.50)', lineHeight:1.7, maxWidth:420, margin:'0 0 32px' }}>
-                Agricultores certificados. Compradores industriais. Transacções directas, transparentes e rastreáveis num único lugar.
-              </p>
-              {/* CTA row */}
-              <div style={{ display:'flex', flexWrap:'wrap', gap:10 }}>
-                <button
-                  onClick={() => navigate('/search')}
-                  style={{
-                    padding:'11px 22px', borderRadius:12,
-                    background:`linear-gradient(135deg, ${T.g500}, ${T.g600})`,
-                    border:'none', cursor:'pointer', fontSize:13, fontWeight:700, color: T.white,
-                    display:'flex', alignItems:'center', gap:8,
-                    boxShadow:`0 4px 20px rgba(0, 255, 30, 0.35)`,
-                    transition:'all 0.2s',
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 28px rgba(61,154,72,0.45)` }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 20px rgba(61,154,72,0.35)` }}
-                >
-                  <Search size={14}/> Explorar Mercado
-                </button>
-              </div>
-            </div>
-          </div>
+          maxWidth: 1320, margin: '0 auto', padding: '0 20px',
+          display: 'flex', gap: 10, overflowX: 'auto', scrollbarWidth: 'none',
+        }} className="hide-scrollbar">
+          {CATEGORIES.map(cat => {
+            const active = activeCategory === cat.id
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                title={cat.label}
+                style={{
+                  flexShrink: 0,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  gap: 6, padding: '10px 14px', minWidth: 76,
+                  borderRadius: 14,
+                  border: `1.5px solid ${active ? cat.color : T.rule}`,
+                  background: active ? `${cat.color}10` : T.white,
+                  cursor: 'pointer', transition: 'all 0.18s',
+                  boxShadow: active ? `0 2px 8px ${cat.color}25` : `0 1px 3px ${T.shadow}`,
+                }}
+              >
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: active ? cat.color : `${cat.color}15`,
+                  transition: 'all 0.18s',
+                }}>
+                  <FontAwesomeIcon
+                    icon={cat.icon}
+                    style={{ fontSize: 16, color: active ? T.white : cat.color }}
+                  />
+                </div>
+                <span style={{
+                  fontSize: 11, fontWeight: 700,
+                  color: active ? cat.color : T.mid,
+                  letterSpacing: '0.01em',
+                }}>{cat.label}</span>
+              </button>
+            )
+          })}
         </div>
       </section>
+
 
       {/* ═══ PRODUCT GRID ═══════════════════════════════════════════════════ */}
       <main id="products-grid" style={{ maxWidth:1320, margin:'0 auto', padding:'clamp(24px, 4vw, 48px) 20px clamp(80px, 12vw, 140px)' }}>
@@ -567,7 +586,7 @@ const AppHome = () => {
               Produtos disponíveis
             </h2>
             <p style={{ fontSize:12, color: T.faint, marginTop:4, fontWeight:500 }}>
-              {products.length} listings · ordenados por relevância
+              {filteredProducts.length} listings · ordenados por relevância
             </p>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -589,7 +608,7 @@ const AppHome = () => {
         }}>
           {loading
             ? Array.from({ length: 8 }).map((_, i) => <ProductSkeleton key={i}/>)
-            : products.map((product, i) => (
+            : filteredProducts.map((product, i) => (
               <div
                 key={product.id}
                 style={{ animation:`cardEnter 0.5s cubic-bezier(0.22,1,0.36,1) both`, animationDelay:`${Math.min(i * 0.05, 0.35)}s` }}
@@ -606,7 +625,7 @@ const AppHome = () => {
         </div>
 
         {/* Empty state */}
-        {!loading && products.length === 0 && (
+        {!loading && filteredProducts.length === 0 && (
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'100px 20px', textAlign:'center' }}>
             <div style={{ width:56, height:56, borderRadius:16, background: T.g50, border:`1px solid ${T.gBorder}`, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:20 }}>
               <Package size={24} color={T.g500}/>
