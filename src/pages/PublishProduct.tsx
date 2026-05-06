@@ -28,6 +28,7 @@ const PublishProduct = () => {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     product_type: '',
+    category: '',
     quantity: '',
     harvest_date: '',
     price: '',
