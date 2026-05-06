@@ -362,7 +362,7 @@ const MapView = () => {
       setLoading(true)
       const { data, error } = await supabase.from('products').select('*').limit(100)
       if (error) throw error
-      setProducts(data || [])
+      setProducts((data || []) as any)
     } catch { setMapError('Erro ao carregar produtos') }
     finally { setLoading(false) }
   }, [])
