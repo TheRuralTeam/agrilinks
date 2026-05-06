@@ -991,6 +991,7 @@ export type Database = {
       }
       products: {
         Row: {
+          category: string | null
           contact: string
           created_at: string | null
           description: string | null
@@ -1011,6 +1012,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string | null
           contact: string
           created_at?: string | null
           description?: string | null
@@ -1031,6 +1033,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string | null
           contact?: string
           created_at?: string | null
           description?: string | null
