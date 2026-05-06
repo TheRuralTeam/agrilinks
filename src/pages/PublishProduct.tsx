@@ -205,7 +205,7 @@ const PublishProduct = () => {
   contact: formData.contact,
   description: formData.description,
   logistics_access: formData.logistics_access as 'sim' | 'nao' | 'parcial',
-  status: 'active',
+  status: 'pending_approval',
   photos: uploadedUrls,
   location_lat: location?.lat || null,
   location_lng: location?.lng || null
