@@ -456,7 +456,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   }, [mapModalOpen, product])
 
   const toggleLike = async () => {
-    if (!user) return toast.error('Faça login para dar like')
+    if (!requireAct('dar like')) return
     if (!onProductUpdate) return
     const optimisticUpdate = {
       ...product,
