@@ -233,6 +233,7 @@ const AppHome = () => {
   const filteredProducts = useMemo(() => {
     if (activeCategory === 'all') return products
     return products.filter(p => {
+      if ((p as any).category) return (p as any).category === activeCategory
       const t = (p.product_type || '').toLowerCase()
       const map: Record<string, string[]> = {
         frutas:   ['fruta','manga','banana','abacate','maçã','maca','ananás','ananas','papaia','mamão','mamao','pera','uva','melancia','melao','melão'],
