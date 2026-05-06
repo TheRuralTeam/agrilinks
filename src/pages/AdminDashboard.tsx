@@ -998,14 +998,14 @@ const AdminDashboard = () => {
                         <TableCell>{user?.full_name || "-"}</TableCell>
                         <TableCell>
                           <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
-                            product.status === 'active' ? 'bg-green-100 text-green-700' :
-                            product.status === 'pending_approval' ? 'bg-amber-100 text-amber-700' :
-                            product.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                            (product as any).status === 'active' ? 'bg-green-100 text-green-700' :
+                            (product as any).status === 'pending_approval' ? 'bg-amber-100 text-amber-700' :
+                            (product as any).status === 'rejected' ? 'bg-red-100 text-red-700' :
                             'bg-gray-100 text-gray-700'
                           }`}>
-                            {product.status === 'pending_approval' ? 'Pendente' :
-                             product.status === 'active' ? 'Aprovado' :
-                             product.status === 'rejected' ? 'Rejeitado' : product.status}
+                            {(product as any).status === 'pending_approval' ? 'Pendente' :
+                             (product as any).status === 'active' ? 'Aprovado' :
+                             (product as any).status === 'rejected' ? 'Rejeitado' : (product as any).status}
                           </span>
                         </TableCell>
                         <TableCell className="text-sm text-gray-500">{new Date(product.created_at).toLocaleDateString("pt-BR")}</TableCell>
@@ -1015,14 +1015,14 @@ const AdminDashboard = () => {
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><MoreVertical className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {product.status === 'pending_approval' && (
+                              {(product as any).status === 'pending_approval' && (
                                 <>
                                   <DropdownMenuItem
                                     onClick={async () => {
                                       const { error } = await supabase.rpc('admin_approve_product', { p_product_id: product.id });
-                                      if (error) return toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+                                      if (error) return toast.error(error.message);
                                       setProducts((prev) => prev.map((p: any) => p.id === product.id ? { ...p, status: 'active' } : p));
-                                      toast({ title: 'Produto aprovado', description: 'O produto está agora visível no feed.' });
+                                      toast.success('Produto aprovado e visível no feed');
                                     }}
                                     className="text-green-700"
                                   >
@@ -1031,9 +1031,9 @@ const AdminDashboard = () => {
                                   <DropdownMenuItem
                                     onClick={async () => {
                                       const { error } = await supabase.rpc('admin_reject_product', { p_product_id: product.id });
-                                      if (error) return toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+                                      if (error) return toast.error(error.message);
                                       setProducts((prev) => prev.map((p: any) => p.id === product.id ? { ...p, status: 'rejected' } : p));
-                                      toast({ title: 'Produto rejeitado' });
+                                      toast.success('Produto rejeitado');
                                     }}
                                     className="text-amber-700"
                                   >
