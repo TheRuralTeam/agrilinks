@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
+import { useCanAct } from '@/hooks/useCanAct'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { useNavigate } from 'react-router-dom'
@@ -217,6 +218,7 @@ const AppHome = () => {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { user, isAdmin } = useAuth()
+  const { requireAct } = useCanAct()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
@@ -233,6 +235,7 @@ const AppHome = () => {
   const filteredProducts = useMemo(() => {
     if (activeCategory === 'all') return products
     return products.filter(p => {
+      if ((p as any).category) return (p as any).category === activeCategory
       const t = (p.product_type || '').toLowerCase()
       const map: Record<string, string[]> = {
         frutas:   ['fruta','manga','banana','abacate','maçã','maca','ananás','ananas','papaia','mamão','mamao','pera','uva','melancia','melao','melão'],
@@ -313,7 +316,10 @@ const AppHome = () => {
 
   const handleProductUpdate = (p: Product) => setProducts(prev => prev.map(x => x.id === p.id ? p : x))
   const handleOpenMap = (p: Product) => { setSelectedProduct(p); setMapModalOpen(true) }
-  const handleOpenPreOrder = (p: Product) => { setSelectedProduct(p); setOrderData({ quantity:1, location:'' }); setModalOpen(true) }
+  const handleOpenPreOrder = (p: Product) => {
+    if (!requireAct('fazer uma pré-compra')) return
+    setSelectedProduct(p); setOrderData({ quantity:1, location:'' }); setModalOpen(true)
+  }
 
   const handlePreOrderSubmit = async () => {
     if (!selectedProduct || !user) return toast.error('Erro ao processar pré-compra')
