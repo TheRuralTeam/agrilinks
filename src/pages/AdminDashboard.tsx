@@ -996,6 +996,18 @@ const AdminDashboard = () => {
                         <TableCell>{product.quantity} kg</TableCell>
                         <TableCell>{product.price?.toFixed(2)} Kz</TableCell>
                         <TableCell>{user?.full_name || "-"}</TableCell>
+                        <TableCell>
+                          <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
+                            product.status === 'active' ? 'bg-green-100 text-green-700' :
+                            product.status === 'pending_approval' ? 'bg-amber-100 text-amber-700' :
+                            product.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {product.status === 'pending_approval' ? 'Pendente' :
+                             product.status === 'active' ? 'Aprovado' :
+                             product.status === 'rejected' ? 'Rejeitado' : product.status}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-sm text-gray-500">{new Date(product.created_at).toLocaleDateString("pt-BR")}</TableCell>
                         <TableCell>
                           <DropdownMenu>
@@ -1003,6 +1015,32 @@ const AdminDashboard = () => {
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><MoreVertical className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              {product.status === 'pending_approval' && (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={async () => {
+                                      const { error } = await supabase.rpc('admin_approve_product', { p_product_id: product.id });
+                                      if (error) return toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+                                      setProducts((prev) => prev.map((p: any) => p.id === product.id ? { ...p, status: 'active' } : p));
+                                      toast({ title: 'Produto aprovado', description: 'O produto está agora visível no feed.' });
+                                    }}
+                                    className="text-green-700"
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-2" /> Aprovar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={async () => {
+                                      const { error } = await supabase.rpc('admin_reject_product', { p_product_id: product.id });
+                                      if (error) return toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+                                      setProducts((prev) => prev.map((p: any) => p.id === product.id ? { ...p, status: 'rejected' } : p));
+                                      toast({ title: 'Produto rejeitado' });
+                                    }}
+                                    className="text-amber-700"
+                                  >
+                                    <XCircle className="h-4 w-4 mr-2" /> Rejeitar
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                               <DropdownMenuItem onClick={() => { setTargetUser(product.user_id); setNotificationModalOpen(true); }}>
                                 <Bell className="h-4 w-4 mr-2" /> Notificar
                               </DropdownMenuItem>
