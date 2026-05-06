@@ -291,6 +291,36 @@ const PublishProduct = () => {
       </div>
     </div>
 
+    {/* Categoria do produto (filtro do feed) */}
+    <div className="space-y-2">
+      <Label>Categoria</Label>
+      <p className="text-xs text-muted-foreground">
+        Esta categoria define em que filtro o produto aparecerá no feed.
+      </p>
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+        {PRODUCT_CATEGORIES.map((c) => {
+          const active = formData.category === c.id;
+          return (
+            <button
+              type="button"
+              key={c.id}
+              onClick={() => setFormData((prev) => ({ ...prev, category: c.id }))}
+              className="flex flex-col items-center justify-center gap-1 rounded-xl py-3 px-2 border transition-all"
+              style={{
+                background: active ? c.color : '#fff',
+                color: active ? '#fff' : '#1A1A1A',
+                borderColor: active ? c.color : '#E5EDE6',
+                boxShadow: active ? `0 4px 12px ${c.color}40` : 'none',
+              }}
+            >
+              <FontAwesomeIcon icon={c.icon} style={{ fontSize: 18, color: active ? '#fff' : c.color }} />
+              <span className="text-[11px] font-semibold">{c.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+
     {/* Quantidade e preço */}
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="space-y-2">
