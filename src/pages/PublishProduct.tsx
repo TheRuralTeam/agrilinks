@@ -13,6 +13,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import agrilinkLogo from '@/assets/agrilink-logo.png'
 import orbisLinkLogo from '@/assets/orbislink-logo.png'
+import { PRODUCT_CATEGORIES } from '@/lib/productCategories'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
 import mapboxgl from 'mapbox-gl';
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
