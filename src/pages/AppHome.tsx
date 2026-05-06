@@ -217,6 +217,7 @@ const AppHome = () => {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { user, isAdmin } = useAuth()
+  const { requireAct } = useCanAct()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
