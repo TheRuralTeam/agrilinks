@@ -415,6 +415,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   product, onProductUpdate, onOpenMap, onOpenPreOrder
 }) => {
   const { user } = useAuth()
+  const { requireAct } = useCanAct()
   const navigate = useNavigate()
   const [commentVisible, setCommentVisible] = useState(false)
   const [comment, setComment] = useState('')
