@@ -503,7 +503,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   }
 
   const toggleCommentLike = async (commentId: string, isLiked: boolean) => {
-    if (!user) return toast.error('Faça login para reagir')
+    if (!requireAct('reagir')) return
     if (!onProductUpdate) return
     try {
       if (isLiked) {
