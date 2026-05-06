@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
+import { useCanAct } from '@/hooks/useCanAct'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { useNavigate } from 'react-router-dom'
