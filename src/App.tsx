@@ -99,6 +99,7 @@ const AppRoutes = () => {
       <Route path="/confirmar-email" element={<EmailConfirmation />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/termos-publicidade" element={<TermsOfService />} />
+      <Route path="/produto/:id/localizacao" element={<PublicProductLocation />} />
 
       {/* App Routes */}
       <Route
