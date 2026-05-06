@@ -165,6 +165,11 @@ const PublishProduct = () => {
       return;
     }
 
+    if (!formData.category) {
+      toast({ title: "Categoria obrigatória", description: "Selecione uma categoria para o produto", variant: "destructive" });
+      return;
+    }
+
     const harvestDate = new Date(formData.harvest_date);
     const minDate = new Date();
     minDate.setDate(minDate.getDate() + 30);
@@ -190,6 +195,7 @@ const PublishProduct = () => {
      const { data: inserted, error } = await supabase.from('products').insert({
   user_id: user.id,
   product_type: formData.product_type,
+  category: formData.category,
   quantity: parseFloat(formData.quantity),
   harvest_date: formData.harvest_date,
   price: parseFloat(formData.price),
