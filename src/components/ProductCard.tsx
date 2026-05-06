@@ -522,7 +522,8 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   }
 
   const addReply = async (commentId: string) => {
-    if (!user || !replyText.trim()) return toast.error('Escreva uma resposta')
+    if (!replyText.trim()) return toast.error('Escreva uma resposta')
+    if (!requireAct('responder')) return
     if (!onProductUpdate) return
     try {
       const { data: newReply } = await supabase
