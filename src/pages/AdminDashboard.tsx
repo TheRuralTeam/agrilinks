@@ -976,6 +976,7 @@ const AdminDashboard = () => {
                     <TableHead>Qtd</TableHead>
                     <TableHead>Preço</TableHead>
                     <TableHead>Usuário</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
