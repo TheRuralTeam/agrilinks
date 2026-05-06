@@ -314,7 +314,10 @@ const AppHome = () => {
 
   const handleProductUpdate = (p: Product) => setProducts(prev => prev.map(x => x.id === p.id ? p : x))
   const handleOpenMap = (p: Product) => { setSelectedProduct(p); setMapModalOpen(true) }
-  const handleOpenPreOrder = (p: Product) => { setSelectedProduct(p); setOrderData({ quantity:1, location:'' }); setModalOpen(true) }
+  const handleOpenPreOrder = (p: Product) => {
+    if (!requireAct('fazer uma pré-compra')) return
+    setSelectedProduct(p); setOrderData({ quantity:1, location:'' }); setModalOpen(true)
+  }
 
   const handlePreOrderSubmit = async () => {
     if (!selectedProduct || !user) return toast.error('Erro ao processar pré-compra')
