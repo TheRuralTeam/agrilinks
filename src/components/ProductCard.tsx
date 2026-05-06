@@ -477,7 +477,8 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   }
 
   const addComment = async () => {
-    if (!user || !comment.trim()) return toast.error('Faça login ou escreva um comentário')
+    if (!comment.trim()) return toast.error('Escreva um comentário')
+    if (!requireAct('comentar')) return
     if (!onProductUpdate) return
     try {
       const { data: newComment } = await supabase
