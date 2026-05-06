@@ -221,7 +221,7 @@ const PublishProduct = () => {
         }).catch((e) => console.error('verify error', e));
       }
 
-      toast({ title: "Produto publicado!", description: "Seu produto foi publicado com sucesso e já está visível para compradores." });
+      toast({ title: "Produto enviado para aprovação", description: "O seu produto foi recebido e ficará visível no feed após aprovação dos administradores." });
       navigate('/perfil');
     } catch (error: any) {
       console.error('Erro ao publicar produto:', error);
