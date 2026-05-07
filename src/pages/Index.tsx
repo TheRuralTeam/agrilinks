@@ -5,21 +5,19 @@ import { useNavigate } from 'react-router-dom'
 // IMPORTAÇÃO DAS FOTOS DA EQUIPE E LOGO (com fallbacks)
 // ═══════════════════════════════════════════════════════════════
 // Substitua pelos seus paths reais ou remova as importações e use URLs
-// Em vez de @/assets/, use ./assets/ ou ../assets/
-import orbisLinkLogo from '../assets/orbislink-logo.png';
-import fotoFeliciano from '../assets/FELICIANO.jpeg';
-import fotoMoises from '../assets/MOISES.jpeg';
-import fotoLizeth from '../assets/LIZETH.jpeg';
-import fotoClaudio from '../assets/CLAUDIO.jpeg';import comunidadeImg from '../assets/Comunidade.png';
-import comunidadeImg2 from '../assets/COMUNIDADE2.jpeg';
+import orbisLinkLogo from '@/assets/orbislink-logo.png';
+import fotoFeliciano from '@/assets/FELICIANO.jpeg';
+import fotoMoises from '@/assets/MOISES.jpeg';
+import fotoLizeth from '@/assets/LIZETH.jpeg';
+import fotoClaudio from '@/assets/CLAUDIO.jpeg';
+const comunidadeImg = '';
+const comunidadeImg2 = '';
 
 /* ─── Design Tokens ─ Luxo Editorial Minimalista ───────────────────────────── */
 const T = {
   ink:     '#0A0A0A',
   ink80:   '#1A1A1A',
   ink60:   '#2C2C2C',
-
-  
   mid:     '#555555',
   muted:   '#888888',
   faint:   '#BBBBBB',
@@ -1491,17 +1489,17 @@ const AgriLinkLanding = () => {
           </div>
           <div className="culture-grid">
             <div className="culture-card">
-              <div className="culture-icon"></div>
+              <div className="culture-icon">🏠</div>
               <div className="culture-title">Trabalho Remoto</div>
               <div className="culture-desc">Nossa equipa trabalha de qualquer lugar, desde que os resultados sejam entregues com excelência e dentro dos prazos.</div>
             </div>
             <div className="culture-card">
-              <div className="culture-icon"></div>
+              <div className="culture-icon">🎯</div>
               <div className="culture-title">Foco em Resultados</div>
               <div className="culture-desc">Medimos performance por resultados concretos, não por horas trabalhadas. Autonomia com responsabilidade.</div>
             </div>
             <div className="culture-card">
-              <div className="culture-icon"></div>
+              <div className="culture-icon">🤝</div>
               <div className="culture-title">Colaboração</div>
               <div className="culture-desc">Times multidisciplinares trabalhando juntos para transformar o agronegócio africano com tecnologia.</div>
             </div>

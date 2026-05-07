@@ -950,8 +950,48 @@ export type Database = {
           },
         ]
       }
+      product_verifications: {
+        Row: {
+          ai_analysis: Json | null
+          buyer_id: string
+          created_at: string
+          ficha_id: string
+          id: string
+          issues: string[] | null
+          match_score: number
+          producer_id: string
+          product_id: string
+          status: string
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          buyer_id: string
+          created_at?: string
+          ficha_id: string
+          id?: string
+          issues?: string[] | null
+          match_score?: number
+          producer_id: string
+          product_id: string
+          status?: string
+        }
+        Update: {
+          ai_analysis?: Json | null
+          buyer_id?: string
+          created_at?: string
+          ficha_id?: string
+          id?: string
+          issues?: string[] | null
+          match_score?: number
+          producer_id?: string
+          product_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
+          category: string | null
           contact: string
           created_at: string | null
           description: string | null
@@ -972,6 +1012,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string | null
           contact: string
           created_at?: string | null
           description?: string | null
@@ -992,6 +1033,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string | null
           contact?: string
           created_at?: string | null
           description?: string | null
@@ -1290,13 +1332,13 @@ export type Database = {
           email_verified: boolean | null
           full_name: string
           id: string
-          identity_document: string
+          identity_document: string | null
           is_root_admin: boolean | null
           is_super_root: boolean | null
-          municipality_id: string
+          municipality_id: string | null
           phone: string | null
           phone_verified: boolean | null
-          province_id: string
+          province_id: string | null
           referred_by_agent_id: string | null
           updated_at: string | null
           user_type: Database["public"]["Enums"]["user_type_enum"] | null
@@ -1312,13 +1354,13 @@ export type Database = {
           email_verified?: boolean | null
           full_name: string
           id: string
-          identity_document: string
+          identity_document?: string | null
           is_root_admin?: boolean | null
           is_super_root?: boolean | null
-          municipality_id: string
+          municipality_id?: string | null
           phone?: string | null
           phone_verified?: boolean | null
-          province_id: string
+          province_id?: string | null
           referred_by_agent_id?: string | null
           updated_at?: string | null
           user_type?: Database["public"]["Enums"]["user_type_enum"] | null
@@ -1334,13 +1376,13 @@ export type Database = {
           email_verified?: boolean | null
           full_name?: string
           id?: string
-          identity_document?: string
+          identity_document?: string | null
           is_root_admin?: boolean | null
           is_super_root?: boolean | null
-          municipality_id?: string
+          municipality_id?: string | null
           phone?: string | null
           phone_verified?: boolean | null
-          province_id?: string
+          province_id?: string | null
           referred_by_agent_id?: string | null
           updated_at?: string | null
           user_type?: Database["public"]["Enums"]["user_type_enum"] | null
@@ -1498,6 +1540,10 @@ export type Database = {
       }
     }
     Functions: {
+      admin_approve_product: {
+        Args: { p_product_id: string }
+        Returns: boolean
+      }
       admin_bulk_delete_products: {
         Args: { p_product_ids: string[] }
         Returns: number
@@ -1508,6 +1554,10 @@ export type Database = {
       }
       admin_delete_product: { Args: { p_product_id: string }; Returns: boolean }
       admin_delete_user: { Args: { p_user_id: string }; Returns: boolean }
+      admin_reject_product: {
+        Args: { p_product_id: string; p_reason?: string }
+        Returns: boolean
+      }
       block_funds: {
         Args: {
           p_amount: number

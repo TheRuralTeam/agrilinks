@@ -33,6 +33,12 @@ const EmailConfirmation = () => {
   };
 
   useEffect(() => {
+    // Se n├úo h├í token na URL, mostrar tela de "aguardando confirma├º├úo"
+    if (!hasToken()) {
+      setStatus("error");
+      setMessage("Seu email ainda n├úo foi confirmado. Verifique sua caixa de entrada (e a pasta de spam) e clique no link de confirma├º├úo que enviamos.");
+      return;
+    }
     const confirmEmail = async () => {
       try {
         const queryParams = new URLSearchParams(window.location.search);
@@ -51,13 +57,13 @@ const EmailConfirmation = () => {
           setStatus("pending");
           setMessage(
             pendingEmail
-              ? `Enviámos um link de confirmação para ${pendingEmail}. Abra o email e clique no link para ativar a sua conta.`
-              : "Enviámos um link de confirmação para o seu email. Abra o email e clique no link para ativar a sua conta."
+              ? `Envi├ímos um link de confirma├º├úo para ${pendingEmail}. Abra o email e clique no link para ativar a sua conta.`
+              : "Envi├ímos um link de confirma├º├úo para o seu email. Abra o email e clique no link para ativar a sua conta."
           );
           return;
         }
 
-        // Verificar se há tokens na URL (hash ou query params)
+        // Verificar se h├í tokens na URL (hash ou query params)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         
         const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
@@ -77,9 +83,9 @@ const EmailConfirmation = () => {
           });
 
           if (error) {
-            console.error("Erro ao definir sessão:", error);
+            console.error("Erro ao definir sess├úo:", error);
             setStatus("error");
-            setMessage("Erro na confirmação. O link pode ter expirado ou já foi usado.");
+            setMessage("Erro na confirma├º├úo. O link pode ter expirado ou j├í foi usado.");
             return;
           }
 
@@ -90,38 +96,38 @@ const EmailConfirmation = () => {
             });
             
             setStatus("success");
-            setMessage("E-mail confirmado com sucesso! Você será redirecionado automaticamente.");
+            setMessage("E-mail confirmado com sucesso! Voc├¬ ser├í redirecionado automaticamente.");
             setTimeout(() => navigate("/app"), 2000);
             return;
           }
         }
 
-        // Tentar o método PKCE (formato mais novo)
+        // Tentar o m├®todo PKCE (formato mais novo)
         const { data, error } = await supabase.auth.exchangeCodeForSession(window.location.href);
 
         if (error) {
           console.error("Erro no exchangeCodeForSession:", error);
           
-          // Verificar se já existe uma sessão ativa
+          // Verificar se j├í existe uma sess├úo ativa
           const { data: sessionData } = await supabase.auth.getSession();
           if (sessionData?.session?.user) {
-            // Usuário já está logado, atualizar email_verified
+            // Usu├írio j├í est├í logado, atualizar email_verified
             await supabase.rpc('sync_user_email_verified', { 
               p_user_id: sessionData.session.user.id 
             });
             
             setStatus("success");
-            setMessage("E-mail confirmado! Você será redirecionado.");
+            setMessage("E-mail confirmado! Voc├¬ ser├í redirecionado.");
             setTimeout(() => navigate("/app"), 2000);
             return;
           }
           
           setStatus("error");
-          setMessage("Erro na confirmação. O link pode ter expirado ou já foi usado. Tente fazer login normalmente.");
+          setMessage("Erro na confirma├º├úo. O link pode ter expirado ou j├í foi usado. Tente fazer login normalmente.");
           return;
         }
 
-        // Se criou sessão via PKCE, está confirmado!
+        // Se criou sess├úo via PKCE, est├í confirmado!
         if (data?.session?.user) {
           // Atualizar email_verified na tabela public.users
           await supabase.rpc('sync_user_email_verified', { 
@@ -129,15 +135,15 @@ const EmailConfirmation = () => {
           });
           
           setStatus("success");
-          setMessage("E-mail confirmado com sucesso! Você será redirecionado automaticamente.");
+          setMessage("E-mail confirmado com sucesso! Voc├¬ ser├í redirecionado automaticamente.");
           setTimeout(() => navigate("/app"), 2000);
           return;
         }
 
-        // Caso inesperado: sem erro e sem usuário
+        // Caso inesperado: sem erro e sem usu├írio
         setStatus("error");
         setMessage(
-          "Não foi possível confirmar sua conta. Tente fazer login manualmente."
+          "N├úo foi poss├¡vel confirmar sua conta. Tente fazer login manualmente."
         );
       } catch (err) {
         console.error("Erro inesperado:", err);
@@ -159,7 +165,7 @@ const EmailConfirmation = () => {
 
         <Card className="border-0 shadow-xl rounded-2xl">
           <CardHeader>
-            <CardTitle className="text-center">Confirmação de E-mail</CardTitle>
+            <CardTitle className="text-center">Confirma├º├úo de E-mail</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex flex-col items-center gap-4">
@@ -219,14 +225,22 @@ const EmailConfirmation = () => {
                   <XCircle className="h-16 w-16 text-destructive" />
                   <div className="text-center space-y-4">
                     <p className="text-lg font-semibold text-destructive">
-                      Erro na confirmação
+                      Confirma├º├úo pendente
                     </p>
                     <p className="text-muted-foreground">{message}</p>
                     <Button
-                      onClick={() => navigate("/login")}
+                      onClick={handleResend}
+                      disabled={resending}
                       className="w-full"
                     >
-                      Ir para Login
+                      {resending ? "Reenviando..." : "Reenviar email de confirma├º├úo"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={async () => { await supabase.auth.signOut(); navigate("/login"); }}
+                      className="w-full"
+                    >
+                      Voltar para Login
                     </Button>
                   </div>
                 </>
