@@ -35,7 +35,7 @@ import DeliveryTracking from "@/components/admin/DeliveryTracking";
 import WorkSessionTimer from "@/components/admin/WorkSessionTimer";
 import { useWorkSession } from "@/hooks/useWorkSession";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ÔöÇÔöÇÔöÇ Types ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 type AdminPermission =
   | "manage_users" | "manage_products" | "manage_orders"
@@ -85,7 +85,7 @@ interface Referral {
   agent_code: string; referred_user_name: string;
 }
 
-// ─── Design Tokens ────────────────────────────────────────────────────────────
+// ÔöÇÔöÇÔöÇ Design Tokens ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 const AGRO_COLORS = {
   primary: "#1a6b3c",
@@ -105,8 +105,8 @@ const AGRO_COLORS = {
 const CHART_COLORS = ["#1a6b3c", "#e8a012", "#c4501a", "#1e6b9e", "#5a8a6a", "#7a5c3a"];
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
-  completed:   { label: "Concluído",   cls: "status-success" },
-  concluida:   { label: "Concluída",   cls: "status-success" },
+  completed:   { label: "Conclu├¡do",   cls: "status-success" },
+  concluida:   { label: "Conclu├¡da",   cls: "status-success" },
   pending:     { label: "Pendente",    cls: "status-warning" },
   aguardando:  { label: "Aguardando",  cls: "status-warning" },
   in_progress: { label: "Em Progresso",cls: "status-info" },
@@ -116,7 +116,7 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   blocked:     { label: "Bloqueado",   cls: "status-neutral" },
 };
 
-// ─── CSS Injection ────────────────────────────────────────────────────────────
+// ÔöÇÔöÇÔöÇ CSS Injection ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@600;700&display=swap');
@@ -149,7 +149,7 @@ const CSS = `
     color: #1c1a16;
   }
 
-  /* ── Header ── */
+  /* ÔöÇÔöÇ Header ÔöÇÔöÇ */
   .adm-header {
     position: sticky;
     top: 0;
@@ -231,7 +231,7 @@ const CSS = `
     padding: 0 3px;
   }
 
-  /* ── Nav Tabs ── */
+  /* ÔöÇÔöÇ Nav Tabs ÔöÇÔöÇ */
   .adm-nav {
     background: #0a3a1e;
     border-bottom: 1px solid rgba(255,255,255,.06);
@@ -281,7 +281,7 @@ const CSS = `
     padding: 0 3px;
   }
 
-  /* ── Main Layout ── */
+  /* ÔöÇÔöÇ Main Layout ÔöÇÔöÇ */
   .adm-main {
     max-width: 1400px;
     margin: 0 auto;
@@ -291,7 +291,7 @@ const CSS = `
     gap: 20px;
   }
 
-  /* ── Page Header ── */
+  /* ÔöÇÔöÇ Page Header ÔöÇÔöÇ */
   .adm-page-header {
     display: flex;
     align-items: center;
@@ -316,7 +316,7 @@ const CSS = `
     margin-top: 2px;
   }
 
-  /* ── Root Admin Banner ── */
+  /* ÔöÇÔöÇ Root Admin Banner ÔöÇÔöÇ */
   .adm-root-banner {
     background: linear-gradient(135deg, #0f4526 0%, #1a6b3c 100%);
     border-radius: var(--r-lg);
@@ -338,7 +338,7 @@ const CSS = `
   .adm-root-banner-label { font-size: 11px; color: rgba(255,255,255,.6); text-transform: uppercase; letter-spacing: 0.08em; }
   .adm-root-banner-value { font-size: 14px; font-weight: 600; color: #fff; margin-top: 1px; }
 
-  /* ── Metric Cards ── */
+  /* ÔöÇÔöÇ Metric Cards ÔöÇÔöÇ */
   .adm-metrics-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -410,7 +410,7 @@ const CSS = `
     opacity: .07;
   }
 
-  /* ── Cards ── */
+  /* ÔöÇÔöÇ Cards ÔöÇÔöÇ */
   .adm-card {
     background: #fff;
     border-radius: var(--r-lg);
@@ -450,7 +450,7 @@ const CSS = `
   .adm-card-body { padding: 20px; }
   .adm-card-body.no-pad { padding: 0; }
 
-  /* ── Tables ── */
+  /* ÔöÇÔöÇ Tables ÔöÇÔöÇ */
   .adm-table-wrap { overflow-x: auto; }
 
   .adm-table {
@@ -505,7 +505,7 @@ const CSS = `
     color: #8a8178;
   }
 
-  /* ── Status Badges ── */
+  /* ÔöÇÔöÇ Status Badges ÔöÇÔöÇ */
   .adm-status {
     display: inline-flex;
     align-items: center;
@@ -540,7 +540,7 @@ const CSS = `
   .status-neutral { background: #f0ede6; color: #6b6458; }
   .status-neutral::before { background: #9b9285; }
 
-  /* ── Type Badges ── */
+  /* ÔöÇÔöÇ Type Badges ÔöÇÔöÇ */
   .adm-badge {
     display: inline-flex;
     align-items: center;
@@ -572,7 +572,7 @@ const CSS = `
     color: #1e6b9e;
   }
 
-  /* ── Action Buttons ── */
+  /* ÔöÇÔöÇ Action Buttons ÔöÇÔöÇ */
   .adm-btn {
     display: inline-flex;
     align-items: center;
@@ -628,7 +628,7 @@ const CSS = `
   .adm-btn-icon.success:hover { background: #e8f5ee; color: #1a6b3c; border-color: #c0dfc8; }
   .adm-btn-icon.warning:hover { background: #fef4e0; color: #b37d0a; border-color: #f5d890; }
 
-  /* ── Search Bar ── */
+  /* ÔöÇÔöÇ Search Bar ÔöÇÔöÇ */
   .adm-search {
     position: relative;
     display: flex;
@@ -662,7 +662,7 @@ const CSS = `
     background: #fff;
   }
 
-  /* ── Chart Cards Grid ── */
+  /* ÔöÇÔöÇ Chart Cards Grid ÔöÇÔöÇ */
   .adm-charts-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -673,7 +673,7 @@ const CSS = `
 
   .adm-chart-full { grid-column: 1 / -1; }
 
-  /* ── Leaderboard ── */
+  /* ÔöÇÔöÇ Leaderboard ÔöÇÔöÇ */
   .adm-leaderboard {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -720,7 +720,7 @@ const CSS = `
   .adm-rank-badge.r2 { background: #b0b0b0; color: #fff; }
   .adm-rank-badge.r3 { background: #cd7c4a; color: #fff; }
 
-  /* ── Notification Items ── */
+  /* ÔöÇÔöÇ Notification Items ÔöÇÔöÇ */
   .adm-notif-item {
     padding: 14px 16px;
     border-radius: var(--r-md);
@@ -751,7 +751,7 @@ const CSS = `
   .adm-notif-msg { font-size: 12px; color: #6b6458; margin-top: 2px; }
   .adm-notif-time { font-size: 11px; color: #9b9285; margin-top: 4px; }
 
-  /* ── Filter Tabs ── */
+  /* ÔöÇÔöÇ Filter Tabs ÔöÇÔöÇ */
   .adm-filter-tabs {
     display: inline-flex;
     background: #f0ede6;
@@ -780,7 +780,7 @@ const CSS = `
     box-shadow: 0 1px 3px rgba(0,0,0,.1);
   }
 
-  /* ── Modal ── */
+  /* ÔöÇÔöÇ Modal ÔöÇÔöÇ */
   .adm-modal-header {
     display: flex;
     align-items: center;
@@ -831,7 +831,7 @@ const CSS = `
     background: #fff;
   }
 
-  /* ── Empty States ── */
+  /* ÔöÇÔöÇ Empty States ÔöÇÔöÇ */
   .adm-empty {
     display: flex;
     flex-direction: column;
@@ -854,7 +854,7 @@ const CSS = `
   .adm-empty-title { font-size: 14px; font-weight: 600; color: #6b6458; }
   .adm-empty-sub { font-size: 12px; }
 
-  /* ── Loading ── */
+  /* ÔöÇÔöÇ Loading ÔöÇÔöÇ */
   .adm-loading {
     min-height: 100vh;
     display: flex; flex-direction: column;
@@ -881,14 +881,14 @@ const CSS = `
     font-weight: 500;
   }
 
-  /* ── Separator ── */
+  /* ÔöÇÔöÇ Separator ÔöÇÔöÇ */
   .adm-sep {
     height: 1px;
     background: #f0ede6;
     margin: 4px 0;
   }
 
-  /* ── Sourcing detail cards ── */
+  /* ÔöÇÔöÇ Sourcing detail cards ÔöÇÔöÇ */
   .adm-detail-card {
     padding: 16px;
     background: #faf9f5;
@@ -906,7 +906,7 @@ const CSS = `
     margin-top: 8px;
   }
 
-  /* ── AI Analysis ── */
+  /* ÔöÇÔöÇ AI Analysis ÔöÇÔöÇ */
   .adm-ai-block {
     padding: 20px 24px;
     background: linear-gradient(135deg, #f0f5ee, #faf9f5);
@@ -918,7 +918,7 @@ const CSS = `
     white-space: pre-wrap;
   }
 
-  /* ── Avatar ── */
+  /* ÔöÇÔöÇ Avatar ÔöÇÔöÇ */
   .adm-avatar {
     border-radius: 50%;
     background: var(--agro-primary);
@@ -929,7 +929,7 @@ const CSS = `
     font-size: 12px;
   }
 
-  /* ── Referral stat cards ── */
+  /* ÔöÇÔöÇ Referral stat cards ÔöÇÔöÇ */
   .adm-stat-card {
     border-radius: var(--r-lg);
     padding: 16px 18px;
@@ -950,10 +950,10 @@ const CSS = `
   .adm-stat-label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; opacity: .7; }
   .adm-stat-value { font-size: 28px; font-weight: 700; line-height: 1; margin: 6px 0 0; font-variant-numeric: tabular-nums; }
 
-  /* ── Checkbox override ── */
+  /* ÔöÇÔöÇ Checkbox override ÔöÇÔöÇ */
   [data-state="checked"] { background: var(--agro-primary) !important; border-color: var(--agro-primary) !important; }
 
-  /* ── Responsive ── */
+  /* ÔöÇÔöÇ Responsive ÔöÇÔöÇ */
   @media (max-width: 640px) {
     .adm-main { padding: 14px 12px; gap: 14px; }
     .adm-metric-value { font-size: 24px; }
@@ -961,7 +961,7 @@ const CSS = `
   }
 `;
 
-// ─── Style Injector ───────────────────────────────────────────────────────────
+// ÔöÇÔöÇÔöÇ Style Injector ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 const StyleInjector = () => {
   useEffect(() => {
@@ -976,7 +976,7 @@ const StyleInjector = () => {
   return null;
 };
 
-// ─── Metric Card ─────────────────────────────────────────────────────────────
+// ÔöÇÔöÇÔöÇ Metric Card ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 const MetricCard = ({
   title, value, icon, trend, color, suffix,
@@ -996,20 +996,20 @@ const MetricCard = ({
     {trend !== undefined && (
       <div className={`adm-metric-trend ${trend >= 0 ? "up" : "down"}`}>
         {trend >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-        {Math.abs(trend)}% este mês
+        {Math.abs(trend)}% este m├¬s
       </div>
     )}
   </div>
 );
 
-// ─── Status Badge ─────────────────────────────────────────────────────────────
+// ÔöÇÔöÇÔöÇ Status Badge ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 const StatusBadge = ({ status }: { status: string }) => {
   const s = STATUS_MAP[status] || { label: status, cls: "status-neutral" };
   return <span className={`adm-status ${s.cls}`}>{s.label}</span>;
 };
 
-// ─── Custom Tooltip ───────────────────────────────────────────────────────────
+// ÔöÇÔöÇÔöÇ Custom Tooltip ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 const AgroTooltip = ({ active, payload, label, unit = "" }: any) => {
   if (!active || !payload?.length) return null;
@@ -1028,7 +1028,7 @@ const AgroTooltip = ({ active, payload, label, unit = "" }: any) => {
   );
 };
 
-// ─── Table Toolbar ────────────────────────────────────────────────────────────
+// ÔöÇÔöÇÔöÇ Table Toolbar ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 const TableToolbar = ({
   title, count, icon, search, setSearch, bulkCount, onBulkDelete, extra,
@@ -1054,7 +1054,7 @@ const TableToolbar = ({
       <div className="adm-search">
         <Search size={14} className="adm-search-icon" />
         <input
-          placeholder="Buscar…"
+          placeholder="BuscarÔÇª"
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
@@ -1063,7 +1063,7 @@ const TableToolbar = ({
   </div>
 );
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ÔöÇÔöÇÔöÇ Main Component ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -1099,7 +1099,7 @@ const AdminDashboard = () => {
   const { elapsedTimeFormatted, isSessionActive, stats: workSessionStats, endSession } =
     useWorkSession(currentUserId, isSupportAgent);
 
-  // ── Auth / Permission check ──────────────────────────────────────────────────
+  // ÔöÇÔöÇ Auth / Permission check ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -1135,7 +1135,7 @@ const AdminDashboard = () => {
     [isRootAdmin, userPermissions],
   );
 
-  // ── Data fetch ───────────────────────────────────────────────────────────────
+  // ÔöÇÔöÇ Data fetch ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
   useEffect(() => {
     fetchAllData();
     const iv = setInterval(fetchAllData, 30000);
@@ -1181,10 +1181,10 @@ const AdminDashboard = () => {
         const um = new Map(usersR.data.map(u => [u.id, u]));
         setAllReferrals(refR.data.map((r: any) => ({
           ...r,
-          agent_name: um.get(r.agent_id)?.full_name || "—",
+          agent_name: um.get(r.agent_id)?.full_name || "ÔÇö",
           agent_avatar: um.get(r.agent_id) ? null : null,
           agent_code: (um.get(r.agent_id) as any)?.agent_code || "N/A",
-          referred_user_name: um.get(r.referred_user_id)?.full_name || "—",
+          referred_user_name: um.get(r.referred_user_id)?.full_name || "ÔÇö",
         })));
       }
     } catch (err) {
@@ -1194,7 +1194,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // ── Actions ──────────────────────────────────────────────────────────────────
+  // ÔöÇÔöÇ Actions ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
   const sendNotification = useCallback(async () => {
     if (!targetUser || !notifMessage.trim() || !notifTitle.trim()) {
       toast.error("Preencha todos os campos!"); return;
@@ -1206,29 +1206,29 @@ const AdminDashboard = () => {
       });
       if (error) throw error;
       setNotifModalOpen(false); setNotifMessage(""); setNotifTitle(""); setTargetUser(null);
-      toast.success("Notificação enviada com sucesso!");
-    } catch { toast.error("Erro ao enviar notificação"); }
+      toast.success("Notifica├º├úo enviada com sucesso!");
+    } catch { toast.error("Erro ao enviar notifica├º├úo"); }
   }, [targetUser, notifMessage, notifTitle, notifType]);
 
   const handleDelete = useCallback(async (table: string, id: string, setter: Function) => {
-    if (!confirm("Confirmar exclusão? Esta ação é irreversível.")) return;
+    if (!confirm("Confirmar exclus├úo? Esta a├º├úo ├® irrevers├¡vel.")) return;
     try {
       if (table === "users") {
         const { error } = await supabase.rpc("admin_delete_user", { p_user_id: id });
         if (error) { toast.error("Erro: " + error.message); return; }
         setter((p: any[]) => p.filter(i => i.id !== id));
         setProducts(p => p.filter(x => x.user_id !== id));
-        toast.success("Usuário excluído com sucesso");
+        toast.success("Usu├írio exclu├¡do com sucesso");
       } else if (table === "products") {
         const { error } = await supabase.rpc("admin_delete_product", { p_product_id: id });
         if (error) { toast.error("Erro: " + error.message); return; }
         setter((p: any[]) => p.filter(i => i.id !== id));
-        toast.success("Produto excluído com sucesso");
+        toast.success("Produto exclu├¡do com sucesso");
       } else {
         const { error } = await supabase.from(table as any).delete().eq("id", id);
         if (error) { toast.error("Erro: " + error.message); return; }
         setter((p: any[]) => p.filter(i => i.id !== id));
-        toast.success("Item excluído");
+        toast.success("Item exclu├¡do");
       }
     } catch { toast.error("Erro ao excluir"); }
   }, []);
@@ -1237,7 +1237,7 @@ const AdminDashboard = () => {
     table: string, ids: Set<string>, setter: Function, clear: () => void,
   ) => {
     if (!ids.size) { toast.error("Nenhum item selecionado"); return; }
-    if (!confirm(`Excluir ${ids.size} item(s)? Esta ação é irreversível.`)) return;
+    if (!confirm(`Excluir ${ids.size} item(s)? Esta a├º├úo ├® irrevers├¡vel.`)) return;
     const arr = Array.from(ids);
     try {
       if (table === "users") {
@@ -1245,17 +1245,17 @@ const AdminDashboard = () => {
         if (error) { toast.error(error.message); return; }
         setter((p: any[]) => p.filter(i => !ids.has(i.id)));
         setProducts(p => p.filter(x => !ids.has(x.user_id)));
-        clear(); toast.success(`${data || arr.length} usuário(s) excluído(s)`);
+        clear(); toast.success(`${data || arr.length} usu├írio(s) exclu├¡do(s)`);
       } else if (table === "products") {
         const { data, error } = await supabase.rpc("admin_bulk_delete_products", { p_product_ids: arr });
         if (error) { toast.error(error.message); return; }
         setter((p: any[]) => p.filter(i => !ids.has(i.id)));
-        clear(); toast.success(`${data || arr.length} produto(s) excluído(s)`);
+        clear(); toast.success(`${data || arr.length} produto(s) exclu├¡do(s)`);
       } else {
         const { error } = await supabase.from(table as any).delete().in("id", arr);
         if (error) { toast.error(error.message); return; }
         setter((p: any[]) => p.filter(i => !ids.has(i.id)));
-        clear(); toast.success(`${arr.length} item(s) excluído(s)`);
+        clear(); toast.success(`${arr.length} item(s) exclu├¡do(s)`);
       }
     } catch { toast.error("Erro ao excluir"); }
   }, []);
@@ -1298,8 +1298,8 @@ const AdminDashboard = () => {
         .eq("id", userId);
       if (error) throw error;
       setUsers(p => p.map(u => u.id === userId ? { ...u, verified: !current } : u));
-      toast.success(!current ? "Usuário verificado!" : "Verificação removida");
-    } catch { toast.error("Erro ao atualizar verificação"); }
+      toast.success(!current ? "Usu├írio verificado!" : "Verifica├º├úo removida");
+    } catch { toast.error("Erro ao atualizar verifica├º├úo"); }
   }, []);
 
   const generateAnalysis = useCallback(async () => {
@@ -1312,12 +1312,12 @@ const AdminDashboard = () => {
       });
       if (error) throw error;
       setAiAnalysis(data.analysis);
-      toast.success("Análise gerada!");
-    } catch { toast.error("Erro ao gerar análise"); }
+      toast.success("An├ílise gerada!");
+    } catch { toast.error("Erro ao gerar an├ílise"); }
     finally { setAnalyzingMarket(false); }
   }, [products]);
 
-  // ── Memoized data ─────────────────────────────────────────────────────────────
+  // ÔöÇÔöÇ Memoized data ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
   const chartRevenue = useMemo(() => {
     const m: Record<string, number> = {};
     transactions.forEach(t => {
@@ -1361,30 +1361,30 @@ const AdminDashboard = () => {
       f.produto.toLowerCase().includes(searchTerm.toLowerCase())),
     [fichas, searchTerm]);
 
-  // ── Nav tabs config ───────────────────────────────────────────────────────────
+  // ÔöÇÔöÇ Nav tabs config ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
   const tabs: Array<{ id: TabType; label: string; icon: React.ReactNode; badge?: number; guard?: boolean }> = [
     { id: "dashboard",     label: "Dashboard",    icon: <BarChart3 size={13} /> },
     { id: "orders",        label: "Pedidos",      icon: <ShoppingCart size={13} /> },
     { id: "products",      label: "Produtos",     icon: <Wheat size={13} />,     guard: !hasPermission("manage_products") },
-    { id: "users",         label: "Usuários",     icon: <Users size={13} />,     guard: !hasPermission("manage_users") },
-    { id: "transactions",  label: "Transações",   icon: <DollarSign size={13} /> },
-    { id: "notifications", label: "Notificações", icon: <Bell size={13} />,      badge: unread },
+    { id: "users",         label: "Usu├írios",     icon: <Users size={13} />,     guard: !hasPermission("manage_users") },
+    { id: "transactions",  label: "Transa├º├Áes",   icon: <DollarSign size={13} /> },
+    { id: "notifications", label: "Notifica├º├Áes", icon: <Bell size={13} />,      badge: unread },
     { id: "fichas",        label: "Fichas",       icon: <FileText size={13} /> },
     { id: "sourcing",      label: "Sourcing",     icon: <Globe size={13} />,     badge: sourcingRequests.filter(s => s.status === "pending").length, guard: !hasPermission("manage_sourcing") },
     { id: "market",        label: "Mercado",      icon: <TrendingUp size={13} />,guard: !hasPermission("view_analytics") },
     { id: "admins",        label: "Admins",       icon: <Crown size={13} />,     guard: !isRootAdmin && !hasPermission("manage_admins") },
-    { id: "referrals",     label: "Indicações",   icon: <Star size={13} />,      badge: allReferrals.length, guard: !hasPermission("view_analytics") },
+    { id: "referrals",     label: "Indica├º├Áes",   icon: <Star size={13} />,      badge: allReferrals.length, guard: !hasPermission("view_analytics") },
     { id: "deliveries",    label: "Entregas",     icon: <Truck size={13} />,     guard: !isSupportAgent && !hasPermission("manage_orders") },
   ].filter(t => !t.guard);
 
-  // ── Loading screen ────────────────────────────────────────────────────────────
+  // ÔöÇÔöÇ Loading screen ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
   if (loading && !products.length) {
     return (
       <div className="adm-loading">
         <StyleInjector />
         <Leaf size={28} color={AGRO_COLORS.accent} />
         <div className="adm-loading-ring" />
-        <div className="adm-loading-text">Carregando painel agrícola…</div>
+        <div className="adm-loading-text">Carregando painel agr├¡colaÔÇª</div>
       </div>
     );
   }
@@ -1393,7 +1393,7 @@ const AdminDashboard = () => {
     <div className="admin-root">
       <StyleInjector />
 
-      {/* ── Header ── */}
+      {/* ÔöÇÔöÇ Header ÔöÇÔöÇ */}
       <header className="adm-header">
         <div className="adm-header-inner">
           <div className="adm-brand">
@@ -1402,7 +1402,7 @@ const AdminDashboard = () => {
             </div>
             <div className="adm-brand-text">
               <span className="adm-brand-title">AgriLink Admin</span>
-              <span className="adm-brand-sub">Painel de Controle Agrícola</span>
+              <span className="adm-brand-sub">Painel de Controle Agr├¡cola</span>
             </div>
           </div>
 
@@ -1434,7 +1434,7 @@ const AdminDashboard = () => {
         </div>
       </header>
 
-      {/* ── Nav ── */}
+      {/* ÔöÇÔöÇ Nav ÔöÇÔöÇ */}
       <nav className="adm-nav">
         <div className="adm-nav-inner">
           {tabs.map(t => (
@@ -1453,7 +1453,7 @@ const AdminDashboard = () => {
         </div>
       </nav>
 
-      {/* ── Main ── */}
+      {/* ÔöÇÔöÇ Main ÔöÇÔöÇ */}
       <main className="adm-main">
 
         {/* Work Timer */}
@@ -1473,18 +1473,18 @@ const AdminDashboard = () => {
               <Crown size={18} color="#0f4526" />
             </div>
             <div className="adm-root-banner-text">
-              <div className="adm-root-banner-label">Nível de Acesso</div>
+              <div className="adm-root-banner-label">N├¡vel de Acesso</div>
               <div className="adm-root-banner-value">
-                Root Admin — Controle Total do Sistema{isSuperRoot ? " · Super Root" : ""}
+                Root Admin ÔÇö Controle Total do Sistema{isSuperRoot ? " ┬À Super Root" : ""}
               </div>
             </div>
             <Zap size={18} color="rgba(255,255,255,.3)" />
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════
+        {/* ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
             DASHBOARD
-        ══════════════════════════════════════════════════════════════ */}
+        ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ */}
         {activeTab === "dashboard" && (
           <>
             {/* Page Header */}
@@ -1492,14 +1492,14 @@ const AdminDashboard = () => {
               <div>
                 <div className="adm-page-title">
                   <Sprout size={22} color={AGRO_COLORS.primary} />
-                  Visão Geral do Sistema
+                  Vis├úo Geral do Sistema
                 </div>
                 <div className="adm-page-subtitle">
                   Dados actualizados automaticamente a cada 30 segundos
                 </div>
               </div>
               <button className="adm-btn adm-btn-ghost" style={{ fontSize: 12, padding: "6px 14px" }}>
-                <Download size={13} /> Exportar Relatório
+                <Download size={13} /> Exportar Relat├│rio
               </button>
             </div>
 
@@ -1508,7 +1508,7 @@ const AdminDashboard = () => {
               <MetricCard title="Produtos Activos" value={products.length} icon={<Wheat />} trend={12} color="green" />
               <MetricCard title="Utilizadores" value={users.length} icon={<Users />} trend={8} color="amber" />
               <MetricCard title="Encomendas" value={orders.length} icon={<ShoppingCart />} trend={15} color="orange" />
-              <MetricCard title="Transacções" value={transactions.length} icon={<DollarSign />} trend={5} color="blue" />
+              <MetricCard title="Transac├º├Áes" value={transactions.length} icon={<DollarSign />} trend={5} color="blue" />
             </div>
 
             {/* Leaderboard */}
@@ -1516,20 +1516,20 @@ const AdminDashboard = () => {
               <div className="adm-card-header">
                 <div className="adm-card-title">
                   <div className="adm-title-icon"><Crown size={14} /></div>
-                  Top 3 Agentes — Maiores Indicadores
+                  Top 3 Agentes ÔÇö Maiores Indicadores
                 </div>
               </div>
               <div className="adm-card-body">
                 {!topAgents.length ? (
                   <div className="adm-empty">
                     <div className="adm-empty-icon"><Star size={22} color="#9b9285" /></div>
-                    <div className="adm-empty-title">Sem indicações ainda</div>
+                    <div className="adm-empty-title">Sem indica├º├Áes ainda</div>
                   </div>
                 ) : (
                   <div className="adm-leaderboard">
                     {topAgents.map((a, i) => (
                       <div key={a.agent_id} className={`adm-leader-card rank-${i + 1}`}>
-                        <span className={`adm-rank-badge r${i + 1}`}>{i + 1}°</span>
+                        <span className={`adm-rank-badge r${i + 1}`}>{i + 1}┬░</span>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <div
                             className="adm-avatar"
@@ -1541,7 +1541,7 @@ const AdminDashboard = () => {
                             <div style={{ fontWeight: 600, fontSize: 13, color: "#1c1a16" }}>{a.agent_name}</div>
                             <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
                               <span style={{ fontSize: 12, color: "#6b6458", display: "flex", alignItems: "center", gap: 4 }}>
-                                <Users size={11} /> {a.total_referrals} indicações
+                                <Users size={11} /> {a.total_referrals} indica├º├Áes
                               </span>
                               <span style={{ fontSize: 12, color: "#b37d0a", display: "flex", alignItems: "center", gap: 4 }}>
                                 <Star size={11} /> {a.total_points} pts
@@ -1562,7 +1562,7 @@ const AdminDashboard = () => {
                 <div className="adm-card-header">
                   <div className="adm-card-title">
                     <div className="adm-title-icon"><TrendingUp size={14} /></div>
-                    Receita — Últimos 10 Dias
+                    Receita ÔÇö ├Ültimos 10 Dias
                   </div>
                 </div>
                 <div className="adm-card-body">
@@ -1608,7 +1608,7 @@ const AdminDashboard = () => {
                 <div className="adm-card-header">
                   <div className="adm-card-title">
                     <div className="adm-title-icon"><Activity size={14} /></div>
-                    Distribuição de Transações por Status
+                    Distribui├º├úo de Transa├º├Áes por Status
                   </div>
                 </div>
                 <div className="adm-card-body" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 40, flexWrap: "wrap" }}>
@@ -1639,9 +1639,9 @@ const AdminDashboard = () => {
           </>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════
+        {/* ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
             ORDERS
-        ══════════════════════════════════════════════════════════════ */}
+        ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ */}
         {activeTab === "orders" && (
           <div className="adm-card">
             <div className="adm-card-header">
@@ -1661,7 +1661,7 @@ const AdminDashboard = () => {
                       <th>Qtd</th>
                       <th>Status</th>
                       <th>Data</th>
-                      <th>Acções</th>
+                      <th>Ac├º├Áes</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1670,8 +1670,8 @@ const AdminDashboard = () => {
                       const product = products.find(p => p.id === order.product_id);
                       return (
                         <tr key={order.id}>
-                          <td className="cell-name">{product?.product_type || "—"}</td>
-                          <td>{user?.full_name || "—"}</td>
+                          <td className="cell-name">{product?.product_type || "ÔÇö"}</td>
+                          <td>{user?.full_name || "ÔÇö"}</td>
                           <td><span className="adm-badge badge-green">{order.quantity} kg</span></td>
                           <td><StatusBadge status={order.status} /></td>
                           <td className="cell-muted">{new Date(order.created_at).toLocaleDateString("pt-BR")}</td>
@@ -1698,9 +1698,9 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════
+        {/* ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
             PRODUCTS
-        ══════════════════════════════════════════════════════════════ */}
+        ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ */}
         {activeTab === "products" && (
           <div className="adm-card">
             <TableToolbar
@@ -1725,10 +1725,10 @@ const AdminDashboard = () => {
                       </th>
                       <th>Produto</th>
                       <th>Qtd (kg)</th>
-                      <th>Preço</th>
+                      <th>Pre├ºo</th>
                       <th>Fornecedor</th>
                       <th>Data</th>
-                      <th>Acções</th>
+                      <th>Ac├º├Áes</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1740,7 +1740,7 @@ const AdminDashboard = () => {
                           <td className="cell-name">{p.product_type}</td>
                           <td>{p.quantity.toLocaleString()}</td>
                           <td style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{p.price.toLocaleString("pt-AO")} Kz</td>
-                          <td>{user?.full_name || "—"}</td>
+                          <td>{user?.full_name || "ÔÇö"}</td>
                           <td className="cell-muted">{new Date(p.created_at).toLocaleDateString("pt-BR")}</td>
                           <td>
                             <DropdownMenu>
@@ -1768,9 +1768,9 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════
+        {/* ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
             USERS
-        ══════════════════════════════════════════════════════════════ */}
+        ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ */}
         {activeTab === "users" && (
           <div className="adm-card">
             <TableToolbar
@@ -1797,9 +1797,9 @@ const AdminDashboard = () => {
                       <th>Email</th>
                       <th>Telefone</th>
                       <th>Tipo</th>
-                      <th>Verificação</th>
+                      <th>Verifica├º├úo</th>
                       <th>Data</th>
-                      <th>Acções</th>
+                      <th>Ac├º├Áes</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1815,8 +1815,8 @@ const AdminDashboard = () => {
                             {user.verified && <BadgeCheck size={14} color={AGRO_COLORS.primary} />}
                           </div>
                         </td>
-                        <td className="cell-muted">{user.email || "—"}</td>
-                        <td style={{ fontFamily: "DM Mono, monospace", fontSize: 12 }}>{user.phone || "—"}</td>
+                        <td className="cell-muted">{user.email || "ÔÇö"}</td>
+                        <td style={{ fontFamily: "DM Mono, monospace", fontSize: 12 }}>{user.phone || "ÔÇö"}</td>
                         <td>
                           <span className="adm-badge badge-outline" style={{ textTransform: "capitalize" }}>
                             {user.user_type || "user"}
@@ -1825,11 +1825,11 @@ const AdminDashboard = () => {
                         <td>
                           {user.verified
                             ? <span className="adm-status status-success"><BadgeCheck size={11} /> Verificado</span>
-                            : <span className="adm-status status-neutral">Não verificado</span>
+                            : <span className="adm-status status-neutral">N├úo verificado</span>
                           }
                         </td>
                         <td className="cell-muted">
-                          {user.created_at ? new Date(user.created_at).toLocaleDateString("pt-BR") : "—"}
+                          {user.created_at ? new Date(user.created_at).toLocaleDateString("pt-BR") : "ÔÇö"}
                         </td>
                         <td>
                           <DropdownMenu>
@@ -1839,7 +1839,7 @@ const AdminDashboard = () => {
                             <DropdownMenuContent align="end" style={{ minWidth: 180 }}>
                               {user.verified ? (
                                 <DropdownMenuItem onClick={() => toggleVerification(user.id, true)}>
-                                  <ShieldX size={13} className="mr-2" /> Remover Verificação
+                                  <ShieldX size={13} className="mr-2" /> Remover Verifica├º├úo
                                 </DropdownMenuItem>
                               ) : (
                                 <DropdownMenuItem onClick={() => toggleVerification(user.id, false)}>
@@ -1847,7 +1847,7 @@ const AdminDashboard = () => {
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuItem onClick={() => { setTargetUser(user.id); setNotifModalOpen(true); }}>
-                                <Bell size={13} className="mr-2" /> Enviar Notificação
+                                <Bell size={13} className="mr-2" /> Enviar Notifica├º├úo
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-red-600" onClick={() => handleDelete("users", user.id, setUsers)}>
@@ -1865,15 +1865,15 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════
+        {/* ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
             TRANSACTIONS
-        ══════════════════════════════════════════════════════════════ */}
+        ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ */}
         {activeTab === "transactions" && (
           <div className="adm-card">
             <div className="adm-card-header">
               <div className="adm-card-title">
                 <div className="adm-title-icon"><DollarSign size={14} /></div>
-                Transacções
+                Transac├º├Áes
                 <span style={{ fontSize: 12, fontWeight: 400, color: "#9b9285" }}>({transactions.length})</span>
               </div>
             </div>
@@ -1892,7 +1892,7 @@ const AdminDashboard = () => {
                   <tbody>
                     {transactions.map(t => (
                       <tr key={t.id}>
-                        <td className="cell-mono">{t.id.substring(0, 12)}…</td>
+                        <td className="cell-mono">{t.id.substring(0, 12)}ÔÇª</td>
                         <td style={{ textTransform: "capitalize", fontSize: 13 }}>{t.type.replace(/_/g, " ")}</td>
                         <td style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{t.amount.toLocaleString("pt-AO")} Kz</td>
                         <td><StatusBadge status={t.status} /></td>
@@ -1906,15 +1906,15 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════
+        {/* ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
             NOTIFICATIONS
-        ══════════════════════════════════════════════════════════════ */}
+        ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ */}
         {activeTab === "notifications" && (
           <div className="adm-card">
             <div className="adm-card-header">
               <div className="adm-card-title">
                 <div className="adm-title-icon"><Bell size={14} /></div>
-                Notificações
+                Notifica├º├Áes
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div className="adm-filter-tabs">
@@ -1924,7 +1924,7 @@ const AdminDashboard = () => {
                       className={`adm-filter-tab ${filterStatus === s ? "active" : ""}`}
                       onClick={() => setFilterStatus(s)}
                     >
-                      {s === "all" ? "Todas" : s === "unread" ? "Não Lidas" : "Lidas"}
+                      {s === "all" ? "Todas" : s === "unread" ? "N├úo Lidas" : "Lidas"}
                     </button>
                   ))}
                 </div>
@@ -1937,7 +1937,7 @@ const AdminDashboard = () => {
               {!filteredNotifs.length ? (
                 <div className="adm-empty">
                   <div className="adm-empty-icon"><Bell size={22} color="#9b9285" /></div>
-                  <div className="adm-empty-title">Sem notificações</div>
+                  <div className="adm-empty-title">Sem notifica├º├Áes</div>
                 </div>
               ) : filteredNotifs.map(n => (
                 <div key={n.id} className={`adm-notif-item ${!n.read ? "unread" : ""}`} onClick={() => markRead(n.id)}>
@@ -1957,9 +1957,9 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════
+        {/* ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
             FICHAS
-        ══════════════════════════════════════════════════════════════ */}
+        ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ */}
         {activeTab === "fichas" && (
           <div className="adm-card">
             <TableToolbar
@@ -1976,11 +1976,11 @@ const AdminDashboard = () => {
                     <tr>
                       <th>Nome</th>
                       <th>Produto</th>
-                      <th>Negócio</th>
+                      <th>Neg├│cio</th>
                       <th>Qualidade</th>
                       <th>Telefone</th>
                       <th>Data</th>
-                      <th>Acções</th>
+                      <th>Ac├º├Áes</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1993,8 +1993,8 @@ const AdminDashboard = () => {
                             {f.tipo_negocio}
                           </span>
                         </td>
-                        <td className="cell-muted">{f.qualidade || "—"}</td>
-                        <td style={{ fontFamily: "DM Mono, monospace", fontSize: 12 }}>{f.telefone || "—"}</td>
+                        <td className="cell-muted">{f.qualidade || "ÔÇö"}</td>
+                        <td style={{ fontFamily: "DM Mono, monospace", fontSize: 12 }}>{f.telefone || "ÔÇö"}</td>
                         <td className="cell-muted">{new Date(f.created_at).toLocaleDateString("pt-BR")}</td>
                         <td>
                           <div style={{ display: "flex", gap: 4 }}>
@@ -2015,16 +2015,16 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════
+        {/* ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
             SOURCING
-        ══════════════════════════════════════════════════════════════ */}
+        ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ */}
         {activeTab === "sourcing" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div className="adm-card">
               <div className="adm-card-header">
                 <div className="adm-card-title">
                   <div className="adm-title-icon"><Globe size={14} /></div>
-                  OrbisLink Sourcing — Pedidos Especiais
+                  OrbisLink Sourcing ÔÇö Pedidos Especiais
                   <span style={{ fontSize: 12, fontWeight: 400, color: "#9b9285" }}>({sourcingRequests.length})</span>
                 </div>
               </div>
@@ -2047,7 +2047,7 @@ const AdminDashboard = () => {
                           <th>Entrega</th>
                           <th>Status</th>
                           <th>Data</th>
-                          <th>Acções</th>
+                          <th>Ac├º├Áes</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2055,7 +2055,7 @@ const AdminDashboard = () => {
                           const user = users.find(u => u.id === req.user_id);
                           return (
                             <tr key={req.id}>
-                              <td className="cell-name">{user?.full_name || "—"}</td>
+                              <td className="cell-name">{user?.full_name || "ÔÇö"}</td>
                               <td>{req.product_name}</td>
                               <td>{req.quantity.toLocaleString()}</td>
                               <td className="cell-muted">{new Date(req.delivery_date).toLocaleDateString("pt-BR")}</td>
@@ -2071,7 +2071,7 @@ const AdminDashboard = () => {
                                       <Clock size={13} className="mr-2" /> Em Progresso
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => updateSourcingStatus(req.id, "completed")}>
-                                      <Check size={13} className="mr-2" /> Concluído
+                                      <Check size={13} className="mr-2" /> Conclu├¡do
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => updateSourcingStatus(req.id, "cancelled")}>
                                       <X size={13} className="mr-2" /> Cancelado
@@ -2115,14 +2115,14 @@ const AdminDashboard = () => {
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                           <div>
                             <span style={{ fontWeight: 600, fontSize: 14 }}>{req.product_name}</span>
-                            <span className="cell-muted" style={{ marginLeft: 8 }}>— {user?.full_name}</span>
+                            <span className="cell-muted" style={{ marginLeft: 8 }}>ÔÇö {user?.full_name}</span>
                           </div>
                           <StatusBadge status={req.status} />
                         </div>
                         {req.description && (
                           <div>
                             <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "#9b9285", marginBottom: 4 }}>
-                              Descrição do Cliente
+                              Descri├º├úo do Cliente
                             </div>
                             <div style={{ fontSize: 13, color: "#2d2b27" }}>{req.description}</div>
                           </div>
@@ -2144,9 +2144,9 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════
+        {/* ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
             MARKET
-        ══════════════════════════════════════════════════════════════ */}
+        ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ */}
         {activeTab === "market" && (() => {
           const grouped: Record<string, { prices: number[]; quantities: number[] }> = {};
           products.forEach(p => {
@@ -2179,14 +2179,14 @@ const AdminDashboard = () => {
               <div className="adm-metrics-grid">
                 <MetricCard title="Total Produtos" value={products.length} icon={<Package />} color="green" />
                 <MetricCard title="Volume Total" value={products.reduce((a, p) => a + p.quantity, 0)} suffix="kg" icon={<Mountain />} color="amber" />
-                <MetricCard title="Preço Médio" value={products.length ? Math.round(products.reduce((a, p) => a + p.price, 0) / products.length).toLocaleString() : 0} suffix="AOA" icon={<DollarSign />} color="orange" />
+                <MetricCard title="Pre├ºo M├®dio" value={products.length ? Math.round(products.reduce((a, p) => a + p.price, 0) / products.length).toLocaleString() : 0} suffix="AOA" icon={<DollarSign />} color="orange" />
                 <MetricCard title="Tipos de Produto" value={new Set(products.map(p => p.product_type)).size} icon={<Leaf />} color="blue" />
               </div>
 
               <div className="adm-charts-grid">
                 <div className="adm-card">
                   <div className="adm-card-header">
-                    <div className="adm-card-title"><div className="adm-title-icon"><DollarSign size={14} /></div>Preço Médio por Produto (AOA)</div>
+                    <div className="adm-card-title"><div className="adm-title-icon"><DollarSign size={14} /></div>Pre├ºo M├®dio por Produto (AOA)</div>
                   </div>
                   <div className="adm-card-body">
                     <ResponsiveContainer width="100%" height={260}>
@@ -2220,7 +2220,7 @@ const AdminDashboard = () => {
 
                 <div className="adm-card">
                   <div className="adm-card-header">
-                    <div className="adm-card-title"><div className="adm-title-icon"><Package size={14} /></div>Distribuição por Tipo</div>
+                    <div className="adm-card-title"><div className="adm-title-icon"><Package size={14} /></div>Distribui├º├úo por Tipo</div>
                   </div>
                   <div className="adm-card-body">
                     <ResponsiveContainer width="100%" height={260}>
@@ -2239,7 +2239,7 @@ const AdminDashboard = () => {
 
                 <div className="adm-card">
                   <div className="adm-card-header">
-                    <div className="adm-card-title"><div className="adm-title-icon"><Activity size={14} /></div>Tendência de Publicações</div>
+                    <div className="adm-card-title"><div className="adm-title-icon"><Activity size={14} /></div>Tend├¬ncia de Publica├º├Áes</div>
                   </div>
                   <div className="adm-card-body">
                     <ResponsiveContainer width="100%" height={260}>
@@ -2264,7 +2264,7 @@ const AdminDashboard = () => {
               {/* Price Table */}
               <div className="adm-card">
                 <div className="adm-card-header">
-                  <div className="adm-card-title"><div className="adm-title-icon"><DollarSign size={14} /></div>Tabela de Preços do Mercado</div>
+                  <div className="adm-card-title"><div className="adm-title-icon"><DollarSign size={14} /></div>Tabela de Pre├ºos do Mercado</div>
                 </div>
                 <div className="adm-card-body no-pad">
                   <div className="adm-table-wrap">
@@ -2273,9 +2273,9 @@ const AdminDashboard = () => {
                         <tr>
                           <th>Produto</th>
                           <th>Ofertas</th>
-                          <th>Mín (AOA)</th>
-                          <th>Médio (AOA)</th>
-                          <th>Máx (AOA)</th>
+                          <th>M├¡n (AOA)</th>
+                          <th>M├®dio (AOA)</th>
+                          <th>M├íx (AOA)</th>
                           <th>Volume Total</th>
                         </tr>
                       </thead>
@@ -2299,13 +2299,13 @@ const AdminDashboard = () => {
               {/* AI Analysis */}
               <div className="adm-card">
                 <div className="adm-card-header">
-                  <div className="adm-card-title"><div className="adm-title-icon"><Zap size={14} /></div>Análise de Mercado com IA — Google Gemini</div>
+                  <div className="adm-card-title"><div className="adm-title-icon"><Zap size={14} /></div>An├ílise de Mercado com IA ÔÇö Google Gemini</div>
                   <button
                     className={`adm-btn ${analyzingMarket ? "adm-btn-ghost" : "adm-btn-primary"}`}
                     onClick={generateAnalysis}
                     disabled={analyzingMarket}
                   >
-                    {analyzingMarket ? <><RefreshCw size={13} className="animate-spin" /> A analisar…</> : <><Zap size={13} /> Gerar Análise</>}
+                    {analyzingMarket ? <><RefreshCw size={13} className="animate-spin" /> A analisarÔÇª</> : <><Zap size={13} /> Gerar An├ílise</>}
                   </button>
                 </div>
                 <div className="adm-card-body">
@@ -2314,8 +2314,8 @@ const AdminDashboard = () => {
                   ) : (
                     <div className="adm-empty">
                       <div className="adm-empty-icon"><Zap size={22} color="#9b9285" /></div>
-                      <div className="adm-empty-title">Análise de IA não gerada</div>
-                      <div className="adm-empty-sub">Clique em "Gerar Análise" para obter insights de mercado com inteligência artificial</div>
+                      <div className="adm-empty-title">An├ílise de IA n├úo gerada</div>
+                      <div className="adm-empty-sub">Clique em "Gerar An├ílise" para obter insights de mercado com intelig├¬ncia artificial</div>
                     </div>
                   )}
                 </div>
@@ -2324,9 +2324,9 @@ const AdminDashboard = () => {
           );
         })()}
 
-        {/* ══════════════════════════════════════════════════════════════
+        {/* ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
             ADMINS
-        ══════════════════════════════════════════════════════════════ */}
+        ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ */}
         {activeTab === "admins" && currentUserId && (
           <AdminManagement
             currentUserId={currentUserId}
@@ -2338,17 +2338,17 @@ const AdminDashboard = () => {
           />
         )}
 
-        {/* ══════════════════════════════════════════════════════════════
+        {/* ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
             REFERRALS
-        ══════════════════════════════════════════════════════════════ */}
+        ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ */}
         {activeTab === "referrals" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div className="adm-metrics-grid">
               {[
-                { label: "Total Indicações", value: allReferrals.length, bg: "#1a6b3c", icon: <Users size={16} /> },
+                { label: "Total Indica├º├Áes", value: allReferrals.length, bg: "#1a6b3c", icon: <Users size={16} /> },
                 { label: "Total Pontos", value: allReferrals.reduce((s, r) => s + r.points, 0), bg: "#e8a012", icon: <Star size={16} /> },
                 { label: "Agentes Activos", value: new Set(allReferrals.map(r => r.agent_id)).size, bg: "#1e6b9e", icon: <BadgeCheck size={16} /> },
-                { label: "Média Pts/Indicação", value: allReferrals.length ? Math.round(allReferrals.reduce((s, r) => s + r.points, 0) / allReferrals.length) : 0, bg: "#7a5c3a", icon: <TrendingUp size={16} /> },
+                { label: "M├®dia Pts/Indica├º├úo", value: allReferrals.length ? Math.round(allReferrals.reduce((s, r) => s + r.points, 0) / allReferrals.length) : 0, bg: "#7a5c3a", icon: <TrendingUp size={16} /> },
               ].map(c => (
                 <div key={c.label} className="adm-stat-card" style={{ background: c.bg }}>
                   <div className="adm-stat-label">{c.label}</div>
@@ -2360,19 +2360,19 @@ const AdminDashboard = () => {
             {/* Leaderboard */}
             <div className="adm-card">
               <div className="adm-card-header">
-                <div className="adm-card-title"><div className="adm-title-icon"><Crown size={14} /></div>Ranking de Agentes — Tempo Real</div>
+                <div className="adm-card-title"><div className="adm-title-icon"><Crown size={14} /></div>Ranking de Agentes ÔÇö Tempo Real</div>
               </div>
               <div className="adm-card-body">
                 {!topAgents.length ? (
                   <div className="adm-empty">
                     <div className="adm-empty-icon"><Users size={22} color="#9b9285" /></div>
-                    <div className="adm-empty-title">Nenhum agente com indicações</div>
+                    <div className="adm-empty-title">Nenhum agente com indica├º├Áes</div>
                   </div>
                 ) : (
                   <div className="adm-leaderboard">
                     {topAgents.map((a, i) => (
                       <div key={a.agent_id} className={`adm-leader-card rank-${i + 1}`}>
-                        <span className={`adm-rank-badge r${i + 1}`}>{i + 1}°</span>
+                        <span className={`adm-rank-badge r${i + 1}`}>{i + 1}┬░</span>
                         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
                           <div className="adm-avatar" style={{ width: 44, height: 44, fontSize: 16, background: CHART_COLORS[i] }}>
                             {a.agent_name?.charAt(0) || "A"}
@@ -2401,7 +2401,7 @@ const AdminDashboard = () => {
               <div className="adm-card-header">
                 <div className="adm-card-title">
                   <div className="adm-title-icon"><FileText size={14} /></div>
-                  Histórico Completo de Indicações
+                  Hist├│rico Completo de Indica├º├Áes
                   <span style={{ fontSize: 12, fontWeight: 400, color: "#9b9285" }}>({allReferrals.length} registos)</span>
                 </div>
               </div>
@@ -2409,8 +2409,8 @@ const AdminDashboard = () => {
                 <div className="adm-card-body">
                   <div className="adm-empty">
                     <div className="adm-empty-icon"><Star size={22} color="#9b9285" /></div>
-                    <div className="adm-empty-title">Sem indicações registadas</div>
-                    <div className="adm-empty-sub">As indicações aparecerão aqui quando os agentes indicarem novos utilizadores</div>
+                    <div className="adm-empty-title">Sem indica├º├Áes registadas</div>
+                    <div className="adm-empty-sub">As indica├º├Áes aparecer├úo aqui quando os agentes indicarem novos utilizadores</div>
                   </div>
                 </div>
               ) : (
@@ -2421,7 +2421,7 @@ const AdminDashboard = () => {
                         <tr>
                           <th>#</th>
                           <th>Agente</th>
-                          <th>Código</th>
+                          <th>C├│digo</th>
                           <th>Utilizador Indicado</th>
                           <th>Pontos</th>
                           <th>Data</th>
@@ -2466,7 +2466,7 @@ const AdminDashboard = () => {
             {allReferrals.length > 0 && (
               <div className="adm-card">
                 <div className="adm-card-header">
-                  <div className="adm-card-title"><div className="adm-title-icon"><BarChart3 size={14} /></div>Estatísticas por Agente</div>
+                  <div className="adm-card-title"><div className="adm-title-icon"><BarChart3 size={14} /></div>Estat├¡sticas por Agente</div>
                 </div>
                 <div className="adm-card-body">
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
@@ -2489,7 +2489,7 @@ const AdminDashboard = () => {
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
                           <div style={{ textAlign: "center", padding: "8px 0", background: "#fff", borderRadius: 8, border: "1px solid #e8e4da" }}>
                             <div style={{ fontSize: 20, fontWeight: 700, color: AGRO_COLORS.primary }}>{ag.total_referrals}</div>
-                            <div style={{ fontSize: 11, color: "#9b9285" }}>Indicações</div>
+                            <div style={{ fontSize: 11, color: "#9b9285" }}>Indica├º├Áes</div>
                           </div>
                           <div style={{ textAlign: "center", padding: "8px 0", background: "#fff", borderRadius: 8, border: "1px solid #e8e4da" }}>
                             <div style={{ fontSize: 20, fontWeight: 700, color: AGRO_COLORS.accent }}>{ag.total_points}</div>
@@ -2516,58 +2516,58 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════
+        {/* ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
             DELIVERIES
-        ══════════════════════════════════════════════════════════════ */}
+        ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ */}
         {activeTab === "deliveries" && currentUserId && (
           <DeliveryTracking currentUserId={currentUserId} />
         )}
       </main>
 
-      {/* ══════════════════════════════════════════════════════════════
+      {/* ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
           NOTIFICATION MODAL
-      ══════════════════════════════════════════════════════════════ */}
+      ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ */}
       <Dialog open={notifModalOpen} onOpenChange={setNotifModalOpen}>
         <DialogContent style={{ maxWidth: 460, padding: 0, overflow: "hidden", borderRadius: 16 }}>
           <div className="adm-modal-header">
             <div className="adm-modal-icon"><Send size={16} /></div>
-            <div className="adm-modal-title">Enviar Notificação</div>
+            <div className="adm-modal-title">Enviar Notifica├º├úo</div>
           </div>
           <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
             <div className="adm-form-group">
-              <label className="adm-label">Destinatário</label>
+              <label className="adm-label">Destinat├írio</label>
               <select
                 className="adm-select"
                 value={targetUser || ""}
                 onChange={e => setTargetUser(e.target.value)}
               >
-                <option value="">Seleccionar utilizador…</option>
+                <option value="">Seleccionar utilizadorÔÇª</option>
                 {users.map(u => (
-                  <option key={u.id} value={u.id}>{u.full_name}{u.email ? ` — ${u.email}` : ""}</option>
+                  <option key={u.id} value={u.id}>{u.full_name}{u.email ? ` ÔÇö ${u.email}` : ""}</option>
                 ))}
               </select>
             </div>
             <div className="adm-form-group">
               <label className="adm-label">Tipo</label>
               <select className="adm-select" value={notifType} onChange={e => setNotifType(e.target.value)}>
-                <option value="info">Informação</option>
+                <option value="info">Informa├º├úo</option>
                 <option value="alert">Alerta</option>
                 <option value="success">Sucesso</option>
               </select>
             </div>
             <div className="adm-form-group">
-              <label className="adm-label">Título</label>
-              <input className="adm-input" placeholder="Título da notificação" value={notifTitle} onChange={e => setNotifTitle(e.target.value)} />
+              <label className="adm-label">T├¡tulo</label>
+              <input className="adm-input" placeholder="T├¡tulo da notifica├º├úo" value={notifTitle} onChange={e => setNotifTitle(e.target.value)} />
             </div>
             <div className="adm-form-group">
               <label className="adm-label">Mensagem</label>
-              <textarea className="adm-textarea" placeholder="Corpo da mensagem…" value={notifMessage} onChange={e => setNotifMessage(e.target.value)} rows={3} style={{ resize: "vertical" }} />
+              <textarea className="adm-textarea" placeholder="Corpo da mensagemÔÇª" value={notifMessage} onChange={e => setNotifMessage(e.target.value)} rows={3} style={{ resize: "vertical" }} />
             </div>
           </div>
           <div style={{ padding: "14px 24px 20px", display: "flex", justifyContent: "flex-end", gap: 8, borderTop: "1px solid #f0ede6" }}>
             <button className="adm-btn adm-btn-ghost" onClick={() => setNotifModalOpen(false)}>Cancelar</button>
             <button className="adm-btn adm-btn-primary" onClick={sendNotification}>
-              <Send size={13} /> Enviar Notificação
+              <Send size={13} /> Enviar Notifica├º├úo
             </button>
           </div>
         </DialogContent>

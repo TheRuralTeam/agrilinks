@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
+import { useCanAct } from '@/hooks/useCanAct'
 import { useNavigate } from 'react-router-dom'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import mapboxgl from 'mapbox-gl'
@@ -415,6 +416,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   product, onProductUpdate, onOpenMap, onOpenPreOrder
 }) => {
   const { user } = useAuth()
+  const { requireAct } = useCanAct()
   const navigate = useNavigate()
   const [commentVisible, setCommentVisible] = useState(false)
   const [comment, setComment] = useState('')
@@ -454,7 +456,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   }, [mapModalOpen, product])
 
   const toggleLike = async () => {
-    if (!user) return toast.error('Faça login para dar like')
+    if (!requireAct('dar like')) return
     if (!onProductUpdate) return
     const optimisticUpdate = {
       ...product,
@@ -475,7 +477,8 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   }
 
   const addComment = async () => {
-    if (!user || !comment.trim()) return toast.error('Faça login ou escreva um comentário')
+    if (!comment.trim()) return toast.error('Escreva um comentário')
+    if (!requireAct('comentar')) return
     if (!onProductUpdate) return
     try {
       const { data: newComment } = await supabase
@@ -500,7 +503,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   }
 
   const toggleCommentLike = async (commentId: string, isLiked: boolean) => {
-    if (!user) return toast.error('Faça login para reagir')
+    if (!requireAct('reagir')) return
     if (!onProductUpdate) return
     try {
       if (isLiked) {
@@ -519,7 +522,8 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   }
 
   const addReply = async (commentId: string) => {
-    if (!user || !replyText.trim()) return toast.error('Escreva uma resposta')
+    if (!replyText.trim()) return toast.error('Escreva uma resposta')
+    if (!requireAct('responder')) return
     if (!onProductUpdate) return
     try {
       const { data: newReply } = await supabase

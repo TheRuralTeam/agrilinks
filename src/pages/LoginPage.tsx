@@ -1,41 +1,13 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, ShieldCheck, X } from 'lucide-react'
-import { GOOGLE_DEVICE_HISTORY_KEY, useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
-import agriLinkLogo from '@/assets/agrilink-logo.png'
+import orbisLinkLogo from '@/assets/orbislink-logo.png'
+import { OtpVerificationModal } from '@/components/OtpVerificationModal'
 import { toast } from '@/hooks/use-toast'
 
-const GoogleGIcon = ({ size = 22 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-    <path
-      fill="#4285F4"
-      d="M21.805 10.023h-9.18v3.955h5.273c-.227 1.274-.909 2.354-1.932 3.077v2.56h3.123c1.827-1.682 2.884-4.159 2.884-7.102 0-.705-.063-1.383-.168-2.04z"
-    />
-    <path
-      fill="#34A853"
-      d="M12.625 22c2.61 0 4.797-.864 6.396-2.385l-3.123-2.56c-.864.58-1.97.925-3.273.925-2.52 0-4.655-1.702-5.418-3.99H3.978v2.625A9.658 9.658 0 0012.625 22z"
-    />
-    <path
-      fill="#FBBC04"
-      d="M7.207 13.99a5.805 5.805 0 010-3.98V7.385H3.978a9.658 9.658 0 000 8.23l3.229-2.625z"
-    />
-    <path
-      fill="#EA4335"
-      d="M12.625 6.02c1.418 0 2.69.488 3.69 1.447l2.768-2.768C17.417 3.146 15.231 2 12.625 2A9.658 9.658 0 003.978 7.385L7.207 10.01c.763-2.288 2.898-3.99 5.418-3.99z"
-    />
-  </svg>
-)
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Erro inesperado.'
-}
-
-// Design tokens
+// ÔöÇÔöÇÔöÇ Design Tokens ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 const T = {
   // Greens
   g700: '#1A5C24',
@@ -66,7 +38,7 @@ const T = {
   shadowLg: '0 8px 40px rgba(160,114,42,0.16)',
 }
 
-// ��������� Input style ������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������
+// ÔöÇÔöÇÔöÇ Input style ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 const inputStyle: React.CSSProperties = {
   height: '52px',
   width: '100%',
@@ -95,7 +67,7 @@ const FieldLabel = ({ children, rightSlot }: { children: React.ReactNode; rightS
   </div>
 )
 
-// ��������� Component ������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������
+// ÔöÇÔöÇÔöÇ Component ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 const LoginPage = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -104,10 +76,19 @@ const LoginPage = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
   const [resendLoading, setResendLoading] = useState(false)
+  const [showOtpModal, setShowOtpModal] = useState(false)
+  const [pendingUserId, setPendingUserId] = useState('')
+  const [pendingUserName, setPendingUserName] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+  const [googleLoading, setGoogleLoading] = useState(false)
 
   const { login, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true)
+    try { await signInWithGoogle() } finally { setGoogleLoading(false) }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -117,40 +98,38 @@ const LoginPage = () => {
     try {
       const { error } = await login(email, password)
       if (error) {
-        const requiresEmailConfirmation = Boolean(error.needsEmailConfirmation)
         if (
-          requiresEmailConfirmation ||
           error.message.includes('email not confirmed') ||
           error.message.includes('User not confirmed') ||
           error.message.includes('Email not confirmed')
         ) {
-          try {
-            const { error: resendError } = await supabase.auth.resend({
-              type: 'signup',
-              email,
-              options: {
-                emailRedirectTo: `${window.location.origin}/confirmar-email`,
-              },
-            })
+          const { data: userData } = await supabase
+            .from('users')
+            .select('id, full_name, email_verified')
+            .eq('email', email)
+            .maybeSingle()
 
-            if (resendError) throw resendError
-
-            toast({
-              title: 'Confirma+�+�o necess+�ria',
-              description: 'Enviamos um novo link de confirma+�+�o para o seu e-mail.',
-            })
-            setErrorMsg('Conta ainda n+�o confirmada. Verifique o seu e-mail e clique no link de confirma+�+�o.')
-          } catch (error) {
-            setErrorMsg(getErrorMessage(error) || 'Conta n+�o confirmada. N+�o foi poss+�vel reenviar o link agora.')
+          if (userData && !userData.email_verified) {
+            setPendingUserId(userData.id)
+            setPendingUserName(userData.full_name || 'Usu├írio')
+            try {
+              await supabase.functions.invoke('send-otp-email', {
+                body: { user_id: userData.id, email, full_name: userData.full_name || 'Usu├írio' },
+              })
+              toast({ title: 'C├│digo enviado!', description: 'Verifique o seu e-mail.' })
+            } catch (otpErr) {
+              console.error('OTP error:', otpErr)
+            }
+            setShowOtpModal(true)
           }
         } else {
-          setErrorMsg(error.message || 'Credenciais inv+�lidas. Verifique e tente novamente.')
+          setErrorMsg('Credenciais inv├ílidas. Verifique e tente novamente.')
         }
         return
       }
       navigate('/app')
-    } catch (error) {
-      setErrorMsg(getErrorMessage(error))
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Erro inesperado.')
     } finally {
       setLoading(false)
     }
@@ -158,7 +137,7 @@ const LoginPage = () => {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email) { toast({ title: 'Aten+�+�o', description: 'Insira o seu email primeiro.' }); return }
+    if (!email) { toast({ title: 'Aten├º├úo', description: 'Insira o seu email primeiro.' }); return }
     setResetLoading(true)
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -167,53 +146,38 @@ const LoginPage = () => {
       if (error) throw error
       toast({ title: 'Email enviado', description: 'Verifique a sua caixa de entrada.' })
       setShowForgotPassword(false)
-    } catch (error) {
-      toast({ title: 'Erro', description: getErrorMessage(error), variant: 'destructive' })
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' })
     } finally {
       setResetLoading(false)
     }
   }
 
   const handleResendConfirmation = async () => {
-    if (!email) { toast({ title: 'Aten+�+�o', description: 'Insira o seu email primeiro.' }); return }
+    if (!email) { toast({ title: 'Aten├º├úo', description: 'Insira o seu email primeiro.' }); return }
     setResendLoading(true)
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/confirmar-email`,
-        },
-      })
+      const { error } = await supabase.auth.resend({ type: 'signup', email })
       if (error) throw error
       toast({ title: 'Email reenviado', description: 'Verifique a sua caixa de entrada ou spam.' })
-    } catch (error) {
-      toast({ title: 'Erro', description: getErrorMessage(error), variant: 'destructive' })
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' })
     } finally {
       setResendLoading(false)
     }
   }
 
-  const handleGoogleLogin = async () => {
-    const isKnownGoogleDevice = localStorage.getItem(GOOGLE_DEVICE_HISTORY_KEY) === '1'
-
-    if (!isKnownGoogleDevice) {
-      // First Google login in this device: collect account type + contact data first.
-      navigate('/escolher-tipo-conta')
-      return
-    }
-
-    setLoading(true)
-    try {
-      const { error } = await signInWithGoogle('login')
-      if (error) {
-        setErrorMsg(error.message)
+  const handleOtpSuccess = async () => {
+    setShowOtpModal(false)
+    toast({ title: 'Email verificado!', description: 'Fa├ºa login novamente.' })
+    if (email && password) {
+      setLoading(true)
+      try {
+        const { error } = await login(email, password)
+        if (!error) navigate('/app')
+      } finally {
         setLoading(false)
       }
-      // Successful OAuth start redirects browser.
-    } catch (error) {
-      setErrorMsg(getErrorMessage(error))
-      setLoading(false)
     }
   }
 
@@ -315,7 +279,7 @@ const LoginPage = () => {
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <img
-            src={agriLinkLogo}
+            src={orbisLinkLogo}
             alt="AgriLink"
             style={{ height: 80, margin: '0 auto 14px', display: 'block', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.08))' }}
           />
@@ -347,7 +311,7 @@ const LoginPage = () => {
               Bem-vindo de volta
             </h1>
             <p style={{ fontSize: 13, color: T.muted, margin: '6px 0 0', fontWeight: 500 }}>
-              Aceda +� sua conta para gerir os seus neg+�cios
+              Aceda ├á sua conta para gerir os seus neg├│cios
             </p>
           </div>
 
@@ -409,7 +373,7 @@ const LoginPage = () => {
                   <Lock style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.goldLight, width: 18, height: 18, pointerEvents: 'none' }} />
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="������������������������"
+                    placeholder="ÔÇóÔÇóÔÇóÔÇóÔÇóÔÇóÔÇóÔÇó"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     style={{ ...inputStyle, paddingRight: '48px' }}
@@ -467,7 +431,7 @@ const LoginPage = () => {
                   opacity: resendLoading || !email ? 0.4 : 1,
                 }}
               >
-                {resendLoading ? 'A reenviar...' : 'Reenviar confirma+�+�o de email'}
+                {resendLoading ? 'A reenviar...' : 'Reenviar confirma├º├úo de email'}
               </button>
             </div>
 
@@ -484,38 +448,37 @@ const LoginPage = () => {
               <div style={{ flex: 1, height: 1, backgroundColor: T.rule }} />
             </div>
 
+            {/* Google Sign-in */}
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={googleLoading}
+              style={{
+                width: '100%', height: 50, borderRadius: 16,
+                border: `1.5px solid ${T.rule}`, backgroundColor: T.white,
+                color: T.ink, fontSize: 14, fontWeight: 800, cursor: googleLoading ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                marginBottom: 12,
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.4-.4-3.5z"/>
+                <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16.1 19 13 24 13c3 0 5.7 1.1 7.8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.4 6.3 14.7z"/>
+                <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.5-5.2l-6.2-5.2c-2 1.4-4.5 2.4-7.3 2.4-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.6 39.5 16.2 44 24 44z"/>
+                <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.6l6.2 5.2c-.4.4 6.7-4.9 6.7-14.8 0-1.2-.1-2.4-.4-3.5z"/>
+              </svg>
+              {googleLoading ? 'A conectar...' : 'Continuar com Google'}
+            </button>
+
+
             {/* Register */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <p style={{ textAlign: 'center', fontSize: 10, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.muted, margin: 0 }}>
-                Ainda n+�o tem conta?
+                Ainda n├úo tem conta?
               </p>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <button
-                  type="button"
-                  onClick={handleGoogleLogin}
-                  disabled={loading}
-                  aria-label="Entrar com Google"
-                  title="Entrar com Google"
-                  style={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: 14,
-                    border: `1.5px solid ${T.rule}`,
-                    backgroundColor: T.white,
-                    color: T.ink,
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    opacity: loading ? 0.6 : 1,
-                    flexShrink: 0,
-                  }}
-                >
-                  <GoogleGIcon size={20} />
-                </button>
-                <button
-                  className="register-btn"
-                  onClick={() => navigate('/cadastro')}
+              <button
+                className="register-btn"
+                onClick={() => navigate('/cadastro')}
                 style={{
                   width: '100%',
                   height: 50,
@@ -528,11 +491,10 @@ const LoginPage = () => {
                   cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 }}
-                >
-                  <UserPlus style={{ color: T.gold, width: 18, height: 18 }} />
-                  Criar Nova Conta
-                </button>
-              </div>
+              >
+                <UserPlus style={{ color: T.gold, width: 18, height: 18 }} />
+                Criar Nova Conta
+              </button>
             </div>
 
             {/* Site link */}
@@ -555,7 +517,7 @@ const LoginPage = () => {
         </div>
 
         <p style={{ textAlign: 'center', marginTop: 20, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.faint }}>
-          -� 2025 AgriLink Lda -� Seguran+�a Garantida
+          ┬® 2025 AgriLink Lda ┬À Seguran├ºa Garantida
         </p>
       </div>
 
@@ -607,7 +569,7 @@ const LoginPage = () => {
                   opacity: resetLoading ? 0.7 : 1,
                 }}
               >
-                {resetLoading ? 'A enviar...' : 'Enviar Link de Recupera+�+�o'}
+                {resetLoading ? 'A enviar...' : 'Enviar Link de Recupera├º├úo'}
               </button>
               <button
                 type="button"
@@ -626,6 +588,17 @@ const LoginPage = () => {
         </div>
       )}
 
+      {/* OTP Modal */}
+      {showOtpModal && (
+        <OtpVerificationModal
+          isOpen={showOtpModal}
+          onClose={() => setShowOtpModal(false)}
+          onSuccess={handleOtpSuccess}
+          userId={pendingUserId}
+          fullName={pendingUserName}
+          email={email}
+        />
+      )}
     </div>
   )
 }

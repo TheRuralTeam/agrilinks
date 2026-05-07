@@ -276,9 +276,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (error.message === 'Invalid login credentials') {
           message = 'Email ou senha incorretos'
         } else if (error.message.includes('User not found')) {
-          message = 'Usuário não encontrado'
+          message = 'Usu├írio n├úo encontrado'
         } else if (error.message.includes('Email not confirmed') || error.message.includes('email not confirmed')) {
-          message = 'Email não confirmado. Por favor, verifique sua caixa de entrada.'
+          message = 'Email n├úo confirmado. Por favor, verifique sua caixa de entrada.'
           needsEmailConfirmation = true
         } else {
           message = error.message
@@ -401,7 +401,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const setGooglePassword = async (password: string) => {
     if (!user) {
-      return { error: { message: 'Utilizador não autenticado.' } }
+      return { error: { message: 'Utilizador n├úo autenticado.' } }
     }
 
     try {
@@ -437,7 +437,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { user_type, province_id, municipality_id, full_name, identity_document, phone, password, email, referred_by_agent_id } = userData
     
     if (!email) {
-      return { error: { message: 'Email é obrigatório' } }
+      return { error: { message: 'Email ├® obrigat├│rio' } }
     }
     
     try {
@@ -469,12 +469,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: { message: error.message }, data: null }
       }
 
-      // Triggers automáticos criam: perfil, carteira, código agente, referral
+      // Triggers autom├íticos criam: perfil, carteira, c├│digo agente, referral
 
       return { error: null, data: data ? { user: data.user } : null }
     } catch (error: unknown) {
       console.error('Erro no registro:', error)
       return { error: { message: getErrorMessage(error) }, data: null }
+    }
+  }
+
+  const signInWithGoogle = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/completar-perfil`,
+          queryParams: { access_type: 'offline', prompt: 'consent' },
+        },
+      })
+      if (error) {
+        toast({ title: 'Erro Google', description: error.message, variant: 'destructive' })
+      }
+      return { error }
+    } catch (err: any) {
+      return { error: err }
     }
   }
 
@@ -528,6 +546,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     completePendingGoogleOnboarding,
     setGooglePassword,
     register,
+    signInWithGoogle,
     logout,
     verifyEmail,
     resendVerification,

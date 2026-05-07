@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   User, CreditCard, Mail, Lock, Eye, EyeOff,
-  UserPlus, ShieldCheck, ArrowRight, Check, X, ChevronDown, Chrome
+  UserPlus, ShieldCheck, ArrowRight, Check, X, ChevronDown
 } from "lucide-react";
 import { getProvincesForCountry, getProvinceLabel, getMunicipalityLabel } from "@/data/country-locations";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,15 +16,7 @@ import { toast } from "@/hooks/use-toast";
 import { CountryPhoneInput, countries, Country } from "@/components/CountryPhoneInput";
 import { changeLanguage, getSavedCountry } from "@/i18n";
 
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Erro inesperado ao criar conta.";
-};
-
-// ─── Design Tokens ────────────────────────────────────────────────────────────
+// ÔöÇÔöÇÔöÇ Design Tokens ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 const T = {
   // Greens
   g900: '#1A3D20',
@@ -36,7 +28,7 @@ const T = {
   g50:  '#F2FAF3',
   gBorder: '#C8E6CA',
 
-  // Gold / Earth — primary accent
+  // Gold / Earth ÔÇö primary accent
   gold:       '#A0722A',
   goldMid:    '#C9922A',
   goldDark:   '#7A5520',
@@ -60,7 +52,7 @@ const T = {
   shadowLg: '0 8px 40px rgba(160,114,42,0.16)',
 }
 
-// ─── Native Select (fixes mobile scroll-to-top bug) ──────────────────────────
+// ÔöÇÔöÇÔöÇ Native Select (fixes mobile scroll-to-top bug) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 const NativeSelect = ({
   value, onChange, placeholder, options, disabled = false
 }: {
@@ -116,7 +108,7 @@ const NativeSelect = ({
   </div>
 );
 
-// ─── Shared input style ───────────────────────────────────────────────────────
+// ÔöÇÔöÇÔöÇ Shared input style ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 const inputStyle: React.CSSProperties = {
   height: '52px',
   borderRadius: '14px',
@@ -148,11 +140,17 @@ const FieldLabel = ({ children }: { children: React.ReactNode }) => (
   </label>
 );
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ÔöÇÔöÇÔöÇ Component ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 const Registration = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { register, signInWithGoogle, user } = useAuth();
+  const { register, user, signInWithGoogle } = useAuth();
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleGoogleSignUp = async () => {
+    setGoogleLoading(true);
+    try { await signInWithGoogle(); } finally { setGoogleLoading(false); }
+  };
 
   const [selectedProvince, setSelectedProvince] = useState("");
   const [selectedMunicipality, setSelectedMunicipality] = useState("");
@@ -171,7 +169,6 @@ const Registration = () => {
   const [agentCode, setAgentCode] = useState("");
   const [validatingCode, setValidatingCode] = useState(false);
   const [agentCodeValid, setAgentCodeValid] = useState<boolean | null>(null);
-  const [googleLoading, setGoogleLoading] = useState(false);
 
   const [selectedCountry, setSelectedCountry] = useState<Country>(() => {
     const savedCode = getSavedCountry();
@@ -207,17 +204,17 @@ const Registration = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) { setErrorMessage("As senhas não coincidem."); return; }
+    if (password !== confirmPassword) { setErrorMessage("As senhas n├úo coincidem."); return; }
     if (!email || !phone) return;
     if (wasReferred === 'sim' && !agentCodeValid) {
-      setErrorMessage("Código de agente inválido. Verifique e tente novamente.");
+      setErrorMessage("C├│digo de agente inv├ílido. Verifique e tente novamente.");
       return;
     }
     setLoading(true);
     setErrorMessage("");
     try {
       const fullPhone = `${selectedCountry.dialCode} ${phone}`;
-      const { error, data } = await register({
+      const { error } = await register({
         email, phone: fullPhone, password,
         full_name: fullName,
         identity_document: identityDocument,
@@ -228,31 +225,17 @@ const Registration = () => {
       });
       if (error) {
         setErrorMessage(error.message?.includes('already registered')
-          ? "Este email já está registrado. Tente fazer login."
-          : error.message || "Não foi possível criar a conta.");
+          ? "Este email j├í est├í registrado. Tente fazer login."
+          : error.message || "N├úo foi poss├¡vel criar a conta.");
         return;
       }
-
-      if (data?.user?.email_confirmed_at) {
-        toast({ title: "Conta criada com sucesso!", description: "Bem-vindo ao AgriLink." });
-        navigate('/app', { replace: true });
-        return;
-      }
-
-      toast({
-        title: "Conta criada com sucesso!",
-        description: "Verifique o seu email para ativar a conta.",
-      });
-      navigate(`/confirmar-email?pending=1&email=${encodeURIComponent(email)}`, { replace: true });
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error));
+      toast({ title: "Conta criada com sucesso!", description: "Bem-vindo ao AgriLink." });
+      navigate('/app', { replace: true });
+    } catch (error: any) {
+      setErrorMessage(error?.message || "Erro inesperado ao criar conta.");
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleGoogleSignup = () => {
-    navigate('/escolher-tipo-conta');
   };
 
   const userTypeOptions = [
@@ -518,24 +501,24 @@ const Registration = () => {
                   />
                 </div>
 
-                {/* Province — native select */}
+                {/* Province ÔÇö native select */}
                 <div className="field-group" style={{ animationDelay: '0.16s' }}>
-                  <FieldLabel>{provinceLabel || 'Província'}</FieldLabel>
+                  <FieldLabel>{provinceLabel || 'Prov├¡ncia'}</FieldLabel>
                   <NativeSelect
                     value={selectedProvince}
                     onChange={v => { setSelectedProvince(v); setSelectedMunicipality(""); }}
-                    placeholder={t('registration.selectProvince') || 'Selecionar província'}
+                    placeholder={t('registration.selectProvince') || 'Selecionar prov├¡ncia'}
                     options={availableProvinces}
                   />
                 </div>
 
-                {/* Municipality — native select */}
+                {/* Municipality ÔÇö native select */}
                 <div className="field-group" style={{ animationDelay: '0.18s' }}>
-                  <FieldLabel>{municipalityLabel || 'Município'}</FieldLabel>
+                  <FieldLabel>{municipalityLabel || 'Munic├¡pio'}</FieldLabel>
                   <NativeSelect
                     value={selectedMunicipality}
                     onChange={setSelectedMunicipality}
-                    placeholder={t('registration.selectMunicipality') || 'Selecionar município'}
+                    placeholder={t('registration.selectMunicipality') || 'Selecionar munic├¡pio'}
                     options={availableMunicipalities}
                     disabled={!selectedProvince}
                   />
@@ -550,7 +533,7 @@ const Registration = () => {
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={e => setPassword(e.target.value)}
-                      placeholder="••••••••"
+                      placeholder="ÔÇóÔÇóÔÇóÔÇóÔÇóÔÇóÔÇóÔÇó"
                       style={{ ...inputStyle, paddingRight: '48px' }}
                       required
                     />
@@ -572,7 +555,7 @@ const Registration = () => {
                       type={showConfirmPassword ? "text" : "password"}
                       value={confirmPassword}
                       onChange={e => setConfirmPassword(e.target.value)}
-                      placeholder="••••••••"
+                      placeholder="ÔÇóÔÇóÔÇóÔÇóÔÇóÔÇóÔÇóÔÇó"
                       style={{ ...inputStyle, paddingRight: '48px' }}
                       required
                     />
@@ -613,7 +596,7 @@ const Registration = () => {
                         {wasReferred === v && <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: T.white }} />}
                       </div>
                       <span style={{ fontSize: 14, fontWeight: 700, color: T.mid }}>
-                        {v === 'nao' ? 'Não' : 'Sim'}
+                        {v === 'nao' ? 'N├úo' : 'Sim'}
                       </span>
                     </label>
                   ))}
@@ -623,7 +606,7 @@ const Registration = () => {
                   <div style={{ marginTop: 16 }}>
                     <div style={{ position: 'relative' }}>
                       <input
-                        placeholder="Código de 6 dígitos"
+                        placeholder="C├│digo de 6 d├¡gitos"
                         value={agentCode}
                         onChange={e => {
                           const val = e.target.value.toUpperCase().slice(0, 6);
@@ -659,7 +642,7 @@ const Registration = () => {
                     </div>
                     {agentCodeValid === false && (
                       <p style={{ fontSize: 11, fontWeight: 700, color: '#dc2626', marginTop: 6, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                        Código inválido
+                        C├│digo inv├ílido
                       </p>
                     )}
                   </div>
@@ -690,51 +673,42 @@ const Registration = () => {
                 <ArrowRight style={{ width: 20, height: 20 }} />
               </button>
 
-              <div style={{ position: 'relative', margin: '4px 0', display: 'flex', alignItems: 'center' }}>
+              {/* Divider */}
+              <div style={{ display: 'flex', alignItems: 'center', margin: '4px 0' }}>
                 <div style={{ flex: 1, height: 1, backgroundColor: T.rule }} />
                 <span style={{
-                  padding: '0 14px',
-                  fontSize: 10,
-                  fontWeight: 900,
-                  letterSpacing: '0.18em',
-                  textTransform: 'uppercase',
-                  color: T.faint,
-                  backgroundColor: T.white,
-                }}>
-                  Ou
-                </span>
+                  padding: '0 14px', fontSize: 10, fontWeight: 900,
+                  letterSpacing: '0.18em', textTransform: 'uppercase', color: T.faint,
+                }}>Ou</span>
                 <div style={{ flex: 1, height: 1, backgroundColor: T.rule }} />
               </div>
 
+              {/* Google Sign-up */}
               <button
                 type="button"
-                onClick={handleGoogleSignup}
-                disabled={googleLoading || loading}
+                onClick={handleGoogleSignUp}
+                disabled={googleLoading}
                 style={{
-                  width: '100%',
-                  height: 52,
-                  borderRadius: 16,
-                  border: `1.5px solid ${T.rule}`,
-                  backgroundColor: T.white,
-                  color: T.ink,
-                  fontSize: 14,
-                  fontWeight: 800,
-                  cursor: googleLoading || loading ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  opacity: googleLoading || loading ? 0.6 : 1,
+                  width: '100%', height: 52, borderRadius: 16,
+                  border: `1.5px solid ${T.rule}`, backgroundColor: T.white,
+                  color: T.ink, fontSize: 14, fontWeight: 800,
+                  cursor: googleLoading ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
                 }}
               >
-                <Chrome style={{ width: 18, height: 18 }} />
-                {googleLoading ? 'A redirecionar...' : 'Cadastrar com Google'}
+                <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                  <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.4-.4-3.5z"/>
+                  <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16.1 19 13 24 13c3 0 5.7 1.1 7.8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.4 6.3 14.7z"/>
+                  <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.5-5.2l-6.2-5.2c-2 1.4-4.5 2.4-7.3 2.4-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.6 39.5 16.2 44 24 44z"/>
+                  <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.6l6.2 5.2c-.4.4 6.7-4.9 6.7-14.8 0-1.2-.1-2.4-.4-3.5z"/>
+                </svg>
+                {googleLoading ? 'A conectar...' : 'Continuar com Google'}
               </button>
 
               <p style={{ textAlign: 'center', fontSize: 14, color: T.muted, fontWeight: 500, margin: 0 }}>
-                Já tem uma conta?{' '}
+                J├í tem uma conta?{' '}
                 <Link to="/login" style={{ color: T.g600, fontWeight: 900, textDecoration: 'none' }}>
-                  Faça Login
+                  Fa├ºa Login
                 </Link>
               </p>
             </form>
@@ -742,7 +716,7 @@ const Registration = () => {
         </div>
 
         <p style={{ textAlign: 'center', marginTop: 24, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.faint }}>
-          © 2025 AgriLink Lda • Produção Sustentável
+          ┬® 2025 AgriLink Lda ÔÇó Produ├º├úo Sustent├ível
         </p>
       </div>
     </div>

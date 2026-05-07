@@ -13,6 +13,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import agrilinkLogo from '@/assets/agrilink-logo.png'
 import orbisLinkLogo from '@/assets/orbislink-logo.png'
+import { PRODUCT_CATEGORIES } from '@/lib/productCategories'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
 import mapboxgl from 'mapbox-gl';
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
@@ -26,6 +28,7 @@ const PublishProduct = () => {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     product_type: '',
+    category: '',
     quantity: '',
     harvest_date: '',
     price: '',
@@ -92,6 +95,26 @@ const PublishProduct = () => {
     };
   }, [mapContainer, mapboxToken]);
 
+  const emailConfirmed = !!(user as any)?.email_confirmed_at || !!userProfile?.email_verified;
+  if (user && !emailConfirmed) {
+    return (
+      <div className="min-h-screen bg-background p-4 flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="p-6 text-center">
+            <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h2 className="text-xl font-semibold mb-2">E-mail não confirmado</h2>
+            <p className="text-muted-foreground mb-4">
+              Confirme o seu e-mail para poder publicar produtos. Sem confirmação, o seu acesso é apenas de visualização.
+            </p>
+            <Button onClick={() => navigate('/confirmar-email')} className="w-full">
+              Confirmar E-mail
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (userProfile?.user_type === 'comprador') {
     return (
       <div className="min-h-screen bg-background p-4 flex items-center justify-center">
@@ -142,6 +165,11 @@ const PublishProduct = () => {
       return;
     }
 
+    if (!formData.category) {
+      toast({ title: "Categoria obrigatória", description: "Selecione uma categoria para o produto", variant: "destructive" });
+      return;
+    }
+
     const harvestDate = new Date(formData.harvest_date);
     const minDate = new Date();
     minDate.setDate(minDate.getDate() + 30);
@@ -164,9 +192,10 @@ const PublishProduct = () => {
         uploadedUrls.push(publicUrl);
       }
 
-     const { error } = await supabase.from('products').insert({
+     const { data: inserted, error } = await supabase.from('products').insert({
   user_id: user.id,
   product_type: formData.product_type,
+  category: formData.category,
   quantity: parseFloat(formData.quantity),
   harvest_date: formData.harvest_date,
   price: parseFloat(formData.price),
@@ -176,16 +205,23 @@ const PublishProduct = () => {
   contact: formData.contact,
   description: formData.description,
   logistics_access: formData.logistics_access as 'sim' | 'nao' | 'parcial',
-  status: 'active',
+  status: 'pending_approval',
   photos: uploadedUrls,
   location_lat: location?.lat || null,
   location_lng: location?.lng || null
-});
+}).select('id').single();
 
 
       if (error) throw error;
 
-      toast({ title: "Produto publicado!", description: "Seu produto foi publicado com sucesso e já está visível para compradores." });
+      // Trigger AI verification against fichas técnicas (fire-and-forget)
+      if (inserted?.id) {
+        supabase.functions.invoke('verify-product-ficha', {
+          body: { product_id: inserted.id },
+        }).catch((e) => console.error('verify error', e));
+      }
+
+      toast({ title: "Produto enviado para aprovação", description: "O seu produto foi recebido e ficará visível no feed após aprovação dos administradores." });
       navigate('/perfil');
     } catch (error: any) {
       console.error('Erro ao publicar produto:', error);
@@ -252,6 +288,36 @@ const PublishProduct = () => {
           className="pl-10"
           required
         />
+      </div>
+    </div>
+
+    {/* Categoria do produto (filtro do feed) */}
+    <div className="space-y-2">
+      <Label>Categoria</Label>
+      <p className="text-xs text-muted-foreground">
+        Esta categoria define em que filtro o produto aparecerá no feed.
+      </p>
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+        {PRODUCT_CATEGORIES.map((c) => {
+          const active = formData.category === c.id;
+          return (
+            <button
+              type="button"
+              key={c.id}
+              onClick={() => setFormData((prev) => ({ ...prev, category: c.id }))}
+              className="flex flex-col items-center justify-center gap-1 rounded-xl py-3 px-2 border transition-all"
+              style={{
+                background: active ? c.color : '#fff',
+                color: active ? '#fff' : '#1A1A1A',
+                borderColor: active ? c.color : '#E5EDE6',
+                boxShadow: active ? `0 4px 12px ${c.color}40` : 'none',
+              }}
+            >
+              <FontAwesomeIcon icon={c.icon} style={{ fontSize: 18, color: active ? '#fff' : c.color }} />
+              <span className="text-[11px] font-semibold">{c.label}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
 

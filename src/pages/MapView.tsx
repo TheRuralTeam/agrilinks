@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import axios from 'axios';
 
-/* ─── Design tokens — B2B / League Spartan (shared system) ─────────────────── */
+/* ÔöÇÔöÇÔöÇ Design tokens ÔÇö B2B / League Spartan (shared system) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 const T = {
   g950:    '#061A09',
   g900:    '#0A2310',
@@ -52,7 +52,7 @@ const T = {
 
 const FONT = "'League Spartan', 'Helvetica Neue', Arial, sans-serif"
 
-/* ─── Types ────────────────────────────────────────────────────────────────── */
+/* ÔöÇÔöÇÔöÇ Types ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 interface Product {
   id: string; product_type: string; quantity: number; harvest_date: string
   price: number; province_id: string; municipality_id: string
@@ -76,7 +76,7 @@ interface FilterOptions {
   userType: 'all' | 'farmers' | 'buyers'
 }
 
-/* ─── Shared micro components ────────────────────────────────────────────────── */
+/* ÔöÇÔöÇÔöÇ Shared micro components ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 
 const Label = ({ children }: { children: React.ReactNode }) => (
   <span style={{ fontSize: 9, fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: FONT }}>
@@ -96,7 +96,7 @@ const IconBox = ({ icon, size = 30, bg = T.g700, iconColor = T.white }: { icon: 
   </div>
 )
 
-/* ─── Product Card (map popup) ────────────────────────────────────────────────── */
+/* ÔöÇÔöÇÔöÇ Product Card (map popup) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 interface ProductCardProps {
   product: Product; onClose: () => void
   onContact: (p: Product) => void; onFavorite: (id: string) => void
@@ -175,7 +175,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onContact, 
           <div style={{ padding: '12px 14px', borderRadius: 10, background: T.g50, border: `1px solid ${T.gBorder}`, marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
               <div>
-                <Label>Preço Total</Label>
+                <Label>Pre├ºo Total</Label>
                 <div style={{ fontFamily: FONT, fontSize: 22, fontWeight: 900, color: T.g700, letterSpacing: '-0.04em', lineHeight: 1.1 }}>
                   {product.price.toLocaleString()} <span style={{ fontSize: 11, fontWeight: 600, color: T.faint }}>Kz</span>
                 </div>
@@ -192,7 +192,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onContact, 
           {/* Location + Date */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
             {[
-              { icon: <MapPin size={11}/>, label: 'Localização', value: product.municipality_id },
+              { icon: <MapPin size={11}/>, label: 'Localiza├º├úo', value: product.municipality_id },
               { icon: <Calendar size={11}/>, label: 'Colheita', value: new Date(product.harvest_date).toLocaleDateString('pt-AO', { day: '2-digit', month: 'short' }) },
             ].map(item => (
               <div key={item.label} style={{ padding: '9px 11px', borderRadius: 9, background: T.surface, border: `1px solid ${T.rule}` }}>
@@ -210,11 +210,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onContact, 
             <div style={{ padding: '11px 13px', borderRadius: 10, background: T.blueBg, border: `1px solid #BFDBFE`, marginBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
                 <Cloud size={13} color={T.blue}/>
-                <Label>Condições Meteorológicas</Label>
+                <Label>Condi├º├Áes Meteorol├│gicas</Label>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
                 {[
-                  { label: 'Temp.', value: `${Math.round(product.weatherData.main?.temp || 0)}°C` },
+                  { label: 'Temp.', value: `${Math.round(product.weatherData.main?.temp || 0)}┬░C` },
                   { label: 'Humid.', value: `${product.weatherData.main?.humidity}%` },
                   { label: 'Vento', value: `${Math.round(product.weatherData.wind?.speed || 0)} m/s` },
                 ].map(w => (
@@ -294,12 +294,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onContact, 
   )
 }
 
-/* ─── Stats Panel ────────────────────────────────────────────────────────────── */
+/* ÔöÇÔöÇÔöÇ Stats Panel ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 const StatsPanel: React.FC<{ count: number; avgPrice: number; totalQuantity: number }> = ({ count, avgPrice, totalQuantity }) => (
   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
     {[
       { label: 'Produtos', value: count, color: T.g700 },
-      { label: 'Preço Médio', value: `${avgPrice.toLocaleString()}`, color: T.accent },
+      { label: 'Pre├ºo M├®dio', value: `${avgPrice.toLocaleString()}`, color: T.accent },
       { label: 'Total (kg)', value: totalQuantity.toLocaleString(), color: T.gold },
     ].map(s => (
       <div key={s.label} style={{ padding: '10px 9px', borderRadius: 9, background: T.white, border: `1px solid ${T.rule}`, textAlign: 'center' }}>
@@ -310,7 +310,7 @@ const StatsPanel: React.FC<{ count: number; avgPrice: number; totalQuantity: num
   </div>
 )
 
-/* ─── Header icon button ─────────────────────────────────────────────────────── */
+/* ÔöÇÔöÇÔöÇ Header icon button ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
 const HdrBtn = ({ icon, onClick, title, active = false }: { icon: React.ReactNode; onClick?: () => void; title: string; active?: boolean }) => (
   <button
     title={title} onClick={onClick}
@@ -328,9 +328,9 @@ const HdrBtn = ({ icon, onClick, title, active = false }: { icon: React.ReactNod
   </button>
 )
 
-/* ════════════════════════════════════════════════════════════════════════════
+/* ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
    MAIN COMPONENT
-   ════════════════════════════════════════════════════════════════════════════ */
+   ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ */
 const MapView = () => {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
@@ -408,7 +408,7 @@ const MapView = () => {
   /* Init map */
   useEffect(() => {
     if (!mapContainer.current || !mapboxToken) return
-    if (!mapboxgl.supported()) { setMapError('O seu browser não suporta o mapa.'); return }
+    if (!mapboxgl.supported()) { setMapError('O seu browser n├úo suporta o mapa.'); return }
     try {
       mapboxgl.accessToken = mapboxToken
       map.current = new mapboxgl.Map({
@@ -437,7 +437,7 @@ const MapView = () => {
       if (product.location_lat && product.location_lng) {
         const el = document.createElement('div')
         el.style.cssText = `width:36px;height:36px;cursor:pointer;background:${T.g700};border:2.5px solid white;border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(22,82,32,0.35);transition:transform 0.15s;font-size:16px;`
-        el.innerHTML = '🌾'
+        el.innerHTML = '­ƒî¥'
         el.title = product.product_type
         el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.15)' })
         el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)' })
@@ -472,7 +472,7 @@ const MapView = () => {
       {/* Map */}
       <div ref={mapContainer} style={{ position: 'absolute', inset: 0 }}/>
 
-      {/* ══ HEADER ════════════════════════════════════════════════════════════ */}
+      {/* ÔòÉÔòÉ HEADER ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ */}
       <header style={{
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30,
         background: T.g900,
@@ -496,7 +496,7 @@ const MapView = () => {
               </div>
               <div>
                 <p style={{ fontSize: 13, fontWeight: 800, color: T.white, margin: 0, letterSpacing: '-0.02em', textTransform: 'uppercase', fontFamily: FONT }}>Mapa de Produtos</p>
-                <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', margin: 0, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT }}>AgriLink · Explore</p>
+                <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', margin: 0, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT }}>AgriLink ┬À Explore</p>
               </div>
             </div>
           </div>
@@ -524,7 +524,7 @@ const MapView = () => {
         </div>
       </header>
 
-      {/* ══ SEARCH BAR ═════════════════════════════════════════════════════════ */}
+      {/* ÔòÉÔòÉ SEARCH BAR ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ */}
       <div style={{ position: 'absolute', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 30, width: '90%', maxWidth: 600 }}>
         <div style={{ background: T.white, borderRadius: 12, border: `1px solid ${T.rule}`, boxShadow: `0 8px 32px ${T.shadowMd}`, overflow: 'hidden' }}>
           {/* Input */}
@@ -536,7 +536,7 @@ const MapView = () => {
               type="text"
               value={searchText}
               onChange={e => handleSearch(e.target.value)}
-              placeholder="Pesquisar localização, produto..."
+              placeholder="Pesquisar localiza├º├úo, produto..."
               style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 13, color: T.ink, fontFamily: FONT, fontWeight: 500 }}
             />
             {searchLoading && (
@@ -551,7 +551,7 @@ const MapView = () => {
 
           {/* Quick filters */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '0 14px 10px', overflowX: 'auto' }}>
-            {['Milho', 'Feijão', 'Banana', 'Mandioca'].map(item => (
+            {['Milho', 'Feij├úo', 'Banana', 'Mandioca'].map(item => (
               <button
                 key={item}
                 onClick={() => setFilters({ ...filters, productType: filters.productType === item ? '' : item })}
@@ -608,7 +608,7 @@ const MapView = () => {
         )}
       </div>
 
-      {/* ══ FILTERS PANEL ══════════════════════════════════════════════════════ */}
+      {/* ÔòÉÔòÉ FILTERS PANEL ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ */}
       {showFilters && (
         <div style={{
           position: 'absolute', top: 70, left: 20, zIndex: 40,
@@ -623,7 +623,7 @@ const MapView = () => {
               <div style={{ width: 28, height: 28, borderRadius: 7, background: T.g700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Filter size={13} color={T.g200}/>
               </div>
-              <span style={{ fontSize: 12, fontWeight: 800, color: T.white, fontFamily: FONT, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Filtros Avançados</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: T.white, fontFamily: FONT, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Filtros Avan├ºados</span>
             </div>
             <button onClick={() => setShowFilters(false)} style={{ width: 26, height: 26, borderRadius: 6, background: 'rgba(255,255,255,0.10)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <X size={12} color="rgba(255,255,255,0.7)"/>
@@ -641,7 +641,7 @@ const MapView = () => {
               </div>
               <input
                 type="text"
-                placeholder="Ex: Milho, Feijão..."
+                placeholder="Ex: Milho, Feij├úo..."
                 value={filters.productType}
                 onChange={e => setFilters({ ...filters, productType: e.target.value })}
                 style={{ width: '100%', height: 38, borderRadius: 8, border: `1.5px solid ${T.rule}`, padding: '0 12px', fontSize: 12, outline: 'none', background: T.surface, color: T.ink, fontFamily: FONT, boxSizing: 'border-box', transition: 'border-color 0.15s' }}
@@ -654,7 +654,7 @@ const MapView = () => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                 <DollarSign size={11} color={T.g600}/>
-                <Label>Preço Máximo</Label>
+                <Label>Pre├ºo M├íximo</Label>
               </div>
               <div style={{ padding: '12px', borderRadius: 9, background: T.surface, border: `1px solid ${T.rule}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -719,7 +719,7 @@ const MapView = () => {
         </div>
       )}
 
-      {/* ══ PRODUCTS LIST PANEL ════════════════════════════════════════════════ */}
+      {/* ÔòÉÔòÉ PRODUCTS LIST PANEL ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ */}
       {showProductsList && (
         <div style={{
           position: 'absolute', bottom: 24, left: 20, zIndex: 30,
@@ -771,14 +771,14 @@ const MapView = () => {
                   <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', background: T.g50, border: `1px solid ${T.gBorder}`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {p.image_url
                       ? <img src={p.image_url} alt={p.product_type} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
-                      : <span style={{ fontSize: 22 }}>🌾</span>
+                      : <span style={{ fontSize: 22 }}>­ƒî¥</span>
                     }
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 800, color: T.ink, fontFamily: FONT, letterSpacing: '-0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 3 }}>{p.product_type}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{ fontSize: 12, fontWeight: 700, color: T.g700, fontFamily: FONT }}>{p.price.toLocaleString()} Kz</span>
-                      <span style={{ color: T.rule }}>·</span>
+                      <span style={{ color: T.rule }}>┬À</span>
                       <span style={{ fontSize: 11, color: T.faint, fontFamily: FONT }}>{p.quantity} kg</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>

@@ -227,11 +227,11 @@ const NotificationToast: React.FC<NotificationToastProps> = ({
 const Notifications = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const pushNotifications = usePushNotifications();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [toastNotifications, setToastNotifications] = useState<ToastNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [pushEnabled] = useState(false);
   const soundManagerRef = useRef<SoundManager>(new SoundManager());
 
   const fetchNotifications = useCallback(async () => {
@@ -388,6 +388,58 @@ const Notifications = () => {
           </div>
         </div>
       </header>
+
+      {/* Push Notification Banner */}
+      {pushNotifications.isSupported && !pushNotifications.isSubscribed && (
+        <div className="max-w-3xl mx-auto px-4 pt-4">
+          <Card style={{ background: `linear-gradient(135deg, ${T.g900}, ${T.g600})`, border: 'none', borderRadius: 16 }} className="overflow-hidden">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                <Bell className="h-5 w-5" style={{ color: T.white }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-sm" style={{ color: T.white }}>Activar Notificações Push</h3>
+                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                  Receba alertas mesmo quando o browser estiver fechado.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => pushNotifications.subscribe()}
+                disabled={pushNotifications.isLoading}
+                style={{ background: T.white, color: T.g900, fontWeight: 700, fontSize: 12, borderRadius: 10 }}
+              >
+                Activar
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {pushNotifications.isSupported && pushNotifications.isSubscribed && (
+        <div className="max-w-3xl mx-auto px-4 pt-4">
+          <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: T.g50, border: `1px solid ${T.gBorder}` }}>
+            <CheckCircle className="h-4 w-4" style={{ color: T.g900 }} />
+            <span className="text-xs font-semibold" style={{ color: T.g900 }}>Notificações push activas</span>
+            <button
+              onClick={() => pushNotifications.unsubscribe()}
+              className="ml-auto text-xs underline"
+              style={{ color: T.muted }}
+            >
+              Desactivar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {pushNotifications.error && (
+        <div className="max-w-3xl mx-auto px-4 pt-2">
+          <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+            <AlertCircle className="h-4 w-4" style={{ color: '#DC2626' }} />
+            <span className="text-xs" style={{ color: '#DC2626' }}>{pushNotifications.error}</span>
+          </div>
+        </div>
+      )}
 
       {/* Lista de Notificações */}
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">

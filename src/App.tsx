@@ -35,10 +35,15 @@ import UserProfile from "./pages/UserProfile";
 import B2BProfile from "./pages/B2BProfile";
 import ChooseAccountType from "./pages/ChooseAccountType";
 import SetGooglePassword from "./pages/SetGooglePassword";
+import CompletarPerfil from "./pages/CompletarPerfil";
+import PublicProductLocation from "./pages/PublicProductLocation";
 
 const queryClient = new QueryClient();
 
-const isEmailConfirmed = (user: User | null) => Boolean(user?.email_confirmed_at)
+const isEmailConfirmed = (user: User | null) => Boolean(user?.email_confirmed_at);
+
+const isProfileComplete = (p: any) =>
+  !!(p && p.user_type && p.identity_document && p.province_id && p.municipality_id);
 
 // OAuth callback handler – processes PKCE/implicit token at the root URL
 const OAuthCallbackHandler = () => {
@@ -57,16 +62,14 @@ const OAuthCallbackHandler = () => {
     if (!user) return;
 
     const hasPending = localStorage.getItem('pendingGoogleOnboarding');
-    if (!hasPending) return; // no pending data – let render logic handle redirect
+    if (!hasPending) return;
 
-    // If user already has a profile (returning user), just clear pending data and go to /app
     if (userProfile) {
       localStorage.removeItem('pendingGoogleOnboarding');
       setDone(true);
       return;
     }
 
-    // New user: create profile from pending onboarding data
     setCompleting(true);
     completePendingGoogleOnboarding(user).then(({ completed }) => {
       setDone(completed);
@@ -74,7 +77,6 @@ const OAuthCallbackHandler = () => {
     });
   }, [user, loading, profileLoading, userProfile, completing, done, completePendingGoogleOnboarding]);
 
-  // Show spinner while auth, profile, or onboarding completion is in progress
   if (loading || profileLoading || completing) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -88,12 +90,7 @@ const OAuthCallbackHandler = () => {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  // Profile was just created from pending onboarding data OR already existed
   if (done || userProfile) {
-    if (user?.user_metadata?.google_password_set === true) {
-      localStorage.removeItem(GOOGLE_PASSWORD_SETUP_REQUIRED_KEY);
-    }
-
     if (user?.user_metadata?.google_password_set === true) {
       localStorage.removeItem(GOOGLE_PASSWORD_SETUP_REQUIRED_KEY);
     }
@@ -105,12 +102,19 @@ const OAuthCallbackHandler = () => {
     return <Navigate to="/app" replace />;
   }
 
-  // No pending data and no profile → go to account setup
   return <Navigate to="/escolher-tipo-conta" replace />;
 };
 
-// Protected Route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+// Protected Route component — combina lógica do HEAD + props allowIncomplete/allowUnverified da IA
+const ProtectedRoute = ({
+  children,
+  allowIncomplete = false,
+  allowUnverified = false,
+}: {
+  children: React.ReactNode;
+  allowIncomplete?: boolean;
+  allowUnverified?: boolean;
+}) => {
   const { user, loading, profileLoading, userProfile } = useAuth();
 
   if (loading) {
@@ -126,12 +130,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  if (!isEmailConfirmed(user)) {
-    const email = user.email ? `&email=${encodeURIComponent(user.email)}` : ""
+  // Verificação de email
+  const emailConfirmed = isEmailConfirmed(user) || !!userProfile?.email_verified;
+  if (!allowUnverified && !emailConfirmed) {
+    const email = user.email ? `&email=${encodeURIComponent(user.email)}` : "";
     return <Navigate to={`/confirmar-email?pending=1${email}`} replace />;
   }
 
-  // Wait for profile to load before deciding if user needs to set up account
+  // Aguarda carregamento do perfil antes de decidir redirecionamento
   if (profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -143,8 +149,13 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  // OAuth user with no profile → send to account setup
+  // Sem perfil → enviar para criação de conta
   if (!userProfile) return <Navigate to="/escolher-tipo-conta" replace />;
+
+  // Perfil incompleto → enviar para completar perfil (a menos que allowIncomplete=true)
+  if (!allowIncomplete && !isProfileComplete(userProfile)) {
+    return <Navigate to="/completar-perfil" replace />;
+  }
 
   return <>{children}</>;
 };
@@ -153,12 +164,10 @@ const AppRoutes = () => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  // Handle OAuth callback: PKCE usually sends ?code=, implicit sends #access_token.
-  // Also support legacy Google redirects landing on /confirmar-email?oauth=google.
-  const isPKCECallback = location.search.includes('code=')
-  const isImplicitCallback = location.hash.includes('access_token=')
+  const isPKCECallback = location.search.includes('code=');
+  const isImplicitCallback = location.hash.includes('access_token=');
   const isLegacyGoogleOauthRoute =
-    location.pathname === '/confirmar-email' && location.search.includes('oauth=google')
+    location.pathname === '/confirmar-email' && location.search.includes('oauth=google');
 
   if (isPKCECallback || isImplicitCallback || isLegacyGoogleOauthRoute) {
     return (
@@ -186,11 +195,10 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={rootElement} />
+      <Route path="/index" element={<Navigate to="/" replace />} />
+      <Route path="/home" element={<Navigate to="/" replace />} />
       <Route path="/site" element={<Index />} />
-      <Route
-        path="/escolher-tipo-conta"
-        element={<ChooseAccountType />}
-      />
+      <Route path="/escolher-tipo-conta" element={<ChooseAccountType />} />
       <Route
         path="/login"
         element={
@@ -206,6 +214,7 @@ const AppRoutes = () => {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/definir-senha-google" element={<SetGooglePassword />} />
       <Route path="/termos-publicidade" element={<TermsOfService />} />
+      <Route path="/produto/:id/localizacao" element={<PublicProductLocation />} />
 
       {/* App Routes */}
       <Route
@@ -278,16 +287,16 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-       <Route
-         path="/empresa/:id"
-         element={
-           <ProtectedRoute>
-             <AppLayout>
-               <B2BProfile />
-             </AppLayout>
-           </ProtectedRoute>
-         }
-       />
+      <Route
+        path="/empresa/:id"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <B2BProfile />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/suporte"
         element={
@@ -368,6 +377,14 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/completar-perfil"
+        element={
+          <ProtectedRoute allowIncomplete>
+            <CompletarPerfil />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Catch-all */}
       <Route path="*" element={<NotFound />} />
@@ -376,15 +393,13 @@ const AppRoutes = () => {
 };
 
 const App = () => {
-useEffect(() => {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.ready.then((registration) => {
-      console.log("SW já ativo:", registration);
-    });
-  }
-}, []);
-
-
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((registration) => {
+        console.log("SW já ativo:", registration);
+      });
+    }
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
