@@ -1,25 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-// ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
-// IMPORTA├ç├âO DAS FOTOS DA EQUIPE E LOGO (com fallbacks)
-// ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
-// Substitua pelos seus paths reais ou remova as importa├º├Áes e use URLs
-// Em vez de @/assets/, use ./assets/ ou ../assets/
-import orbisLinkLogo from '../assets/orbislink-logo.png';
-import fotoFeliciano from '../assets/FELICIANO.jpeg';
-import fotoMoises from '../assets/MOISES.jpeg';
-import fotoLizeth from '../assets/LIZETH.jpeg';
-import fotoClaudio from '../assets/CLAUDIO.jpeg';import comunidadeImg from '../assets/Comunidade.png';
-import comunidadeImg2 from '../assets/COMUNIDADE2.jpeg';
+// ═══════════════════════════════════════════════════════════════
+// IMPORTAÇÃO DAS FOTOS DA EQUIPE E LOGO (com fallbacks)
+// ═══════════════════════════════════════════════════════════════
+// Substitua pelos seus paths reais ou remova as importações e use URLs
+import orbisLinkLogo from '@/assets/orbislink-logo.png';
+import fotoFeliciano from '@/assets/FELICIANO.jpeg';
+import fotoMoises from '@/assets/MOISES.jpeg';
+import fotoLizeth from '@/assets/LIZETH.jpeg';
+import fotoClaudio from '@/assets/CLAUDIO.jpeg';
+const comunidadeImg = '';
+const comunidadeImg2 = '';
 
-/* ÔöÇÔöÇÔöÇ Design Tokens ÔöÇ Luxo Editorial Minimalista ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
+/* ─── Design Tokens ─ Luxo Editorial Minimalista ───────────────────────────── */
 const T = {
   ink:     '#0A0A0A',
   ink80:   '#1A1A1A',
   ink60:   '#2C2C2C',
-
-  
   mid:     '#555555',
   muted:   '#888888',
   faint:   '#BBBBBB',
@@ -42,114 +40,114 @@ const T = {
   shadowLg: '0 12px 40px rgba(0,0,0,0.08)',
 }
 
-/* ÔöÇÔöÇÔöÇ i18n ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
+/* ─── i18n ───────────────────────────────────────────────────────────────────── */
 const LANGS = {
   pt: {
     nav: { platform: 'Plataforma', models: 'Modelos', team: 'Equipa', contact: 'Contacto', login: 'Entrar', register: 'Registar' },
     hero: {
-      location: 'Luanda ┬À Torre 1 ┬À Total Energies Angola ┬À Coworking 100 Empreendedores',
+      location: 'Luanda · Torre 1 · Total Energies Angola · Coworking 100 Empreendedores',
       eyebrow: 'Mercado Agroalimentar B2B',
       title1: 'A Cadeia Alimentar',
       title2: 'Digital de Angola',
-      sub: 'Contratos digitais de compra, venda e produ├º├úo. Importa├º├úo e exporta├º├úo com rastreabilidade total. Conectamos produtores, empresas e compradores institucionais.',
-      cta1: 'Aceder ├á Plataforma',
+      sub: 'Contratos digitais de compra, venda e produção. Importação e exportação com rastreabilidade total. Conectamos produtores, empresas e compradores institucionais.',
+      cta1: 'Aceder à Plataforma',
       cta2: 'Saber Mais',
     },
     stats: [
-      { n: '3', label: 'Modelos de Neg├│cio' },
+      { n: '3', label: 'Modelos de Negócio' },
       { n: 'B2B', label: 'Plataforma Institucional' },
       { n: '100%', label: 'Contratos Digitais' },
       { n: '3', label: 'Idiomas Suportados' },
     ],
     models: {
       eyebrow: 'Como Operamos',
-      title: 'Quatro Modelos de Atua├º├úo',
-      sub: 'Escolha o modelo que melhor se adapta ao seu neg├│cio agroalimentar.',
+      title: 'Quatro Modelos de Atuação',
+      sub: 'Escolha o modelo que melhor se adapta ao seu negócio agroalimentar.',
       list: [
         { num: '01', name: 'Compra Direta', tag: 'Modelo Informal', desc: 'A AgriLink compra diretamente aos produtores e revende nos mercados informais, criando fluxo imediato de caixa para o agricultor.' },
-        { num: '02', name: 'Procurement Dedicado', tag: 'AgriLink Sourcing Premium', desc: 'Identificamos e garantimos o fornecimento de produtos espec├¡ficos para empresas. Sourcing gerido, rastreado e certificado digitalmente.' },
-        { num: '03', name: 'Produ├º├úo por Contrato', tag: 'On-Demand', desc: 'Agricultores produzem segundo fichas t├®cnicas dos fabricantes. Contratos digitais, prazos definidos e pagamento garantido ├á produ├º├úo.' },
-        { num: '04', name: 'Pr├®-Compra Digital', tag: 'Marketplace', desc: 'Adquira antecipadamente colheitas futuras. Pre├ºos fixados hoje, entrega garantida na ├®poca. Totalmente digital e rastre├ível.' },
+        { num: '02', name: 'Procurement Dedicado', tag: 'AgriLink Sourcing Premium', desc: 'Identificamos e garantimos o fornecimento de produtos específicos para empresas. Sourcing gerido, rastreado e certificado digitalmente.' },
+        { num: '03', name: 'Produção por Contrato', tag: 'On-Demand', desc: 'Agricultores produzem segundo fichas técnicas dos fabricantes. Contratos digitais, prazos definidos e pagamento garantido à produção.' },
+        { num: '04', name: 'Pré-Compra Digital', tag: 'Marketplace', desc: 'Adquira antecipadamente colheitas futuras. Preços fixados hoje, entrega garantida na época. Totalmente digital e rastreável.' },
       ],
     },
     features: {
       eyebrow: 'Infraestrutura',
-      title: 'Tecnologia ao Servi├ºo da Agricultura',
+      title: 'Tecnologia ao Serviço da Agricultura',
       list: [
-        { t: 'Contratos Digitais', d: 'Validade legal plena com rastreabilidade imut├ível em cada transa├º├úo.' },
-        { t: 'Importa├º├úo & Exporta├º├úo', d: 'Opera├º├Áes transfronteiri├ºas com documenta├º├úo integrada e certificada.' },
-        { t: 'Mercado de Futuros', d: 'Pre├ºos e volumes negociados antecipadamente com seguran├ºa jur├¡dica.' },
+        { t: 'Contratos Digitais', d: 'Validade legal plena com rastreabilidade imutável em cada transação.' },
+        { t: 'Importação & Exportação', d: 'Operações transfronteiriças com documentação integrada e certificada.' },
+        { t: 'Mercado de Futuros', d: 'Preços e volumes negociados antecipadamente com segurança jurídica.' },
         { t: 'Plataforma B2B', d: 'Desenhada para empresas, cooperativas e distribuidores institucionais.' },
       ],
     },
     team: {
-      eyebrow: 'Lideran├ºa',
+      eyebrow: 'Liderança',
       title: 'A Nossa Equipa',
-      sub: 'Profissionais com vis├úo de longo prazo construindo a infraestrutura digital do agroneg├│cio angolano.',
+      sub: 'Profissionais com visão de longo prazo construindo a infraestrutura digital do agronegócio angolano.',
     },
     cta: {
-      eyebrow: 'Pr├│ximo Passo',
+      eyebrow: 'Próximo Passo',
       title: 'Pronto para Transformar a sua Cadeia Agroalimentar?',
-      sub: 'Junte-se ├á plataforma que est├í a digitalizar o agroneg├│cio em ├üfrica.',
-      btn: 'Come├ºar Agora',
+      sub: 'Junte-se à plataforma que está a digitalizar o agronegócio em África.',
+      btn: 'Começar Agora',
     },
-    footer: { rights: '┬® 2025 AgriLink Lda. Todos os direitos reservados.' },
+    footer: { rights: '© 2025 AgriLink Lda. Todos os direitos reservados.' },
   },
   fr: {
-    nav: { platform: 'Plateforme', models: 'Mod├¿les', team: '├ëquipe', contact: 'Contact', login: 'Connexion', register: "S'inscrire" },
+    nav: { platform: 'Plateforme', models: 'Modèles', team: 'Équipe', contact: 'Contact', login: 'Connexion', register: "S'inscrire" },
     hero: {
-      location: 'Luanda ┬À Tour 1 ┬À Total Energies Angola ┬À Coworking 100 Entrepreneurs',
-      eyebrow: 'March├® Agroalimentaire B2B',
-      title1: "La Cha├«ne Alimentaire",
+      location: 'Luanda · Tour 1 · Total Energies Angola · Coworking 100 Entrepreneurs',
+      eyebrow: 'Marché Agroalimentaire B2B',
+      title1: "La Chaîne Alimentaire",
       title2: "Digitale d'Angola",
-      sub: "Contrats num├®riques d'achat, vente et production. Import-export avec tra├ºabilit├® totale. Nous connectons producteurs, entreprises et acheteurs institutionnels.",
-      cta1: 'Acc├®der ├á la Plateforme',
+      sub: "Contrats numériques d'achat, vente et production. Import-export avec traçabilité totale. Nous connectons producteurs, entreprises et acheteurs institutionnels.",
+      cta1: 'Accéder à la Plateforme',
       cta2: 'En Savoir Plus',
     },
     stats: [
-      { n: '3', label: "Mod├¿les d'Activit├®" },
+      { n: '3', label: "Modèles d'Activité" },
       { n: 'B2B', label: 'Plateforme Institutionnelle' },
-      { n: '100%', label: 'Contrats Num├®riques' },
-      { n: '3', label: 'Langues Support├®es' },
+      { n: '100%', label: 'Contrats Numériques' },
+      { n: '3', label: 'Langues Supportées' },
     ],
     models: {
-      eyebrow: 'Comment Nous Op├®rons',
-      title: 'Quatre Mod├¿les d\'Activit├®',
-      sub: 'Choisissez le mod├¿le adapt├® ├á votre activit├® agroalimentaire.',
+      eyebrow: 'Comment Nous Opérons',
+      title: 'Quatre Modèles d\'Activité',
+      sub: 'Choisissez le modèle adapté à votre activité agroalimentaire.',
       list: [
-        { num: '01', name: 'Achat Direct', tag: 'Mod├¿le Informel', desc: 'AgriLink ach├¿te directement aux producteurs et revend sur les march├®s informels, cr├®ant un flux de tr├®sorerie imm├®diat.' },
-        { num: '02', name: 'Approvisionnement D├®di├®', tag: 'AgriLink Sourcing Premium', desc: "Nous identifions et garantissons l'approvisionnement de produits sp├®cifiques pour les entreprises." },
-        { num: '03', name: 'Production Sous Contrat', tag: 'Sur Demande', desc: 'Les agriculteurs produisent selon les fiches techniques des fabricants. Contrats num├®riques, d├®lais d├®finis.' },
-        { num: '04', name: 'Pr├®-Achat Num├®rique', tag: 'Marketplace', desc: "Achetez des r├®coltes futures ├á l'avance. Prix fix├®s aujourd'hui, livraison garantie ├á la saison." },
+        { num: '01', name: 'Achat Direct', tag: 'Modèle Informel', desc: 'AgriLink achète directement aux producteurs et revend sur les marchés informels, créant un flux de trésorerie immédiat.' },
+        { num: '02', name: 'Approvisionnement Dédié', tag: 'AgriLink Sourcing Premium', desc: "Nous identifions et garantissons l'approvisionnement de produits spécifiques pour les entreprises." },
+        { num: '03', name: 'Production Sous Contrat', tag: 'Sur Demande', desc: 'Les agriculteurs produisent selon les fiches techniques des fabricants. Contrats numériques, délais définis.' },
+        { num: '04', name: 'Pré-Achat Numérique', tag: 'Marketplace', desc: "Achetez des récoltes futures à l'avance. Prix fixés aujourd'hui, livraison garantie à la saison." },
       ],
     },
     features: {
       eyebrow: 'Infrastructure',
       title: 'La Technologie au Service de l\'Agriculture',
       list: [
-        { t: 'Contrats Num├®riques', d: 'Validit├® juridique compl├¿te avec tra├ºabilit├® immuable.' },
-        { t: 'Import & Export', d: 'Op├®rations transfrontali├¿res avec documentation int├®gr├®e et certifi├®e.' },
-        { t: 'March├® ├á Terme', d: 'Prix et volumes n├®goci├®s ├á l\'avance avec s├®curit├® juridique.' },
-        { t: 'Plateforme B2B', d: 'Con├ºue pour les entreprises, coop├®ratives et distributeurs institutionnels.' },
+        { t: 'Contrats Numériques', d: 'Validité juridique complète avec traçabilité immuable.' },
+        { t: 'Import & Export', d: 'Opérations transfrontalières avec documentation intégrée et certifiée.' },
+        { t: 'Marché à Terme', d: 'Prix et volumes négociés à l\'avance avec sécurité juridique.' },
+        { t: 'Plateforme B2B', d: 'Conçue pour les entreprises, coopératives et distributeurs institutionnels.' },
       ],
     },
     team: {
       eyebrow: 'Direction',
-      title: 'Notre ├ëquipe',
-      sub: "Professionnels ├á vision long terme construisant l'infrastructure num├®rique de l'agribusiness angolais.",
+      title: 'Notre Équipe',
+      sub: "Professionnels à vision long terme construisant l'infrastructure numérique de l'agribusiness angolais.",
     },
     cta: {
-      eyebrow: 'Prochaine ├ëtape',
-      title: 'Pr├¬t ├á Transformer votre Cha├«ne Agroalimentaire?',
-      sub: "Rejoignez la plateforme qui num├®rise l'agribusiness en Afrique.",
+      eyebrow: 'Prochaine Étape',
+      title: 'Prêt à Transformer votre Chaîne Agroalimentaire?',
+      sub: "Rejoignez la plateforme qui numérise l'agribusiness en Afrique.",
       btn: 'Commencer Maintenant',
     },
-    footer: { rights: '┬® 2025 AgriLink Lda. Tous droits r├®serv├®s.' },
+    footer: { rights: '© 2025 AgriLink Lda. Tous droits réservés.' },
   },
   en: {
     nav: { platform: 'Platform', models: 'Models', team: 'Team', contact: 'Contact', login: 'Login', register: 'Register' },
     hero: {
-      location: 'Luanda ┬À Tower 1 ┬À Total Energies Angola ┬À Coworking 100 Entrepreneurs',
+      location: 'Luanda · Tower 1 · Total Energies Angola · Coworking 100 Entrepreneurs',
       eyebrow: 'B2B Agri-Food Market',
       title1: 'The Digital Food',
       title2: 'Supply Chain of Angola',
@@ -195,11 +193,11 @@ const LANGS = {
       sub: 'Join the platform digitising agribusiness across Africa.',
       btn: 'Get Started',
     },
-    footer: { rights: '┬® 2025 AgriLink Lda. All rights reserved.' },
+    footer: { rights: '© 2025 AgriLink Lda. All rights reserved.' },
   },
 }
 
-/* ÔöÇÔöÇÔöÇ Hooks ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
+/* ─── Hooks ────────────────────────────────────────────────────────────────── */
 function useScrolled(threshold = 40) {
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
@@ -222,7 +220,7 @@ function useVisible(ref) {
   return isVisible
 }
 
-/* ÔöÇÔöÇÔöÇ Main Component ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
+/* ─── Main Component ───────────────────────────────────────────────────────── */
 const AgriLinkLanding = () => {
   const navigate = useNavigate()
   const [lang, setLang] = useState('pt')
@@ -249,27 +247,27 @@ const AgriLinkLanding = () => {
   const faqItems = [
     {
       q: 'Como funciona a plataforma AgriLink?',
-      a: 'A AgriLink conecta agricultores, empresas e compradores atrav├®s de contratos digitais seguros. Nossa plataforma oferece quatro modelos de neg├│cio adaptados ├ás necessidades do mercado agroalimentar.'
+      a: 'A AgriLink conecta agricultores, empresas e compradores através de contratos digitais seguros. Nossa plataforma oferece quatro modelos de negócio adaptados às necessidades do mercado agroalimentar.'
     },
     {
-      q: 'Quais pa├¡ses est├úo cobertos?',
-      a: 'Atualmente operamos em Angola, com planos de expans├úo para RDC, Nam├¡bia e ├üfrica do Sul, criando o maior marketplace B2B agroalimentar da SADC.'
+      q: 'Quais países estão cobertos?',
+      a: 'Atualmente operamos em Angola, com planos de expansão para RDC, Namíbia e África do Sul, criando o maior marketplace B2B agroalimentar da SADC.'
     },
     {
-      q: 'Como garante a seguran├ºa das transa├º├Áes?',
-      a: 'Utilizamos smart contracts com validade legal plena, rastreabilidade imut├ível e documenta├º├úo certificada para cada transa├º├úo.'
+      q: 'Como garante a segurança das transações?',
+      a: 'Utilizamos smart contracts com validade legal plena, rastreabilidade imutável e documentação certificada para cada transação.'
     },
     {
       q: 'Quem pode se cadastrar?',
-      a: 'Agricultores, cooperativas, f├íbricas, distribuidores e compradores institucionais podem se cadastrar na plataforma.'
+      a: 'Agricultores, cooperativas, fábricas, distribuidores e compradores institucionais podem se cadastrar na plataforma.'
     }
   ]
 
   const teamMembers = [
     { name: 'Feliciano Cassoma',  role: 'Co-Fundador & CEO',                    photo: fotoFeliciano },
-    { name: 'Mois├®s Lucamba',     role: 'Co-Fundador & CTO',                    photo: fotoMoises },
-    { name: 'Cl├íudio Henriques',  role: 'Co-Fundador & Director de Opera├º├Áes',  photo: fotoClaudio },
-    { name: 'Lizeth Caieie',      role: 'Secret├íria Geral',                     photo: fotoLizeth },
+    { name: 'Moisés Lucamba',     role: 'Co-Fundador & CTO',                    photo: fotoMoises },
+    { name: 'Cláudio Henriques',  role: 'Co-Fundador & Director de Operações',  photo: fotoClaudio },
+    { name: 'Lizeth Caieie',      role: 'Secretária Geral',                     photo: fotoLizeth },
   ]
 
   return (
@@ -309,7 +307,7 @@ const AgriLinkLanding = () => {
           background: ${T.accent};
         }
 
-        /* ÔöÇÔöÇ NAV ÔöÇÔöÇ */
+        /* ── NAV ── */
         .nav {
           position: fixed;
           top: 0; left: 0; right: 0;
@@ -428,7 +426,7 @@ const AgriLinkLanding = () => {
           border-color: ${T.accentM};
         }
 
-        /* ÔöÇÔöÇ HERO ÔöÇÔöÇ */
+        /* ── HERO ── */
         .hero {
           min-height: 100vh;
           display: flex;
@@ -672,7 +670,7 @@ const AgriLinkLanding = () => {
           background: ${T.rule};
         }
 
-        /* ÔöÇÔöÇ STATS ÔöÇÔöÇ */
+        /* ── STATS ── */
         .stats-wrap {
           border-top: 1px solid ${T.rule};
           border-bottom: 1px solid ${T.rule};
@@ -738,7 +736,7 @@ const AgriLinkLanding = () => {
           font-weight: 400;
         }
 
-        /* ÔöÇÔöÇ MODELS ÔöÇÔöÇ */
+        /* ── MODELS ── */
         .models-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
@@ -786,7 +784,7 @@ const AgriLinkLanding = () => {
           font-weight: 400;
         }
 
-        /* ÔöÇÔöÇ FEATURES ÔöÇÔöÇ */
+        /* ── FEATURES ── */
         .features-bg { background: ${T.surface}; }
         .features-grid {
           display: grid;
@@ -822,7 +820,7 @@ const AgriLinkLanding = () => {
           font-weight: 400;
         }
 
-        /* ÔöÇÔöÇ ABOUT ÔöÇÔöÇ */
+        /* ── ABOUT ── */
         .about-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -888,7 +886,7 @@ const AgriLinkLanding = () => {
           text-transform: uppercase;
         }
 
-        /* ÔöÇÔöÇ VISION ÔöÇÔöÇ */
+        /* ── VISION ── */
         .vision-section {
           background: ${T.ink};
           color: white;
@@ -915,7 +913,7 @@ const AgriLinkLanding = () => {
           text-transform: uppercase;
         }
 
-        /* ÔöÇÔöÇ CULTURE ÔöÇÔöÇ */
+        /* ── CULTURE ── */
         .culture-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
@@ -949,7 +947,7 @@ const AgriLinkLanding = () => {
           line-height: 1.7;
         }
 
-        /* ÔöÇÔöÇ FAQ ÔöÇÔöÇ */
+        /* ── FAQ ── */
         .faq-section { background: ${T.surface}; }
         .faq-grid {
           margin-top: 60px;
@@ -979,7 +977,7 @@ const AgriLinkLanding = () => {
         }
         .faq-answer.open { display: block; }
 
-        /* ÔöÇÔöÇ COMMUNITY ÔöÇÔöÇ */
+        /* ── COMMUNITY ── */
         .community-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -1038,7 +1036,7 @@ const AgriLinkLanding = () => {
           background: ${T.accentPale};
         }
 
-        /* ÔöÇÔöÇ TEAM ÔöÇÔöÇ */
+        /* ── TEAM ── */
         .team-grid {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
@@ -1088,7 +1086,7 @@ const AgriLinkLanding = () => {
           line-height: 1.4;
         }
 
-        /* ÔöÇÔöÇ CTA ÔöÇÔöÇ */
+        /* ── CTA ── */
         .cta-section { background: ${T.canvas}; }
         .cta-inner {
           max-width: 1320px;
@@ -1176,7 +1174,7 @@ const AgriLinkLanding = () => {
           transform: translateY(-2px);
         }
 
-        /* ÔöÇÔöÇ FOOTER ÔöÇÔöÇ */
+        /* ── FOOTER ── */
         .footer-section {
           background: ${T.ink80};
           padding: 80px 48px 40px;
@@ -1240,7 +1238,7 @@ const AgriLinkLanding = () => {
           font-style: normal;
         }
 
-        /* ÔöÇÔöÇ RESPONSIVE ÔöÇÔöÇ */
+        /* ── RESPONSIVE ── */
         @media (max-width: 1024px) {
           .features-grid { grid-template-columns: repeat(2,1fr); }
           .team-grid { grid-template-columns: repeat(2,1fr); }
@@ -1272,7 +1270,7 @@ const AgriLinkLanding = () => {
         }
       `}</style>
 
-      {/* ÔòÉÔòÉÔòÉ NAV ÔòÉÔòÉÔòÉ */}
+      {/* ═══ NAV ═══ */}
       <nav className={`nav ${scrolled ? 'solid' : ''}`}>
         <div className="nav-inner">
           <a href="#" className="nav-logo">
@@ -1280,7 +1278,7 @@ const AgriLinkLanding = () => {
           </a>
 
           <div className="nav-links">
-            <a href="#about" className="nav-link">Sobre N├│s</a>
+            <a href="#about" className="nav-link">Sobre Nós</a>
             <a href="#models" className="nav-link">{t.nav.models}</a>
             <a href="#team" className="nav-link">{t.nav.team}</a>
             <a href="#faq" className="nav-link">Perguntas Frequentes</a>
@@ -1300,7 +1298,7 @@ const AgriLinkLanding = () => {
         </div>
       </nav>
 
-      {/* ÔòÉÔòÉÔòÉ HERO ÔòÉÔòÉÔòÉ */}
+      {/* ═══ HERO ═══ */}
       <section className="hero" id="platform" style={{ paddingTop: 140 }}>
         <div className="hero-location-bar">
           <div className="hero-location-dot" />
@@ -1333,7 +1331,7 @@ const AgriLinkLanding = () => {
               <div className="hero-card-header">
                 <div>
                   <div className="hero-card-label">Contrato Ativo</div>
-                  <div className="hero-card-value">Tomate ┬À 40 ton.</div>
+                  <div className="hero-card-value">Tomate · 40 ton.</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div className="hero-card-amount-label">Valor Total</div>
@@ -1342,10 +1340,10 @@ const AgriLinkLanding = () => {
               </div>
 
               {[
-                { name: 'Soja ┬À 120 ton.', status: 'Ativo', cls: 'badge-active' },
-                { name: 'Milho ┬À 80 ton.', status: 'Pendente', cls: 'badge-pending' },
-                { name: 'Feij├úo ┬À 60 ton.', status: 'Ativo', cls: 'badge-active' },
-                { name: 'Mandioca ┬À 30 ton.', status: 'Pendente', cls: 'badge-pending' },
+                { name: 'Soja · 120 ton.', status: 'Ativo', cls: 'badge-active' },
+                { name: 'Milho · 80 ton.', status: 'Pendente', cls: 'badge-pending' },
+                { name: 'Feijão · 60 ton.', status: 'Ativo', cls: 'badge-active' },
+                { name: 'Mandioca · 30 ton.', status: 'Pendente', cls: 'badge-pending' },
               ].map((r, i) => (
                 <div key={i} className="contract-row">
                   <span className="contract-name">{r.name}</span>
@@ -1371,7 +1369,7 @@ const AgriLinkLanding = () => {
         <div className="hero-line" />
       </section>
 
-      {/* ÔòÉÔòÉÔòÉ STATS ÔòÉÔòÉÔòÉ */}
+      {/* ═══ STATS ═══ */}
       <div className="stats-wrap" ref={statsRef}>
         <div className="stats-inner">
           {t.stats.map((s, i) => (
@@ -1383,7 +1381,7 @@ const AgriLinkLanding = () => {
         </div>
       </div>
 
-      {/* ÔòÉÔòÉÔòÉ MODELS ÔòÉÔòÉÔòÉ */}
+      {/* ═══ MODELS ═══ */}
       <section id="models" ref={modelsRef}>
         <div className="section-inner">
           <div className={`section-header fade-up ${modelsVis ? 'visible' : ''}`}>
@@ -1404,7 +1402,7 @@ const AgriLinkLanding = () => {
         </div>
       </section>
 
-      {/* ÔòÉÔòÉÔòÉ FEATURES ÔòÉÔòÉÔòÉ */}
+      {/* ═══ FEATURES ═══ */}
       <section className="features-bg" ref={featRef}>
         <div className="section-inner">
           <div className={`section-header fade-up ${featVis ? 'visible' : ''}`}>
@@ -1423,37 +1421,37 @@ const AgriLinkLanding = () => {
         </div>
       </section>
 
-      {/* ÔòÉÔòÉÔòÉ SOBRE N├ôS ÔòÉÔòÉÔòÉ */}
+      {/* ═══ SOBRE NÓS ═══ */}
       <section id="about" ref={aboutRef}>
         <div className="section-inner">
           <div className={`section-header fade-up ${aboutVis ? 'visible' : ''}`}>
-            <div className="eyebrow">Nossa Hist├│ria</div>
+            <div className="eyebrow">Nossa História</div>
             <h2 className="section-title">Sobre a AgriLink</h2>
-            <p className="section-sub">Conectando o ecossistema agroalimentar com tecnologia e confian├ºa.</p>
+            <p className="section-sub">Conectando o ecossistema agroalimentar com tecnologia e confiança.</p>
           </div>
           <div className="about-grid">
             <div className="about-content">
               <p className="about-description">
-                A AgriLink nasceu da vis├úo de digitalizar o mercado agroalimentar em ├üfrica. 
-                Somos uma plataforma B2B que conecta agricultores, f├íbricas, distribuidores 
-                e compradores institucionais atrav├®s de contratos digitais seguros e rastre├íveis.
+                A AgriLink nasceu da visão de digitalizar o mercado agroalimentar em África. 
+                Somos uma plataforma B2B que conecta agricultores, fábricas, distribuidores 
+                e compradores institucionais através de contratos digitais seguros e rastreáveis.
               </p>
               <div className="about-values">
                 <div className="about-value-item">
-                  <div className="about-value-title">Miss├úo</div>
-                  <div className="about-value-desc">Digitalizar e simplificar a cadeia agroalimentar, conectando produtores e compradores com transpar├¬ncia.</div>
+                  <div className="about-value-title">Missão</div>
+                  <div className="about-value-desc">Digitalizar e simplificar a cadeia agroalimentar, conectando produtores e compradores com transparência.</div>
                 </div>
                 <div className="about-value-item">
-                  <div className="about-value-title">Vis├úo</div>
+                  <div className="about-value-title">Visão</div>
                   <div className="about-value-desc">Ser o maior marketplace B2B agroalimentar da SADC.</div>
                 </div>
                 <div className="about-value-item">
                   <div className="about-value-title">Tecnologia</div>
-                  <div className="about-value-desc">Contratos digitais, rastreabilidade blockchain e an├ílise de dados.</div>
+                  <div className="about-value-desc">Contratos digitais, rastreabilidade blockchain e análise de dados.</div>
                 </div>
                 <div className="about-value-item">
                   <div className="about-value-title">Impacto</div>
-                  <div className="about-value-desc">Fluxo de caixa imediato para agricultores e seguran├ºa jur├¡dica para compradores.</div>
+                  <div className="about-value-desc">Fluxo de caixa imediato para agricultores e segurança jurídica para compradores.</div>
                 </div>
               </div>
             </div>
@@ -1462,7 +1460,7 @@ const AgriLinkLanding = () => {
                 <img src={comunidadeImg} alt="Comunidade AgriLink" />
               ) : (
                 <div className="about-visual-placeholder">
-                  <div>­ƒî¥</div>
+                  <div>🌾</div>
                   <p>Comunidade AgriLink</p>
                 </div>
               )}
@@ -1471,49 +1469,49 @@ const AgriLinkLanding = () => {
         </div>
       </section>
 
-      {/* ÔòÉÔòÉÔòÉ VIS├âO ÔòÉÔòÉÔòÉ */}
+      {/* ═══ VISÃO ═══ */}
       <section className="vision-section">
         <div className="section-inner">
           <h2 className="vision-quote">
             "SER O MAIOR <em>MARKETPLACE B2B AGROALIMENTAR</em> DA SADC"
           </h2>
-          <div className="vision-author">AgriLink ┬À Vis├úo 2030</div>
+          <div className="vision-author">AgriLink · Visão 2030</div>
         </div>
       </section>
 
-      {/* ÔòÉÔòÉÔòÉ CULTURA ÔòÉÔòÉÔòÉ */}
+      {/* ═══ CULTURA ═══ */}
       <section>
         <div className="section-inner">
           <div className="section-header">
             <div className="eyebrow">Cultura</div>
             <h2 className="section-title">Entrega de Resultados</h2>
-            <p className="section-sub">Trabalhe onde quiseres, entregue o resultado. Nossa cultura valoriza autonomia e excel├¬ncia.</p>
+            <p className="section-sub">Trabalhe onde quiseres, entregue o resultado. Nossa cultura valoriza autonomia e excelência.</p>
           </div>
           <div className="culture-grid">
             <div className="culture-card">
-              <div className="culture-icon"></div>
+              <div className="culture-icon">🏠</div>
               <div className="culture-title">Trabalho Remoto</div>
-              <div className="culture-desc">Nossa equipa trabalha de qualquer lugar, desde que os resultados sejam entregues com excel├¬ncia e dentro dos prazos.</div>
+              <div className="culture-desc">Nossa equipa trabalha de qualquer lugar, desde que os resultados sejam entregues com excelência e dentro dos prazos.</div>
             </div>
             <div className="culture-card">
-              <div className="culture-icon"></div>
+              <div className="culture-icon">🎯</div>
               <div className="culture-title">Foco em Resultados</div>
-              <div className="culture-desc">Medimos performance por resultados concretos, n├úo por horas trabalhadas. Autonomia com responsabilidade.</div>
+              <div className="culture-desc">Medimos performance por resultados concretos, não por horas trabalhadas. Autonomia com responsabilidade.</div>
             </div>
             <div className="culture-card">
-              <div className="culture-icon"></div>
-              <div className="culture-title">Colabora├º├úo</div>
-              <div className="culture-desc">Times multidisciplinares trabalhando juntos para transformar o agroneg├│cio africano com tecnologia.</div>
+              <div className="culture-icon">🤝</div>
+              <div className="culture-title">Colaboração</div>
+              <div className="culture-desc">Times multidisciplinares trabalhando juntos para transformar o agronegócio africano com tecnologia.</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ÔòÉÔòÉÔòÉ FAQ ÔòÉÔòÉÔòÉ */}
+      {/* ═══ FAQ ═══ */}
       <section id="faq" className="faq-section" ref={faqRef}>
         <div className="section-inner">
           <div className={`section-header fade-up ${faqVis ? 'visible' : ''}`}>
-            <div className="eyebrow">D├║vidas</div>
+            <div className="eyebrow">Dúvidas</div>
             <h2 className="section-title">Perguntas Frequentes</h2>
             <p className="section-sub">Tudo o que precisa saber sobre a AgriLink.</p>
           </div>
@@ -1522,7 +1520,7 @@ const AgriLinkLanding = () => {
               <div key={i} className="faq-item" onClick={() => setFaqOpen(faqOpen === i ? null : i)}>
                 <div className="faq-question">
                   <span>{item.q}</span>
-                  <span>{faqOpen === i ? 'ÔêÆ' : '+'}</span>
+                  <span>{faqOpen === i ? '−' : '+'}</span>
                 </div>
                 <div className={`faq-answer ${faqOpen === i ? 'open' : ''}`}>{item.a}</div>
               </div>
@@ -1531,13 +1529,13 @@ const AgriLinkLanding = () => {
         </div>
       </section>
 
-      {/* ÔòÉÔòÉÔòÉ COMUNIDADES ÔòÉÔòÉÔòÉ */}
+      {/* ═══ COMUNIDADES ═══ */}
       <section id="community" ref={communityRef}>
         <div className="section-inner">
           <div className={`section-header fade-up ${communityVis ? 'visible' : ''}`}>
-            <div className="eyebrow">Presen├ºa Nacional</div>
+            <div className="eyebrow">Presença Nacional</div>
             <h2 className="section-title">Comunidades AgriLink</h2>
-            <p className="section-sub">Encontros mensais com a comunidade AgriLink em cada uma das 21 prov├¡ncias de Angola.</p>
+            <p className="section-sub">Encontros mensais com a comunidade AgriLink em cada uma das 21 províncias de Angola.</p>
           </div>
           <div className="community-grid">
             <div className="community-image">
@@ -1545,7 +1543,7 @@ const AgriLinkLanding = () => {
                 <img src={comunidadeImg2} alt="Encontro da Comunidade AgriLink" />
               ) : (
                 <div className="community-image-placeholder">
-                  <div>­ƒîì</div>
+                  <div>🌍</div>
                   <p>Encontros AgriLink</p>
                 </div>
               )}
@@ -1555,15 +1553,15 @@ const AgriLinkLanding = () => {
                 Encontros Mensais
               </h3>
               <p style={{ color: T.muted, lineHeight: 1.7, marginBottom: '32px' }}>
-                Realizamos encontros presenciais em cada prov├¡ncia para fortalecer 
-                a comunidade, compartilhar conhecimento e criar oportunidades de neg├│cio.
+                Realizamos encontros presenciais em cada província para fortalecer 
+                a comunidade, compartilhar conhecimento e criar oportunidades de negócio.
               </p>
               <div className="community-provinces">
-                {['Luanda', 'Benguela', 'Hu├¡la', 'Cabinda', 'Malanje', 'Huambo', 'Bi├®', 'U├¡ge', 'Zaire', 'Cuanza Sul', 'Cuanza Norte', 'Lunda Sul'].map(provincia => (
+                {['Luanda', 'Benguela', 'Huíla', 'Cabinda', 'Malanje', 'Huambo', 'Bié', 'Uíge', 'Zaire', 'Cuanza Sul', 'Cuanza Norte', 'Lunda Sul'].map(provincia => (
                   <div key={provincia} className="province-tag">{provincia}</div>
                 ))}
                 <div className="province-tag" style={{background: T.accent, color: 'white', border: 'none'}}>
-                  +9 Prov├¡ncias
+                  +9 Províncias
                 </div>
               </div>
             </div>
@@ -1571,7 +1569,7 @@ const AgriLinkLanding = () => {
         </div>
       </section>
 
-      {/* ÔòÉÔòÉÔòÉ TEAM ÔòÉÔòÉÔòÉ */}
+      {/* ═══ TEAM ═══ */}
       <section id="team" ref={teamRef}>
         <div className="section-inner">
           <div className={`section-header fade-up ${teamVis ? 'visible' : ''}`}>
@@ -1600,7 +1598,7 @@ const AgriLinkLanding = () => {
         </div>
       </section>
 
-      {/* ÔòÉÔòÉÔòÉ CTA ÔòÉÔòÉÔòÉ */}
+      {/* ═══ CTA ═══ */}
       <section className="cta-section" id="contact">
         <div className="cta-inner">
           <div className="cta-box">
@@ -1619,36 +1617,36 @@ const AgriLinkLanding = () => {
         </div>
       </section>
 
-      {/* ÔòÉÔòÉÔòÉ FOOTER ÔòÉÔòÉÔòÉ */}
+      {/* ═══ FOOTER ═══ */}
       <footer className="footer-section">
         <div className="footer-grid">
           <div className="footer-brand-col">
             <div className="footer-brand">Agri<em>Link</em></div>
-            <p>O marketplace B2B agroalimentar que conecta agricultores, f├íbricas e compradores institucionais em toda a SADC.</p>
+            <p>O marketplace B2B agroalimentar que conecta agricultores, fábricas e compradores institucionais em toda a SADC.</p>
           </div>
           <div>
             <div className="footer-col-title">Plataforma</div>
-            <a href="#models" className="footer-link">Modelos de Neg├│cio</a>
-            <a href="#about" className="footer-link">Sobre N├│s</a>
+            <a href="#models" className="footer-link">Modelos de Negócio</a>
+            <a href="#about" className="footer-link">Sobre Nós</a>
             <a href="#team" className="footer-link">Equipa</a>
             <a href="#faq" className="footer-link">Perguntas Frequentes</a>
             <a href="#community" className="footer-link">Comunidades</a>
           </div>
           <div>
-            <div className="footer-col-title">Links ├Üteis</div>
+            <div className="footer-col-title">Links Úteis</div>
             <a href="#" className="footer-link">Agentes de Campo</a>
-            <a href="#" className="footer-link">F├íbricas</a>
+            <a href="#" className="footer-link">Fábricas</a>
             <a href="#" className="footer-link">Agricultores</a>
-            <a href="#about" className="footer-link">Miss├úo</a>
-            <a href="#about" className="footer-link">Vis├úo</a>
+            <a href="#about" className="footer-link">Missão</a>
+            <a href="#about" className="footer-link">Visão</a>
             <a href="#about" className="footer-link">Tecnologias</a>
           </div>
           <div>
-            <div className="footer-col-title">Presen├ºa</div>
+            <div className="footer-col-title">Presença</div>
             <a href="#" className="footer-link">Angola</a>
             <a href="#" className="footer-link">RDC</a>
-            <a href="#" className="footer-link">├üfrica do Sul</a>
-            <a href="#" className="footer-link">Nam├¡bia</a>
+            <a href="#" className="footer-link">África do Sul</a>
+            <a href="#" className="footer-link">Namíbia</a>
           </div>
         </div>
         <div className="footer-bottom">

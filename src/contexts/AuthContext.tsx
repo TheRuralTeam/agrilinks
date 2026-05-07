@@ -116,7 +116,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
-    // Load userProfile from localStorage on initialization
     try {
       const saved = localStorage.getItem('userProfile')
       return saved ? JSON.parse(saved) : null
@@ -134,31 +133,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkAdminRole = async (userId: string) => {
     try {
-      // Check if user has admin role
-      const { data: hasAdminRole, error: roleError } = await supabase.rpc('has_role', { 
-        _user_id: userId, 
-        _role: 'admin' 
-      })
-      
-      // Check if user is root admin
-      const { data: rootAdminData, error: rootError } = await supabase.rpc('is_root_admin', { 
-        _user_id: userId 
+      const { data: hasAdminRole, error: roleError } = await supabase.rpc('has_role', {
+        _user_id: userId,
+        _role: 'admin'
       })
 
-      // Check if user is super root
-      const { data: superRootData, error: superRootError } = await supabase.rpc('is_super_root', { 
-        _user_id: userId 
+      const { data: rootAdminData, error: rootError } = await supabase.rpc('is_root_admin', {
+        _user_id: userId
       })
 
-      // Check if user is support agent
-      const { data: isSupportAgentData, error: supportError } = await supabase.rpc('is_support_agent', { 
-        _user_id: userId 
+      const { data: superRootData, error: superRootError } = await supabase.rpc('is_super_root', {
+        _user_id: userId
       })
-      
+
+      const { data: isSupportAgentData, error: supportError } = await supabase.rpc('is_support_agent', {
+        _user_id: userId
+      })
+
       if (!roleError) {
         setIsAdmin(hasAdminRole === true || rootAdminData === true)
       }
-      
+
       if (!rootError) {
         setIsRootAdmin(rootAdminData === true)
       }
@@ -201,7 +196,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       setUserProfile(profile)
 
-      // Save to localStorage
       if (profile) {
         localStorage.setItem('userProfile', JSON.stringify(profile))
       } else {
@@ -215,7 +209,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   useEffect(() => {
-    // Listen for auth changes FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session)
@@ -243,7 +236,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     )
 
-    // THEN get existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
@@ -269,16 +261,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         password
       })
-      
+
       if (error) {
         let message = 'Erro ao fazer login'
         let needsEmailConfirmation = false
         if (error.message === 'Invalid login credentials') {
           message = 'Email ou senha incorretos'
         } else if (error.message.includes('User not found')) {
-          message = 'Usu├írio n├úo encontrado'
+          message = 'Usuário não encontrado'
         } else if (error.message.includes('Email not confirmed') || error.message.includes('email not confirmed')) {
-          message = 'Email n├úo confirmado. Por favor, verifique sua caixa de entrada.'
+          message = 'Email não confirmado. Por favor, verifique sua caixa de entrada.'
           needsEmailConfirmation = true
         } else {
           message = error.message
@@ -292,7 +284,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      // Se login bem-sucedido, sincronizar email_verified na tabela public.users
       if (data?.user) {
         try {
           await supabase.rpc('sync_user_email_verified', { p_user_id: data.user.id })
@@ -312,6 +303,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  // Única função signInWithGoogle — suporta mode e onboarding
   const signInWithGoogle = async (
     mode: 'login' | 'signup' = 'login',
     onboarding: PendingGoogleOnboarding | null = null,
@@ -321,10 +313,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setGooglePasswordSetupRequired(mode === 'signup')
 
       const queryParams = mode === 'signup'
-        ? {
-            // Force account chooser and consent screen when onboarding is required.
-            prompt: 'consent select_account',
-          }
+        ? { prompt: 'consent select_account' }
         : undefined
 
       const { error } = await supabase.auth.signInWithOAuth({
@@ -401,7 +390,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const setGooglePassword = async (password: string) => {
     if (!user) {
-      return { error: { message: 'Utilizador n├úo autenticado.' } }
+      return { error: { message: 'Utilizador não autenticado.' } }
     }
 
     try {
@@ -435,13 +424,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const register = async (userData: RegisterData): Promise<RegisterResult> => {
     const { user_type, province_id, municipality_id, full_name, identity_document, phone, password, email, referred_by_agent_id } = userData
-    
+
     if (!email) {
-      return { error: { message: 'Email ├® obrigat├│rio' } }
+      return { error: { message: 'Email é obrigatório' } }
     }
-    
+
     try {
-      // Buscar ID do agente usando RPC segura
       let referredByAgentId = null;
       if (referred_by_agent_id) {
         const { data: agentId } = await supabase.rpc('get_agent_id_by_code', { p_code: referred_by_agent_id });
@@ -469,8 +457,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: { message: error.message }, data: null }
       }
 
-      // Triggers autom├íticos criam: perfil, carteira, c├│digo agente, referral
-
       return { error: null, data: data ? { user: data.user } : null }
     } catch (error: unknown) {
       console.error('Erro no registro:', error)
@@ -478,35 +464,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  const signInWithGoogle = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/completar-perfil`,
-          queryParams: { access_type: 'offline', prompt: 'consent' },
-        },
-      })
-      if (error) {
-        toast({ title: 'Erro Google', description: error.message, variant: 'destructive' })
-      }
-      return { error }
-    } catch (err: any) {
-      return { error: err }
-    }
-  }
-
   const logout = async () => {
     await supabase.auth.signOut()
     setUser(null)
     setUserProfile(null)
-    // Clear localStorage on logout
     localStorage.removeItem('userProfile')
   }
 
-  const verifyEmail = async (token: string) => {
-    // For email confirmation, Supabase handles this automatically via the callback URL
-    // This function is deprecated - email confirmation happens in EmailConfirmation page
+  const verifyEmail = async (_token: string) => {
+    // Deprecated — email confirmation happens in EmailConfirmation page
     return { error: null }
   }
 
@@ -546,11 +512,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     completePendingGoogleOnboarding,
     setGooglePassword,
     register,
-    signInWithGoogle,
     logout,
     verifyEmail,
     resendVerification,
-    resetPassword
+    resetPassword,
   }
 
   return (
