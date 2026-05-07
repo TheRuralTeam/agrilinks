@@ -322,7 +322,7 @@ const Avatar = ({ name }) => {
 }
 
 /* ─── Main Component ─────────────────────────────────────────── */
-const AgriLinkLanding = () => {
+const Index = () => {
   const navigate = useNavigate()
   const [lang, setLang] = useState('pt')
   const [faqOpen, setFaqOpen] = useState(null)
@@ -1205,4 +1205,4 @@ const AgriLinkLanding = () => {
   )
 }
 
-export default AgriLinkLanding
+export default Index;
