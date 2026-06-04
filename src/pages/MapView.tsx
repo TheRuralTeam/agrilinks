@@ -426,9 +426,13 @@ const MapView = () => {
     if (!mapboxgl.supported()) { setMapError('O seu browser não suporta o mapa.'); return }
     try {
       mapboxgl.accessToken = mapboxToken
+      const styleUrl =
+        mapStyle === 'satellite' ? 'mapbox://styles/mapbox/satellite-streets-v12'
+        : mapStyle === 'terrain' ? 'mapbox://styles/mapbox/outdoors-v12'
+        : 'mapbox://styles/mapbox/light-v11'
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/light-v11',
+        style: styleUrl,
         center: [13.234444, -8.838333],
         zoom: 6,
       })
@@ -436,13 +440,16 @@ const MapView = () => {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(pos => {
           const { latitude: lat, longitude: lng } = pos.coords
+          setUserLocation([lng, lat])
           const el = document.createElement('div')
-          el.style.cssText = `width:18px;height:18px;background:${T.g500};border:3px solid white;border-radius:50%;box-shadow:0 0 0 6px rgba(40,167,69,0.2);`
+          el.className = 'al-user-pin'
+          el.style.cssText = `width:20px;height:20px;background:${T.blue};border:3px solid white;border-radius:50%;box-shadow:0 0 0 8px rgba(29,78,216,0.18);animation:userPulse 2s infinite ease-out;`
           userMarker.current = new mapboxgl.Marker(el).setLngLat([lng, lat]).addTo(map.current!)
         }, () => {})
       }
     } catch { setMapError('Erro ao inicializar mapa') }
-  }, [mapboxToken])
+    return () => { map.current?.remove(); map.current = null }
+  }, [mapboxToken, mapStyle])
 
   /* Add markers */
   useEffect(() => {
