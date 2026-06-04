@@ -910,8 +910,103 @@ const MapView = () => {
           onClose={() => setSelectedProduct(null)}
           onContact={handleContact}
           onFavorite={handleFavorite}
+          onTrack={(p) => setTrackedProduct(p)}
+          distanceLabel={(() => {
+            if (!userLocation || !selectedProduct.location_lat || !selectedProduct.location_lng) return undefined
+            const km = distanceKm(userLocation, [selectedProduct.location_lng, selectedProduct.location_lat])
+            return `A ${km} km de si`
+          })()}
         />
       )}
+
+      {/* ══ MAP STYLE SWITCHER ════════════════════════════════════════════════ */}
+      <div style={{ position: 'absolute', top: 140, right: 20, zIndex: 30, display: 'flex', flexDirection: 'column', gap: 4, background: T.white, padding: 4, borderRadius: 10, border: `1px solid ${T.rule}`, boxShadow: `0 6px 18px ${T.shadow}` }}>
+        {([
+          { id: 'streets', label: 'Mapa', icon: <Map size={13}/> },
+          { id: 'satellite', label: 'Satélite', icon: <Eye size={13}/> },
+          { id: 'terrain', label: 'Terreno', icon: <Leaf size={13}/> },
+        ] as const).map(opt => (
+          <button key={opt.id} onClick={() => setMapStyle(opt.id)} title={opt.label}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', background: mapStyle === opt.id ? T.g700 : 'transparent', color: mapStyle === opt.id ? T.white : T.muted, fontSize: 10, fontWeight: 800, fontFamily: FONT, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            {opt.icon}{opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ══ TRACEABILITY SIDEBAR ══════════════════════════════════════════════ */}
+      {trackedProduct && (
+        <aside style={{ position: 'absolute', top: 70, right: 20, zIndex: 45, width: 320, maxHeight: 'calc(100vh - 110px)', overflowY: 'auto', background: T.white, borderRadius: 14, border: `1px solid ${T.rule}`, boxShadow: `0 16px 48px ${T.shadowLg}`, animation: 'slideInRight 0.25s cubic-bezier(0.22,1,0.36,1)' }}>
+          <div style={{ padding: '14px 16px', background: T.g900, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 7, background: T.g700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Navigation size={13} color={T.g200}/>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 900, color: T.white, fontFamily: FONT, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Rastreabilidade</div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', fontFamily: FONT, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{trackedProduct.product_type}</div>
+              </div>
+            </div>
+            <button onClick={() => setTrackedProduct(null)} style={{ width: 26, height: 26, borderRadius: 6, background: 'rgba(255,255,255,0.10)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <X size={12} color="rgba(255,255,255,0.7)"/>
+            </button>
+          </div>
+          <div style={{ padding: '16px' }}>
+            {(() => {
+              const steps = [
+                { state: 'done', icon: <Leaf size={13}/>, color: T.g600, title: 'Colhido', date: new Date(trackedProduct.harvest_date).toLocaleDateString('pt-AO'), sub: `Machamba · ${trackedProduct.farmer_name}` },
+                { state: 'done', icon: <User size={13}/>, color: T.g600, title: 'Recolhido pelo Agente', date: '—', sub: 'Local de recolha confirmado' },
+                { state: 'active', icon: <Package size={13}/>, color: T.goldL, title: 'Em Trânsito', date: 'Tempo estimado: 4–8h', sub: userLocation ? `A caminho · ${distanceKm(userLocation, [trackedProduct.location_lng!, trackedProduct.location_lat!])} km` : 'A caminho do destino' },
+                { state: 'pending', icon: <CheckCircle size={13}/>, color: T.faint, title: 'Entrega Prevista', date: 'Próximas 24h', sub: 'Destino final' },
+              ]
+              return steps.map((s, i) => (
+                <div key={i} style={{ display: 'flex', gap: 12, position: 'relative', paddingBottom: i < steps.length - 1 ? 18 : 0 }}>
+                  {i < steps.length - 1 && <div style={{ position: 'absolute', left: 13, top: 28, bottom: 0, width: 2, background: s.state === 'done' ? T.g400 : T.rule }}/>}
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: s.state === 'done' ? T.g50 : s.state === 'active' ? T.goldBg : T.canvas, border: `2px solid ${s.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: s.color, flexShrink: 0, animation: s.state === 'active' ? 'userPulse 1.8s infinite' : 'none' }}>
+                    {s.icon}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 11, fontWeight: 900, color: T.ink, fontFamily: FONT, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{s.title}</div>
+                    <div style={{ fontSize: 11, color: T.muted, fontFamily: FONT, marginTop: 3 }}>{s.date}</div>
+                    <div style={{ fontSize: 10, color: T.faint, fontFamily: FONT, marginTop: 2 }}>{s.sub}</div>
+                  </div>
+                </div>
+              ))
+            })()}
+            {userLocation && trackedProduct.location_lat && trackedProduct.location_lng && (
+              <div style={{ marginTop: 14, padding: 12, borderRadius: 9, background: T.g50, border: `1px solid ${T.gBorder}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <Label>Progresso</Label>
+                  <span style={{ fontSize: 11, fontWeight: 900, color: T.g700, fontFamily: FONT }}>60%</span>
+                </div>
+                <div style={{ height: 6, borderRadius: 4, background: T.gBorder, overflow: 'hidden' }}>
+                  <div style={{ width: '60%', height: '100%', background: `linear-gradient(90deg, ${T.g500}, ${T.accentL})`, borderRadius: 4 }}/>
+                </div>
+              </div>
+            )}
+          </div>
+        </aside>
+      )}
+
+      {/* ══ REALTIME STATS FOOTER ═════════════════════════════════════════════ */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 25, background: 'linear-gradient(180deg, transparent, rgba(10,35,16,0.85))', pointerEvents: 'none', padding: '40px 20px 12px' }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', background: 'rgba(255,255,255,0.96)', borderRadius: 12, border: `1px solid ${T.rule}`, padding: '10px 14px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, boxShadow: `0 8px 24px ${T.shadowMd}`, pointerEvents: 'auto' }}>
+          {[
+            { label: 'Produtores', value: new Set(filteredProducts.map(p => p.farmer_id || p.farmer_name)).size, color: T.g700, icon: <Leaf size={12}/> },
+            { label: 'Produtos', value: filteredProducts.length, color: T.accent, icon: <Package size={12}/> },
+            { label: 'Em Trânsito', value: Math.max(1, Math.floor(filteredProducts.length * 0.2)), color: T.goldL, icon: <TrendingUp size={12}/> },
+            { label: 'Mais Próximo', value: (() => {
+                if (!userLocation) return '—'
+                const dists = filteredProducts.filter(p => p.location_lat && p.location_lng).map(p => distanceKm(userLocation, [p.location_lng!, p.location_lat!]))
+                return dists.length ? `${Math.min(...dists)} km` : '—'
+              })(), color: T.blue, icon: <Navigation size={12}/> },
+          ].map(s => (
+            <div key={s.label} style={{ textAlign: 'center' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: s.color, marginBottom: 2 }}>{s.icon}<span style={{ fontSize: 8, fontWeight: 800, color: T.muted, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT }}>{s.label}</span></div>
+              <div style={{ fontSize: 16, fontWeight: 900, color: s.color, fontFamily: FONT, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>{s.value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Loading overlay */}
       {loading && (
