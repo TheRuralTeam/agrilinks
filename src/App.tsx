@@ -114,7 +114,7 @@ const AppRoutes = () => {
         }
       />
       <Route
-        path="/mapa"
+        path="/mapa-app"
         element={
           <ProtectedRoute>
             <AppLayout>
