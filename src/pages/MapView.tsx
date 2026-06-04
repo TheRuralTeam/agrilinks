@@ -253,6 +253,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onContact, 
             </div>
           )}
 
+          {/* Distance + Track */}
+          {(distanceLabel || onTrack) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              {distanceLabel && (
+                <div style={{ flex: 1, padding: '8px 11px', borderRadius: 8, background: T.accentBg, border: `1px solid #BDE3DC`, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Navigation size={12} color={T.accent}/>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: T.accent, fontFamily: FONT, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{distanceLabel}</span>
+                </div>
+              )}
+              {onTrack && (
+                <button onClick={() => onTrack(product)} style={{ height: 34, padding: '0 12px', borderRadius: 8, border: `1.5px solid ${T.gBorder}`, background: T.g50, color: T.g700, cursor: 'pointer', fontSize: 10, fontWeight: 900, fontFamily: FONT, letterSpacing: '0.06em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Navigation size={11}/> Rastrear
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Actions */}
           <div style={{ display: 'flex', gap: 8 }}>
             <button
