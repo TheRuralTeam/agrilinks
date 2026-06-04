@@ -100,6 +100,7 @@ const AppRoutes = () => {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/termos-publicidade" element={<TermsOfService />} />
       <Route path="/produto/:id/localizacao" element={<PublicProductLocation />} />
+      <Route path="/mapa" element={<MapView />} />
 
       {/* App Routes */}
       <Route
@@ -113,7 +114,7 @@ const AppRoutes = () => {
         }
       />
       <Route
-        path="/mapa"
+        path="/mapa-app"
         element={
           <ProtectedRoute>
             <AppLayout>
