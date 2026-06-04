@@ -1025,6 +1025,7 @@ const MapView = () => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600;700;800;900&display=swap');
         @keyframes spin          { to { transform: rotate(360deg) } }
+        @keyframes userPulse     { 0% { box-shadow: 0 0 0 0 rgba(29,78,216,0.45) } 70% { box-shadow: 0 0 0 18px rgba(29,78,216,0) } 100% { box-shadow: 0 0 0 0 rgba(29,78,216,0) } }
         @keyframes slideInRight  { from { opacity:0; transform:translateX(24px) } to { opacity:1; transform:translateX(0) } }
         @keyframes slideInLeft   { from { opacity:0; transform:translateX(-24px) } to { opacity:1; transform:translateX(0) } }
         @keyframes slideInBottom { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
