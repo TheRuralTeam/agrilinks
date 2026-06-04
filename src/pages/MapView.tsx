@@ -403,7 +403,7 @@ const MapView = () => {
 
   const handleContact = useCallback((product: Product) => { console.log('Contactar:', product.farmer_name) }, [])
 
-  useEffect(() => { if (user) fetchProducts() }, [user, fetchProducts])
+  useEffect(() => { fetchProducts() }, [fetchProducts])
 
   /* Init map */
   useEffect(() => {
