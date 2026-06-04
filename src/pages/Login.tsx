@@ -92,7 +92,7 @@ const Login = () => {
               className="h-20 lg:h-24 mx-auto mb-6 drop-shadow-sm"
             />
             <h3 className="text-xl lg:text-2xl font-black tracking-tight" style={{ color: T.ink }}>
-              Bem-vindo ao OrbisLink
+              Bem-vindo ao AgriLink
             </h3>
             <p className="text-sm lg:text-base font-bold uppercase tracking-[0.2em] mt-2" style={{ color: T.g600 }}>
               Seu elo com os mercados globais
