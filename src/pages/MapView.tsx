@@ -458,17 +458,79 @@ const MapView = () => {
     filteredProducts.forEach(product => {
       if (product.location_lat && product.location_lng) {
         const el = document.createElement('div')
-        el.style.cssText = `width:36px;height:36px;cursor:pointer;background:${T.g700};border:2.5px solid white;border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(22,82,32,0.35);transition:transform 0.15s;font-size:16px;`
-        el.innerHTML = '🌾'
+        el.style.cssText = `width:40px;height:40px;cursor:pointer;background:linear-gradient(135deg,${T.g600},${T.g800});border:2.5px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(22,82,32,0.4);transition:transform 0.18s;`
+        el.innerHTML = `<div style="transform:rotate(45deg);font-size:18px;line-height:1;">🌿</div>`
         el.title = product.product_type
-        el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.15)' })
-        el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)' })
-        const marker = new mapboxgl.Marker(el).setLngLat([product.location_lng, product.location_lat]).addTo(map.current!)
+        el.addEventListener('mouseenter', () => { el.style.transform = 'rotate(-45deg) scale(1.15)' })
+        el.addEventListener('mouseleave', () => { el.style.transform = 'rotate(-45deg) scale(1)' })
+        const marker = new mapboxgl.Marker(el, { anchor: 'bottom' }).setLngLat([product.location_lng, product.location_lat]).addTo(map.current!)
         el.addEventListener('click', () => setSelectedProduct(product))
         markers.current.push(marker)
       }
     })
   }, [filteredProducts])
+
+  /* Animated traceability route: producer → agent → distribution → user */
+  useEffect(() => {
+    const m = map.current
+    if (!m) return
+    const cleanup = () => {
+      try {
+        if (m.getLayer('al-route-moving')) m.removeLayer('al-route-moving')
+        if (m.getLayer('al-route-dash')) m.removeLayer('al-route-dash')
+        if (m.getLayer('al-route-base')) m.removeLayer('al-route-base')
+        if (m.getSource('al-route')) m.removeSource('al-route')
+        if (m.getSource('al-route-point')) m.removeSource('al-route-point')
+        if (m.getLayer('al-route-point')) m.removeLayer('al-route-point')
+      } catch {}
+      if (routeAnimRef.current) { cancelAnimationFrame(routeAnimRef.current); routeAnimRef.current = null }
+    }
+    if (!trackedProduct || !trackedProduct.location_lat || !trackedProduct.location_lng) { cleanup(); return }
+
+    const draw = () => {
+      cleanup()
+      const origin: [number, number] = [trackedProduct.location_lng!, trackedProduct.location_lat!]
+      const destination: [number, number] = userLocation || [13.234444, -8.838333]
+      // synthetic intermediates (agent + distribution centre)
+      const midA: [number, number] = [origin[0] + (destination[0]-origin[0])*0.33 + 0.05, origin[1] + (destination[1]-origin[1])*0.33 - 0.05]
+      const midB: [number, number] = [origin[0] + (destination[0]-origin[0])*0.66 - 0.04, origin[1] + (destination[1]-origin[1])*0.66 + 0.04]
+      const coords = [origin, midA, midB, destination]
+      m.addSource('al-route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } } as any })
+      m.addLayer({ id: 'al-route-base', type: 'line', source: 'al-route', paint: { 'line-color': T.g400, 'line-width': 5, 'line-opacity': 0.35 } })
+      m.addLayer({ id: 'al-route-dash', type: 'line', source: 'al-route', paint: { 'line-color': T.g700, 'line-width': 3, 'line-dasharray': [0, 4, 3] } })
+      // moving dot
+      m.addSource('al-route-point', { type: 'geojson', data: { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: origin } }] } as any })
+      m.addLayer({ id: 'al-route-point', type: 'circle', source: 'al-route-point', paint: { 'circle-radius': 8, 'circle-color': T.accentL, 'circle-stroke-width': 3, 'circle-stroke-color': '#fff' } })
+
+      // bounds
+      const bounds = coords.reduce((b, c) => b.extend(c as any), new mapboxgl.LngLatBounds(coords[0] as any, coords[0] as any))
+      m.fitBounds(bounds, { padding: 120, duration: 1200 })
+
+      // animation
+      let t = 0
+      let dashStep = 0
+      const animate = () => {
+        t = (t + 0.0035) % 1
+        // interpolate along polyline segments
+        const segs = coords.length - 1
+        const segIdx = Math.min(segs - 1, Math.floor(t * segs))
+        const localT = (t * segs) - segIdx
+        const a = coords[segIdx]; const b = coords[segIdx + 1]
+        const pt: [number, number] = [a[0] + (b[0]-a[0])*localT, a[1] + (b[1]-a[1])*localT]
+        const src = m.getSource('al-route-point') as mapboxgl.GeoJSONSource | undefined
+        src?.setData({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: pt } }] } as any)
+        // dash flow
+        dashStep = (dashStep + 0.18)
+        const dashSeq: any = [0, 4, dashStep % 7]
+        try { m.setPaintProperty('al-route-dash', 'line-dasharray', dashSeq) } catch {}
+        routeAnimRef.current = requestAnimationFrame(animate)
+      }
+      animate()
+    }
+
+    if (!m.isStyleLoaded()) { m.once('load', draw) } else { draw() }
+    return cleanup
+  }, [trackedProduct, userLocation, mapStyle])
 
   /* Error state */
   if (mapError) return (
