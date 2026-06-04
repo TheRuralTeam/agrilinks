@@ -100,9 +100,11 @@ const IconBox = ({ icon, size = 30, bg = T.g700, iconColor = T.white }: { icon: 
 interface ProductCardProps {
   product: Product; onClose: () => void
   onContact: (p: Product) => void; onFavorite: (id: string) => void
+  onTrack?: (p: Product) => void
+  distanceLabel?: string
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onContact, onFavorite }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, onClose, onContact, onFavorite, onTrack, distanceLabel }) => {
   const [isFavorited, setIsFavorited] = useState(false)
   const pricePerKg = (product.price / Math.max(product.quantity, 1)).toFixed(0)
 
