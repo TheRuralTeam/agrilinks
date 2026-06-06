@@ -1,4 +1,3 @@
-ypescript
 
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {
