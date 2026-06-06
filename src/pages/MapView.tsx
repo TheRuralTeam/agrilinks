@@ -8,6 +8,7 @@ import {
   MessageSquare, Map, Zap, Eye, EyeOff, Sliders,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import SatelliteMonitor from '@/components/SatelliteMonitor';
 import { supabase } from '@/integrations/supabase/client';
 import axios from 'axios';
 
