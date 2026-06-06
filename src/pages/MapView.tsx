@@ -346,7 +346,8 @@ const MapView = () => {
   const routePolylineRef       = useRef<any>(null)
   const routeAnimFrameRef      = useRef<number | null>(null)
   const pipelineLayerGroupRef  = useRef<any>(null)
-  const productRouteLayers     = useRef<any[]>([])   // linha produto→utilizador
+  const productRouteLayers     = useRef<any[]>([])   // linha produto→utilizador (seleccionado)
+  const allProductRoutesRef    = useRef<any[]>([])   // linhas user→todos os produtos
   const leafletLoadedRef       = useRef(false)
 
   const [products, setProducts]               = useState<Product[]>([])
@@ -621,6 +622,45 @@ const MapView = () => {
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredProducts, leafletLoadedRef.current])
+
+  /* ══ LINHAS USER → TODOS OS PRODUTOS (rotas reais) ══════════════════════ */
+  useEffect(() => {
+    if (!mapRef.current || !(window as any).L || !leafletLoadedRef.current) return
+    const L = (window as any).L; const m = mapRef.current
+
+    const clearAll = () => {
+      allProductRoutesRef.current.forEach(l => { try { m.removeLayer(l) } catch {} })
+      allProductRoutesRef.current = []
+    }
+    clearAll()
+    if (!userLocation) return
+
+    const userLatLng: [number, number] = [userLocation[1], userLocation[0]]
+    const targets = filteredProducts
+      .filter(p => p.location_lat && p.location_lng)
+      .map(p => ({
+        p,
+        d: distanceKm(userLocation, [p.location_lng!, p.location_lat!]),
+      }))
+      .sort((a, b) => a.d - b.d)
+      .slice(0, 8) // limitar para não saturar OSRM
+
+    let cancelled = false
+    ;(async () => {
+      for (const { p } of targets) {
+        if (cancelled) return
+        const coords = await fetchRoadRoute(userLatLng, [p.location_lat!, p.location_lng!])
+        if (cancelled) return
+        const line = L.polyline(coords, {
+          color: T.g600, weight: 2, opacity: 0.55, dashArray: '4 6',
+        }).addTo(m)
+        allProductRoutesRef.current.push(line)
+      }
+    })()
+
+    return () => { cancelled = true; clearAll() }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredProducts, userLocation, leafletLoadedRef.current])
 
   /* ══ LINHA PRODUTO → LOCALIZAÇÃO ATUAL (rota real pelas estradas) ═══════ */
   useEffect(() => {
