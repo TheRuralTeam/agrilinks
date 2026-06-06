@@ -1179,6 +1179,7 @@ const MapView = () => {
         .leaflet-control-zoom { margin-top: 60px !important; }
         .leaflet-container { font-family: ${FONT} !important; }
       `}</style>
+      <SatelliteMonitor />
     </div>
   )
 }
