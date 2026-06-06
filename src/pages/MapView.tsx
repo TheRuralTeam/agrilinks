@@ -1,4 +1,3 @@
-ypescript
 
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {
@@ -9,6 +8,7 @@ import {
   MessageSquare, Map, Zap, Eye, EyeOff, Sliders,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import SatelliteMonitor from '@/components/SatelliteMonitor';
 import { supabase } from '@/integrations/supabase/client';
 import axios from 'axios';
 
@@ -1179,6 +1179,7 @@ const MapView = () => {
         .leaflet-control-zoom { margin-top: 60px !important; }
         .leaflet-container { font-family: ${FONT} !important; }
       `}</style>
+      <SatelliteMonitor />
     </div>
   )
 }
