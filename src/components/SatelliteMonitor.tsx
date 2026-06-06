@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Satellite, X, Cloud, Leaf, Sprout, AlertTriangle, Thermometer } from 'lucide-react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { Satellite, X, Cloud, Leaf, Sprout, AlertTriangle, Thermometer, RefreshCw } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts';
+import { supabase } from '@/integrations/supabase/client';
 
 const GREEN = '#1A5C24';
 const GREEN_DARK = '#0F3318';
@@ -18,49 +19,129 @@ interface ClimaPoint {
   tmean: number;
 }
 
-const SENTINEL_INSTANCE = 'sh-2e73cbb3-63af-4ff3-9334-c724d84c3fb5';
+interface FazendaReal {
+  nome: string;
+  prov: string;
+  cultura: string;
+  area: number;
+  qtdProdutos: number;
+  ndvi: 'Saudável' | 'Fraca' | 'Crítica';
+  cor: string;
+  atualizado: string;
+}
 
-const fazendas = [
-  { nome: 'Fazenda Cassanje', prov: 'Malanje', cultura: 'Milho', area: 45, ndvi: 'Saudável', cor: '#16A34A' },
-  { nome: 'Fazenda Huambo', prov: 'Huambo', cultura: 'Feijão', area: 30, ndvi: 'Fraca', cor: '#EAB308' },
-  { nome: 'Fazenda Uíge', prov: 'Uíge', cultura: 'Banana', area: 22, ndvi: 'Saudável', cor: '#16A34A' },
-  { nome: 'Fazenda Bié', prov: 'Bié', cultura: 'Mandioca', area: 18, ndvi: 'Crítica', cor: '#DC2626' },
-  { nome: 'Fazenda Cunene', prov: 'Cunene', cultura: 'Milho', area: 60, ndvi: 'Fraca', cor: '#EAB308' },
-];
+const SENTINEL_INSTANCE = 'sh-2e73cbb3-63af-4ff3-9334-c724d84c3fb5';
+const AUTO_REFRESH_MS = 30 * 60 * 1000; // 30 minutos
+
+function classifyNdvi(qtd: number): { label: FazendaReal['ndvi']; cor: string } {
+  if (qtd >= 100) return { label: 'Saudável', cor: '#16A34A' };
+  if (qtd >= 30) return { label: 'Fraca', cor: '#EAB308' };
+  return { label: 'Crítica', cor: '#DC2626' };
+}
+
+function timeAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const h = Math.floor(ms / 3.6e6);
+  if (h < 1) return 'agora';
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  return `${d}d`;
+}
 
 export const SatelliteMonitor: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>('clima');
   const [clima, setClima] = useState<ClimaPoint[]>([]);
+  const [fazendas, setFazendas] = useState<FazendaReal[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [ndviKey, setNdviKey] = useState(0);
 
-  useEffect(() => {
-    if (!open || tab !== 'clima' || clima.length) return;
-    setLoading(true);
+  const loadClima = useCallback(async () => {
     setErr(null);
     const end = new Date();
     const start = new Date();
     start.setDate(end.getDate() - 60);
     const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, '');
     const url = `https://power.larc.nasa.gov/api/temporal/daily/point?parameters=PRECTOTCORR,T2M,T2M_MAX,T2M_MIN&community=AG&longitude=17.8&latitude=-11.2&start=${fmt(start)}&end=${fmt(end)}&format=JSON`;
-    fetch(url)
-      .then(r => r.json())
-      .then(j => {
-        const p = j?.properties?.parameter || {};
-        const dates = Object.keys(p.PRECTOTCORR || {});
-        const data: ClimaPoint[] = dates.map(d => ({
-          date: `${d.slice(4, 6)}/${d.slice(6, 8)}`,
-          rain: Math.max(0, p.PRECTOTCORR?.[d] ?? 0),
-          tmax: p.T2M_MAX?.[d] ?? 0,
-          tmin: p.T2M_MIN?.[d] ?? 0,
-          tmean: p.T2M?.[d] ?? 0,
-        })).filter(x => x.rain > -100 && x.tmax > -100);
-        setClima(data);
-      })
-      .catch(e => setErr(String(e?.message || e)))
-      .finally(() => setLoading(false));
-  }, [open, tab, clima.length]);
+    try {
+      const r = await fetch(url);
+      const j = await r.json();
+      const p = j?.properties?.parameter || {};
+      const dates = Object.keys(p.PRECTOTCORR || {});
+      const data: ClimaPoint[] = dates.map(d => ({
+        date: `${d.slice(4, 6)}/${d.slice(6, 8)}`,
+        rain: Math.max(0, p.PRECTOTCORR?.[d] ?? 0),
+        tmax: p.T2M_MAX?.[d] ?? 0,
+        tmin: p.T2M_MIN?.[d] ?? 0,
+        tmean: p.T2M?.[d] ?? 0,
+      })).filter(x => x.rain > -100 && x.tmax > -100);
+      setClima(data);
+    } catch (e: any) {
+      setErr(String(e?.message || e));
+    }
+  }, []);
+
+  const loadFazendas = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('product_type, quantity, province_id, municipality_id, farmer_name, user_id, status, updated_at, created_at')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(500);
+    if (error) { setErr(error.message); return; }
+    const map = new Map<string, FazendaReal & { _ts: number }>();
+    (data || []).forEach((p: any) => {
+      const nome = p.farmer_name || 'Produtor';
+      const prov = p.province_id || '—';
+      const key = `${nome}|${prov}`;
+      const existing = map.get(key);
+      const ts = new Date(p.updated_at || p.created_at).getTime();
+      if (existing) {
+        existing.area += Number(p.quantity) || 0;
+        existing.qtdProdutos += 1;
+        if (ts > existing._ts) { existing._ts = ts; existing.atualizado = timeAgo(p.updated_at || p.created_at); existing.cultura = p.product_type; }
+      } else {
+        map.set(key, {
+          nome, prov,
+          cultura: p.product_type || '—',
+          area: Number(p.quantity) || 0,
+          qtdProdutos: 1,
+          ndvi: 'Saudável', cor: '#16A34A',
+          atualizado: timeAgo(p.updated_at || p.created_at),
+          _ts: ts,
+        });
+      }
+    });
+    const list = Array.from(map.values()).map(f => {
+      const c = classifyNdvi(f.area);
+      return { ...f, ndvi: c.label, cor: c.cor };
+    }).sort((a, b) => b.area - a.area).slice(0, 30);
+    setFazendas(list);
+  }, []);
+
+  const refreshAll = useCallback(async () => {
+    setRefreshing(true);
+    setLoading(true);
+    try {
+      await Promise.all([loadClima(), loadFazendas()]);
+      setNdviKey(k => k + 1);
+      setLastRefresh(new Date());
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [loadClima, loadFazendas]);
+
+  // Carregar ao abrir + auto-refresh a cada 30 min
+  useEffect(() => {
+    if (!open) return;
+    if (!lastRefresh) refreshAll();
+    const id = setInterval(refreshAll, AUTO_REFRESH_MS);
+    return () => clearInterval(id);
+  }, [open, refreshAll, lastRefresh]);
 
   const alerts = useMemo(() => {
     const a: { type: 'drought' | 'heat'; msg: string }[] = [];
@@ -73,7 +154,7 @@ export const SatelliteMonitor: React.FC = () => {
     return a;
   }, [clima]);
 
-  const ndviUrl = `https://services.sentinel-hub.com/ogc/wms/${SENTINEL_INSTANCE}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=NDVI&MAXCC=20&WIDTH=512&HEIGHT=512&CRS=EPSG:4326&BBOX=-18.04,11.67,-4.38,24.08&FORMAT=image/png`;
+  const ndviUrl = `https://services.sentinel-hub.com/ogc/wms/${SENTINEL_INSTANCE}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=NDVI&MAXCC=20&WIDTH=512&HEIGHT=512&CRS=EPSG:4326&BBOX=-18.04,11.67,-4.38,24.08&FORMAT=image/png&_=${ndviKey}`;
 
   return (
     <>
@@ -111,16 +192,39 @@ export const SatelliteMonitor: React.FC = () => {
                   <Satellite size={20} />
                   <strong style={{ letterSpacing: '-0.01em' }}>Monitor Satelital</strong>
                 </div>
-                <button onClick={() => setOpen(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: 8, padding: 6, cursor: 'pointer' }}>
-                  <X size={16} />
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button
+                    onClick={refreshAll}
+                    disabled={refreshing}
+                    title="Atualizar dados"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      background: refreshing ? 'rgba(255,255,255,0.05)' : GOLD, border: 'none', color: '#fff',
+                      borderRadius: 8, padding: '6px 10px', cursor: refreshing ? 'wait' : 'pointer',
+                      fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
+                    }}
+                  >
+                    <RefreshCw size={13} style={{ animation: refreshing ? 'spin 1s linear infinite' : undefined }} />
+                    Atualizar
+                  </button>
+                  <button onClick={() => setOpen(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: 8, padding: 6, cursor: 'pointer' }}>
+                    <X size={16} />
+                  </button>
+                </div>
               </div>
-              <div style={{
-                marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6,
-                padding: '4px 10px', borderRadius: 999, background: GOLD, color: '#fff',
-                fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
-              }}>
-                🛰️ Powered by ESA Copernicus + NASA Satellites
+              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '4px 10px', borderRadius: 999, background: GOLD, color: '#fff',
+                  fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
+                }}>
+                  🛰️ Powered by ESA Copernicus + NASA Satellites
+                </div>
+                {lastRefresh && (
+                  <span style={{ fontSize: 10, opacity: 0.75 }}>
+                    Atualizado: {lastRefresh.toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })} · auto 30min
+                  </span>
+                )}
               </div>
             </div>
 
@@ -149,7 +253,7 @@ export const SatelliteMonitor: React.FC = () => {
             <div style={{ flex: 1, overflowY: 'auto', padding: 14 }}>
               {tab === 'clima' && (
                 <div>
-                  {loading && <p style={{ fontSize: 13, color: '#6B8070' }}>A carregar dados da NASA POWER…</p>}
+                  {loading && !clima.length && <p style={{ fontSize: 13, color: '#6B8070' }}>A carregar dados da NASA POWER…</p>}
                   {err && <p style={{ fontSize: 12, color: '#DC2626' }}>Erro: {err}</p>}
                   {alerts.map((a, i) => (
                     <div key={i} style={{
@@ -203,6 +307,7 @@ export const SatelliteMonitor: React.FC = () => {
                 <div>
                   <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #DDE8DF', background: '#fff' }}>
                     <img
+                      key={ndviKey}
                       src={ndviUrl}
                       alt="NDVI Angola - Sentinel-2"
                       style={{ width: '100%', display: 'block', minHeight: 240, background: '#0F3318' }}
@@ -229,36 +334,48 @@ export const SatelliteMonitor: React.FC = () => {
 
               {tab === 'fazendas' && (
                 <div style={{ background: '#fff', borderRadius: 10, overflow: 'hidden', border: '1px solid #DDE8DF' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                    <thead style={{ background: GREEN_DARK, color: '#fff' }}>
-                      <tr>
-                        {['Fazenda', 'Província', 'Cultura', 'Área (ha)', 'NDVI', 'Atualizado'].map(h => (
-                          <th key={h} style={{ padding: '8px 6px', textAlign: 'left', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {fazendas.map((f, i) => (
-                        <tr key={i} style={{ borderTop: '1px solid #EEF2EF' }}>
-                          <td style={{ padding: '8px 6px', fontWeight: 700, color: GREEN_DARK }}>{f.nome}</td>
-                          <td style={{ padding: '8px 6px', color: '#243329' }}>{f.prov}</td>
-                          <td style={{ padding: '8px 6px', color: '#243329' }}>{f.cultura}</td>
-                          <td style={{ padding: '8px 6px', color: '#243329' }}>{f.area}</td>
-                          <td style={{ padding: '8px 6px' }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: f.cor, fontWeight: 700 }}>
-                              <span style={{ width: 8, height: 8, borderRadius: 999, background: f.cor }} />
-                              {f.ndvi}
-                            </span>
-                          </td>
-                          <td style={{ padding: '8px 6px', color: '#6B8070' }}>hoje</td>
+                  {loading && !fazendas.length && <p style={{ padding: 12, fontSize: 12, color: '#6B8070' }}>A carregar fazendas reais…</p>}
+                  {!loading && !fazendas.length && (
+                    <p style={{ padding: 14, fontSize: 12, color: '#6B8070' }}>
+                      Nenhuma fazenda activa encontrada. Publique produtos para que apareçam aqui com dados reais.
+                    </p>
+                  )}
+                  {!!fazendas.length && (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                      <thead style={{ background: GREEN_DARK, color: '#fff' }}>
+                        <tr>
+                          {['Produtor', 'Província', 'Cultura', 'Qtd (kg)', 'Estado', 'Atualizado'].map(h => (
+                            <th key={h} style={{ padding: '8px 6px', textAlign: 'left', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                          ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {fazendas.map((f, i) => (
+                          <tr key={i} style={{ borderTop: '1px solid #EEF2EF' }}>
+                            <td style={{ padding: '8px 6px', fontWeight: 700, color: GREEN_DARK }}>{f.nome}</td>
+                            <td style={{ padding: '8px 6px', color: '#243329' }}>{f.prov}</td>
+                            <td style={{ padding: '8px 6px', color: '#243329' }}>{f.cultura}{f.qtdProdutos > 1 ? ` +${f.qtdProdutos - 1}` : ''}</td>
+                            <td style={{ padding: '8px 6px', color: '#243329', fontVariantNumeric: 'tabular-nums' }}>{f.area.toLocaleString('pt-AO')}</td>
+                            <td style={{ padding: '8px 6px' }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: f.cor, fontWeight: 700 }}>
+                                <span style={{ width: 8, height: 8, borderRadius: 999, background: f.cor }} />
+                                {f.ndvi}
+                              </span>
+                            </td>
+                            <td style={{ padding: '8px 6px', color: '#6B8070' }}>{f.atualizado}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                  <p style={{ padding: '8px 10px', fontSize: 10, color: '#6B8070', borderTop: '1px solid #EEF2EF' }}>
+                    Dados reais agregados da base de dados de produtos activos.
+                  </p>
                 </div>
               )}
             </div>
           </aside>
+          <style>{`@keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
         </div>
       )}
     </>
