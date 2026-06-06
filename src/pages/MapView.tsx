@@ -346,7 +346,8 @@ const MapView = () => {
   const routePolylineRef       = useRef<any>(null)
   const routeAnimFrameRef      = useRef<number | null>(null)
   const pipelineLayerGroupRef  = useRef<any>(null)
-  const productRouteLayers     = useRef<any[]>([])   // linha produto→utilizador
+  const productRouteLayers     = useRef<any[]>([])   // linha produto→utilizador (seleccionado)
+  const allProductRoutesRef    = useRef<any[]>([])   // linhas user→todos os produtos
   const leafletLoadedRef       = useRef(false)
 
   const [products, setProducts]               = useState<Product[]>([])
