@@ -676,7 +676,10 @@ const MapView = () => {
         )
         if (cancelled) return
         const km   = distance != null ? distance / 1000 : distanceKm(userLocation, [p.location_lng!, p.location_lat!])
-        const mins = duration != null ? Math.max(1, Math.round(duration / 60)) : 0
+        const baseMins = duration != null ? Math.max(1, Math.round(duration / 60)) : 0
+        // OSRM público só tem perfil 'driving'. Para camião aplicamos um factor (~1.35x mais lento).
+        const factor = transportMode === 'truck' ? 1.35 : 1
+        const mins = baseMins ? Math.max(1, Math.round(baseMins * factor)) : 0
         if (p.id) acc[p.id] = { km: Math.round(km * 10) / 10, mins }
 
         const line = L.polyline(coords, {
