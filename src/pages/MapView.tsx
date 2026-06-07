@@ -390,6 +390,7 @@ const MapView = () => {
   const [mapStyle, setMapStyle]           = useState<'streets' | 'satellite' | 'terrain'>('streets')
   const [trackedProduct, setTrackedProduct] = useState<Product | null>(null)
   const [routeMetrics, setRouteMetrics]     = useState<Record<string, { km: number; mins: number }>>({})
+  const [transportMode, setTransportMode]   = useState<'car' | 'truck'>('car')
 
   const { user } = useAuth()
 
