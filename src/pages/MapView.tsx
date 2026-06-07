@@ -5,7 +5,7 @@ import {
   Leaf, TrendingUp, Users, Phone, Mail, Star, Heart, Share2,
   ArrowRight, ArrowLeft, Droplet, Wind, Cloud, Navigation,
   ChevronDown, CheckCircle, AlertCircle, User, Briefcase,
-  MessageSquare, Map, Zap, Eye, EyeOff, Sliders,
+  MessageSquare, Map, Zap, Eye, EyeOff, Sliders, Car, Truck,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import SatelliteMonitor from '@/components/SatelliteMonitor';
@@ -390,6 +390,7 @@ const MapView = () => {
   const [mapStyle, setMapStyle]           = useState<'streets' | 'satellite' | 'terrain'>('streets')
   const [trackedProduct, setTrackedProduct] = useState<Product | null>(null)
   const [routeMetrics, setRouteMetrics]     = useState<Record<string, { km: number; mins: number }>>({})
+  const [transportMode, setTransportMode]   = useState<'car' | 'truck'>('car')
 
   const { user } = useAuth()
 
@@ -675,7 +676,10 @@ const MapView = () => {
         )
         if (cancelled) return
         const km   = distance != null ? distance / 1000 : distanceKm(userLocation, [p.location_lng!, p.location_lat!])
-        const mins = duration != null ? Math.max(1, Math.round(duration / 60)) : 0
+        const baseMins = duration != null ? Math.max(1, Math.round(duration / 60)) : 0
+        // OSRM público só tem perfil 'driving'. Para camião aplicamos um factor (~1.35x mais lento).
+        const factor = transportMode === 'truck' ? 1.35 : 1
+        const mins = baseMins ? Math.max(1, Math.round(baseMins * factor)) : 0
         if (p.id) acc[p.id] = { km: Math.round(km * 10) / 10, mins }
 
         const line = L.polyline(coords, {
@@ -706,7 +710,7 @@ const MapView = () => {
 
     return () => { cancelled = true; clearAll(); setRouteMetrics({}) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredProducts, userLocation, leafletLoadedRef.current])
+  }, [filteredProducts, userLocation, leafletLoadedRef.current, transportMode])
 
   /* ══ LINHA PRODUTO → LOCALIZAÇÃO ATUAL (rota real pelas estradas) ═══════ */
   useEffect(() => {
@@ -1124,6 +1128,20 @@ const MapView = () => {
         ] as const).map(opt => (
           <button key={opt.id} onClick={() => setMapStyle(opt.id)} title={opt.label}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', background: mapStyle === opt.id ? T.g700 : 'transparent', color: mapStyle === opt.id ? T.white : T.muted, fontSize: 10, fontWeight: 800, fontFamily: FONT, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            {opt.icon} {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ══ TRANSPORT MODE SWITCHER ══════════════════════════════════════════ */}
+      <div title="Modo de transporte (recalcula tempo OSRM)" style={{ position: 'absolute', top: 270, right: 20, zIndex: 30, display: 'flex', flexDirection: 'column', gap: 4, background: T.white, padding: 4, borderRadius: 10, border: `1px solid ${T.rule}`, boxShadow: `0 6px 18px ${T.shadow}` }}>
+        <div style={{ fontSize: 8, fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: FONT, padding: '2px 6px 0' }}>Transporte</div>
+        {([
+          { id: 'car',   label: 'Carro',  icon: <Car size={13}/> },
+          { id: 'truck', label: 'Camião', icon: <Truck size={13}/> },
+        ] as const).map(opt => (
+          <button key={opt.id} onClick={() => setTransportMode(opt.id)} title={opt.label}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', background: transportMode === opt.id ? T.g700 : 'transparent', color: transportMode === opt.id ? T.white : T.muted, fontSize: 10, fontWeight: 800, fontFamily: FONT, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
             {opt.icon} {opt.label}
           </button>
         ))}
