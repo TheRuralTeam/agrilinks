@@ -1107,8 +1107,10 @@ const MapView = () => {
           onTrack={p => setTrackedProduct(p)}
           distanceLabel={(() => {
             if (!userLocation || !selectedProduct.location_lat || !selectedProduct.location_lng) return undefined
-            const km = distanceKm(userLocation, [selectedProduct.location_lng, selectedProduct.location_lat])
-            return `A ${km} km de si`
+            const m = selectedProduct.id ? routeMetrics[selectedProduct.id] : undefined
+            const km = m?.km ?? distanceKm(userLocation, [selectedProduct.location_lng, selectedProduct.location_lat])
+            const timeTxt = m?.mins ? ` · ${formatDuration(m.mins * 60)}` : ''
+            return `A ${km} km de si${timeTxt}`
           })()}
         />
       )}
