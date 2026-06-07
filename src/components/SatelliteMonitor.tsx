@@ -313,16 +313,22 @@ export const SatelliteMonitor: React.FC = () => {
 
               {tab === 'ndvi' && (
                 <div>
-                  <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #DDE8DF', background: '#fff' }}>
+                  <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #DDE8DF', background: '#0F3318', position: 'relative' }}>
                     <img
                       key={ndviKey}
                       src={ndviUrl}
-                      alt="NDVI Angola - Sentinel-2"
-                      style={{ width: '100%', display: 'block', minHeight: 240, background: '#0F3318' }}
-                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = '0.3'; }}
+                      alt="NDVI Angola - MODIS Terra"
+                      style={{ width: '100%', display: 'block', minHeight: 280, objectFit: 'cover' }}
+                      onError={(e) => {
+                        const el = e.currentTarget as HTMLImageElement;
+                        if (!el.dataset.fallback) { el.dataset.fallback = '1'; el.src = ndviFallbackUrl; }
+                      }}
                     />
+                    <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(15,51,24,0.85)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 6, letterSpacing: '0.05em' }}>
+                      MODIS · {ndviDate}
+                    </div>
                   </div>
-                  <p style={{ fontSize: 11, color: '#6B8070', marginTop: 8, fontWeight: 600 }}>Dados via ESA Copernicus Sentinel-2</p>
+                  <p style={{ fontSize: 11, color: '#6B8070', marginTop: 8, fontWeight: 600 }}>Dados via NASA GIBS · MODIS Terra NDVI 8-Day</p>
 
                   <div style={{ marginTop: 12, background: '#fff', borderRadius: 10, padding: 12, border: '1px solid #DDE8DF' }}>
                     <p style={{ fontSize: 11, fontWeight: 800, color: GREEN_DARK, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Legenda NDVI</p>
