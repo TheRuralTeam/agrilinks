@@ -1266,6 +1266,8 @@ const MapView = () => {
         .leaflet-top, .leaflet-bottom { z-index: 20 !important; }
         .leaflet-control-zoom { margin-top: 60px !important; }
         .leaflet-container { font-family: ${FONT} !important; }
+        .al-route-tip { background:${T.ink} !important; color:#fff !important; border:none !important; font-weight:800 !important; font-size:10px !important; padding:4px 8px !important; border-radius:6px !important; box-shadow:0 4px 12px rgba(0,0,0,0.25) !important; }
+        .al-route-tip::before { border-top-color:${T.ink} !important; }
       `}</style>
       <SatelliteMonitor />
     </div>
