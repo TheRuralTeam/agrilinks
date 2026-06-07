@@ -86,23 +86,42 @@ async function fetchRoadRoute(
   from: [number, number],
   to: [number, number]
 ): Promise<[number, number][]> {
+  const r = await fetchRoadRouteFull(from, to)
+  return r.coords
+}
+
+/**
+ * Igual a fetchRoadRoute, mas devolve também distância (metros) e duração (segundos).
+ */
+async function fetchRoadRouteFull(
+  from: [number, number],
+  to: [number, number]
+): Promise<{ coords: [number, number][]; distance: number | null; duration: number | null }> {
   try {
-    // OSRM espera longitude,latitude na URL
     const url =
       `https://router.project-osrm.org/route/v1/driving/` +
       `${from[1]},${from[0]};${to[1]},${to[0]}` +
       `?overview=full&geometries=geojson`
     const res  = await fetch(url, { signal: AbortSignal.timeout(8000) })
     const data = await res.json()
-    if (data.code === 'Ok' && data.routes?.[0]?.geometry?.coordinates?.length) {
-      // GeoJSON: [lng, lat] → Leaflet: [lat, lng]
-      return data.routes[0].geometry.coordinates.map(
+    const route = data?.routes?.[0]
+    if (data.code === 'Ok' && route?.geometry?.coordinates?.length) {
+      const coords = route.geometry.coordinates.map(
         ([lng, lat]: [number, number]) => [lat, lng] as [number, number]
       )
+      return { coords, distance: route.distance ?? null, duration: route.duration ?? null }
     }
   } catch {}
-  // Fallback: linha direta
-  return [from, to]
+  return { coords: [from, to], distance: null, duration: null }
+}
+
+/** Formata duração (segundos) em texto curto: 1h 20min / 45 min / 3 min */
+function formatDuration(seconds: number | null | undefined): string {
+  if (seconds == null || !isFinite(seconds)) return '—'
+  const mins = Math.max(1, Math.round(seconds / 60))
+  if (mins < 60) return `${mins} min`
+  const h = Math.floor(mins / 60); const m = mins % 60
+  return m ? `${h}h ${m}min` : `${h}h`
 }
 
 /* ─── Micro components ──────────────────────────────────────────────────────── */
