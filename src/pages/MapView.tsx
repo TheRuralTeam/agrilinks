@@ -1133,6 +1133,20 @@ const MapView = () => {
         ))}
       </div>
 
+      {/* ══ TRANSPORT MODE SWITCHER ══════════════════════════════════════════ */}
+      <div title="Modo de transporte (recalcula tempo OSRM)" style={{ position: 'absolute', top: 270, right: 20, zIndex: 30, display: 'flex', flexDirection: 'column', gap: 4, background: T.white, padding: 4, borderRadius: 10, border: `1px solid ${T.rule}`, boxShadow: `0 6px 18px ${T.shadow}` }}>
+        <div style={{ fontSize: 8, fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: FONT, padding: '2px 6px 0' }}>Transporte</div>
+        {([
+          { id: 'car',   label: 'Carro',  icon: <Car size={13}/> },
+          { id: 'truck', label: 'Camião', icon: <Truck size={13}/> },
+        ] as const).map(opt => (
+          <button key={opt.id} onClick={() => setTransportMode(opt.id)} title={opt.label}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', background: transportMode === opt.id ? T.g700 : 'transparent', color: transportMode === opt.id ? T.white : T.muted, fontSize: 10, fontWeight: 800, fontFamily: FONT, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            {opt.icon} {opt.label}
+          </button>
+        ))}
+      </div>
+
       {/* ══ PIPELINE LEGEND ══════════════════════════════════════════════════ */}
       <div style={{ position: 'absolute', bottom: 80, right: 20, zIndex: 30, background: 'rgba(255,255,255,0.95)', borderRadius: 10, border: `1px solid ${T.rule}`, padding: '10px 14px', boxShadow: `0 4px 16px ${T.shadow}`, backdropFilter: 'blur(8px)' }}>
         <div style={{ fontSize: 9, fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: FONT, marginBottom: 8 }}>Rede Logística</div>
