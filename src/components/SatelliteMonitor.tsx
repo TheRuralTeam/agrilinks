@@ -154,7 +154,15 @@ export const SatelliteMonitor: React.FC = () => {
     return a;
   }, [clima]);
 
-  const ndviUrl = `https://services.sentinel-hub.com/ogc/wms/${SENTINEL_INSTANCE}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=NDVI&MAXCC=20&WIDTH=512&HEIGHT=512&CRS=EPSG:4326&BBOX=-18.04,11.67,-4.38,24.08&FORMAT=image/png&_=${ndviKey}`;
+  // NASA GIBS — WMS público (sem chave). MODIS Terra NDVI 8-Day.
+  // Usa data de ~12 dias atrás para garantir disponibilidade.
+  const ndviDate = useMemo(() => {
+    const d = new Date(); d.setUTCDate(d.getUTCDate() - 12);
+    return d.toISOString().slice(0, 10);
+  }, [ndviKey]);
+  const ndviUrl = `https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=MODIS_Terra_NDVI_8Day&CRS=EPSG:4326&BBOX=-18.04,11.67,-4.38,24.08&WIDTH=720&HEIGHT=720&FORMAT=image/png&TRANSPARENT=false&TIME=${ndviDate}&_=${ndviKey}`;
+  // Fallback: VIIRS NDVI (mais recente, diário)
+  const ndviFallbackUrl = `https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=VIIRS_SNPP_CorrectedReflectance_TrueColor&CRS=EPSG:4326&BBOX=-18.04,11.67,-4.38,24.08&WIDTH=720&HEIGHT=720&FORMAT=image/jpeg&TIME=${ndviDate}&_=${ndviKey}`;
 
   return (
     <>
@@ -305,16 +313,22 @@ export const SatelliteMonitor: React.FC = () => {
 
               {tab === 'ndvi' && (
                 <div>
-                  <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #DDE8DF', background: '#fff' }}>
+                  <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #DDE8DF', background: '#0F3318', position: 'relative' }}>
                     <img
                       key={ndviKey}
                       src={ndviUrl}
-                      alt="NDVI Angola - Sentinel-2"
-                      style={{ width: '100%', display: 'block', minHeight: 240, background: '#0F3318' }}
-                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = '0.3'; }}
+                      alt="NDVI Angola - MODIS Terra"
+                      style={{ width: '100%', display: 'block', minHeight: 280, objectFit: 'cover' }}
+                      onError={(e) => {
+                        const el = e.currentTarget as HTMLImageElement;
+                        if (!el.dataset.fallback) { el.dataset.fallback = '1'; el.src = ndviFallbackUrl; }
+                      }}
                     />
+                    <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(15,51,24,0.85)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 6, letterSpacing: '0.05em' }}>
+                      MODIS · {ndviDate}
+                    </div>
                   </div>
-                  <p style={{ fontSize: 11, color: '#6B8070', marginTop: 8, fontWeight: 600 }}>Dados via ESA Copernicus Sentinel-2</p>
+                  <p style={{ fontSize: 11, color: '#6B8070', marginTop: 8, fontWeight: 600 }}>Dados via NASA GIBS · MODIS Terra NDVI 8-Day</p>
 
                   <div style={{ marginTop: 12, background: '#fff', borderRadius: 10, padding: 12, border: '1px solid #DDE8DF' }}>
                     <p style={{ fontSize: 11, fontWeight: 800, color: GREEN_DARK, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Legenda NDVI</p>
