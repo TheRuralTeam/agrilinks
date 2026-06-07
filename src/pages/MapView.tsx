@@ -710,7 +710,7 @@ const MapView = () => {
 
     return () => { cancelled = true; clearAll(); setRouteMetrics({}) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredProducts, userLocation, leafletLoadedRef.current])
+  }, [filteredProducts, userLocation, leafletLoadedRef.current, transportMode])
 
   /* ══ LINHA PRODUTO → LOCALIZAÇÃO ATUAL (rota real pelas estradas) ═══════ */
   useEffect(() => {
