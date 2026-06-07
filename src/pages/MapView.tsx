@@ -86,23 +86,42 @@ async function fetchRoadRoute(
   from: [number, number],
   to: [number, number]
 ): Promise<[number, number][]> {
+  const r = await fetchRoadRouteFull(from, to)
+  return r.coords
+}
+
+/**
+ * Igual a fetchRoadRoute, mas devolve também distância (metros) e duração (segundos).
+ */
+async function fetchRoadRouteFull(
+  from: [number, number],
+  to: [number, number]
+): Promise<{ coords: [number, number][]; distance: number | null; duration: number | null }> {
   try {
-    // OSRM espera longitude,latitude na URL
     const url =
       `https://router.project-osrm.org/route/v1/driving/` +
       `${from[1]},${from[0]};${to[1]},${to[0]}` +
       `?overview=full&geometries=geojson`
     const res  = await fetch(url, { signal: AbortSignal.timeout(8000) })
     const data = await res.json()
-    if (data.code === 'Ok' && data.routes?.[0]?.geometry?.coordinates?.length) {
-      // GeoJSON: [lng, lat] → Leaflet: [lat, lng]
-      return data.routes[0].geometry.coordinates.map(
+    const route = data?.routes?.[0]
+    if (data.code === 'Ok' && route?.geometry?.coordinates?.length) {
+      const coords = route.geometry.coordinates.map(
         ([lng, lat]: [number, number]) => [lat, lng] as [number, number]
       )
+      return { coords, distance: route.distance ?? null, duration: route.duration ?? null }
     }
   } catch {}
-  // Fallback: linha direta
-  return [from, to]
+  return { coords: [from, to], distance: null, duration: null }
+}
+
+/** Formata duração (segundos) em texto curto: 1h 20min / 45 min / 3 min */
+function formatDuration(seconds: number | null | undefined): string {
+  if (seconds == null || !isFinite(seconds)) return '—'
+  const mins = Math.max(1, Math.round(seconds / 60))
+  if (mins < 60) return `${mins} min`
+  const h = Math.floor(mins / 60); const m = mins % 60
+  return m ? `${h}h ${m}min` : `${h}h`
 }
 
 /* ─── Micro components ──────────────────────────────────────────────────────── */
@@ -370,6 +389,7 @@ const MapView = () => {
   const [userLocation, setUserLocation]   = useState<[number, number] | null>(null)
   const [mapStyle, setMapStyle]           = useState<'streets' | 'satellite' | 'terrain'>('streets')
   const [trackedProduct, setTrackedProduct] = useState<Product | null>(null)
+  const [routeMetrics, setRouteMetrics]     = useState<Record<string, { km: number; mins: number }>>({})
 
   const { user } = useAuth()
 
@@ -647,18 +667,44 @@ const MapView = () => {
 
     let cancelled = false
     ;(async () => {
+      const acc: Record<string, { km: number; mins: number }> = {}
       for (const { p } of targets) {
         if (cancelled) return
-        const coords = await fetchRoadRoute(userLatLng, [p.location_lat!, p.location_lng!])
+        const { coords, distance, duration } = await fetchRoadRouteFull(
+          userLatLng, [p.location_lat!, p.location_lng!]
+        )
         if (cancelled) return
+        const km   = distance != null ? distance / 1000 : distanceKm(userLocation, [p.location_lng!, p.location_lat!])
+        const mins = duration != null ? Math.max(1, Math.round(duration / 60)) : 0
+        if (p.id) acc[p.id] = { km: Math.round(km * 10) / 10, mins }
+
         const line = L.polyline(coords, {
           color: T.g600, weight: 2, opacity: 0.55, dashArray: '4 6',
         }).addTo(m)
+
+        const kmTxt   = `${(Math.round(km * 10) / 10).toFixed(1)} km`
+        const timeTxt = mins ? formatDuration(mins * 60) : '—'
+        const popupHtml = `
+          <div style="font-family:${FONT};min-width:170px;">
+            <div style="font-size:9px;font-weight:800;color:${T.muted};text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;">Rota até ao produto</div>
+            <div style="font-size:13px;font-weight:900;color:${T.ink};margin-bottom:6px;">${(p.product_type || 'Produto')}</div>
+            <div style="display:flex;gap:10px;font-size:11px;color:${T.ink};font-weight:700;">
+              <span>📏 ${kmTxt}</span>
+              <span>⏱ ${timeTxt}</span>
+            </div>
+          </div>`
+        line.bindPopup(popupHtml)
+        line.bindTooltip(`${kmTxt} · ${timeTxt}`, {
+          sticky: true, direction: 'top',
+          className: 'al-route-tip',
+        })
+        line.on('click', () => setSelectedProduct(p))
         allProductRoutesRef.current.push(line)
       }
+      if (!cancelled) setRouteMetrics(acc)
     })()
 
-    return () => { cancelled = true; clearAll() }
+    return () => { cancelled = true; clearAll(); setRouteMetrics({}) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredProducts, userLocation, leafletLoadedRef.current])
 
@@ -1061,8 +1107,10 @@ const MapView = () => {
           onTrack={p => setTrackedProduct(p)}
           distanceLabel={(() => {
             if (!userLocation || !selectedProduct.location_lat || !selectedProduct.location_lng) return undefined
-            const km = distanceKm(userLocation, [selectedProduct.location_lng, selectedProduct.location_lat])
-            return `A ${km} km de si`
+            const m = selectedProduct.id ? routeMetrics[selectedProduct.id] : undefined
+            const km = m?.km ?? distanceKm(userLocation, [selectedProduct.location_lng, selectedProduct.location_lat])
+            const timeTxt = m?.mins ? ` · ${formatDuration(m.mins * 60)}` : ''
+            return `A ${km} km de si${timeTxt}`
           })()}
         />
       )}
@@ -1218,6 +1266,8 @@ const MapView = () => {
         .leaflet-top, .leaflet-bottom { z-index: 20 !important; }
         .leaflet-control-zoom { margin-top: 60px !important; }
         .leaflet-container { font-family: ${FONT} !important; }
+        .al-route-tip { background:${T.ink} !important; color:#fff !important; border:none !important; font-weight:800 !important; font-size:10px !important; padding:4px 8px !important; border-radius:6px !important; box-shadow:0 4px 12px rgba(0,0,0,0.25) !important; }
+        .al-route-tip::before { border-top-color:${T.ink} !important; }
       `}</style>
       <SatelliteMonitor />
     </div>
