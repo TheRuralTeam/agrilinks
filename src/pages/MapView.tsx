@@ -667,18 +667,44 @@ const MapView = () => {
 
     let cancelled = false
     ;(async () => {
+      const acc: Record<string, { km: number; mins: number }> = {}
       for (const { p } of targets) {
         if (cancelled) return
-        const coords = await fetchRoadRoute(userLatLng, [p.location_lat!, p.location_lng!])
+        const { coords, distance, duration } = await fetchRoadRouteFull(
+          userLatLng, [p.location_lat!, p.location_lng!]
+        )
         if (cancelled) return
+        const km   = distance != null ? distance / 1000 : distanceKm(userLocation, [p.location_lng!, p.location_lat!])
+        const mins = duration != null ? Math.max(1, Math.round(duration / 60)) : 0
+        if (p.id) acc[p.id] = { km: Math.round(km * 10) / 10, mins }
+
         const line = L.polyline(coords, {
           color: T.g600, weight: 2, opacity: 0.55, dashArray: '4 6',
         }).addTo(m)
+
+        const kmTxt   = `${(Math.round(km * 10) / 10).toFixed(1)} km`
+        const timeTxt = mins ? formatDuration(mins * 60) : '—'
+        const popupHtml = `
+          <div style="font-family:${FONT};min-width:170px;">
+            <div style="font-size:9px;font-weight:800;color:${T.muted};text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;">Rota até ao produto</div>
+            <div style="font-size:13px;font-weight:900;color:${T.ink};margin-bottom:6px;">${(p.product_type || 'Produto')}</div>
+            <div style="display:flex;gap:10px;font-size:11px;color:${T.ink};font-weight:700;">
+              <span>📏 ${kmTxt}</span>
+              <span>⏱ ${timeTxt}</span>
+            </div>
+          </div>`
+        line.bindPopup(popupHtml)
+        line.bindTooltip(`${kmTxt} · ${timeTxt}`, {
+          sticky: true, direction: 'top',
+          className: 'al-route-tip',
+        })
+        line.on('click', () => setSelectedProduct(p))
         allProductRoutesRef.current.push(line)
       }
+      if (!cancelled) setRouteMetrics(acc)
     })()
 
-    return () => { cancelled = true; clearAll() }
+    return () => { cancelled = true; clearAll(); setRouteMetrics({}) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredProducts, userLocation, leafletLoadedRef.current])
 
