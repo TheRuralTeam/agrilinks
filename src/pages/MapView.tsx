@@ -5,7 +5,7 @@ import {
   Leaf, TrendingUp, Users, Phone, Mail, Star, Heart, Share2,
   ArrowRight, ArrowLeft, Droplet, Wind, Cloud, Navigation,
   ChevronDown, CheckCircle, AlertCircle, User, Briefcase,
-  MessageSquare, Map, Zap, Eye, EyeOff, Sliders,
+  MessageSquare, Map, Zap, Eye, EyeOff, Sliders, Car, Truck,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import SatelliteMonitor from '@/components/SatelliteMonitor';
