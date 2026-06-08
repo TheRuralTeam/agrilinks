@@ -15,8 +15,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useCanAct } from '@/hooks/useCanAct'
 import { useNavigate } from 'react-router-dom'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import mapboxgl from 'mapbox-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
+import SimpleLeafletMap from '@/components/SimpleLeafletMap'
 import "slick-carousel/slick/slick.css"
 import "slick-carousel/slick/slick-theme.css"
 
@@ -424,36 +423,6 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   const [replyText, setReplyText] = useState('')
   const [mapModalOpen, setMapModalOpen] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
-  const mapContainerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<mapboxgl.Map | null>(null)
-
-  const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
-  const formatPrice = (p: number) =>
-    p.toLocaleString('pt-AO', { style: 'currency', currency: 'AOA' }).replace('AOA', 'Kz')
-
-  const discount = product.quantity > 100 ? 15 : product.quantity > 50 ? 10 : 0
-  const originalPrice = discount > 0 ? product.price / (1 - discount / 100) : product.price
-  const isNew = (new Date().getTime() - new Date(product.created_at).getTime()) / (1000 * 60 * 60 * 24) < 7
-
-  useEffect(() => {
-    if (mapModalOpen && mapContainerRef.current && product.location_lat && product.location_lng) {
-      mapboxgl.accessToken = 'pk.eyJ1IjoiYWdyaWxpbmthbyIsImEiOiJjbWJyaWNjOW8wYm5jMnFxdHJjNTZkZGN0In0.gYkUQOzg2xHYeS4CCbU-cw'
-      if (mapRef.current) mapRef.current.remove()
-      mapRef.current = new mapboxgl.Map({
-        container: mapContainerRef.current,
-        style: 'mapbox://styles/mapbox/streets-v12',
-        center: [product.location_lng, product.location_lat],
-        zoom: 13,
-      })
-      new mapboxgl.Marker({ color: brand.green })
-        .setLngLat([product.location_lng, product.location_lat])
-        .setPopup(new mapboxgl.Popup().setHTML(`<strong>${product.product_type}</strong><br/>${product.farmer_name}`))
-        .addTo(mapRef.current)
-      mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right')
-    }
-    return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null } }
-  }, [mapModalOpen, product])
 
   const toggleLike = async () => {
     if (!requireAct('dar like')) return
