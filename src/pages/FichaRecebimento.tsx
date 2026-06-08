@@ -65,15 +65,6 @@ const FichaRecebimento = () => {
   const [mapError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-    };
-  }, []);
-
   const handleAddLocal = () => {
     if (localTemp.descricao && localTemp.coordenadas) {
       setFormData((prev) => ({
@@ -81,10 +72,11 @@ const FichaRecebimento = () => {
         locaisEntrega: [...prev.locaisEntrega, localTemp],
       }));
       setLocalTemp({ descricao: "", coordenadas: null });
-      if (markerRef.current) {
-        markerRef.current.remove();
-        markerRef.current = null;
-      }
+      toast.success("Local adicionado!");
+    } else {
+      toast.error("Preencha a descrição e clique no mapa para marcar o local.");
+    }
+  };
       toast.success("Local adicionado!");
     } else {
       toast.error("Preencha a descrição e clique no mapa para marcar o local.");
