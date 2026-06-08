@@ -349,22 +349,49 @@ export const SatelliteMonitor: React.FC = () => {
 
               {tab === 'ndvi' && (
                 <div>
-                  <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #DDE8DF', background: '#0F3318', position: 'relative' }}>
-                    <img
-                      key={ndviKey}
-                      src={ndviUrl}
-                      alt="NDVI Angola - MODIS Terra"
-                      style={{ width: '100%', display: 'block', minHeight: 280, objectFit: 'cover' }}
-                      onError={(e) => {
-                        const el = e.currentTarget as HTMLImageElement;
-                        if (!el.dataset.fallback) { el.dataset.fallback = '1'; el.src = ndviFallbackUrl; }
-                      }}
-                    />
-                    <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(15,51,24,0.85)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 6, letterSpacing: '0.05em' }}>
-                      MODIS · {ndviDate}
+                  <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #DDE8DF', background: '#0F3318', position: 'relative', minHeight: 280 }}>
+                    {ndviProbing && !ndviDate && (
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12 }}>
+                        A localizar camada NDVI mais recente…
+                      </div>
+                    )}
+                    {ndviUrl && (
+                      <img
+                        key={ndviKey}
+                        src={ndviUrl}
+                        alt="NDVI Angola - MODIS Terra"
+                        style={{ width: '100%', display: 'block', minHeight: 280, objectFit: 'cover' }}
+                        onError={(e) => {
+                          const el = e.currentTarget as HTMLImageElement;
+                          if (!el.dataset.fallback) { el.dataset.fallback = '1'; el.src = ndviFallbackUrl; }
+                        }}
+                      />
+                    )}
+                    <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(15,51,24,0.9)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 6, letterSpacing: '0.05em' }}>
+                      MODIS · {ndviDate || '—'}
                     </div>
+                    <button
+                      onClick={loadNdvi}
+                      disabled={ndviProbing}
+                      title="Recarregar última camada NDVI"
+                      style={{
+                        position: 'absolute', top: 8, right: 8,
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        background: GOLD, border: 'none', color: '#fff',
+                        borderRadius: 6, padding: '4px 8px', cursor: ndviProbing ? 'wait' : 'pointer',
+                        fontSize: 10, fontWeight: 700, letterSpacing: '0.04em',
+                      }}
+                    >
+                      <RefreshCw size={11} style={{ animation: ndviProbing ? 'spin 1s linear infinite' : undefined }} />
+                      {ndviProbing ? 'A verificar…' : 'Atualizar'}
+                    </button>
                   </div>
-                  <p style={{ fontSize: 11, color: '#6B8070', marginTop: 8, fontWeight: 600 }}>Dados via NASA GIBS · MODIS Terra NDVI 8-Day</p>
+
+                  <div style={{ marginTop: 8, padding: '8px 10px', background: '#fff', border: '1px solid #DDE8DF', borderRadius: 8, fontSize: 11, color: '#243329', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div><strong style={{ color: GREEN_DARK }}>Data da camada:</strong> {ndviDate ? new Date(ndviDate + 'T00:00:00Z').toLocaleDateString('pt-AO', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'} (UTC)</div>
+                    <div><strong style={{ color: GREEN_DARK }}>Última verificação:</strong> {ndviFetchedAt ? `${ndviFetchedAt.toLocaleDateString('pt-AO')} · ${ndviFetchedAt.toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : '—'}</div>
+                    <div style={{ color: '#6B8070' }}>Fonte: NASA GIBS · MODIS Terra NDVI 8-Day (composto de 8 dias)</div>
+                  </div>
 
                   <div style={{ marginTop: 12, background: '#fff', borderRadius: 10, padding: 12, border: '1px solid #DDE8DF' }}>
                     <p style={{ fontSize: 11, fontWeight: 800, color: GREEN_DARK, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Legenda NDVI</p>
