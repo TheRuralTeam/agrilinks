@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
+import SimpleLeafletMap from "@/components/SimpleLeafletMap";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,9 +30,6 @@ import {
   Plus,
   CheckCircle2,
 } from "lucide-react";
-
-mapboxgl.accessToken =
-  "pk.eyJ1IjoibHVjYW1iYSIsImEiOiJjbWdqY293Z2QwaGRwMmlyNGlwNW4xYXhwIn0.qOjQNe8kbbfmdK5G0MHWDA";
 
 const STEPS = [
   { id: 0, label: "Negócio", icon: Building2 },
@@ -66,57 +62,8 @@ const FichaRecebimento = () => {
     descricao: "",
     coordenadas: null as { lat: number; lng: number } | null,
   });
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markerRef = useRef<mapboxgl.Marker | null>(null);
-  const [mapError, setMapError] = useState<string | null>(null);
+  const [mapError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  // Init map when step 2 is active
-  useEffect(() => {
-    if (step !== 2) return;
-    const timer = setTimeout(() => {
-      if (!mapContainerRef.current) return;
-      if (mapRef.current) {
-        mapRef.current.resize();
-        return;
-      }
-      try {
-        const map = new mapboxgl.Map({
-          container: mapContainerRef.current,
-          style: "mapbox://styles/mapbox/streets-v12",
-          center: [13.235, -8.838],
-          zoom: 10,
-        });
-        map.on("error", () => setMapError("Erro ao carregar o mapa."));
-        map.on("click", (e) => {
-          const coords = { lat: e.lngLat.lat, lng: e.lngLat.lng };
-          setLocalTemp((prev) => ({ ...prev, coordenadas: coords }));
-          if (markerRef.current) {
-            markerRef.current.setLngLat([coords.lng, coords.lat]);
-          } else {
-            markerRef.current = new mapboxgl.Marker({ color: "#2D7D3A" })
-              .setLngLat([coords.lng, coords.lat])
-              .addTo(map);
-          }
-        });
-        map.addControl(new mapboxgl.NavigationControl(), "top-right");
-        mapRef.current = map;
-      } catch {
-        setMapError("Não foi possível inicializar o mapa.");
-      }
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [step]);
-
-  useEffect(() => {
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-    };
-  }, []);
 
   const handleAddLocal = () => {
     if (localTemp.descricao && localTemp.coordenadas) {
@@ -125,10 +72,6 @@ const FichaRecebimento = () => {
         locaisEntrega: [...prev.locaisEntrega, localTemp],
       }));
       setLocalTemp({ descricao: "", coordenadas: null });
-      if (markerRef.current) {
-        markerRef.current.remove();
-        markerRef.current = null;
-      }
       toast.success("Local adicionado!");
     } else {
       toast.error("Preencha a descrição e clique no mapa para marcar o local.");
@@ -382,11 +325,16 @@ const FichaRecebimento = () => {
                 {mapError}
               </div>
             ) : (
-              <div
-                ref={mapContainerRef}
-                className="w-full rounded-xl overflow-hidden"
-                style={{ height: 280, border: `1.5px solid ${T.border}` }}
-              />
+              <div className="w-full rounded-xl overflow-hidden" style={{ height: 280, border: `1.5px solid ${T.border}` }}>
+                <SimpleLeafletMap
+                  center={{ lat: -8.838, lng: 13.235 }}
+                  zoom={10}
+                  height={280}
+                  onClick={(c) => setLocalTemp((prev) => ({ ...prev, coordenadas: c }))}
+                  markers={localTemp.coordenadas ? [{ lat: localTemp.coordenadas.lat, lng: localTemp.coordenadas.lng, color: '#2D7D3A' }] : []}
+                  clickMarkerColor="#2D7D3A"
+                />
+              </div>
             )}
 
             {localTemp.coordenadas && (

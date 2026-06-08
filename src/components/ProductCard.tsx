@@ -15,8 +15,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useCanAct } from '@/hooks/useCanAct'
 import { useNavigate } from 'react-router-dom'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import mapboxgl from 'mapbox-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
+import SimpleLeafletMap from '@/components/SimpleLeafletMap'
 import "slick-carousel/slick/slick.css"
 import "slick-carousel/slick/slick-theme.css"
 
@@ -424,8 +423,6 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   const [replyText, setReplyText] = useState('')
   const [mapModalOpen, setMapModalOpen] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
-  const mapContainerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<mapboxgl.Map | null>(null)
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
@@ -435,25 +432,6 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   const discount = product.quantity > 100 ? 15 : product.quantity > 50 ? 10 : 0
   const originalPrice = discount > 0 ? product.price / (1 - discount / 100) : product.price
   const isNew = (new Date().getTime() - new Date(product.created_at).getTime()) / (1000 * 60 * 60 * 24) < 7
-
-  useEffect(() => {
-    if (mapModalOpen && mapContainerRef.current && product.location_lat && product.location_lng) {
-      mapboxgl.accessToken = 'pk.eyJ1IjoiYWdyaWxpbmthbyIsImEiOiJjbWJyaWNjOW8wYm5jMnFxdHJjNTZkZGN0In0.gYkUQOzg2xHYeS4CCbU-cw'
-      if (mapRef.current) mapRef.current.remove()
-      mapRef.current = new mapboxgl.Map({
-        container: mapContainerRef.current,
-        style: 'mapbox://styles/mapbox/streets-v12',
-        center: [product.location_lng, product.location_lat],
-        zoom: 13,
-      })
-      new mapboxgl.Marker({ color: brand.green })
-        .setLngLat([product.location_lng, product.location_lat])
-        .setPopup(new mapboxgl.Popup().setHTML(`<strong>${product.product_type}</strong><br/>${product.farmer_name}`))
-        .addTo(mapRef.current)
-      mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right')
-    }
-    return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null } }
-  }, [mapModalOpen, product])
 
   const toggleLike = async () => {
     if (!requireAct('dar like')) return
@@ -909,7 +887,21 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
             </DialogTitle>
           </DialogHeader>
 
-          <div ref={mapContainerRef} style={{ width: '100%', height: 420 }} />
+          <div style={{ width: '100%', height: 420 }}>
+            {mapModalOpen && product.location_lat && product.location_lng && (
+              <SimpleLeafletMap
+                center={{ lat: product.location_lat, lng: product.location_lng }}
+                zoom={13}
+                height={420}
+                markers={[{
+                  lat: product.location_lat,
+                  lng: product.location_lng,
+                  color: brand.green,
+                  popupHtml: `<strong>${product.product_type}</strong><br/>${product.farmer_name}`,
+                }]}
+              />
+            )}
+          </div>
 
           <div style={{
             padding: '16px 24px', background: brand.greenPale,

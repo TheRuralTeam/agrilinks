@@ -58,6 +58,9 @@ export const SatelliteMonitor: React.FC = () => {
   const [err, setErr] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [ndviKey, setNdviKey] = useState(0);
+  const [ndviDate, setNdviDate] = useState<string>('');
+  const [ndviFetchedAt, setNdviFetchedAt] = useState<Date | null>(null);
+  const [ndviProbing, setNdviProbing] = useState(false);
 
   const loadClima = useCallback(async () => {
     setErr(null);
@@ -122,18 +125,54 @@ export const SatelliteMonitor: React.FC = () => {
     setFazendas(list);
   }, []);
 
+  // Detecta a data mais recente disponível da camada MODIS Terra NDVI 8-Day
+  const probeLatestNdvi = useCallback(async (): Promise<string> => {
+    const base = 'https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi';
+    const buildUrl = (date: string) =>
+      `${base}?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=MODIS_Terra_NDVI_8Day&CRS=EPSG:4326&BBOX=-18.04,11.67,-4.38,24.08&WIDTH=64&HEIGHT=64&FORMAT=image/png&TRANSPARENT=false&TIME=${date}`;
+    const tryDate = (date: string) => new Promise<boolean>((resolve) => {
+      const img = new Image();
+      const t = setTimeout(() => { img.src = ''; resolve(false); }, 6000);
+      img.onload = () => { clearTimeout(t); resolve((img.naturalWidth || 0) > 0); };
+      img.onerror = () => { clearTimeout(t); resolve(false); };
+      img.src = buildUrl(date) + `&_=${Date.now()}`;
+    });
+    const d = new Date();
+    // tenta a partir de hoje, recuando 1 dia por iteração (até 30 dias)
+    for (let i = 0; i < 30; i++) {
+      const iso = d.toISOString().slice(0, 10);
+      // eslint-disable-next-line no-await-in-loop
+      if (await tryDate(iso)) return iso;
+      d.setUTCDate(d.getUTCDate() - 1);
+    }
+    // fallback: hoje - 12 (heurística antiga)
+    const f = new Date(); f.setUTCDate(f.getUTCDate() - 12);
+    return f.toISOString().slice(0, 10);
+  }, []);
+
+  const loadNdvi = useCallback(async () => {
+    setNdviProbing(true);
+    try {
+      const latest = await probeLatestNdvi();
+      setNdviDate(latest);
+      setNdviFetchedAt(new Date());
+      setNdviKey(k => k + 1);
+    } finally {
+      setNdviProbing(false);
+    }
+  }, [probeLatestNdvi]);
+
   const refreshAll = useCallback(async () => {
     setRefreshing(true);
     setLoading(true);
     try {
-      await Promise.all([loadClima(), loadFazendas()]);
-      setNdviKey(k => k + 1);
+      await Promise.all([loadClima(), loadFazendas(), loadNdvi()]);
       setLastRefresh(new Date());
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [loadClima, loadFazendas]);
+  }, [loadClima, loadFazendas, loadNdvi]);
 
   // Carregar ao abrir + auto-refresh a cada 30 min
   useEffect(() => {
@@ -154,15 +193,12 @@ export const SatelliteMonitor: React.FC = () => {
     return a;
   }, [clima]);
 
-  // NASA GIBS — WMS público (sem chave). MODIS Terra NDVI 8-Day.
-  // Usa data de ~12 dias atrás para garantir disponibilidade.
-  const ndviDate = useMemo(() => {
-    const d = new Date(); d.setUTCDate(d.getUTCDate() - 12);
-    return d.toISOString().slice(0, 10);
-  }, [ndviKey]);
-  const ndviUrl = `https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=MODIS_Terra_NDVI_8Day&CRS=EPSG:4326&BBOX=-18.04,11.67,-4.38,24.08&WIDTH=720&HEIGHT=720&FORMAT=image/png&TRANSPARENT=false&TIME=${ndviDate}&_=${ndviKey}`;
-  // Fallback: VIIRS NDVI (mais recente, diário)
-  const ndviFallbackUrl = `https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=VIIRS_SNPP_CorrectedReflectance_TrueColor&CRS=EPSG:4326&BBOX=-18.04,11.67,-4.38,24.08&WIDTH=720&HEIGHT=720&FORMAT=image/jpeg&TIME=${ndviDate}&_=${ndviKey}`;
+  const ndviUrl = ndviDate
+    ? `https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=MODIS_Terra_NDVI_8Day&CRS=EPSG:4326&BBOX=-18.04,11.67,-4.38,24.08&WIDTH=720&HEIGHT=720&FORMAT=image/png&TRANSPARENT=false&TIME=${ndviDate}&_=${ndviKey}`
+    : '';
+  const ndviFallbackUrl = ndviDate
+    ? `https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=VIIRS_SNPP_CorrectedReflectance_TrueColor&CRS=EPSG:4326&BBOX=-18.04,11.67,-4.38,24.08&WIDTH=720&HEIGHT=720&FORMAT=image/jpeg&TIME=${ndviDate}&_=${ndviKey}`
+    : '';
 
   return (
     <>
@@ -313,22 +349,49 @@ export const SatelliteMonitor: React.FC = () => {
 
               {tab === 'ndvi' && (
                 <div>
-                  <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #DDE8DF', background: '#0F3318', position: 'relative' }}>
-                    <img
-                      key={ndviKey}
-                      src={ndviUrl}
-                      alt="NDVI Angola - MODIS Terra"
-                      style={{ width: '100%', display: 'block', minHeight: 280, objectFit: 'cover' }}
-                      onError={(e) => {
-                        const el = e.currentTarget as HTMLImageElement;
-                        if (!el.dataset.fallback) { el.dataset.fallback = '1'; el.src = ndviFallbackUrl; }
-                      }}
-                    />
-                    <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(15,51,24,0.85)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 6, letterSpacing: '0.05em' }}>
-                      MODIS · {ndviDate}
+                  <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #DDE8DF', background: '#0F3318', position: 'relative', minHeight: 280 }}>
+                    {ndviProbing && !ndviDate && (
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12 }}>
+                        A localizar camada NDVI mais recente…
+                      </div>
+                    )}
+                    {ndviUrl && (
+                      <img
+                        key={ndviKey}
+                        src={ndviUrl}
+                        alt="NDVI Angola - MODIS Terra"
+                        style={{ width: '100%', display: 'block', minHeight: 280, objectFit: 'cover' }}
+                        onError={(e) => {
+                          const el = e.currentTarget as HTMLImageElement;
+                          if (!el.dataset.fallback) { el.dataset.fallback = '1'; el.src = ndviFallbackUrl; }
+                        }}
+                      />
+                    )}
+                    <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(15,51,24,0.9)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 6, letterSpacing: '0.05em' }}>
+                      MODIS · {ndviDate || '—'}
                     </div>
+                    <button
+                      onClick={loadNdvi}
+                      disabled={ndviProbing}
+                      title="Recarregar última camada NDVI"
+                      style={{
+                        position: 'absolute', top: 8, right: 8,
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        background: GOLD, border: 'none', color: '#fff',
+                        borderRadius: 6, padding: '4px 8px', cursor: ndviProbing ? 'wait' : 'pointer',
+                        fontSize: 10, fontWeight: 700, letterSpacing: '0.04em',
+                      }}
+                    >
+                      <RefreshCw size={11} style={{ animation: ndviProbing ? 'spin 1s linear infinite' : undefined }} />
+                      {ndviProbing ? 'A verificar…' : 'Atualizar'}
+                    </button>
                   </div>
-                  <p style={{ fontSize: 11, color: '#6B8070', marginTop: 8, fontWeight: 600 }}>Dados via NASA GIBS · MODIS Terra NDVI 8-Day</p>
+
+                  <div style={{ marginTop: 8, padding: '8px 10px', background: '#fff', border: '1px solid #DDE8DF', borderRadius: 8, fontSize: 11, color: '#243329', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div><strong style={{ color: GREEN_DARK }}>Data da camada:</strong> {ndviDate ? new Date(ndviDate + 'T00:00:00Z').toLocaleDateString('pt-AO', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'} (UTC)</div>
+                    <div><strong style={{ color: GREEN_DARK }}>Última verificação:</strong> {ndviFetchedAt ? `${ndviFetchedAt.toLocaleDateString('pt-AO')} · ${ndviFetchedAt.toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : '—'}</div>
+                    <div style={{ color: '#6B8070' }}>Fonte: NASA GIBS · MODIS Terra NDVI 8-Day (composto de 8 dias)</div>
+                  </div>
 
                   <div style={{ marginTop: 12, background: '#fff', borderRadius: 10, padding: 12, border: '1px solid #DDE8DF' }}>
                     <p style={{ fontSize: 11, fontWeight: 800, color: GREEN_DARK, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Legenda NDVI</p>
