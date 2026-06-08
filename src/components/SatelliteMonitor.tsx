@@ -58,6 +58,9 @@ export const SatelliteMonitor: React.FC = () => {
   const [err, setErr] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [ndviKey, setNdviKey] = useState(0);
+  const [ndviDate, setNdviDate] = useState<string>('');
+  const [ndviFetchedAt, setNdviFetchedAt] = useState<Date | null>(null);
+  const [ndviProbing, setNdviProbing] = useState(false);
 
   const loadClima = useCallback(async () => {
     setErr(null);
@@ -122,18 +125,54 @@ export const SatelliteMonitor: React.FC = () => {
     setFazendas(list);
   }, []);
 
+  // Detecta a data mais recente disponível da camada MODIS Terra NDVI 8-Day
+  const probeLatestNdvi = useCallback(async (): Promise<string> => {
+    const base = 'https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi';
+    const buildUrl = (date: string) =>
+      `${base}?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=MODIS_Terra_NDVI_8Day&CRS=EPSG:4326&BBOX=-18.04,11.67,-4.38,24.08&WIDTH=64&HEIGHT=64&FORMAT=image/png&TRANSPARENT=false&TIME=${date}`;
+    const tryDate = (date: string) => new Promise<boolean>((resolve) => {
+      const img = new Image();
+      const t = setTimeout(() => { img.src = ''; resolve(false); }, 6000);
+      img.onload = () => { clearTimeout(t); resolve((img.naturalWidth || 0) > 0); };
+      img.onerror = () => { clearTimeout(t); resolve(false); };
+      img.src = buildUrl(date) + `&_=${Date.now()}`;
+    });
+    const d = new Date();
+    // tenta a partir de hoje, recuando 1 dia por iteração (até 30 dias)
+    for (let i = 0; i < 30; i++) {
+      const iso = d.toISOString().slice(0, 10);
+      // eslint-disable-next-line no-await-in-loop
+      if (await tryDate(iso)) return iso;
+      d.setUTCDate(d.getUTCDate() - 1);
+    }
+    // fallback: hoje - 12 (heurística antiga)
+    const f = new Date(); f.setUTCDate(f.getUTCDate() - 12);
+    return f.toISOString().slice(0, 10);
+  }, []);
+
+  const loadNdvi = useCallback(async () => {
+    setNdviProbing(true);
+    try {
+      const latest = await probeLatestNdvi();
+      setNdviDate(latest);
+      setNdviFetchedAt(new Date());
+      setNdviKey(k => k + 1);
+    } finally {
+      setNdviProbing(false);
+    }
+  }, [probeLatestNdvi]);
+
   const refreshAll = useCallback(async () => {
     setRefreshing(true);
     setLoading(true);
     try {
-      await Promise.all([loadClima(), loadFazendas()]);
-      setNdviKey(k => k + 1);
+      await Promise.all([loadClima(), loadFazendas(), loadNdvi()]);
       setLastRefresh(new Date());
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [loadClima, loadFazendas]);
+  }, [loadClima, loadFazendas, loadNdvi]);
 
   // Carregar ao abrir + auto-refresh a cada 30 min
   useEffect(() => {
@@ -154,15 +193,12 @@ export const SatelliteMonitor: React.FC = () => {
     return a;
   }, [clima]);
 
-  // NASA GIBS — WMS público (sem chave). MODIS Terra NDVI 8-Day.
-  // Usa data de ~12 dias atrás para garantir disponibilidade.
-  const ndviDate = useMemo(() => {
-    const d = new Date(); d.setUTCDate(d.getUTCDate() - 12);
-    return d.toISOString().slice(0, 10);
-  }, [ndviKey]);
-  const ndviUrl = `https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=MODIS_Terra_NDVI_8Day&CRS=EPSG:4326&BBOX=-18.04,11.67,-4.38,24.08&WIDTH=720&HEIGHT=720&FORMAT=image/png&TRANSPARENT=false&TIME=${ndviDate}&_=${ndviKey}`;
-  // Fallback: VIIRS NDVI (mais recente, diário)
-  const ndviFallbackUrl = `https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=VIIRS_SNPP_CorrectedReflectance_TrueColor&CRS=EPSG:4326&BBOX=-18.04,11.67,-4.38,24.08&WIDTH=720&HEIGHT=720&FORMAT=image/jpeg&TIME=${ndviDate}&_=${ndviKey}`;
+  const ndviUrl = ndviDate
+    ? `https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=MODIS_Terra_NDVI_8Day&CRS=EPSG:4326&BBOX=-18.04,11.67,-4.38,24.08&WIDTH=720&HEIGHT=720&FORMAT=image/png&TRANSPARENT=false&TIME=${ndviDate}&_=${ndviKey}`
+    : '';
+  const ndviFallbackUrl = ndviDate
+    ? `https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=VIIRS_SNPP_CorrectedReflectance_TrueColor&CRS=EPSG:4326&BBOX=-18.04,11.67,-4.38,24.08&WIDTH=720&HEIGHT=720&FORMAT=image/jpeg&TIME=${ndviDate}&_=${ndviKey}`
+    : '';
 
   return (
     <>
