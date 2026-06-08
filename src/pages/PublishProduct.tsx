@@ -15,10 +15,7 @@ import agrilinkLogo from '@/assets/agrilink-logo.png'
 import orbisLinkLogo from '@/assets/orbislink-logo.png'
 import { PRODUCT_CATEGORIES } from '@/lib/productCategories'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-
-import mapboxgl from 'mapbox-gl';
-import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import SimpleLeafletMap from '@/components/SimpleLeafletMap';
 
 const PublishProduct = () => {
   const navigate = useNavigate();
@@ -40,60 +37,6 @@ const PublishProduct = () => {
     logistics_access: 'sim'
   });
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markerRef = useRef<mapboxgl.Marker | null>(null);
-  const [mapboxToken] = useState('pk.eyJ1IjoibHVjYW1iYSIsImEiOiJjbWdqY293Z2QwaGRwMmlyNGlwNW4xYXhwIn0.qOjQNe8kbbfmdK5G0MHWDA');
-  const [mapError, setMapError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!mapContainer.current || mapRef.current) return;
-
-    // Check for WebGL support to avoid runtime crash
-    if (!mapboxgl.supported({ failIfMajorPerformanceCaveat: true } as any)) {
-      setMapError('Seu navegador/dispositivo não suporta WebGL suficiente para exibir o mapa.');
-      return;
-    }
-
-    try {
-      mapboxgl.accessToken = mapboxToken;
-      mapRef.current = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/streets-v12',
-        center: [13.234, -8.839],
-        zoom: 6,
-        attributionControl: false,
-      });
-
-      mapRef.current.on('error', (e) => {
-        console.error('Mapbox error:', e);
-        setMapError('Erro ao carregar o mapa. Tente novamente.');
-      });
-
-      mapRef.current.on('click', (e) => {
-        const { lng, lat } = e.lngLat;
-        setLocation({ lng, lat });
-
-        // Remove marcador anterior
-        if (markerRef.current) {
-          markerRef.current.remove();
-        }
-
-        // Cria novo marcador
-        markerRef.current = new mapboxgl.Marker({ color: 'red' })
-          .setLngLat([lng, lat])
-          .addTo(mapRef.current!);
-      });
-    } catch (err) {
-      console.error('Error initializing Mapbox:', err);
-      setMapError('Não foi possível inicializar o mapa.');
-    }
-
-    return () => {
-      if (markerRef.current) { markerRef.current.remove(); markerRef.current = null; }
-      if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
-    };
-  }, [mapContainer, mapboxToken]);
 
   const emailConfirmed = !!(user as any)?.email_confirmed_at || !!userProfile?.email_verified;
   if (user && !emailConfirmed) {
@@ -465,15 +408,20 @@ const PublishProduct = () => {
       <p className="text-xs text-muted-foreground">
         Clique no mapa para definir a localização exata do produto.
       </p>
-      {mapError ? (
-        <div className="w-full h-64 rounded-lg overflow-hidden border border-border flex items-center justify-center text-sm text-muted-foreground bg-muted/30">
-          {mapError}
-        </div>
-      ) : (
-        <div
-          ref={mapContainer}
-          className="w-full h-64 rounded-lg overflow-hidden border border-border"
+      <div className="w-full rounded-lg overflow-hidden border border-border" style={{ height: 256 }}>
+        <SimpleLeafletMap
+          center={{ lat: -8.839, lng: 13.234 }}
+          zoom={6}
+          height={256}
+          onClick={(c) => setLocation(c)}
+          markers={location ? [{ lat: location.lat, lng: location.lng, color: '#DC2626' }] : []}
+          clickMarkerColor="#DC2626"
         />
+      </div>
+      {location && (
+        <p className="text-xs font-mono text-[#1A5C24]">
+          Coordenadas: {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
+        </p>
       )}
     </div>
 
