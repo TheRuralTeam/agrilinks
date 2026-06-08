@@ -424,6 +424,15 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   const [mapModalOpen, setMapModalOpen] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
 
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+  const formatPrice = (p: number) =>
+    p.toLocaleString('pt-AO', { style: 'currency', currency: 'AOA' }).replace('AOA', 'Kz')
+
+  const discount = product.quantity > 100 ? 15 : product.quantity > 50 ? 10 : 0
+  const originalPrice = discount > 0 ? product.price / (1 - discount / 100) : product.price
+  const isNew = (new Date().getTime() - new Date(product.created_at).getTime()) / (1000 * 60 * 60 * 24) < 7
+
   const toggleLike = async () => {
     if (!requireAct('dar like')) return
     if (!onProductUpdate) return
