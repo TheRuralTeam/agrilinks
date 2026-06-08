@@ -887,7 +887,21 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
             </DialogTitle>
           </DialogHeader>
 
-          <div ref={mapContainerRef} style={{ width: '100%', height: 420 }} />
+          <div style={{ width: '100%', height: 420 }}>
+            {mapModalOpen && product.location_lat && product.location_lng && (
+              <SimpleLeafletMap
+                center={{ lat: product.location_lat, lng: product.location_lng }}
+                zoom={13}
+                height={420}
+                markers={[{
+                  lat: product.location_lat,
+                  lng: product.location_lng,
+                  color: brand.green,
+                  popupHtml: `<strong>${product.product_type}</strong><br/>${product.farmer_name}`,
+                }]}
+              />
+            )}
+          </div>
 
           <div style={{
             padding: '16px 24px', background: brand.greenPale,
