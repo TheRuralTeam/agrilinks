@@ -77,11 +77,6 @@ const FichaRecebimento = () => {
       toast.error("Preencha a descrição e clique no mapa para marcar o local.");
     }
   };
-      toast.success("Local adicionado!");
-    } else {
-      toast.error("Preencha a descrição e clique no mapa para marcar o local.");
-    }
-  };
 
   const removeLocal = (index: number) => {
     setFormData((prev) => ({
@@ -330,11 +325,16 @@ const FichaRecebimento = () => {
                 {mapError}
               </div>
             ) : (
-              <div
-                ref={mapContainerRef}
-                className="w-full rounded-xl overflow-hidden"
-                style={{ height: 280, border: `1.5px solid ${T.border}` }}
-              />
+              <div className="w-full rounded-xl overflow-hidden" style={{ height: 280, border: `1.5px solid ${T.border}` }}>
+                <SimpleLeafletMap
+                  center={{ lat: -8.838, lng: 13.235 }}
+                  zoom={10}
+                  height={280}
+                  onClick={(c) => setLocalTemp((prev) => ({ ...prev, coordenadas: c }))}
+                  markers={localTemp.coordenadas ? [{ lat: localTemp.coordenadas.lat, lng: localTemp.coordenadas.lng, color: '#2D7D3A' }] : []}
+                  clickMarkerColor="#2D7D3A"
+                />
+              </div>
             )}
 
             {localTemp.coordenadas && (
