@@ -89,11 +89,11 @@
     --radius: 0.875rem;
 
     /* Sidebar */
-    --sidebar-background: 80 27% 97%;
-    --sidebar-foreground: 140 35% 12%;
-    --sidebar-primary: 130 57% 23%;
+    --sidebar-background: 84 38% 97%;
+    --sidebar-foreground: 95 40% 14%;
+    --sidebar-primary: 88 46% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 90 20% 94%;
+    --sidebar-accent: 88 25% 94%;
     --sidebar-accent-foreground: 140 35% 12%;
     --sidebar-border: 95 22% 88%;
     --sidebar-ring: 130 57% 23%;
