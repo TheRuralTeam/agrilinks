@@ -5,8 +5,8 @@ import {
 } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
 
-const GREEN = '#1A5C24';
-const GREEN_DARK = '#0F3318';
+const GREEN = '#3C6622';
+const GREEN_DARK = '#2B4818';
 const GOLD = '#B07D0A';
 
 type Tab = 'clima' | 'ndvi' | 'fazendas';
