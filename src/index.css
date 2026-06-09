@@ -103,6 +103,44 @@
     --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
     --safe-area-inset-left: env(safe-area-inset-left, 0px);
     --safe-area-inset-right: env(safe-area-inset-right, 0px);
+
+    /* ============================================================
+       Map & Satellite Panel palette — Verde Alface (Lettuce Green)
+       Consumed via var(--map-*) in MapView.tsx and SatelliteMonitor.tsx
+       ============================================================ */
+    --map-g950: #15240C;
+    --map-g900: #1E3211;
+    --map-g800: #2B4818;
+    --map-g700: #3C6622;
+    --map-g600: #58932F;
+    --map-g500: #7CB342;
+    --map-g400: #98C863;
+    --map-g200: #D4E9B4;
+    --map-g100: #ECF5DC;
+    --map-g50:  #F6FAEC;
+    --map-gborder: #C9E0A4;
+    --map-accent:   #3C6622;
+    --map-accent-l: #58932F;
+    --map-accent-bg:#ECF5DC;
+    --map-ink:    #0C1311;
+    --map-slate:  #243329;
+    --map-mid:    #3A4D40;
+    --map-muted:  #6B8070;
+    --map-faint:  #9DB5A4;
+    --map-rule:   #DDE8DF;
+    --map-canvas: #F4F7F5;
+    --map-surface:#FAFCFA;
+    --map-white:  #FFFFFF;
+    --map-gold:   #92660A;
+    --map-gold-l: #C78B12;
+    --map-gold-bg:#FDF6E3;
+    --map-danger: #DC2626;
+    --map-danger-bg:#FEF2F2;
+    --map-blue:   #1D4ED8;
+    --map-blue-bg:#EFF6FF;
+    --map-shadow:    rgba(10,35,16,0.08);
+    --map-shadow-md: rgba(10,35,16,0.14);
+    --map-shadow-lg: rgba(10,35,16,0.20);
   }
 
   .dark {
