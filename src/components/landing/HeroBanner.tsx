@@ -38,7 +38,6 @@ const HeroBanner = () => {
             <span className="bg-gradient-to-r from-primary-light to-accent-light bg-clip-text text-transparent">mercados</span>{" "}
             em escala
           </h1>
-          </h1>
 
           {/* Subtitle */}
           <p className="text-base sm:text-lg text-white/70 mb-8 leading-relaxed max-w-2xl animate-slide-up stagger-1">
