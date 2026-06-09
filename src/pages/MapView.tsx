@@ -6,47 +6,49 @@ import {
   ArrowRight, ArrowLeft, Droplet, Wind, Cloud, Navigation,
   ChevronDown, CheckCircle, AlertCircle, User, Briefcase,
   MessageSquare, Map, Zap, Eye, EyeOff, Sliders, Car, Truck,
+  Sun, Moon,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import SatelliteMonitor from '@/components/SatelliteMonitor';
 import { supabase } from '@/integrations/supabase/client';
 import axios from 'axios';
 
-/* ─── Design tokens ─────────────────────────────────────────────────────────── */
+/* ─── Design tokens (theme-aware via CSS variables) ────────────────────────── */
 const T = {
-  g950:    '#15240C',
-  g900:    '#1E3211',
-  g800:    '#2B4818',
-  g700:    '#3C6622',
-  g600:    '#58932F',
-  g500:    '#7CB342',
-  g400:    '#98C863',
-  g200:    '#D4E9B4',
-  g100:    '#ECF5DC',
-  g50:     '#F6FAEC',
-  gBorder: '#C9E0A4',
-  accent:  '#0D7E6A',
-  accentL: '#10A688',
-  accentBg:'#E8F7F4',
-  ink:     '#0C1311',
-  slate:   '#243329',
-  mid:     '#3A4D40',
-  muted:   '#6B8070',
-  faint:   '#9DB5A4',
-  rule:    '#DDE8DF',
-  canvas:  '#F4F7F5',
-  surface: '#FAFCFA',
-  white:   '#FFFFFF',
-  gold:    '#92660A',
-  goldL:   '#C78B12',
-  goldBg:  '#FDF6E3',
-  danger:  '#DC2626',
-  dangerBg:'#FEF2F2',
-  blue:    '#1D4ED8',
-  blueBg:  '#EFF6FF',
-  shadow:  'rgba(10,35,16,0.08)',
-  shadowMd:'rgba(10,35,16,0.14)',
-  shadowLg:'rgba(10,35,16,0.20)',
+  g950:    'var(--map-g950)',
+  g900:    'var(--map-g900)',
+  g800:    'var(--map-g800)',
+  g700:    'var(--map-g700)',
+  g600:    'var(--map-g600)',
+  g500:    'var(--map-g500)',
+  g400:    'var(--map-g400)',
+  g200:    'var(--map-g200)',
+  g100:    'var(--map-g100)',
+  g50:     'var(--map-g50)',
+  gBorder: 'var(--map-gborder)',
+  accent:  'var(--map-accent)',
+  accentL: 'var(--map-accent-l)',
+  accentBg:'var(--map-accent-bg)',
+  ink:     'var(--map-ink)',
+  slate:   'var(--map-slate)',
+  mid:     'var(--map-mid)',
+  muted:   'var(--map-muted)',
+  faint:   'var(--map-faint)',
+  rule:    'var(--map-rule)',
+  canvas:  'var(--map-canvas)',
+  surface: 'var(--map-surface)',
+  white:   'var(--map-white)',
+  gold:    'var(--map-gold)',
+  goldL:   'var(--map-gold-l)',
+  goldBg:  'var(--map-gold-bg)',
+  danger:  'var(--map-danger)',
+  dangerBg:'var(--map-danger-bg)',
+  blue:    'var(--map-blue)',
+  blueBg:  'var(--map-blue-bg)',
+  shadow:  'var(--map-shadow)',
+  shadowMd:'var(--map-shadow-md)',
+  shadowLg:'var(--map-shadow-lg)',
 }
 
 const FONT = "'League Spartan', 'Helvetica Neue', Arial, sans-serif"
@@ -358,6 +360,7 @@ const StatsPanel: React.FC<{ count: number; avgPrice: number; totalQuantity: num
    MAIN COMPONENT
    ════════════════════════════════════════════════════════════════════════════ */
 const MapView = () => {
+  const { theme, toggle: toggleTheme } = useTheme()
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef                 = useRef<any>(null)
   const markersRef             = useRef<any[]>([])
@@ -1146,6 +1149,26 @@ const MapView = () => {
           </button>
         ))}
       </div>
+
+      {/* ══ THEME TOGGLE (claro / escuro) ════════════════════════════════════ */}
+      <button
+        onClick={toggleTheme}
+        title={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+        aria-label="Alternar tema"
+        style={{
+          position: 'absolute', top: 380, right: 20, zIndex: 30,
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '8px 12px', borderRadius: 10,
+          background: T.white, color: T.slate,
+          border: `1px solid ${T.rule}`, cursor: 'pointer',
+          fontSize: 10, fontWeight: 800, fontFamily: FONT,
+          letterSpacing: '0.06em', textTransform: 'uppercase',
+          boxShadow: `0 6px 18px ${T.shadow}`,
+          transition: 'all 0.2s ease',
+        }}>
+        {theme === 'dark' ? <Sun size={14} color={T.gold as string}/> : <Moon size={14} color={T.g700 as string}/>}
+        {theme === 'dark' ? 'Claro' : 'Escuro'}
+      </button>
 
       {/* ══ PIPELINE LEGEND ══════════════════════════════════════════════════ */}
       <div style={{ position: 'absolute', bottom: 80, right: 20, zIndex: 30, background: 'rgba(255,255,255,0.95)', borderRadius: 10, border: `1px solid ${T.rule}`, padding: '10px 14px', boxShadow: `0 4px 16px ${T.shadow}`, backdropFilter: 'blur(8px)' }}>
