@@ -187,6 +187,41 @@
     --sidebar-accent-foreground: 84 25% 92%;
     --sidebar-border: 95 22% 16%;
     --sidebar-ring: 88 55% 55%;
+
+    /* Map & Satellite Panel — dark mode (Verde Alface preservada) */
+    --map-g950: #ECF5DC;
+    --map-g900: #D4E9B4;
+    --map-g800: #98C863;
+    --map-g700: #B0D67A;
+    --map-g600: #98C863;
+    --map-g500: #7CB342;
+    --map-g400: #58932F;
+    --map-g200: #2B4818;
+    --map-g100: #1E3211;
+    --map-g50:  #15240C;
+    --map-gborder: #3C6622;
+    --map-accent:   #98C863;
+    --map-accent-l: #B0D67A;
+    --map-accent-bg:#1E3211;
+    --map-ink:    #ECF5DC;
+    --map-slate:  #D4E9B4;
+    --map-mid:    #98C863;
+    --map-muted:  #7C9882;
+    --map-faint:  #5A7060;
+    --map-rule:   #2B4818;
+    --map-canvas: #0B1408;
+    --map-surface:#15240C;
+    --map-white:  #1E3211;
+    --map-gold:   #E0A52A;
+    --map-gold-l: #F2C156;
+    --map-gold-bg:#2A1F08;
+    --map-danger: #F87171;
+    --map-danger-bg:#2A1414;
+    --map-blue:   #60A5FA;
+    --map-blue-bg:#0F1A2A;
+    --map-shadow:    rgba(0,0,0,0.45);
+    --map-shadow-md: rgba(0,0,0,0.60);
+    --map-shadow-lg: rgba(0,0,0,0.75);
   }
 
   * {
