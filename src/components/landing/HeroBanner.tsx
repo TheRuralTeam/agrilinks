@@ -31,12 +31,13 @@ const HeroBanner = () => {
           </div>
 
           {/* Heading */}
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-white mb-5 leading-[1.1] animate-slide-up">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-white mb-5 leading-[1.05] tracking-tight animate-slide-up">
             Conectando{" "}
-            <span className="text-accent">produção</span>,{" "}
-            <span className="text-accent">logística</span> e{" "}
-            <span className="text-accent">mercados</span>{" "}
+            <span className="bg-gradient-to-r from-primary-light to-accent-light bg-clip-text text-transparent">produção</span>,{" "}
+            <span className="bg-gradient-to-r from-primary-light to-accent-light bg-clip-text text-transparent">logística</span> e{" "}
+            <span className="bg-gradient-to-r from-primary-light to-accent-light bg-clip-text text-transparent">mercados</span>{" "}
             em escala
+          </h1>
           </h1>
 
           {/* Subtitle */}
