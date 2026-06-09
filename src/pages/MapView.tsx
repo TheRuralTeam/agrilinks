@@ -6,8 +6,10 @@ import {
   ArrowRight, ArrowLeft, Droplet, Wind, Cloud, Navigation,
   ChevronDown, CheckCircle, AlertCircle, User, Briefcase,
   MessageSquare, Map, Zap, Eye, EyeOff, Sliders, Car, Truck,
+  Sun, Moon,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import SatelliteMonitor from '@/components/SatelliteMonitor';
 import { supabase } from '@/integrations/supabase/client';
 import axios from 'axios';
