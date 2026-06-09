@@ -1150,6 +1150,26 @@ const MapView = () => {
         ))}
       </div>
 
+      {/* ══ THEME TOGGLE (claro / escuro) ════════════════════════════════════ */}
+      <button
+        onClick={toggleTheme}
+        title={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+        aria-label="Alternar tema"
+        style={{
+          position: 'absolute', top: 380, right: 20, zIndex: 30,
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '8px 12px', borderRadius: 10,
+          background: T.white, color: T.slate,
+          border: `1px solid ${T.rule}`, cursor: 'pointer',
+          fontSize: 10, fontWeight: 800, fontFamily: FONT,
+          letterSpacing: '0.06em', textTransform: 'uppercase',
+          boxShadow: `0 6px 18px ${T.shadow}`,
+          transition: 'all 0.2s ease',
+        }}>
+        {theme === 'dark' ? <Sun size={14} color={T.gold as string}/> : <Moon size={14} color={T.g700 as string}/>}
+        {theme === 'dark' ? 'Claro' : 'Escuro'}
+      </button>
+
       {/* ══ PIPELINE LEGEND ══════════════════════════════════════════════════ */}
       <div style={{ position: 'absolute', bottom: 80, right: 20, zIndex: 30, background: 'rgba(255,255,255,0.95)', borderRadius: 10, border: `1px solid ${T.rule}`, padding: '10px 14px', boxShadow: `0 4px 16px ${T.shadow}`, backdropFilter: 'blur(8px)' }}>
         <div style={{ fontSize: 9, fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: FONT, marginBottom: 8 }}>Rede Logística</div>
