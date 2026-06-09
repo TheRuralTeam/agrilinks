@@ -372,7 +372,7 @@ form input[type="submit"] {
 
 /* Drop shadow glow effect */
 .drop-shadow-glow {
-  filter: drop-shadow(0 0 10px hsl(130 57% 23% / 0.5));
+  filter: drop-shadow(0 0 12px hsl(88 55% 55% / 0.6));
 }
 
 @keyframes bounce-in {
