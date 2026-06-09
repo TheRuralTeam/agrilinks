@@ -7,15 +7,18 @@ const HeroBanner = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="relative overflow-hidden bg-business min-h-[520px] lg:min-h-[600px]">
+    <section className="relative overflow-hidden bg-gradient-hero min-h-[560px] lg:min-h-[640px]">
       {/* Background Image */}
       <div className="absolute inset-0">
         <img
           src={supplyChainHero}
           alt="Supply Chain"
-          className="w-full h-full object-cover opacity-20"
+          className="w-full h-full object-cover opacity-15"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-business via-business/95 to-business/60" />
+        <div className="absolute inset-0 bg-gradient-to-br from-business via-business/85 to-primary/40" />
+        {/* Decorative orbs */}
+        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-primary-light/20 blur-3xl" />
+        <div className="absolute -bottom-32 -left-20 w-[28rem] h-[28rem] rounded-full bg-accent/10 blur-3xl" />
       </div>
 
       {/* Content */}
