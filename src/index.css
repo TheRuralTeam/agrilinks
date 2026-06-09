@@ -10,35 +10,35 @@
 
 @layer base {
   :root {
-    /* Background System — OrbisLink light canvas */
-    --background: 80 27% 96%;
-    --background-secondary: 90 30% 94%;
-    --foreground: 140 35% 8%;
+    /* Background System — Fresh light canvas */
+    --background: 84 38% 97%;
+    --background-secondary: 88 40% 94%;
+    --foreground: 95 40% 10%;
 
     /* Card System */
     --card: 0 0% 100%;
-    --card-foreground: 140 35% 8%;
-    --card-border: 95 25% 85%;
+    --card-foreground: 95 40% 10%;
+    --card-border: 88 30% 86%;
 
     /* Popover */
     --popover: 0 0% 100%;
-    --popover-foreground: 140 35% 8%;
+    --popover-foreground: 95 40% 10%;
 
-    /* Primary Brand — OrbisLink Dark Green #1A5C24 */
-    --primary: 130 57% 23%;
-    --primary-light: 128 53% 33%;
+    /* Primary Brand — Verde Alface #7CB342 (unified across platform) */
+    --primary: 88 46% 48%;
+    --primary-light: 88 55% 60%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 130 60% 18%;
-    --primary-glow: 124 45% 45%;
+    --primary-hover: 92 50% 38%;
+    --primary-glow: 88 60% 55%;
 
-    /* Secondary — Soft Green */
-    --secondary: 122 35% 93%;
-    --secondary-light: 120 38% 97%;
-    --secondary-foreground: 140 35% 12%;
+    /* Secondary — Pale Lettuce */
+    --secondary: 88 45% 92%;
+    --secondary-light: 88 50% 96%;
+    --secondary-foreground: 95 40% 14%;
 
-    /* Business — Deep Forest */
-    --business: 138 47% 12%;
-    --business-light: 134 40% 22%;
+    /* Business — Deep Lettuce (same hue family, darker) */
+    --business: 94 55% 22%;
+    --business-light: 90 48% 32%;
     --business-foreground: 0 0% 100%;
 
     /* Accent — OrbisLink Gold #B07D0A */
@@ -48,11 +48,11 @@
     --accent-hover: 41 92% 30%;
 
     /* Muted */
-    --muted: 90 20% 94%;
-    --muted-foreground: 130 12% 40%;
+    --muted: 88 25% 94%;
+    --muted-foreground: 95 14% 38%;
 
-    /* Status */
-    --success: 130 57% 30%;
+    /* Status — derived from lettuce */
+    --success: 88 46% 42%;
     --success-foreground: 0 0% 100%;
     --warning: 41 89% 40%;
     --warning-foreground: 0 0% 100%;
@@ -60,26 +60,26 @@
     --destructive-foreground: 0 0% 100%;
 
     /* Borders */
-    --border: 95 22% 88%;
-    --border-strong: 95 22% 75%;
-    --input: 95 22% 90%;
-    --ring: 130 57% 23%;
+    --border: 88 26% 87%;
+    --border-strong: 88 26% 74%;
+    --input: 88 26% 90%;
+    --ring: 88 46% 48%;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(130 57% 23%), hsl(128 53% 33%));
-    --gradient-business: linear-gradient(135deg, hsl(138 47% 12%), hsl(134 40% 22%));
-    --gradient-hero: linear-gradient(145deg, hsl(138 47% 12%) 0%, hsl(130 57% 23%) 100%);
+    /* Gradients — single green family */
+    --gradient-primary: linear-gradient(135deg, hsl(88 46% 48%), hsl(88 55% 60%));
+    --gradient-business: linear-gradient(135deg, hsl(94 55% 22%), hsl(90 48% 32%));
+    --gradient-hero: linear-gradient(145deg, hsl(94 55% 22%) 0%, hsl(88 46% 40%) 60%, hsl(88 55% 55%) 100%);
     --gradient-gold: linear-gradient(135deg, hsl(41 89% 36%), hsl(39 75% 47%));
-    --gradient-card: linear-gradient(160deg, hsl(0 0% 100%) 0%, hsl(80 27% 98%) 100%);
-    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(80 27% 97%) 100%);
+    --gradient-card: linear-gradient(160deg, hsl(0 0% 100%) 0%, hsl(88 40% 98%) 100%);
+    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(84 38% 97%) 100%);
 
     /* Shadows */
-    --shadow-xs: 0 1px 2px 0 hsl(140 35% 8% / 0.04);
-    --shadow-soft: 0 2px 8px -2px hsl(140 35% 8% / 0.08);
-    --shadow-medium: 0 4px 16px -4px hsl(140 35% 8% / 0.12);
-    --shadow-strong: 0 8px 24px -6px hsl(140 35% 8% / 0.16);
-    --shadow-glow: 0 0 24px hsl(130 57% 23% / 0.25);
-    --shadow-inner: inset 0 1px 2px hsl(140 35% 8% / 0.06);
+    --shadow-xs: 0 1px 2px 0 hsl(95 40% 10% / 0.04);
+    --shadow-soft: 0 2px 8px -2px hsl(95 40% 10% / 0.08);
+    --shadow-medium: 0 4px 16px -4px hsl(95 40% 10% / 0.12);
+    --shadow-strong: 0 8px 24px -6px hsl(95 40% 10% / 0.16);
+    --shadow-glow: 0 0 32px hsl(88 55% 55% / 0.35);
+    --shadow-inner: inset 0 1px 2px hsl(95 40% 10% / 0.06);
 
     /* Animations */
     --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
@@ -89,11 +89,11 @@
     --radius: 0.875rem;
 
     /* Sidebar */
-    --sidebar-background: 80 27% 97%;
-    --sidebar-foreground: 140 35% 12%;
-    --sidebar-primary: 130 57% 23%;
+    --sidebar-background: 84 38% 97%;
+    --sidebar-foreground: 95 40% 14%;
+    --sidebar-primary: 88 46% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 90 20% 94%;
+    --sidebar-accent: 88 25% 94%;
     --sidebar-accent-foreground: 140 35% 12%;
     --sidebar-border: 95 22% 88%;
     --sidebar-ring: 130 57% 23%;
@@ -106,49 +106,49 @@
   }
 
   .dark {
-    --background: 138 35% 6%;
-    --background-secondary: 138 35% 9%;
-    --foreground: 80 20% 95%;
+    --background: 95 35% 6%;
+    --background-secondary: 95 30% 9%;
+    --foreground: 84 25% 95%;
 
-    --card: 138 35% 9%;
-    --card-foreground: 80 20% 95%;
-    --card-border: 138 25% 18%;
+    --card: 95 30% 9%;
+    --card-foreground: 84 25% 95%;
+    --card-border: 90 22% 18%;
 
-    --popover: 138 35% 9%;
-    --popover-foreground: 80 20% 95%;
+    --popover: 95 30% 9%;
+    --popover-foreground: 84 25% 95%;
 
-    --primary: 128 50% 42%;
-    --primary-light: 124 45% 52%;
-    --primary-foreground: 138 35% 6%;
-    --primary-hover: 130 55% 35%;
+    --primary: 88 55% 55%;
+    --primary-light: 88 60% 65%;
+    --primary-foreground: 95 40% 8%;
+    --primary-hover: 88 50% 48%;
 
-    --secondary: 138 25% 16%;
-    --secondary-light: 138 25% 22%;
-    --secondary-foreground: 80 20% 95%;
+    --secondary: 95 22% 16%;
+    --secondary-light: 95 22% 22%;
+    --secondary-foreground: 84 25% 95%;
 
-    --muted: 138 25% 14%;
-    --muted-foreground: 90 15% 65%;
+    --muted: 95 22% 14%;
+    --muted-foreground: 88 14% 65%;
 
     --accent: 41 75% 50%;
     --accent-light: 39 70% 60%;
-    --accent-foreground: 138 35% 6%;
+    --accent-foreground: 95 40% 8%;
 
     --destructive: 0 65% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 138 25% 16%;
-    --border-strong: 138 25% 24%;
-    --input: 138 25% 16%;
-    --ring: 128 50% 42%;
+    --border: 95 22% 16%;
+    --border-strong: 95 22% 24%;
+    --input: 95 22% 16%;
+    --ring: 88 55% 55%;
 
-    --sidebar-background: 138 35% 7%;
-    --sidebar-foreground: 80 20% 92%;
-    --sidebar-primary: 128 50% 42%;
-    --sidebar-primary-foreground: 138 35% 6%;
-    --sidebar-accent: 138 25% 14%;
-    --sidebar-accent-foreground: 80 20% 92%;
-    --sidebar-border: 138 25% 16%;
-    --sidebar-ring: 128 50% 42%;
+    --sidebar-background: 95 30% 7%;
+    --sidebar-foreground: 84 25% 92%;
+    --sidebar-primary: 88 55% 55%;
+    --sidebar-primary-foreground: 95 40% 8%;
+    --sidebar-accent: 95 22% 14%;
+    --sidebar-accent-foreground: 84 25% 92%;
+    --sidebar-border: 95 22% 16%;
+    --sidebar-ring: 88 55% 55%;
   }
 
   * {
@@ -372,7 +372,7 @@ form input[type="submit"] {
 
 /* Drop shadow glow effect */
 .drop-shadow-glow {
-  filter: drop-shadow(0 0 10px hsl(130 57% 23% / 0.5));
+  filter: drop-shadow(0 0 12px hsl(88 55% 55% / 0.6));
 }
 
 @keyframes bounce-in {
