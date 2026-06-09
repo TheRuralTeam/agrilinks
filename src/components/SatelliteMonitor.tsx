@@ -349,7 +349,7 @@ export const SatelliteMonitor: React.FC = () => {
 
               {tab === 'ndvi' && (
                 <div>
-                  <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #DDE8DF', background: '#0F3318', position: 'relative', minHeight: 280 }}>
+                  <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #DDE8DF', background: '#2B4818', position: 'relative', minHeight: 280 }}>
                     {ndviProbing && !ndviDate && (
                       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12 }}>
                         A localizar camada NDVI mais recente…
@@ -367,7 +367,7 @@ export const SatelliteMonitor: React.FC = () => {
                         }}
                       />
                     )}
-                    <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(15,51,24,0.9)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 6, letterSpacing: '0.05em' }}>
+                    <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(43,72,24,0.9)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 6, letterSpacing: '0.05em' }}>
                       MODIS · {ndviDate || '—'}
                     </div>
                     <button
