@@ -356,7 +356,7 @@ export const SatelliteMonitor: React.FC = () => {
 
               {tab === 'ndvi' && (
                 <div>
-                  <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #DDE8DF', background: '#2B4818', position: 'relative', minHeight: 280 }}>
+                  <div style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${RULE}`, background: GREEN_DARK, position: 'relative', minHeight: 280 }}>
                     {ndviProbing && !ndviDate && (
                       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: CARD, fontSize: 12 }}>
                         A localizar camada NDVI mais recente…
