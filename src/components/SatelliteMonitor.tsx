@@ -34,7 +34,7 @@ const SENTINEL_INSTANCE = 'sh-2e73cbb3-63af-4ff3-9334-c724d84c3fb5';
 const AUTO_REFRESH_MS = 30 * 60 * 1000; // 30 minutos
 
 function classifyNdvi(qtd: number): { label: FazendaReal['ndvi']; cor: string } {
-  if (qtd >= 100) return { label: 'Saudável', cor: '#16A34A' };
+  if (qtd >= 100) return { label: 'Saudável', cor: '#7CB342' };
   if (qtd >= 30) return { label: 'Fraca', cor: '#EAB308' };
   return { label: 'Crítica', cor: '#DC2626' };
 }
@@ -112,7 +112,7 @@ export const SatelliteMonitor: React.FC = () => {
           cultura: p.product_type || '—',
           area: Number(p.quantity) || 0,
           qtdProdutos: 1,
-          ndvi: 'Saudável', cor: '#16A34A',
+          ndvi: 'Saudável', cor: '#7CB342',
           atualizado: timeAgo(p.updated_at || p.created_at),
           _ts: ts,
         });
@@ -399,7 +399,7 @@ export const SatelliteMonitor: React.FC = () => {
                       { c: '#DC2626', l: '0.0 – 0.2 · Solo nu / Sem vegetação' },
                       { c: '#EAB308', l: '0.2 – 0.4 · Vegetação fraca' },
                       { c: '#F97316', l: '0.4 – 0.6 · Vegetação moderada' },
-                      { c: '#16A34A', l: '0.6 – 1.0 · Vegetação saudável' },
+                      { c: '#7CB342', l: '0.6 – 1.0 · Vegetação saudável' },
                     ].map((x, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0', fontSize: 12, color: '#243329' }}>
                         <span style={{ width: 18, height: 12, borderRadius: 3, background: x.c }} /> {x.l}
