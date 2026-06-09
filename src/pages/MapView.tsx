@@ -360,6 +360,7 @@ const StatsPanel: React.FC<{ count: number; avgPrice: number; totalQuantity: num
    MAIN COMPONENT
    ════════════════════════════════════════════════════════════════════════════ */
 const MapView = () => {
+  const { theme, toggle: toggleTheme } = useTheme()
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef                 = useRef<any>(null)
   const markersRef             = useRef<any[]>([])
