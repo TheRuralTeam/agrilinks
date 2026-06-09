@@ -5,8 +5,8 @@ import {
 } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
 
-const GREEN = '#1A5C24';
-const GREEN_DARK = '#0F3318';
+const GREEN = '#3C6622';
+const GREEN_DARK = '#2B4818';
 const GOLD = '#B07D0A';
 
 type Tab = 'clima' | 'ndvi' | 'fazendas';
@@ -34,7 +34,7 @@ const SENTINEL_INSTANCE = 'sh-2e73cbb3-63af-4ff3-9334-c724d84c3fb5';
 const AUTO_REFRESH_MS = 30 * 60 * 1000; // 30 minutos
 
 function classifyNdvi(qtd: number): { label: FazendaReal['ndvi']; cor: string } {
-  if (qtd >= 100) return { label: 'Saudável', cor: '#16A34A' };
+  if (qtd >= 100) return { label: 'Saudável', cor: '#7CB342' };
   if (qtd >= 30) return { label: 'Fraca', cor: '#EAB308' };
   return { label: 'Crítica', cor: '#DC2626' };
 }
@@ -112,7 +112,7 @@ export const SatelliteMonitor: React.FC = () => {
           cultura: p.product_type || '—',
           area: Number(p.quantity) || 0,
           qtdProdutos: 1,
-          ndvi: 'Saudável', cor: '#16A34A',
+          ndvi: 'Saudável', cor: '#7CB342',
           atualizado: timeAgo(p.updated_at || p.created_at),
           _ts: ts,
         });
@@ -349,7 +349,7 @@ export const SatelliteMonitor: React.FC = () => {
 
               {tab === 'ndvi' && (
                 <div>
-                  <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #DDE8DF', background: '#0F3318', position: 'relative', minHeight: 280 }}>
+                  <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #DDE8DF', background: '#2B4818', position: 'relative', minHeight: 280 }}>
                     {ndviProbing && !ndviDate && (
                       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12 }}>
                         A localizar camada NDVI mais recente…
@@ -367,7 +367,7 @@ export const SatelliteMonitor: React.FC = () => {
                         }}
                       />
                     )}
-                    <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(15,51,24,0.9)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 6, letterSpacing: '0.05em' }}>
+                    <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(43,72,24,0.9)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 6, letterSpacing: '0.05em' }}>
                       MODIS · {ndviDate || '—'}
                     </div>
                     <button
@@ -399,7 +399,7 @@ export const SatelliteMonitor: React.FC = () => {
                       { c: '#DC2626', l: '0.0 – 0.2 · Solo nu / Sem vegetação' },
                       { c: '#EAB308', l: '0.2 – 0.4 · Vegetação fraca' },
                       { c: '#F97316', l: '0.4 – 0.6 · Vegetação moderada' },
-                      { c: '#16A34A', l: '0.6 – 1.0 · Vegetação saudável' },
+                      { c: '#7CB342', l: '0.6 – 1.0 · Vegetação saudável' },
                     ].map((x, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0', fontSize: 12, color: '#243329' }}>
                         <span style={{ width: 18, height: 12, borderRadius: 3, background: x.c }} /> {x.l}
