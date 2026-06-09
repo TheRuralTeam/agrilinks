@@ -5,9 +5,16 @@ import {
 } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
 
-const GREEN = '#3C6622';
-const GREEN_DARK = '#2B4818';
-const GOLD = '#B07D0A';
+/* Theme-aware (resolved at runtime via CSS variables on :root / .dark) */
+const GREEN = 'var(--map-g700)';
+const GREEN_DARK = 'var(--map-g800)';
+const GOLD = 'var(--map-gold)';
+const SURFACE = 'var(--map-surface)';
+const CARD = 'var(--map-white)';
+const CANVAS = 'var(--map-canvas)';
+const RULE = 'var(--map-rule)';
+const INK = 'var(--map-slate)';
+const MUTED = 'var(--map-muted)';
 
 type Tab = 'clima' | 'ndvi' | 'fazendas';
 
