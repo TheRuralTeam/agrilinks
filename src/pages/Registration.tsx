@@ -170,6 +170,8 @@ const Registration = () => {
   const [agentCode, setAgentCode] = useState("");
   const [validatingCode, setValidatingCode] = useState(false);
   const [agentCodeValid, setAgentCodeValid] = useState<boolean | null>(null);
+  const [otpModalOpen, setOtpModalOpen] = useState(false);
+  const [pendingUser, setPendingUser] = useState<{ id: string; email: string; full_name: string } | null>(null);
 
   const [selectedCountry, setSelectedCountry] = useState<Country>(() => {
     const savedCode = getSavedCountry();
