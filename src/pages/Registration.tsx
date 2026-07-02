@@ -15,6 +15,7 @@ import orbisLinkLogo from "@/assets/orbislink-logo.png";
 import { toast } from "@/hooks/use-toast";
 import { CountryPhoneInput, countries, Country } from "@/components/CountryPhoneInput";
 import { changeLanguage, getSavedCountry } from "@/i18n";
+import { OtpVerificationModal } from "@/components/OtpVerificationModal";
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const T = {
