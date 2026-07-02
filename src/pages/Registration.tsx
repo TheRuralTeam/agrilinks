@@ -751,6 +751,21 @@ const Registration = () => {
           © 2025 AgriLink Lda • Produção Sustentável
         </p>
       </div>
+
+      {pendingUser && (
+        <OtpVerificationModal
+          isOpen={otpModalOpen}
+          onClose={() => setOtpModalOpen(false)}
+          email={pendingUser.email}
+          userId={pendingUser.id}
+          fullName={pendingUser.full_name}
+          onSuccess={() => {
+            setOtpModalOpen(false);
+            toast({ title: "E-mail verificado!", description: "Bem-vindo ao AgriLink." });
+            navigate('/app', { replace: true });
+          }}
+        />
+      )}
     </div>
   );
 };
