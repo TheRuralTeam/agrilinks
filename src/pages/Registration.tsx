@@ -15,6 +15,7 @@ import orbisLinkLogo from "@/assets/orbislink-logo.png";
 import { toast } from "@/hooks/use-toast";
 import { CountryPhoneInput, countries, Country } from "@/components/CountryPhoneInput";
 import { changeLanguage, getSavedCountry } from "@/i18n";
+import { OtpVerificationModal } from "@/components/OtpVerificationModal";
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const T = {
@@ -169,6 +170,8 @@ const Registration = () => {
   const [agentCode, setAgentCode] = useState("");
   const [validatingCode, setValidatingCode] = useState(false);
   const [agentCodeValid, setAgentCodeValid] = useState<boolean | null>(null);
+  const [otpModalOpen, setOtpModalOpen] = useState(false);
+  const [pendingUser, setPendingUser] = useState<{ id: string; email: string; full_name: string } | null>(null);
 
   const [selectedCountry, setSelectedCountry] = useState<Country>(() => {
     const savedCode = getSavedCountry();
@@ -229,8 +232,37 @@ const Registration = () => {
           : error.message || "Não foi possível criar a conta.");
         return;
       }
-      toast({ title: "Conta criada com sucesso!", description: "Bem-vindo ao AgriLink." });
-      navigate('/app', { replace: true });
+
+      // Obter o user_id recém-criado
+      const { data: userRow } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (userRow?.id) {
+        // Enviar OTP por email via Resend (no-reply@agrilink.ao)
+        const { error: otpErr } = await supabase.functions.invoke('send-otp-email', {
+          body: { user_id: userRow.id, email, full_name: fullName },
+        });
+        if (otpErr) {
+          toast({
+            title: "Conta criada",
+            description: "Não conseguimos enviar o código agora. Podes reenviar dentro do próximo passo.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Código enviado!",
+            description: `Verifica o teu email ${email} para o código de 6 dígitos.`,
+          });
+        }
+        setPendingUser({ id: userRow.id, email, full_name: fullName });
+        setOtpModalOpen(true);
+      } else {
+        toast({ title: "Conta criada com sucesso!", description: "Faz login para continuar." });
+        navigate('/login', { replace: true });
+      }
     } catch (error: any) {
       setErrorMessage(error?.message || "Erro inesperado ao criar conta.");
     } finally {
@@ -719,6 +751,21 @@ const Registration = () => {
           © 2025 AgriLink Lda • Produção Sustentável
         </p>
       </div>
+
+      {pendingUser && (
+        <OtpVerificationModal
+          isOpen={otpModalOpen}
+          onClose={() => setOtpModalOpen(false)}
+          email={pendingUser.email}
+          userId={pendingUser.id}
+          fullName={pendingUser.full_name}
+          onSuccess={() => {
+            setOtpModalOpen(false);
+            toast({ title: "E-mail verificado!", description: "Bem-vindo ao AgriLink." });
+            navigate('/app', { replace: true });
+          }}
+        />
+      )}
     </div>
   );
 };
