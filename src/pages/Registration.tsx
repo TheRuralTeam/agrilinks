@@ -232,8 +232,37 @@ const Registration = () => {
           : error.message || "Não foi possível criar a conta.");
         return;
       }
-      toast({ title: "Conta criada com sucesso!", description: "Bem-vindo ao AgriLink." });
-      navigate('/app', { replace: true });
+
+      // Obter o user_id recém-criado
+      const { data: userRow } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (userRow?.id) {
+        // Enviar OTP por email via Resend (no-reply@agrilink.ao)
+        const { error: otpErr } = await supabase.functions.invoke('send-otp-email', {
+          body: { user_id: userRow.id, email, full_name: fullName },
+        });
+        if (otpErr) {
+          toast({
+            title: "Conta criada",
+            description: "Não conseguimos enviar o código agora. Podes reenviar dentro do próximo passo.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Código enviado!",
+            description: `Verifica o teu email ${email} para o código de 6 dígitos.`,
+          });
+        }
+        setPendingUser({ id: userRow.id, email, full_name: fullName });
+        setOtpModalOpen(true);
+      } else {
+        toast({ title: "Conta criada com sucesso!", description: "Faz login para continuar." });
+        navigate('/login', { replace: true });
+      }
     } catch (error: any) {
       setErrorMessage(error?.message || "Erro inesperado ao criar conta.");
     } finally {
