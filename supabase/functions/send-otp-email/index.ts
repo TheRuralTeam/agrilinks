@@ -45,31 +45,32 @@ serve(async (req: Request): Promise<Response> => {
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "OrbisLink <onboarding@resend.dev>",
+      from: "AgriLink <no-reply@agrilink.ao>",
       to: [email],
-      subject: "Código de Verificação - OrbisLink",
+      subject: `${otpCode} é o seu código AgriLink`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #1e56a0; margin: 0;">OrbisLink</h1>
-            <p style="color: #666; margin: 5px 0;">Conectando fornecedores e compradores</p>
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff;">
+          <div style="text-align: center; margin-bottom: 30px; padding: 24px 0; border-bottom: 3px solid #7CB342;">
+            <h1 style="color: #7CB342; margin: 0; font-size: 28px; letter-spacing: -0.5px;">AgriLink</h1>
+            <p style="color: #6b7280; margin: 6px 0 0; font-size: 13px;">Conectando o agronegócio</p>
           </div>
-          
-          <div style="background: #f9fafb; border-radius: 12px; padding: 30px; text-align: center;">
-            <h2 style="color: #1f2937; margin-bottom: 10px;">Olá, ${full_name}!</h2>
-            <p style="color: #6b7280; margin-bottom: 20px;">Use o código abaixo para verificar seu e-mail:</p>
-            
-            <div style="background: #d4a017; color: #0a1628; font-size: 32px; font-weight: bold; letter-spacing: 8px; padding: 20px 40px; border-radius: 8px; display: inline-block;">
+
+          <div style="background: #f7faf3; border: 1px solid #e5efd7; border-radius: 12px; padding: 32px; text-align: center;">
+            <h2 style="color: #1f2937; margin: 0 0 8px; font-size: 20px;">Olá, ${full_name}!</h2>
+            <p style="color: #6b7280; margin: 0 0 24px; font-size: 15px;">Use o código abaixo para confirmar o seu e-mail:</p>
+
+            <div style="background: #7CB342; color: #ffffff; font-size: 34px; font-weight: 700; letter-spacing: 10px; padding: 20px 32px; border-radius: 10px; display: inline-block;">
               ${otpCode}
             </div>
-            
-            <p style="color: #9ca3af; margin-top: 20px; font-size: 14px;">
-              Este código expira em <strong>15 minutos</strong>
+
+            <p style="color: #6b7280; margin: 24px 0 0; font-size: 13px;">
+              Este código expira em <strong style="color:#B07D0A;">15 minutos</strong>
             </p>
           </div>
-          
-          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 30px;">
-            Se você não solicitou este código, ignore este email.
+
+          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 28px; line-height: 1.5;">
+            Se não solicitaste este código, ignora este e-mail.<br/>
+            © ${new Date().getFullYear()} AgriLink · agrilink.ao
           </p>
         </div>
       `,
