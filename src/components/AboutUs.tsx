@@ -1,27 +1,28 @@
 import { Card } from "./ui/card";
-import { Users, Target, Award, Handshake } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faUsers, faBullseye, faAward, faHandshake } from "@fortawesome/free-solid-svg-icons";
 import businessImage from "@/assets/business-partnership.jpg";
 import warehouseImage from "@/assets/warehouse-products.jpg";
 
 const AboutUs = () => {
   const values = [
     {
-      icon: Target,
+      icon: faBullseye,
       title: "Nossa Missão",
       description: "Conectar produtores agrícolas diretamente a grandes compradores, eliminando intermediários e garantindo preços justos para ambas as partes."
     },
     {
-      icon: Handshake,
+      icon: faHandshake,
       title: "Parcerias Sólidas",
       description: "Construímos relacionamentos duradouros baseados em confiança, transparência e qualidade em cada transação."
     },
     {
-      icon: Award,
+      icon: faAward,
       title: "Qualidade Garantida",
       description: "Todos os nossos produtos passam por rigoroso controle de qualidade, assegurando que você receba apenas o melhor."
     },
     {
-      icon: Users,
+      icon: faUsers,
       title: "Suporte Especializado",
       description: "Nossa equipe de especialistas está sempre disponível para orientar e apoiar suas decisões de compra."
     }
@@ -105,14 +106,13 @@ const AboutUs = () => {
         {/* Values */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {values.map((value, index) => {
-            const Icon = value.icon;
             return (
               <Card
                 key={index}
                 className="p-6 text-center border-card-border hover:shadow-medium transition-all duration-300 group"
               >
                 <div className="inline-flex p-4 rounded-xl bg-gradient-primary mb-4 group-hover:scale-110 transition-transform duration-300">
-                  <Icon className="h-6 w-6 text-primary-foreground" />
+                  <FontAwesomeIcon icon={value.icon} className="h-6 w-6 text-primary-foreground" />
                 </div>
                 <h4 className="text-lg font-semibold text-foreground mb-3">
                   {value.title}

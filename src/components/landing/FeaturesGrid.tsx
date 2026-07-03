@@ -1,12 +1,13 @@
-import { Link2, ShoppingCart, Truck, TrendingUp, BarChart3, Eye } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faLink, faCartShopping, faTruck, faChartLine, faChartColumn, faEye } from "@fortawesome/free-solid-svg-icons";
 
 const features = [
-  { icon: Link2, title: "Conecta Diretamente", desc: "Fabricantes a supermercados, grossistas e revendedores" },
-  { icon: ShoppingCart, title: "Centraliza Pedidos", desc: "B2B em um único ambiente digital" },
-  { icon: Truck, title: "Organiza Entregas", desc: "Logística integrada com parceiros certificados" },
-  { icon: TrendingUp, title: "Reduz Custos", desc: "Operacionais e riscos de fornecimento" },
-  { icon: BarChart3, title: "Gera Dados", desc: "Estratégicos de consumo e demanda" },
-  { icon: Eye, title: "Transparência Total", desc: "Preços, prazos e volumes visíveis" },
+  { icon: faLink, title: "Conecta Diretamente", desc: "Fabricantes a supermercados, grossistas e revendedores" },
+  { icon: faCartShopping, title: "Centraliza Pedidos", desc: "B2B em um único ambiente digital" },
+  { icon: faTruck, title: "Organiza Entregas", desc: "Logística integrada com parceiros certificados" },
+  { icon: faChartLine, title: "Reduz Custos", desc: "Operacionais e riscos de fornecimento" },
+  { icon: faChartColumn, title: "Gera Dados", desc: "Estratégicos de consumo e demanda" },
+  { icon: faEye, title: "Transparência Total", desc: "Preços, prazos e volumes visíveis" },
 ];
 
 const FeaturesGrid = () => {
@@ -29,7 +30,7 @@ const FeaturesGrid = () => {
               className="bg-card rounded-2xl p-6 border border-border hover:border-accent/50 hover:shadow-medium transition-all duration-300 group"
             >
               <div className="p-3 bg-accent/10 rounded-xl w-fit mb-4 group-hover:bg-accent/20 transition-colors">
-                <item.icon className="h-6 w-6 text-accent" />
+                <FontAwesomeIcon icon={item.icon} className="h-6 w-6 text-accent" />
               </div>
               <h3 className="text-lg font-bold text-foreground mb-1">{item.title}</h3>
               <p className="text-sm text-muted-foreground">{item.desc}</p>

@@ -5,7 +5,8 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Phone, Mail, MapPin, Clock, Send } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPhone, faEnvelope, faLocationDot, faClock, faPaperPlane } from "@fortawesome/free-solid-svg-icons";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -33,25 +34,25 @@ const Contact = () => {
 
   const contactInfo = [
     {
-      icon: Phone,
+      icon: faPhone,
       title: "Telefone",
       content: "+244 922 717 574 / 935 358 417",
       description: "Seg-Sex: 8h às 18h"
     },
     {
-      icon: Mail,
+      icon: faEnvelope,
       title: "Email",
       content: "contacts.agrilink@gmail.com",
       description: "Respondemos em até 24h"
     },
     {
-      icon: MapPin,
+      icon: faLocationDot,
       title: "Endereço",
       content: "Luanda, Angola",
       description: "Zona Industrial"
     },
     {
-      icon: Clock,
+      icon: faClock,
       title: "Horário",
       content: "8h às 18h",
       description: "Segunda a Sexta"
@@ -81,12 +82,11 @@ const Contact = () => {
             
             <div className="space-y-6 mb-8">
               {contactInfo.map((info, index) => {
-                const Icon = info.icon;
                 return (
                   <Card key={index} className="p-6 border-card-border hover:shadow-medium transition-all duration-300">
                     <div className="flex items-start gap-4">
                       <div className="p-3 bg-gradient-primary rounded-lg">
-                        <Icon className="h-6 w-6 text-primary-foreground" />
+                        <FontAwesomeIcon icon={info.icon} className="h-6 w-6 text-primary-foreground" />
                       </div>
                       <div>
                         <h4 className="text-lg font-semibold text-foreground mb-1">
@@ -223,7 +223,7 @@ const Contact = () => {
                   size="lg"
                   className="w-full"
                 >
-                  <Send className="h-4 w-4" />
+                  <FontAwesomeIcon icon={faPaperPlane} className="h-4 w-4" />
                   Enviar Mensagem
                 </Button>
               </form>
@@ -239,7 +239,7 @@ const Contact = () => {
                   Para questões urgentes de pedidos em andamento
                 </p>
                 <Button variant="accent" size="sm">
-                  <Phone className="h-4 w-4" />
+                  <FontAwesomeIcon icon={faPhone} className="h-4 w-4" />
                   Ligar Agora
                 </Button>
               </div>

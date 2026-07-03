@@ -1,18 +1,19 @@
-import { Package, Zap, Building2 } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBox, faBolt, faBuilding } from "@fortawesome/free-solid-svg-icons";
 
 const sectors = [
   {
-    icon: Package,
+    icon: faBox,
     title: "Alimentos & Bebidas",
     desc: "Garantia de fornecimento contínuo, redução de rupturas e maior estabilidade de preços para produtos de consumo diário.",
   },
   {
-    icon: Zap,
+    icon: faBolt,
     title: "Higiene & Limpeza",
     desc: "Distribuição eficiente de produtos essenciais, com logística otimizada e maior previsibilidade de estoque.",
   },
   {
-    icon: Building2,
+    icon: faBuilding,
     title: "Materiais de Construção",
     desc: "Organização da cadeia de distribuição para apoiar o crescimento urbano e o desenvolvimento económico.",
   },
@@ -38,7 +39,7 @@ const SectorsSection = () => {
               className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/10 text-center hover:bg-white/15 transition-all duration-300"
             >
               <div className="p-4 bg-accent rounded-2xl w-fit mx-auto mb-4">
-                <item.icon className="h-8 w-8 text-accent-foreground" />
+                <FontAwesomeIcon icon={item.icon} className="h-8 w-8 text-accent-foreground" />
               </div>
               <h3 className="text-xl font-bold text-white mb-3">{item.title}</h3>
               <p className="text-white/70 text-sm leading-relaxed">{item.desc}</p>
