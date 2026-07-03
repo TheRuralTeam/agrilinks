@@ -1,10 +1,11 @@
-import { Building2, ShoppingCart, Package, Truck } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBuilding, faCartShopping, faBox, faTruck } from "@fortawesome/free-solid-svg-icons";
 
 const audiences = [
-  { icon: Building2, title: "Fabricantes", desc: "Que querem vender em escala com previsibilidade" },
-  { icon: ShoppingCart, title: "Supermercados & Grossistas", desc: "Que precisam de fornecimento confiável" },
-  { icon: Package, title: "Revendedores", desc: "Que buscam melhores preços e prazos" },
-  { icon: Truck, title: "Parceiros Logísticos", desc: "Que desejam operar de forma estruturada" },
+  { icon: faBuilding, title: "Fabricantes", desc: "Que querem vender em escala com previsibilidade" },
+  { icon: faCartShopping, title: "Supermercados & Grossistas", desc: "Que precisam de fornecimento confiável" },
+  { icon: faBox, title: "Revendedores", desc: "Que buscam melhores preços e prazos" },
+  { icon: faTruck, title: "Parceiros Logísticos", desc: "Que desejam operar de forma estruturada" },
 ];
 
 const TargetAudience = () => {
@@ -24,7 +25,7 @@ const TargetAudience = () => {
               className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/10 text-center group hover:bg-white/15 transition-all duration-300"
             >
               <div className="p-4 bg-accent rounded-2xl w-fit mx-auto mb-4 group-hover:scale-110 transition-transform">
-                <item.icon className="h-7 w-7 text-accent-foreground" />
+                <FontAwesomeIcon icon={item.icon} className="h-7 w-7 text-accent-foreground" />
               </div>
               <h3 className="text-lg font-bold text-white mb-2">{item.title}</h3>
               <p className="text-white/60 text-sm">{item.desc}</p>

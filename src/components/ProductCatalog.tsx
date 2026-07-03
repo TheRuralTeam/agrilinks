@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { ShoppingCart, Filter, Loader2, Package } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCartShopping, faFilter, faSpinner, faBox } from "@fortawesome/free-solid-svg-icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
@@ -74,7 +75,7 @@ const ProductCatalog = () => {
       <section id="catalogo" className="py-16 lg:py-24 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center py-20">
           <div className="flex flex-col items-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <FontAwesomeIcon icon={faSpinner} className="h-8 w-8 animate-spin text-primary" />
             <span className="text-sm text-muted-foreground">Carregando catálogo...</span>
           </div>
         </div>
@@ -98,7 +99,7 @@ const ProductCatalog = () => {
         {/* Category Filter */}
         {categories.length > 1 && (
           <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-8 sm:mb-12">
-            <Filter className="h-5 w-5 text-muted-foreground mt-2 hidden sm:block" />
+            <FontAwesomeIcon icon={faFilter} className="h-5 w-5 text-muted-foreground mt-2 hidden sm:block" />
             {categories.map((category) => (
               <Button
                 key={category}
@@ -123,7 +124,7 @@ const ProductCatalog = () => {
               >
                 <div className="text-center mb-4">
                   <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 rounded-full bg-[#FFF159]/30 flex items-center justify-center animate-float">
-                    <Package className="h-8 w-8 sm:h-10 sm:w-10 text-[#2D3277]" />
+                    <FontAwesomeIcon icon={faBox} className="h-8 w-8 sm:h-10 sm:w-10 text-[#2D3277]" />
                   </div>
                   <div className="flex items-center justify-center gap-2 mb-2 flex-wrap">
                     <Badge variant="default">Disponível</Badge>
@@ -164,7 +165,7 @@ const ProductCatalog = () => {
                   className="w-full gap-2 bg-[#3483FA] hover:bg-[#3483FA]/90 text-white font-bold transition-all duration-300 hover:scale-105" 
                   onClick={() => handleViewProduct(product.id)}
                 >
-                  <ShoppingCart className="h-4 w-4" />
+                  <FontAwesomeIcon icon={faCartShopping} className="h-4 w-4" />
                   Consultar no App
                 </Button>
               </Card>
@@ -173,7 +174,7 @@ const ProductCatalog = () => {
         ) : (
           <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-center">
             <div className="w-16 h-16 mb-4 rounded-full bg-muted flex items-center justify-center">
-              <Package className="h-8 w-8 text-muted-foreground" />
+              <FontAwesomeIcon icon={faBox} className="h-8 w-8 text-muted-foreground" />
             </div>
             <h3 className="text-lg font-semibold text-foreground mb-1">
               Nenhum produto encontrado

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 
 const VisionSection = () => {
@@ -26,7 +27,7 @@ const VisionSection = () => {
             onClick={() => navigate("/login")}
           >
             Entrar na Plataforma
-            <ArrowRight className="h-5 w-5 ml-1" />
+            <FontAwesomeIcon icon={faArrowRight} className="h-5 w-5 ml-1" />
           </Button>
         </div>
       </div>

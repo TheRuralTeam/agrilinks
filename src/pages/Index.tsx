@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faHouseLaptop, faBullseye, faHandshake, faWheatAwn, faGlobe } from '@fortawesome/free-solid-svg-icons'
 
 // ═══════════════════════════════════════════════════════════════
 // IMPORTAÇÃO DAS FOTOS DA EQUIPE E LOGO (com fallbacks)
@@ -1460,7 +1462,7 @@ const AgriLinkLanding = () => {
                 <img src={comunidadeImg} alt="Comunidade AgriLink" />
               ) : (
                 <div className="about-visual-placeholder">
-                  <div>🌾</div>
+                  <div><FontAwesomeIcon icon={faWheatAwn} /></div>
                   <p>Comunidade AgriLink</p>
                 </div>
               )}
@@ -1489,17 +1491,17 @@ const AgriLinkLanding = () => {
           </div>
           <div className="culture-grid">
             <div className="culture-card">
-              <div className="culture-icon">🏠</div>
+              <div className="culture-icon"><FontAwesomeIcon icon={faHouseLaptop} /></div>
               <div className="culture-title">Trabalho Remoto</div>
               <div className="culture-desc">Nossa equipa trabalha de qualquer lugar, desde que os resultados sejam entregues com excelência e dentro dos prazos.</div>
             </div>
             <div className="culture-card">
-              <div className="culture-icon">🎯</div>
+              <div className="culture-icon"><FontAwesomeIcon icon={faBullseye} /></div>
               <div className="culture-title">Foco em Resultados</div>
               <div className="culture-desc">Medimos performance por resultados concretos, não por horas trabalhadas. Autonomia com responsabilidade.</div>
             </div>
             <div className="culture-card">
-              <div className="culture-icon">🤝</div>
+              <div className="culture-icon"><FontAwesomeIcon icon={faHandshake} /></div>
               <div className="culture-title">Colaboração</div>
               <div className="culture-desc">Times multidisciplinares trabalhando juntos para transformar o agronegócio africano com tecnologia.</div>
             </div>
@@ -1543,7 +1545,7 @@ const AgriLinkLanding = () => {
                 <img src={comunidadeImg2} alt="Encontro da Comunidade AgriLink" />
               ) : (
                 <div className="community-image-placeholder">
-                  <div>🌍</div>
+                  <div><FontAwesomeIcon icon={faGlobe} /></div>
                   <p>Encontros AgriLink</p>
                 </div>
               )}

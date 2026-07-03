@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
-import { Menu, X, ShoppingCart, Phone, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBars, faXmark, faCartShopping, faPhone, faChartLine } from "@fortawesome/free-solid-svg-icons";
 import OrbisLinkLogo from "@/assets/orbislink-logo.png";
 
 const Header = () => {
@@ -45,11 +46,11 @@ const Header = () => {
               className="h-9 rounded-lg text-sm"
               onClick={() => navigate("/mercado")}
             >
-              <TrendingUp className="h-4 w-4" />
+              <FontAwesomeIcon icon={faChartLine} className="h-4 w-4" />
               Dados de Mercado
             </Button>
             <Button variant="outline" size="sm" className="h-9 rounded-lg text-sm">
-              <Phone className="h-4 w-4" />
+              <FontAwesomeIcon icon={faPhone} className="h-4 w-4" />
               Contato
             </Button>
             <Button
@@ -57,7 +58,7 @@ const Header = () => {
               className="h-9 rounded-lg text-sm shadow-soft"
               onClick={() => navigate("/login")}
             >
-              <ShoppingCart className="h-4 w-4" />
+              <FontAwesomeIcon icon={faCartShopping} className="h-4 w-4" />
               Entrar
             </Button>
           </div>
@@ -70,7 +71,7 @@ const Header = () => {
               className="h-10 w-10 rounded-xl"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
-              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {isMenuOpen ? <FontAwesomeIcon icon={faXmark} className="h-5 w-5" /> : <FontAwesomeIcon icon={faBars} className="h-5 w-5" />}
             </Button>
           </div>
         </div>
@@ -99,7 +100,7 @@ const Header = () => {
                     setIsMenuOpen(false);
                   }}
                 >
-                  <TrendingUp className="h-4 w-4" />
+                  <FontAwesomeIcon icon={faChartLine} className="h-4 w-4" />
                   Dados de Mercado
                 </Button>
                 <Button
@@ -110,7 +111,7 @@ const Header = () => {
                     setIsMenuOpen(false);
                   }}
                 >
-                  <ShoppingCart className="h-4 w-4" />
+                  <FontAwesomeIcon icon={faCartShopping} className="h-4 w-4" />
                   Entrar
                 </Button>
               </div>

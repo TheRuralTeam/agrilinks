@@ -1,27 +1,28 @@
-import { Search, ShoppingCart, Calendar, Truck } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faMagnifyingGlass, faCartShopping, faCalendarDays, faTruck } from "@fortawesome/free-solid-svg-icons";
 
 const HowItWorks = () => {
   const steps = [
     {
-      icon: Search,
+      icon: faMagnifyingGlass,
       title: "1. Consulte o Catálogo",
       description: "Navegue pelos nossos produtos alimentares disponíveis com preços e quantidades mínimas.",
       color: "text-primary"
     },
     {
-      icon: ShoppingCart,
+      icon: faCartShopping,
       title: "2. Faça seu Pedido",
       description: "Selecione produtos, quantidades e valor mínimo de 1 milhão de Kz.",
       color: "text-business"
     },
     {
-      icon: Calendar,
+      icon: faCalendarDays,
       title: "3. Agende a Entrega",
       description: "Escolha a data de entrega com até 2 semanas de antecedência.",
       color: "text-accent"
     },
     {
-      icon: Truck,
+      icon: faTruck,
       title: "4. Receba os Produtos",
       description: "Produtos entregues na data agendada com qualidade garantida.",
       color: "text-success"
@@ -45,14 +46,13 @@ const HowItWorks = () => {
         {/* Steps */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {steps.map((step, index) => {
-            const Icon = step.icon;
             return (
               <div
                 key={index}
                 className="bg-card rounded-xl p-6 shadow-soft border border-card-border hover:shadow-medium transition-all duration-300 text-center group"
               >
                 <div className={`inline-flex p-4 rounded-xl bg-gradient-card mb-6 ${step.color} group-hover:scale-110 transition-transform duration-300`}>
-                  <Icon className="h-8 w-8" />
+                  <FontAwesomeIcon icon={step.icon} className="h-8 w-8" />
                 </div>
                 <h3 className="text-xl font-semibold text-foreground mb-3">
                   {step.title}

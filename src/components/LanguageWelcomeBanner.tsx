@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Globe, Check, ChevronRight, Sprout, Handshake, BarChart3 } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faGlobe, faCheck, faChevronRight, faSeedling, faHandshake, faChartColumn } from '@fortawesome/free-solid-svg-icons';
 import orbisLinkLogo from '@/assets/orbislink-logo.png';
 
 // --- Branding Tokens ---
@@ -42,9 +43,9 @@ const T = {
 }
 
 const languages = [
-  { code: 'pt', name: 'Português', flag: '🇵🇹', greeting: 'Bem-vindo!' },
-  { code: 'en', name: 'English', flag: '🇬🇧', greeting: 'Welcome!' },
-  { code: 'fr', name: 'Français', flag: '🇫🇷', greeting: 'Bienvenue!' },
+  { code: 'pt', name: 'Português', flag: 'PT', greeting: 'Bem-vindo!' },
+  { code: 'en', name: 'English', flag: 'EN', greeting: 'Welcome!' },
+  { code: 'fr', name: 'Français', flag: 'FR', greeting: 'Bienvenue!' },
 ];
 
 export const LanguageWelcomeBanner = () => {
@@ -104,7 +105,7 @@ export const LanguageWelcomeBanner = () => {
           <div className="p-8">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-xl" style={{ backgroundColor: T.g50 }}>
-                <Globe className="h-5 w-5" style={{ color: T.g600 }} />
+                <FontAwesomeIcon icon={faGlobe} className="h-5 w-5" style={{ color: T.g600 }} />
               </div>
               <h2 className="text-xl font-black tracking-tight" style={{ color: T.ink }}>
                 Escolha o idioma
@@ -126,16 +127,23 @@ export const LanguageWelcomeBanner = () => {
                     boxShadow: selectedLanguage === lang.code ? `0 10px 20px ${T.shadow}` : 'none'
                   }}
                 >
-                  <div className="flex items-center gap-4">
-                    <span className="text-2xl group-hover:scale-110 transition-transform">{lang.flag}</span>
-                    <div className="text-left">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-black border-2 transition-transform group-hover:scale-110"
+                        style={{ 
+                          borderColor: selectedLanguage === lang.code ? T.g600 : T.rule,
+                          backgroundColor: selectedLanguage === lang.code ? T.white : 'transparent',
+                          color: selectedLanguage === lang.code ? T.g600 : T.muted
+                        }}>
+                        {lang.flag}
+                      </div>
+                      <div className="text-left">
                       <span className="font-black block text-sm" style={{ color: T.ink }}>{lang.name}</span>
                       <span className="text-[10px] font-bold uppercase tracking-tight" style={{ color: T.muted }}>{lang.greeting}</span>
                     </div>
                   </div>
                   {selectedLanguage === lang.code && (
                     <div className="h-6 w-6 rounded-full flex items-center justify-center shadow-sm" style={{ backgroundColor: T.g600 }}>
-                      <Check className="h-3.5 w-3.5 text-white" />
+                      <FontAwesomeIcon icon={faCheck} className="h-3.5 w-3.5 text-white" />
                     </div>
                   )}
                 </button>
@@ -150,18 +158,18 @@ export const LanguageWelcomeBanner = () => {
               {selectedLanguage === 'pt' && 'Continuar'}
               {selectedLanguage === 'en' && 'Continue'}
               {selectedLanguage === 'fr' && 'Continuer'}
-              <ChevronRight className="h-5 w-5" />
+              <FontAwesomeIcon icon={faChevronRight} className="h-5 w-5" />
             </Button>
           </div>
         ) : (
           <div className="p-8 text-center">
             <div className="relative inline-block mb-6">
               <div className="absolute inset-0 rounded-full blur-2xl opacity-30" style={{ backgroundColor: T.g400 }} />
-              <div className="text-6xl relative z-10 animate-bounce-slow" style={{ animationDuration: '3s' }}>{selectedLang?.flag}</div>
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-sm font-black border-2 relative z-10 animate-bounce-slow" style={{ animationDuration: '3s', backgroundColor: T.white, borderColor: T.g600, color: T.g600 }}>{selectedLang?.flag}</div>
             </div>
             
             <h2 className="text-3xl font-black mb-3 tracking-tight" style={{ color: T.ink }}>
-              {selectedLang?.greeting} 🌱
+              {selectedLang?.greeting} <FontAwesomeIcon icon={faSeedling} className="text-2xl" style={{ color: T.g600 }} />
             </h2>
             <p className="text-sm font-medium mb-8 leading-relaxed" style={{ color: T.mid }}>
               {selectedLanguage === 'pt' && 'O AgriLink conecta a terra ao mercado global de forma simples e segura. Vamos começar!'}
@@ -171,19 +179,19 @@ export const LanguageWelcomeBanner = () => {
 
             <div className="grid grid-cols-3 gap-3 mb-8">
               <div className="flex flex-col items-center p-3 rounded-2xl border transition-colors hover:bg-white" style={{ backgroundColor: T.g50, borderColor: T.gBorder }}>
-                <Sprout className="h-5 w-5 mb-2" style={{ color: T.g600 }} />
+                <FontAwesomeIcon icon={faSeedling} className="h-5 w-5 mb-2" style={{ color: T.g600 }} />
                 <p className="text-[9px] font-black uppercase tracking-tighter" style={{ color: T.ink }}>
                   {selectedLanguage === 'pt' ? 'Produção' : selectedLanguage === 'en' ? 'Production' : 'Production'}
                 </p>
               </div>
               <div className="flex flex-col items-center p-3 rounded-2xl border transition-colors hover:bg-white" style={{ backgroundColor: T.ePale, borderColor: T.eBorder }}>
-                <Handshake className="h-5 w-5 mb-2" style={{ color: T.e700 }} />
+                <FontAwesomeIcon icon={faHandshake} className="h-5 w-5 mb-2" style={{ color: T.e700 }} />
                 <p className="text-[9px] font-black uppercase tracking-tighter" style={{ color: T.ink }}>
                   {selectedLanguage === 'pt' ? 'Negócio' : selectedLanguage === 'en' ? 'Business' : 'Commerce'}
                 </p>
               </div>
               <div className="flex flex-col items-center p-3 rounded-2xl border transition-colors hover:bg-white" style={{ backgroundColor: T.g50, borderColor: T.gBorder }}>
-                <BarChart3 className="h-5 w-5 mb-2" style={{ color: T.g600 }} />
+                <FontAwesomeIcon icon={faChartColumn} className="h-5 w-5 mb-2" style={{ color: T.g600 }} />
                 <p className="text-[9px] font-black uppercase tracking-tighter" style={{ color: T.ink }}>
                   {selectedLanguage === 'pt' ? 'Mercado' : selectedLanguage === 'en' ? 'Market' : 'Marché'}
                 </p>
@@ -198,7 +206,7 @@ export const LanguageWelcomeBanner = () => {
               {selectedLanguage === 'pt' && 'Começar a explorar'}
               {selectedLanguage === 'en' && 'Start exploring'}
               {selectedLanguage === 'fr' && 'Commencer à explorer'}
-              <ChevronRight className="h-5 w-5" />
+              <FontAwesomeIcon icon={faChevronRight} className="h-5 w-5" />
             </Button>
           </div>
         )}

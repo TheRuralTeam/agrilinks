@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowRight, faPlay } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 import supplyChainHero from "@/assets/supply-chain-hero.jpg";
 
@@ -53,14 +54,14 @@ const HeroBanner = () => {
               onClick={() => navigate("/login")}
             >
               Começar Agora
-              <ArrowRight className="h-5 w-5 ml-1" />
+              <FontAwesomeIcon icon={faArrowRight} className="h-5 w-5 ml-1" />
             </Button>
             <Button
               variant="outline"
               size="lg"
               className="h-12 px-8 text-base font-bold rounded-xl border-white/20 text-white hover:bg-white/10 hover:border-white/40"
             >
-              <Play className="h-4 w-4 mr-1" />
+              <FontAwesomeIcon icon={faPlay} className="h-4 w-4 mr-1" />
               Como Funciona
             </Button>
           </div>
