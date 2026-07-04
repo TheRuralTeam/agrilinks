@@ -12,10 +12,8 @@ import fotoFeliciano from '@/assets/FELICIANO.jpeg';
 import fotoMoises from '@/assets/MOISES.jpeg';
 import fotoLizeth from '@/assets/LIZETH.jpeg';
 import fotoClaudio from '@/assets/CLAUDIO.jpeg';
-import comunidadeAsset from '@/assets/agrilink-community-conference.jpg.asset.json';
-import comunidadeMeetupAsset from '@/assets/agrilink-meetup.jpg.asset.json';
-const comunidadeImg = comunidadeAsset.url;
-const comunidadeImg2 = comunidadeMeetupAsset.url;
+import comunidadeImg from '@/assets/agrilink-community-conference.jpg';
+import comunidadeImg2 from '@/assets/agrilink-meetup.jpg';
 
 /* ─── Design Tokens ─ Luxo Editorial Minimalista ───────────────────────────── */
 const T = {
