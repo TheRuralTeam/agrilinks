@@ -25,7 +25,7 @@ const AuthCallback = () => {
           })
           if (error) throw error
         } else if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(window.location.href)
+          const { error } = await supabase.auth.exchangeCodeForSession(code)
           if (error) throw error
         }
 
