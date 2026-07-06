@@ -233,7 +233,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/confirmar-email`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/app`,
           data: {
             full_name,
             user_type,
@@ -262,7 +262,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/completar-perfil`,
+          redirectTo: `${window.location.origin}/auth/callback?next=/completar-perfil`,
           queryParams: { access_type: 'offline', prompt: 'consent' },
         },
       })
@@ -298,7 +298,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       type: 'signup',
       email: user.email,
       options: {
-        emailRedirectTo: `${window.location.origin}/confirmar-email`
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/app`
       }
     })
     return { error }

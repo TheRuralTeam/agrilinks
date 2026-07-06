@@ -57,10 +57,11 @@ export const OtpVerificationModal = ({
 
     setIsVerifying(true);
     try {
-      // Use custom verify_email_otp function
-      const { data, error } = await supabase.rpc('verify_email_otp', {
-        p_email: email,
-        p_code: otp,
+      const { data, error } = await supabase.functions.invoke('verify-otp-email', {
+        body: {
+          email,
+          code: otp,
+        },
       });
 
       if (error) {
@@ -73,7 +74,7 @@ export const OtpVerificationModal = ({
         return;
       }
 
-      if (data === true) {
+      if (data?.success === true) {
         toast({
           title: "E-mail verificado!",
           description: "Sua conta foi verificada com sucesso.",

@@ -1,13 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   User, CreditCard, Mail, Lock, Eye, EyeOff,
-  UserPlus, ShieldCheck, ArrowRight, Check, X, ChevronDown
+  UserPlus, ShieldCheck, ArrowRight, Check, X, ChevronDown, ArrowLeft
 } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTractor, faUserTie, faBuildingColumns } from "@fortawesome/free-solid-svg-icons";
 import { getProvincesForCountry, getProvinceLabel, getMunicipalityLabel } from "@/data/country-locations";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -145,7 +144,7 @@ const FieldLabel = ({ children }: { children: React.ReactNode }) => (
 const Registration = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { register, user, signInWithGoogle } = useAuth();
+  const { register, login, signInWithGoogle } = useAuth();
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleGoogleSignUp = async () => {
@@ -172,6 +171,7 @@ const Registration = () => {
   const [agentCodeValid, setAgentCodeValid] = useState<boolean | null>(null);
   const [otpModalOpen, setOtpModalOpen] = useState(false);
   const [pendingUser, setPendingUser] = useState<{ id: string; email: string; full_name: string } | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
 
   const [selectedCountry, setSelectedCountry] = useState<Country>(() => {
     const savedCode = getSavedCountry();
@@ -190,10 +190,6 @@ const Registration = () => {
   const municipalityLabel = getMunicipalityLabel(selectedCountry.code);
   const availableMunicipalities = availableProvinces.find(p => p.id === selectedProvince)?.municipalities || [];
 
-  React.useEffect(() => {
-    if (user) navigate('/app', { replace: true });
-  }, [user, navigate]);
-
   const validateAgentCode = async (code: string) => {
     if (!code || code.length !== 6) { setAgentCodeValid(null); return; }
     setValidatingCode(true);
@@ -205,22 +201,63 @@ const Registration = () => {
     finally { setValidatingCode(false); }
   };
 
+  const steps = [
+    { title: 'Perfil', hint: 'Tipo de conta e identificação' },
+    { title: 'Contacto', hint: 'Email, telefone e localização' },
+    { title: 'Segurança', hint: 'Senha, indicação e OTP' },
+  ];
+
+  const validateCurrentStep = () => {
+    if (currentStep === 0 && (!userType || !fullName.trim() || !identityDocument.trim())) {
+      setErrorMessage('Preencha o tipo de conta, nome completo e documento.');
+      return false;
+    }
+    if (currentStep === 1 && (!email.trim() || !phone.trim() || !selectedProvince || !selectedMunicipality)) {
+      setErrorMessage('Preencha email, telefone, província e município.');
+      return false;
+    }
+    if (currentStep === 2) {
+      if (password.length < 6) {
+        setErrorMessage('A senha deve ter pelo menos 6 caracteres.');
+        return false;
+      }
+      if (password !== confirmPassword) {
+        setErrorMessage('As senhas não coincidem.');
+        return false;
+      }
+      if (wasReferred === 'sim' && !agentCodeValid) {
+        setErrorMessage('Código de agente inválido. Verifique e tente novamente.');
+        return false;
+      }
+    }
+    setErrorMessage('');
+    return true;
+  };
+
+  const goToNextStep = () => {
+    if (!validateCurrentStep()) return;
+    setCurrentStep(step => Math.min(step + 1, steps.length - 1));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) { setErrorMessage("As senhas não coincidem."); return; }
-    if (!email || !phone) return;
-    if (wasReferred === 'sim' && !agentCodeValid) {
-      setErrorMessage("Código de agente inválido. Verifique e tente novamente.");
+    if (currentStep < steps.length - 1) {
+      goToNextStep();
+      return;
+    }
+    if (!validateCurrentStep()) {
       return;
     }
     setLoading(true);
     setErrorMessage("");
     try {
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanName = fullName.trim();
       const fullPhone = `${selectedCountry.dialCode} ${phone}`;
-      const { error } = await register({
-        email, phone: fullPhone, password,
-        full_name: fullName,
-        identity_document: identityDocument,
+      const { error, data } = await register({
+        email: cleanEmail, phone: fullPhone, password,
+        full_name: cleanName,
+        identity_document: identityDocument.trim(),
         user_type: userType as "agricultor" | "agente" | "comprador",
         province_id: selectedProvince,
         municipality_id: selectedMunicipality,
@@ -233,17 +270,11 @@ const Registration = () => {
         return;
       }
 
-      // Obter o user_id recém-criado
-      const { data: userRow } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
-
-      if (userRow?.id) {
+      const newUserId = data?.user?.id;
+      if (newUserId) {
         // Enviar OTP por email via Resend (no-reply@agrilink.ao)
         const { error: otpErr } = await supabase.functions.invoke('send-otp-email', {
-          body: { user_id: userRow.id, email, full_name: fullName },
+          body: { user_id: newUserId, email: cleanEmail, full_name: cleanName },
         });
         if (otpErr) {
           toast({
@@ -254,10 +285,10 @@ const Registration = () => {
         } else {
           toast({
             title: "Código enviado!",
-            description: `Verifica o teu email ${email} para o código de 6 dígitos.`,
+            description: `Verifica o teu email ${cleanEmail} para o código de 6 dígitos.`,
           });
         }
-        setPendingUser({ id: userRow.id, email, full_name: fullName });
+        setPendingUser({ id: newUserId, email: cleanEmail, full_name: cleanName });
         setOtpModalOpen(true);
       } else {
         toast({ title: "Conta criada com sucesso!", description: "Faz login para continuar." });
@@ -271,9 +302,9 @@ const Registration = () => {
   };
 
   const userTypeOptions = [
-    { id: 'agricultor', label: 'Fornecedor', icon: '' },
-    { id: 'agente', label: t('registration.agent'), icon: '' },
-    { id: 'comprador', label: t('registration.buyer'), icon: '' },
+    { id: 'agricultor', label: 'Fornecedor', icon: faTractor },
+    { id: 'agente', label: t('registration.agent'), icon: faUserTie },
+    { id: 'comprador', label: t('registration.buyer'), icon: faBuildingColumns },
   ];
 
   return (
@@ -361,6 +392,13 @@ const Registration = () => {
         .submit-btn { transition: all 0.18s ease; }
         .submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(45,125,58,0.3) !important; }
         .submit-btn:active:not(:disabled) { transform: scale(0.98); }
+        .step-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+        .step-pill { border-radius: 16px; padding: 12px; border: 1.5px solid ${T.rule}; background: ${T.goldBg}; }
+        .step-pill.active { border-color: ${T.goldMid}; background: ${T.goldPale}; box-shadow: 0 4px 16px rgba(201,146,42,0.16); }
+        .step-count { width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; margin-bottom: 8px; }
+        @media (max-width: 640px) {
+          .step-grid { grid-template-columns: 1fr; }
+        }
       `}</style>
 
       <div style={{ width: '100%', maxWidth: 680, position: 'relative', zIndex: 10, animation: 'fadeUp 0.6s ease both' }}>
@@ -431,178 +469,100 @@ const Registration = () => {
                 </div>
               )}
 
-              {/* User Type Selector */}
-              <div className="field-group" style={{ animationDelay: '0.05s' }}>
-                <FieldLabel>{t('registration.userType') || 'Tipo de Conta'}</FieldLabel>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-                  {userTypeOptions.map(opt => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      className={`user-type-btn${userType === opt.id ? ' selected' : ''}`}
-                      onClick={() => setUserType(opt.id)}
-                      style={{
-                        padding: '14px 8px',
-                        borderRadius: 14,
-                        border: `1.5px solid ${userType === opt.id ? T.goldMid : T.goldBorder}`,
-                        backgroundColor: userType === opt.id ? T.goldPale : T.goldBg,
-                        cursor: 'pointer',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                        boxShadow: userType === opt.id ? `0 4px 16px rgba(201,146,42,0.20)` : 'none',
-                      }}
-                    >
-                      <span style={{ fontSize: 22 }}>{opt.icon}</span>
-                      <span style={{
-                        fontSize: 12, fontWeight: 800,
-                        color: userType === opt.id ? T.goldDark : T.mid,
-                        letterSpacing: '0.02em',
-                      }}>
-                        {opt.label}
-                      </span>
-                      {userType === opt.id && (
-                        <div style={{
-                          width: 20, height: 20, borderRadius: '50%',
-                          backgroundColor: T.goldMid,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                          <Check style={{ color: T.white, width: 12, height: 12 }} />
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
+              <div className="step-grid">
+                {steps.map((step, index) => (
+                  <div key={step.title} className={`step-pill${currentStep === index ? ' active' : ''}`}>
+                    <span className="step-count" style={{ backgroundColor: currentStep >= index ? T.goldMid : T.rule, color: currentStep >= index ? T.white : T.muted }}>
+                      {currentStep > index ? <Check style={{ width: 13, height: 13 }} /> : index + 1}
+                    </span>
+                    <div style={{ fontSize: 12, fontWeight: 900, color: T.ink }}>{step.title}</div>
+                    <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>{step.hint}</div>
+                  </div>
+                ))}
               </div>
 
-              {/* 2-col grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px 24px' }}>
+              {currentStep === 0 && (
+                <div className="field-group" style={{ animationDelay: '0.05s' }}>
+                  <FieldLabel>{t('registration.userType') || 'Tipo de Conta'}</FieldLabel>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                    {userTypeOptions.map(opt => (
+                      <button key={opt.id} type="button" className={`user-type-btn${userType === opt.id ? ' selected' : ''}`} onClick={() => setUserType(opt.id)} style={{ padding: '16px 8px', borderRadius: 14, border: `1.5px solid ${userType === opt.id ? T.goldMid : T.goldBorder}`, backgroundColor: userType === opt.id ? T.goldPale : T.goldBg, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, boxShadow: userType === opt.id ? `0 4px 16px rgba(201,146,42,0.20)` : 'none' }}>
+                        <FontAwesomeIcon icon={opt.icon} style={{ color: userType === opt.id ? T.goldDark : T.gold, fontSize: 21 }} />
+                        <span style={{ fontSize: 12, fontWeight: 800, color: userType === opt.id ? T.goldDark : T.mid, letterSpacing: '0.02em' }}>{opt.label}</span>
+                        {userType === opt.id && <Check style={{ color: T.goldMid, width: 16, height: 16 }} />}
+                      </button>
+                    ))}
+                  </div>
 
-                {/* Full Name */}
-                <div className="field-group" style={{ animationDelay: '0.08s' }}>
-                  <FieldLabel>{t('registration.fullName') || 'Nome Completo'}</FieldLabel>
-                  <div style={{ position: 'relative' }}>
-                    <User style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.goldLight, width: 18, height: 18, pointerEvents: 'none' }} />
-                    <input
-                      value={fullName}
-                      onChange={e => setFullName(e.target.value)}
-                      placeholder={t('registration.fullNamePlaceholder') || 'Nome completo'}
-                      style={inputStyle}
-                      required
-                    />
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px 24px', marginTop: 24 }}>
+                    <div>
+                      <FieldLabel>{t('registration.fullName') || 'Nome Completo'}</FieldLabel>
+                      <div style={{ position: 'relative' }}>
+                        <User style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.goldLight, width: 18, height: 18, pointerEvents: 'none' }} />
+                        <input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('registration.fullNamePlaceholder') || 'Nome completo'} style={inputStyle} required />
+                      </div>
+                    </div>
+                    <div>
+                      <FieldLabel>{t('registration.identityDocument') || 'Documento de Identidade'}</FieldLabel>
+                      <div style={{ position: 'relative' }}>
+                        <CreditCard style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.goldLight, width: 18, height: 18, pointerEvents: 'none' }} />
+                        <input value={identityDocument} onChange={e => setIdentityDocument(e.target.value)} placeholder="000000000AA000" style={inputStyle} required />
+                      </div>
+                    </div>
                   </div>
                 </div>
+              )}
 
-                {/* Identity Doc */}
-                <div className="field-group" style={{ animationDelay: '0.1s' }}>
-                  <FieldLabel>{t('registration.identityDocument') || 'Documento de Identidade'}</FieldLabel>
-                  <div style={{ position: 'relative' }}>
-                    <CreditCard style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.goldLight, width: 18, height: 18, pointerEvents: 'none' }} />
-                    <input
-                      value={identityDocument}
-                      onChange={e => setIdentityDocument(e.target.value)}
-                      placeholder="000000000AA000"
-                      style={inputStyle}
-                      required
-                    />
+              {currentStep === 1 && (
+                <div className="field-group" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px 24px' }}>
+                  <div>
+                    <FieldLabel>Email</FieldLabel>
+                    <div style={{ position: 'relative' }}>
+                      <Mail style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.goldLight, width: 18, height: 18, pointerEvents: 'none' }} />
+                      <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" style={inputStyle} required />
+                    </div>
+                  </div>
+                  <div>
+                    <FieldLabel>{t('registration.phone') || 'Telefone'}</FieldLabel>
+                    <CountryPhoneInput value={phone} onChange={setPhone} selectedCountry={selectedCountry} onCountryChange={handleCountryChange} />
+                  </div>
+                  <div>
+                    <FieldLabel>{provinceLabel || 'Província'}</FieldLabel>
+                    <NativeSelect value={selectedProvince} onChange={v => { setSelectedProvince(v); setSelectedMunicipality(""); }} placeholder={t('registration.selectProvince') || 'Selecionar província'} options={availableProvinces} />
+                  </div>
+                  <div>
+                    <FieldLabel>{municipalityLabel || 'Município'}</FieldLabel>
+                    <NativeSelect value={selectedMunicipality} onChange={setSelectedMunicipality} placeholder={t('registration.selectMunicipality') || 'Selecionar município'} options={availableMunicipalities} disabled={!selectedProvince} />
                   </div>
                 </div>
+              )}
 
-                {/* Email */}
-                <div className="field-group" style={{ animationDelay: '0.12s' }}>
-                  <FieldLabel>Email</FieldLabel>
-                  <div style={{ position: 'relative' }}>
-                    <Mail style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.goldLight, width: 18, height: 18, pointerEvents: 'none' }} />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      placeholder="seu@email.com"
-                      style={inputStyle}
-                      required
-                    />
+              {currentStep === 2 && (
+                <>
+                  <div className="field-group" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px 24px' }}>
+                    <div>
+                      <FieldLabel>{t('registration.password') || 'Senha'}</FieldLabel>
+                      <div style={{ position: 'relative' }}>
+                        <Lock style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.goldLight, width: 18, height: 18, pointerEvents: 'none' }} />
+                        <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" style={{ ...inputStyle, paddingRight: '48px' }} required />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                          {showPassword ? <EyeOff style={{ color: T.goldLight, width: 18, height: 18 }} /> : <Eye style={{ color: T.goldLight, width: 18, height: 18 }} />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <FieldLabel>{t('registration.confirmPassword') || 'Confirmar Senha'}</FieldLabel>
+                      <div style={{ position: 'relative' }}>
+                        <Lock style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.goldLight, width: 18, height: 18, pointerEvents: 'none' }} />
+                        <input type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" style={{ ...inputStyle, paddingRight: '48px' }} required />
+                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                          {showConfirmPassword ? <EyeOff style={{ color: T.goldLight, width: 18, height: 18 }} /> : <Eye style={{ color: T.goldLight, width: 18, height: 18 }} />}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                {/* Phone */}
-                <div className="field-group" style={{ animationDelay: '0.14s' }}>
-                  <FieldLabel>{t('registration.phone') || 'Telefone'}</FieldLabel>
-                  <CountryPhoneInput
-                    value={phone}
-                    onChange={setPhone}
-                    selectedCountry={selectedCountry}
-                    onCountryChange={handleCountryChange}
-                  />
-                </div>
-
-                {/* Province — native select */}
-                <div className="field-group" style={{ animationDelay: '0.16s' }}>
-                  <FieldLabel>{provinceLabel || 'Província'}</FieldLabel>
-                  <NativeSelect
-                    value={selectedProvince}
-                    onChange={v => { setSelectedProvince(v); setSelectedMunicipality(""); }}
-                    placeholder={t('registration.selectProvince') || 'Selecionar província'}
-                    options={availableProvinces}
-                  />
-                </div>
-
-                {/* Municipality — native select */}
-                <div className="field-group" style={{ animationDelay: '0.18s' }}>
-                  <FieldLabel>{municipalityLabel || 'Município'}</FieldLabel>
-                  <NativeSelect
-                    value={selectedMunicipality}
-                    onChange={setSelectedMunicipality}
-                    placeholder={t('registration.selectMunicipality') || 'Selecionar município'}
-                    options={availableMunicipalities}
-                    disabled={!selectedProvince}
-                  />
-                </div>
-
-                {/* Password */}
-                <div className="field-group" style={{ animationDelay: '0.20s' }}>
-                  <FieldLabel>{t('registration.password') || 'Senha'}</FieldLabel>
-                  <div style={{ position: 'relative' }}>
-                    <Lock style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.goldLight, width: 18, height: 18, pointerEvents: 'none' }} />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      style={{ ...inputStyle, paddingRight: '48px' }}
-                      required
-                    />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)}
-                      style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                      {showPassword
-                        ? <EyeOff style={{ color: T.goldLight, width: 18, height: 18 }} />
-                        : <Eye style={{ color: T.goldLight, width: 18, height: 18 }} />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Confirm Password */}
-                <div className="field-group" style={{ animationDelay: '0.22s' }}>
-                  <FieldLabel>{t('registration.confirmPassword') || 'Confirmar Senha'}</FieldLabel>
-                  <div style={{ position: 'relative' }}>
-                    <Lock style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.goldLight, width: 18, height: 18, pointerEvents: 'none' }} />
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      value={confirmPassword}
-                      onChange={e => setConfirmPassword(e.target.value)}
-                      placeholder="••••••••"
-                      style={{ ...inputStyle, paddingRight: '48px' }}
-                      required
-                    />
-                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                      {showConfirmPassword
-                        ? <EyeOff style={{ color: T.goldLight, width: 18, height: 18 }} />
-                        : <Eye style={{ color: T.goldLight, width: 18, height: 18 }} />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Agent Referral */}
-              <div className="field-group" style={{
+                  <div className="field-group" style={{
                 animationDelay: '0.24s',
                 padding: '20px 22px',
                 borderRadius: 18,
@@ -679,31 +639,22 @@ const Registration = () => {
                     )}
                   </div>
                 )}
-              </div>
+                  </div>
+                </>
+              )}
 
               {/* Submit */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="submit-btn"
-                style={{
-                  width: '100%',
-                  height: 56,
-                  borderRadius: 16,
-                  border: 'none',
-                  background: loading ? T.muted : `linear-gradient(135deg, ${T.g600} 0%, ${T.g500} 100%)`,
-                  color: T.white,
-                  fontSize: 16,
-                  fontWeight: 900,
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                  boxShadow: loading ? 'none' : '0 4px 20px rgba(45,125,58,0.25)',
-                  letterSpacing: '0.02em',
-                }}
-              >
-                {loading ? 'Criando Conta...' : 'Finalizar Registo'}
-                <ArrowRight style={{ width: 20, height: 20 }} />
-              </button>
+              <div style={{ display: 'flex', gap: 12 }}>
+                {currentStep > 0 && (
+                  <button type="button" onClick={() => { setErrorMessage(''); setCurrentStep(step => step - 1); }} style={{ width: 56, height: 56, borderRadius: 16, border: `1.5px solid ${T.goldBorder}`, background: T.white, color: T.goldDark, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ArrowLeft style={{ width: 20, height: 20 }} />
+                  </button>
+                )}
+                <button type="submit" disabled={loading} className="submit-btn" style={{ flex: 1, height: 56, borderRadius: 16, border: 'none', background: loading ? T.muted : `linear-gradient(135deg, ${T.g600} 0%, ${T.g500} 100%)`, color: T.white, fontSize: 16, fontWeight: 900, cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: loading ? 'none' : '0 4px 20px rgba(45,125,58,0.25)', letterSpacing: '0.02em' }}>
+                  {loading ? 'Criando Conta...' : currentStep === steps.length - 1 ? 'Criar conta e enviar OTP' : 'Continuar'}
+                  <ArrowRight style={{ width: 20, height: 20 }} />
+                </button>
+              </div>
 
               {/* Divider */}
               <div style={{ display: 'flex', alignItems: 'center', margin: '4px 0' }}>
@@ -761,8 +712,16 @@ const Registration = () => {
           fullName={pendingUser.full_name}
           onSuccess={() => {
             setOtpModalOpen(false);
-            toast({ title: "E-mail verificado!", description: "Bem-vindo ao AgriLink." });
-            navigate('/app', { replace: true });
+            toast({ title: "E-mail verificado!", description: "A entrar na plataforma." });
+            setLoading(true);
+            login(pendingUser.email, password).then(({ error }) => {
+              if (error) {
+                toast({ title: "Email verificado", description: "Faça login para continuar.", variant: "destructive" });
+                navigate('/login', { replace: true });
+                return;
+              }
+              navigate('/app', { replace: true });
+            }).finally(() => setLoading(false));
           }}
         />
       )}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faHouseLaptop, faBullseye, faHandshake, faWheatAwn, faGlobe } from '@fortawesome/free-solid-svg-icons'
+import { faHouseLaptop, faBullseye, faHandshake, faWheatAwn, faGlobe, faUserPlus, faRightToBracket, faShieldHalved, faUsers, faSeedling, faChartLine } from '@fortawesome/free-solid-svg-icons'
 
 // ═══════════════════════════════════════════════════════════════
 // IMPORTAÇÃO DAS FOTOS DA EQUIPE E LOGO (com fallbacks)
@@ -549,79 +549,133 @@ const AgriLinkLanding = () => {
 
         .hero-visual { position: relative; }
         .hero-card {
-          background: ${T.canvas};
-          border: 1px solid ${T.rule};
-          border-radius: ${T.radiusMd};
-          padding: 32px;
+          position: relative;
+          overflow: hidden;
+          background: linear-gradient(135deg, #F4FBEF 0%, #FFFFFF 46%, #F8F4EE 100%);
+          border: 1px solid rgba(124,179,66,0.36);
+          border-radius: 18px;
+          padding: 36px;
           box-shadow: ${T.shadowLg};
+          animation: panel-rise 0.8s ease both;
         }
-        .hero-card-header {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          margin-bottom: 28px;
-          padding-bottom: 20px;
-          border-bottom: 1px solid ${T.rule};
+        .hero-card::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(110deg, transparent 0%, rgba(124,179,66,0.16) 42%, rgba(176,125,10,0.12) 52%, transparent 66%);
+          transform: translateX(-100%);
+          animation: panel-scan 5s ease-in-out infinite;
+          pointer-events: none;
         }
-        .hero-card-label {
+        @keyframes panel-rise {
+          from { opacity: 0; transform: translateY(18px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes panel-scan {
+          0%, 42% { transform: translateX(-100%); }
+          72%, 100% { transform: translateX(100%); }
+        }
+        .access-kicker {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          border: 1px solid rgba(124,179,66,0.28);
+          background: rgba(124,179,66,0.10);
+          color: #1F4D2B;
           font-size: 10px;
-          font-weight: 500;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-          color: ${T.faint};
-          margin-bottom: 6px;
-        }
-        .hero-card-value {
-          font-family: ${T.fontSerif};
-          font-size: 26px;
-          color: ${T.ink};
-          letter-spacing: -0.02em;
-        }
-        .hero-card-amount {
-          font-family: ${T.fontSerif};
-          font-size: 22px;
-          color: ${T.accent};
-          text-align: right;
-        }
-        .hero-card-amount-label {
-          font-size: 10px;
-          font-weight: 500;
+          font-weight: 700;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: ${T.faint};
-          text-align: right;
-          margin-bottom: 6px;
+          border-radius: 999px;
+          margin-bottom: 20px;
         }
-        .contract-row {
+        .access-title {
+          position: relative;
+          font-family: ${T.fontSerif};
+          font-size: clamp(30px, 3vw, 44px);
+          line-height: 1.02;
+          color: ${T.ink};
+          margin: 0 0 14px;
+        }
+        .access-copy {
+          position: relative;
+          color: ${T.mid};
+          font-size: 15px;
+          line-height: 1.65;
+          margin: 0 0 26px;
+        }
+        .access-actions {
+          position: relative;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          margin-bottom: 24px;
+        }
+        .access-btn {
+          height: 54px;
+          border-radius: 8px;
+          border: 1px solid rgba(124,179,66,0.36);
+          cursor: pointer;
           display: flex;
           align-items: center;
-          justify-content: space-between;
-          padding: 14px 0;
-          border-bottom: 1px solid ${T.rule};
+          justify-content: center;
+          gap: 10px;
+          font-size: 14px;
+          font-weight: 800;
+          font-family: ${T.fontSans};
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-        .contract-row:last-child { border-bottom: none; }
-        .contract-name {
+        .access-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(124,179,66,0.18); }
+        .access-btn-primary { background: #7CB342; color: #FFFFFF; border-color: #7CB342; }
+        .access-btn-secondary { background: #FFFFFF; color: ${T.ink}; }
+        .access-chips {
+          position: relative;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 10px;
+          margin-bottom: 20px;
+        }
+        .access-chip {
+          min-height: 82px;
+          padding: 14px 10px;
+          border: 1px solid ${T.rule};
+          background: rgba(255,255,255,0.72);
+          border-radius: 10px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          gap: 8px;
           font-size: 13px;
-          font-weight: 400;
+          font-weight: 700;
           color: ${T.mid};
         }
-        .contract-badge {
-          font-size: 10px;
-          font-weight: 500;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          padding: 3px 10px;
-          border-radius: 2px;
+        .access-chip svg { color: #7CB342; font-size: 18px; }
+        .access-flow {
+          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding-top: 18px;
+          border-top: 1px solid ${T.rule};
         }
-        .badge-active {
-          color: ${T.accent};
-          background: ${T.accentPale};
-          border: 1px solid rgba(31,77,43,0.15);
-        }
-        .badge-pending {
+        .access-flow span {
+          flex: 1;
+          text-align: center;
+          padding: 9px 8px;
+          border-radius: 999px;
+          background: rgba(176,125,10,0.08);
           color: ${T.gold};
-          background: ${T.goldPale};
-          border: 1px solid rgba(154,123,79,0.2);
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        @media (max-width: 560px) {
+          .access-actions, .access-chips { grid-template-columns: 1fr; }
+          .access-flow { flex-direction: column; align-items: stretch; }
         }
 
         .hero-float {
@@ -1330,39 +1384,31 @@ const AgriLinkLanding = () => {
 
           <div className="hero-visual">
             <div className="hero-card">
-              <div className="hero-card-header">
-                <div>
-                  <div className="hero-card-label">Contrato Ativo</div>
-                  <div className="hero-card-value">Tomate · 40 ton.</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div className="hero-card-amount-label">Valor Total</div>
-                  <div className="hero-card-amount">AOA 2.4M</div>
-                </div>
+              <div className="access-kicker">
+                <FontAwesomeIcon icon={faShieldHalved} />
+                Acesso institucional AgriLink
               </div>
-
-              {[
-                { name: 'Soja · 120 ton.', status: 'Ativo', cls: 'badge-active' },
-                { name: 'Milho · 80 ton.', status: 'Pendente', cls: 'badge-pending' },
-                { name: 'Feijão · 60 ton.', status: 'Ativo', cls: 'badge-active' },
-                { name: 'Mandioca · 30 ton.', status: 'Pendente', cls: 'badge-pending' },
-              ].map((r, i) => (
-                <div key={i} className="contract-row">
-                  <span className="contract-name">{r.name}</span>
-                  <span className={`contract-badge ${r.cls}`}>{r.status}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="hero-float">
-              <div className="hero-float-icon">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M8 1.5l1.5 3 3.3.5L10.5 7.2l.6 3.3L8 9l-3.1 1.5.6-3.3L3.2 5l3.3-.5z" stroke="rgba(255,255,255,0.7)" strokeWidth="1.2" fill="none"/>
-                </svg>
+              <h2 className="access-title">Criar uma conta AgriLink</h2>
+              <p className="access-copy">Entre como fornecedor, comprador ou agente e confirme o email por código OTP de 6 dígitos.</p>
+              <div className="access-actions">
+                <button className="access-btn access-btn-primary" onClick={() => navigate('/cadastro')}>
+                  <FontAwesomeIcon icon={faUserPlus} />
+                  Criar conta
+                </button>
+                <button className="access-btn access-btn-secondary" onClick={() => navigate('/login')}>
+                  <FontAwesomeIcon icon={faRightToBracket} />
+                  Entrar
+                </button>
               </div>
-              <div>
-                <div className="hero-float-label">Contratos Digitais</div>
-                <div className="hero-float-value">100% Seguros</div>
+              <div className="access-chips">
+                <div className="access-chip"><FontAwesomeIcon icon={faSeedling} />Fornecedores</div>
+                <div className="access-chip"><FontAwesomeIcon icon={faChartLine} />Compradores</div>
+                <div className="access-chip"><FontAwesomeIcon icon={faUsers} />Agentes</div>
+              </div>
+              <div className="access-flow">
+                <span>Dados</span>
+                <span>Código OTP</span>
+                <span>Acesso</span>
               </div>
             </div>
           </div>
