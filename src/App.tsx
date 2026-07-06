@@ -35,6 +35,7 @@ import UserProfile from "./pages/UserProfile";
  import B2BProfile from "./pages/B2BProfile";
 import CompletarPerfil from "./pages/CompletarPerfil";
 import PublicProductLocation from "./pages/PublicProductLocation";
+import AuthCallback from "./pages/AuthCallback";
 
 const queryClient = new QueryClient();
 
@@ -97,6 +98,7 @@ const AppRoutes = () => {
       <Route path="/site" element={<Index />} />
       <Route path="/login" element={user ? <Navigate to="/app" replace /> : <LoginPage />} />
       <Route path="/cadastro" element={<Registration />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/confirmar-email" element={<EmailConfirmation />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/termos-publicidade" element={<TermsOfService />} />

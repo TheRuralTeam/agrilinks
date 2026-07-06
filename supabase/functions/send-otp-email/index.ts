@@ -1,36 +1,60 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
-import { Resend } from "https://esm.sh/resend@2.0.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { Resend } from "npm:resend@2.0.0";
+import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-interface SendOtpRequest {
-  user_id: string;
-  email: string;
-  full_name: string;
-}
+const BodySchema = z.object({
+  user_id: z.string().uuid().optional(),
+  email: z.string().trim().email().max(255),
+  full_name: z.string().trim().min(1).max(120).optional(),
+});
 
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { user_id, email, full_name }: SendOtpRequest = await req.json();
+    const parsed = BodySchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return new Response(JSON.stringify({ error: "Dados inválidos para envio do código." }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
 
-    console.log("Generating OTP for:", email);
+    const email = parsed.data.email.toLowerCase();
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    let userId = parsed.data.user_id;
+    let fullName = parsed.data.full_name || "Utilizador AgriLink";
+
+    if (!userId) {
+      const { data: userRow, error: userError } = await supabase
+        .from('users')
+        .select('id, full_name')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (userError || !userRow?.id) {
+        return new Response(JSON.stringify({ error: "Conta não encontrada para este email." }), {
+          status: 404,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      userId = userRow.id;
+      fullName = userRow.full_name || fullName;
+    }
+
     // Generate OTP using database function
     const { data: otpCode, error: otpError } = await supabase.rpc('generate_email_otp', {
-      p_user_id: user_id,
+      p_user_id: userId,
       p_email: email
     });
 
@@ -38,8 +62,6 @@ serve(async (req: Request): Promise<Response> => {
       console.error("Error generating OTP:", otpError);
       throw new Error("Erro ao gerar código OTP");
     }
-
-    console.log("OTP generated:", otpCode);
 
     // Send email using Resend
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -56,7 +78,7 @@ serve(async (req: Request): Promise<Response> => {
           </div>
 
           <div style="background: #f7faf3; border: 1px solid #e5efd7; border-radius: 12px; padding: 32px; text-align: center;">
-            <h2 style="color: #1f2937; margin: 0 0 8px; font-size: 20px;">Olá, ${full_name}!</h2>
+            <h2 style="color: #1f2937; margin: 0 0 8px; font-size: 20px;">Olá, ${fullName}!</h2>
             <p style="color: #6b7280; margin: 0 0 24px; font-size: 15px;">Use o código abaixo para confirmar o seu e-mail:</p>
 
             <div style="background: #7CB342; color: #ffffff; font-size: 34px; font-weight: 700; letter-spacing: 10px; padding: 20px 32px; border-radius: 10px; display: inline-block;">
