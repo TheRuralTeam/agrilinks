@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faHouseLaptop, faBullseye, faHandshake, faWheatAwn, faGlobe, faUserPlus, faRightToBracket, faShieldHalved, faUsers, faSeedling, faChartLine } from '@fortawesome/free-solid-svg-icons'
+import { faHouseLaptop, faBullseye, faHandshake, faWheatAwn, faGlobe, faUserPlus, faRightToBracket, faShieldHalved, faUsers, faSeedling, faChartLine, faCircleCheck } from '@fortawesome/free-solid-svg-icons'
 
 // ═══════════════════════════════════════════════════════════════
 // IMPORTAÇÃO DAS FOTOS DA EQUIPE E LOGO (com fallbacks)
 // ═══════════════════════════════════════════════════════════════
-// Substitua pelos seus paths reais ou remova as importações e use URLs
 import orbisLinkLogo from '@/assets/orbislink-logo.png';
 import fotoFeliciano from '@/assets/FELICIANO.jpeg';
 import fotoMoises from '@/assets/MOISES.jpeg';
@@ -15,31 +14,41 @@ import fotoClaudio from '@/assets/CLAUDIO.jpeg';
 import comunidadeImg from '@/assets/agrilink-community-conference.jpg';
 import comunidadeImg2 from '@/assets/agrilink-meetup.jpg';
 
-/* ─── Design Tokens ─ Luxo Editorial Minimalista ───────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────────────
+   DESIGN — "Selo Vivo" (Living Seal)
+   Paleta: branco/preto com um verde profundo e vibrante como cor de ação,
+   e um fio de dourado usado apenas como assinatura — nunca como decoração.
+   O elemento de assinatura do site é o SELO no cartão de acesso (login /
+   cadastro): um anel dourado que gira devagar como um selo de autenticação
+   de contrato a ser validado — liga a estética diretamente ao produto
+   (contratos digitais, rastreabilidade, confiança institucional).
+   ───────────────────────────────────────────────────────────────────────── */
 const T = {
-  ink:     '#0A0A0A',
-  ink80:   '#1A1A1A',
-  ink60:   '#2C2C2C',
-  mid:     '#555555',
-  muted:   '#888888',
-  faint:   '#BBBBBB',
-  rule:    '#E8E8E8',
-  surface: '#F5F4F0',
-  canvas:  '#FFFFFF',
-  accent:  '#1F4D2B',
-  accentM: '#2D6B3A',
-  accentL: '#4A8F5A',
-  accentPale: '#EDF2EE',
-  gold:    '#9A7B4F',
-  goldPale:'#F8F4EE',
-  fontSans: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
-  fontSerif: "'DM Serif Display', Georgia, serif",
-  radius:  '4px',
-  radiusMd:'8px',
-  radiusLg:'16px',
-  shadowSm: '0 1px 3px rgba(0,0,0,0.06)',
-  shadowMd: '0 4px 16px rgba(0,0,0,0.06)',
-  shadowLg: '0 12px 40px rgba(0,0,0,0.08)',
+  ink:      '#08110D',
+  ink80:    '#0F1A14',
+  ink60:    '#22322A',
+  mid:      '#4C5C53',
+  muted:    '#7C8B81',
+  faint:    '#B7C2BA',
+  rule:     '#E3E9E2',
+  ruleSoft: '#EEF2EB',
+  surface:  '#F5F8F3',
+  canvas:   '#FFFFFF',
+  accent:      '#0E6B3D',
+  accentDeep:  '#083D24',
+  accentVivid: '#22C55E',
+  accentPale:  '#E9F4EC',
+  gold:     '#C7A02E',
+  goldSoft: '#E4C567',
+  goldPale: '#FBF5E3',
+  fontDisplay: "'Fraunces', 'DM Serif Display', Georgia, serif",
+  fontSans: "'Manrope', -apple-system, BlinkMacSystemFont, sans-serif",
+  radius:  '6px',
+  radiusMd:'10px',
+  radiusLg:'20px',
+  shadowSm: '0 1px 3px rgba(8,17,13,0.06)',
+  shadowMd: '0 8px 28px rgba(8,17,13,0.08)',
+  shadowLg: '0 20px 60px rgba(8,17,13,0.14)',
 }
 
 /* ─── i18n ───────────────────────────────────────────────────────────────────── */
@@ -213,13 +222,26 @@ function useScrolled(threshold = 40) {
 function useVisible(ref) {
   const [isVisible, setIsVisible] = useState(false)
   useEffect(() => {
-    const obs = new IntersectionObserver(([entry]) => { 
-      if (entry.isIntersecting) setIsVisible(true) 
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setIsVisible(true)
     }, { threshold: 0.08 })
     if (ref.current) obs.observe(ref.current)
     return () => obs.disconnect()
   }, [ref])
   return isVisible
+}
+
+/* Fio dourado — divisor de secção que se acende quando entra em vista.
+   É o único lugar (fora do selo do cartão de acesso) onde o dourado se
+   move — usado com moderação, como pontuação entre capítulos. */
+function GoldDivider() {
+  const ref = useRef(null)
+  const vis = useVisible(ref)
+  return (
+    <div ref={ref} className="gold-divider">
+      <span className={`gold-divider-fill ${vis ? 'run' : ''}`} />
+    </div>
+  )
 }
 
 /* ─── Main Component ───────────────────────────────────────────────────────── */
@@ -247,22 +269,10 @@ const AgriLinkLanding = () => {
   const communityVis = useVisible(communityRef)
 
   const faqItems = [
-    {
-      q: 'Como funciona a plataforma AgriLink?',
-      a: 'A AgriLink conecta agricultores, empresas e compradores através de contratos digitais seguros. Nossa plataforma oferece quatro modelos de negócio adaptados às necessidades do mercado agroalimentar.'
-    },
-    {
-      q: 'Quais países estão cobertos?',
-      a: 'Atualmente operamos em Angola, com planos de expansão para RDC, Namíbia e África do Sul, criando o maior marketplace B2B agroalimentar da SADC.'
-    },
-    {
-      q: 'Como garante a segurança das transações?',
-      a: 'Utilizamos smart contracts com validade legal plena, rastreabilidade imutável e documentação certificada para cada transação.'
-    },
-    {
-      q: 'Quem pode se cadastrar?',
-      a: 'Agricultores, cooperativas, fábricas, distribuidores e compradores institucionais podem se cadastrar na plataforma.'
-    }
+    { q: 'Como funciona a plataforma AgriLink?', a: 'A AgriLink conecta agricultores, empresas e compradores através de contratos digitais seguros. Nossa plataforma oferece quatro modelos de negócio adaptados às necessidades do mercado agroalimentar.' },
+    { q: 'Quais países estão cobertos?', a: 'Atualmente operamos em Angola, com planos de expansão para RDC, Namíbia e África do Sul, criando o maior marketplace B2B agroalimentar da SADC.' },
+    { q: 'Como garante a segurança das transações?', a: 'Utilizamos smart contracts com validade legal plena, rastreabilidade imutável e documentação certificada para cada transação.' },
+    { q: 'Quem pode se cadastrar?', a: 'Agricultores, cooperativas, fábricas, distribuidores e compradores institucionais podem se cadastrar na plataforma.' },
   ]
 
   const teamMembers = [
@@ -276,11 +286,14 @@ const AgriLinkLanding = () => {
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; font-size: 16px; }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+        }
         body {
           background: ${T.canvas};
           color: ${T.ink};
@@ -295,7 +308,7 @@ const AgriLinkLanding = () => {
           align-items: center;
           gap: 10px;
           font-size: 11px;
-          font-weight: 500;
+          font-weight: 700;
           letter-spacing: 0.18em;
           text-transform: uppercase;
           color: ${T.accent};
@@ -305,8 +318,32 @@ const AgriLinkLanding = () => {
           content: '';
           display: block;
           width: 20px;
+          height: 2px;
+          background: ${T.gold};
+        }
+
+        /* ── FIO DOURADO — divisor assinatura ── */
+        .gold-divider {
+          max-width: 1320px;
+          margin: 0 auto;
+          padding: 0 48px;
           height: 1px;
-          background: ${T.accent};
+          position: relative;
+          background: ${T.rule};
+        }
+        .gold-divider-fill {
+          position: absolute;
+          top: 0; left: 48px;
+          height: 1px;
+          width: 0;
+          background: linear-gradient(90deg, ${T.gold}, ${T.accentVivid});
+        }
+        .gold-divider-fill.run {
+          animation: fillLine 1.4s cubic-bezier(.16,1,.3,1) forwards;
+        }
+        @keyframes fillLine {
+          from { width: 0; }
+          to { width: calc(100% - 96px); }
         }
 
         /* ── NAV ── */
@@ -317,7 +354,7 @@ const AgriLinkLanding = () => {
           transition: all 0.4s ease;
         }
         .nav.solid {
-          background: rgba(255,255,255,0.97);
+          background: rgba(255,255,255,0.96);
           backdrop-filter: blur(24px);
           border-bottom: 1px solid ${T.rule};
         }
@@ -337,39 +374,28 @@ const AgriLinkLanding = () => {
           text-decoration: none;
           flex-shrink: 0;
         }
-        .nav-logo img {
-          height: 36px;
-          width: auto;
-        }
-        .nav-wordmark {
-          font-family: ${T.fontSerif};
-          font-size: 22px;
-          color: ${T.ink};
-          letter-spacing: -0.01em;
-        }
-        .nav-wordmark em {
-          color: ${T.accent};
-          font-style: normal;
-        }
-        .nav-links {
-          display: flex;
-          align-items: center;
-          gap: 40px;
-        }
+        .nav-logo img { height: 36px; width: auto; }
+        .nav-links { display: flex; align-items: center; gap: 40px; }
         .nav-link {
           color: ${T.mid};
           text-decoration: none;
           font-size: 14px;
-          font-weight: 400;
+          font-weight: 500;
           letter-spacing: 0.01em;
           transition: color 0.2s;
+          position: relative;
+        }
+        .nav-link::after {
+          content: '';
+          position: absolute;
+          left: 0; bottom: -6px;
+          width: 0; height: 1.5px;
+          background: ${T.accent};
+          transition: width 0.25s ease;
         }
         .nav-link:hover { color: ${T.ink}; }
-        .nav-right {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
+        .nav-link:hover::after { width: 100%; }
+        .nav-right { display: flex; align-items: center; gap: 8px; }
         .lang-btn {
           height: 30px;
           padding: 0 10px;
@@ -377,7 +403,7 @@ const AgriLinkLanding = () => {
           border: 1px solid transparent;
           background: transparent;
           font-size: 11px;
-          font-weight: 500;
+          font-weight: 700;
           letter-spacing: 0.1em;
           text-transform: uppercase;
           color: ${T.muted};
@@ -386,11 +412,7 @@ const AgriLinkLanding = () => {
           font-family: ${T.fontSans};
         }
         .lang-btn:hover { color: ${T.ink}; }
-        .lang-btn.active {
-          border-color: ${T.accent};
-          color: ${T.accent};
-          background: ${T.accentPale};
-        }
+        .lang-btn.active { border-color: ${T.accent}; color: ${T.accent}; background: ${T.accentPale}; }
         .btn-login {
           height: 38px;
           padding: 0 20px;
@@ -399,16 +421,13 @@ const AgriLinkLanding = () => {
           background: transparent;
           color: ${T.ink60};
           font-size: 13px;
-          font-weight: 400;
+          font-weight: 600;
           cursor: pointer;
           transition: all 0.2s;
           font-family: ${T.fontSans};
           margin-left: 8px;
         }
-        .btn-login:hover {
-          border-color: ${T.mid};
-          color: ${T.ink};
-        }
+        .btn-login:hover { border-color: ${T.mid}; color: ${T.ink}; }
         .btn-reg {
           height: 38px;
           padding: 0 20px;
@@ -417,16 +436,13 @@ const AgriLinkLanding = () => {
           background: ${T.accent};
           color: white;
           font-size: 13px;
-          font-weight: 500;
+          font-weight: 700;
           cursor: pointer;
           transition: all 0.25s;
           font-family: ${T.fontSans};
           letter-spacing: 0.01em;
         }
-        .btn-reg:hover {
-          background: ${T.accentM};
-          border-color: ${T.accentM};
-        }
+        .btn-reg:hover { background: ${T.accentDeep}; border-color: ${T.accentDeep}; box-shadow: 0 6px 20px rgba(14,107,61,0.28); }
 
         /* ── HERO ── */
         .hero {
@@ -437,7 +453,9 @@ const AgriLinkLanding = () => {
           padding: 140px 48px 80px;
           position: relative;
           overflow: hidden;
-          background: ${T.canvas};
+          background:
+            radial-gradient(720px 420px at 88% -6%, ${T.accentPale} 0%, rgba(233,244,236,0) 62%),
+            ${T.canvas};
         }
         .hero-location-bar {
           position: absolute;
@@ -453,20 +471,15 @@ const AgriLinkLanding = () => {
           letter-spacing: 0.1em;
           color: rgba(255,255,255,0.55);
         }
-        .hero-location-bar span {
-          color: rgba(255,255,255,0.85);
-          font-weight: 500;
-        }
+        .hero-location-bar span { color: rgba(255,255,255,0.85); font-weight: 500; }
         .hero-location-dot {
-          width: 5px;
-          height: 5px;
-          border-radius: 50%;
-          background: ${T.accentL};
+          width: 5px; height: 5px; border-radius: 50%;
+          background: ${T.accentVivid};
           animation: pulse-dot 2.5s ease-in-out infinite;
         }
         @keyframes pulse-dot {
-          0%,100% { opacity:1; transform:scale(1); }
-          50% { opacity:0.5; transform:scale(1.5); }
+          0%,100% { opacity:1; transform:scale(1); box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
+          50% { opacity:0.75; transform:scale(1.4); box-shadow: 0 0 0 6px rgba(34,197,94,0); }
         }
         .hero-inner {
           max-width: 1320px;
@@ -478,40 +491,76 @@ const AgriLinkLanding = () => {
           align-items: center;
         }
         .hero-title {
-          font-family: ${T.fontSerif};
+          font-family: ${T.fontDisplay};
           font-size: clamp(48px, 5.5vw, 80px);
           line-height: 1.0;
-          font-weight: 400;
+          font-weight: 500;
           color: ${T.ink};
-          letter-spacing: -0.03em;
+          letter-spacing: -0.02em;
           margin-bottom: 28px;
+          animation: rise 0.9s cubic-bezier(.16,1,.3,1) both;
         }
         .hero-title em {
           font-style: italic;
-          color: ${T.accent};
+          font-weight: 500;
+          background: linear-gradient(100deg, ${T.accent} 20%, ${T.accentVivid} 55%, ${T.accent} 85%);
+          background-size: 220% 100%;
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          animation: sheen 7s ease-in-out infinite;
+        }
+        @keyframes sheen {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        @keyframes rise {
+          from { opacity: 0; transform: translateY(16px); }
+          to { opacity: 1; transform: translateY(0); }
         }
         .hero-sub {
           font-size: 16px;
           line-height: 1.75;
           color: ${T.mid};
           max-width: 480px;
-          margin-bottom: 48px;
+          margin-bottom: 40px;
           font-weight: 400;
+          animation: rise 0.9s cubic-bezier(.16,1,.3,1) 0.08s both;
         }
+        .hero-proof {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          margin-bottom: 36px;
+          animation: rise 0.9s cubic-bezier(.16,1,.3,1) 0.14s both;
+        }
+        .hero-proof-avatars { display: flex; }
+        .hero-proof-avatars img {
+          width: 34px; height: 34px;
+          border-radius: 50%;
+          border: 2px solid ${T.canvas};
+          object-fit: cover;
+          margin-left: -10px;
+          box-shadow: ${T.shadowSm};
+        }
+        .hero-proof-avatars img:first-child { margin-left: 0; }
+        .hero-proof-text { font-size: 13px; color: ${T.muted}; }
+        .hero-proof-text strong { color: ${T.ink}; font-weight: 700; }
         .hero-ctas {
           display: flex;
           align-items: center;
           gap: 20px;
+          animation: rise 0.9s cubic-bezier(.16,1,.3,1) 0.2s both;
         }
         .btn-primary {
-          height: 50px;
+          height: 52px;
           padding: 0 32px;
           border-radius: ${T.radius};
           border: 1px solid ${T.accent};
           background: ${T.accent};
           color: white;
           font-size: 14px;
-          font-weight: 500;
+          font-weight: 700;
           cursor: pointer;
           display: inline-flex;
           align-items: center;
@@ -521,20 +570,20 @@ const AgriLinkLanding = () => {
           letter-spacing: 0.01em;
         }
         .btn-primary:hover {
-          background: ${T.accentM};
-          border-color: ${T.accentM};
-          transform: translateY(-1px);
-          box-shadow: ${T.shadowMd};
+          background: ${T.accentDeep};
+          border-color: ${T.accentDeep};
+          transform: translateY(-2px);
+          box-shadow: 0 10px 30px rgba(14,107,61,0.3);
         }
         .btn-secondary {
-          height: 50px;
+          height: 52px;
           padding: 0 28px;
           border-radius: ${T.radius};
           border: 1px solid ${T.rule};
           background: transparent;
           color: ${T.ink60};
           font-size: 14px;
-          font-weight: 400;
+          font-weight: 600;
           cursor: pointer;
           display: inline-flex;
           align-items: center;
@@ -542,81 +591,112 @@ const AgriLinkLanding = () => {
           transition: all 0.25s;
           font-family: ${T.fontSans};
         }
-        .btn-secondary:hover {
-          border-color: ${T.mid};
-          color: ${T.ink};
+        .btn-secondary:hover { border-color: ${T.mid}; color: ${T.ink}; }
+
+        /* ══════════════════════════════════════════════════════════
+           O SELO — cartão de acesso (login / cadastro)
+           Elemento-assinatura do site: uma fotografia real da comunidade
+           AgriLink ancora o cartão por trás, como prova de vida — com um
+           fio dourado estático a emoldurar, sem movimento que distorça.
+           ══════════════════════════════════════════════════════════ */
+        .hero-visual {
+          position: relative;
+          animation: rise 1s cubic-bezier(.16,1,.3,1) 0.1s both;
+          padding: 26px 22px 22px 0;
+        }
+        .hero-photo-panel {
+          position: absolute;
+          top: 0; right: 0;
+          width: 84%;
+          aspect-ratio: 5/4;
+          border-radius: 20px;
+          overflow: hidden;
+          transform: rotate(4deg);
+          box-shadow: ${T.shadowLg};
+          border: 6px solid ${T.canvas};
+        }
+        .hero-photo-panel img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .hero-photo-panel::after {
+          content: '';
+          position: absolute; inset: 0;
+          background: linear-gradient(200deg, rgba(8,17,13,0) 45%, rgba(8,17,13,0.55) 100%);
+        }
+        .hero-photo-caption {
+          position: absolute;
+          left: 20px; bottom: 16px;
+          z-index: 1;
+          color: white;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .hero-photo-caption span.dot {
+          width: 6px; height: 6px; border-radius: 50%;
+          background: ${T.accentVivid};
+          box-shadow: 0 0 0 3px rgba(34,197,94,0.25);
         }
 
-        .hero-visual { position: relative; }
         .hero-card {
           position: relative;
+          z-index: 1;
           overflow: hidden;
-          background: linear-gradient(135deg, #F4FBEF 0%, #FFFFFF 46%, #F8F4EE 100%);
-          border: 1px solid rgba(124,179,66,0.36);
-          border-radius: 18px;
-          padding: 36px;
-          box-shadow: ${T.shadowLg};
-          animation: panel-rise 0.8s ease both;
+          background: ${T.canvas};
+          border-radius: 19px;
+          padding: 40px;
+          border: 1px solid ${T.rule};
+          box-shadow: 0 26px 60px rgba(8,17,13,0.16);
+          margin: 76px 30px 0 0;
         }
         .hero-card::before {
           content: '';
           position: absolute;
-          inset: 0;
-          background: linear-gradient(110deg, transparent 0%, rgba(124,179,66,0.16) 42%, rgba(176,125,10,0.12) 52%, transparent 66%);
-          transform: translateX(-100%);
-          animation: panel-scan 5s ease-in-out infinite;
-          pointer-events: none;
-        }
-        @keyframes panel-rise {
-          from { opacity: 0; transform: translateY(18px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes panel-scan {
-          0%, 42% { transform: translateX(-100%); }
-          72%, 100% { transform: translateX(100%); }
+          top: 0; left: 0; right: 0;
+          height: 3px;
+          background: linear-gradient(90deg, ${T.gold}, ${T.accentVivid} 50%, ${T.gold});
         }
         .access-kicker {
-          position: relative;
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          padding: 8px 12px;
-          border: 1px solid rgba(124,179,66,0.28);
-          background: rgba(124,179,66,0.10);
-          color: #1F4D2B;
+          padding: 7px 12px;
+          border: 1px solid ${T.accentPale};
+          background: ${T.accentPale};
+          color: ${T.accentDeep};
           font-size: 10px;
-          font-weight: 700;
-          letter-spacing: 0.12em;
+          font-weight: 800;
+          letter-spacing: 0.1em;
           text-transform: uppercase;
           border-radius: 999px;
-          margin-bottom: 20px;
+          margin-bottom: 22px;
         }
         .access-title {
-          position: relative;
-          font-family: ${T.fontSerif};
-          font-size: clamp(30px, 3vw, 44px);
-          line-height: 1.02;
+          font-family: ${T.fontDisplay};
+          font-size: clamp(28px, 2.6vw, 38px);
+          font-weight: 500;
+          line-height: 1.06;
           color: ${T.ink};
-          margin: 0 0 14px;
+          margin: 0 0 12px;
         }
         .access-copy {
-          position: relative;
           color: ${T.mid};
           font-size: 15px;
           line-height: 1.65;
-          margin: 0 0 26px;
+          margin: 0 0 28px;
+          max-width: 40ch;
         }
         .access-actions {
-          position: relative;
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 12px;
-          margin-bottom: 24px;
+          margin-bottom: 26px;
         }
         .access-btn {
-          height: 54px;
-          border-radius: 8px;
-          border: 1px solid rgba(124,179,66,0.36);
+          height: 56px;
+          border-radius: 9px;
+          border: none;
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -625,52 +705,68 @@ const AgriLinkLanding = () => {
           font-size: 14px;
           font-weight: 800;
           font-family: ${T.fontSans};
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
         }
-        .access-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(124,179,66,0.18); }
-        .access-btn-primary { background: #7CB342; color: #FFFFFF; border-color: #7CB342; }
-        .access-btn-secondary { background: #FFFFFF; color: ${T.ink}; }
+        .access-btn-primary {
+          background: ${T.accent};
+          color: #FFFFFF;
+          background-image: linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.16) 45%, transparent 60%);
+          background-size: 220% 100%;
+        }
+        .access-btn-primary:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 14px 30px rgba(14,107,61,0.32);
+          background-position: -60% 0;
+        }
+        .access-btn-secondary {
+          background: ${T.surface};
+          color: ${T.ink};
+          border: 1px solid ${T.rule};
+        }
+        .access-btn-secondary:hover { border-color: ${T.mid}; transform: translateY(-2px); }
+
         .access-chips {
-          position: relative;
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 10px;
-          margin-bottom: 20px;
+          margin-bottom: 24px;
         }
         .access-chip {
-          min-height: 82px;
-          padding: 14px 10px;
+          min-height: 78px;
+          padding: 13px 8px;
           border: 1px solid ${T.rule};
-          background: rgba(255,255,255,0.72);
+          background: ${T.surface};
           border-radius: 10px;
           display: flex;
           flex-direction: column;
           justify-content: center;
           align-items: center;
           gap: 8px;
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 700;
           color: ${T.mid};
+          transition: border-color 0.2s, color 0.2s, transform 0.2s;
         }
-        .access-chip svg { color: #7CB342; font-size: 18px; }
+        .access-chip:hover { border-color: ${T.accent}; color: ${T.accentDeep}; transform: translateY(-2px); }
+        .access-chip svg { color: ${T.accent}; font-size: 17px; }
+
         .access-flow {
-          position: relative;
           display: flex;
           align-items: center;
           gap: 8px;
-          padding-top: 18px;
-          border-top: 1px solid ${T.rule};
+          padding-top: 20px;
+          border-top: 1px dashed ${T.rule};
         }
         .access-flow span {
           flex: 1;
           text-align: center;
           padding: 9px 8px;
           border-radius: 999px;
-          background: rgba(176,125,10,0.08);
+          background: ${T.goldPale};
           color: ${T.gold};
           font-size: 10px;
           font-weight: 800;
-          letter-spacing: 0.08em;
+          letter-spacing: 0.07em;
           text-transform: uppercase;
         }
         @media (max-width: 560px) {
@@ -678,60 +774,10 @@ const AgriLinkLanding = () => {
           .access-flow { flex-direction: column; align-items: stretch; }
         }
 
-        .hero-float {
-          position: absolute;
-          bottom: -32px;
-          right: -32px;
-          background: ${T.ink};
-          border-radius: ${T.radiusMd};
-          padding: 18px 22px;
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          box-shadow: ${T.shadowLg};
-          animation: float 4s ease-in-out infinite;
-        }
-        @keyframes float {
-          0%,100% { transform: translateY(0); }
-          50% { transform: translateY(-8px); }
-        }
-        .hero-float-icon {
-          width: 36px;
-          height: 36px;
-          border-radius: ${T.radius};
-          background: rgba(255,255,255,0.08);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 16px;
-        }
-        .hero-float-label {
-          font-size: 10px;
-          font-weight: 500;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: rgba(255,255,255,0.45);
-          margin-bottom: 3px;
-        }
-        .hero-float-value {
-          font-size: 14px;
-          font-weight: 500;
-          color: white;
-        }
-
-        .hero-line {
-          position: absolute;
-          left: 0; right: 0; bottom: 0;
-          height: 1px;
-          background: ${T.rule};
-        }
+        .hero-line { position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: ${T.rule}; }
 
         /* ── STATS ── */
-        .stats-wrap {
-          border-top: 1px solid ${T.rule};
-          border-bottom: 1px solid ${T.rule};
-          background: ${T.canvas};
-        }
+        .stats-wrap { border-top: 1px solid ${T.rule}; border-bottom: 1px solid ${T.rule}; background: ${T.canvas}; }
         .stats-inner {
           max-width: 1320px;
           margin: 0 auto;
@@ -739,58 +785,35 @@ const AgriLinkLanding = () => {
           display: grid;
           grid-template-columns: repeat(4,1fr);
         }
-        .stat-item {
-          padding: 0 40px;
-          text-align: left;
-          border-right: 1px solid ${T.rule};
-        }
+        .stat-item { padding: 0 40px; text-align: left; border-right: 1px solid ${T.rule}; }
         .stat-item:first-child { padding-left: 0; }
         .stat-item:last-child { border-right: none; }
         .stat-n {
-          font-family: ${T.fontSerif};
+          font-family: ${T.fontDisplay};
           font-size: 44px;
-          font-weight: 400;
+          font-weight: 500;
           color: ${T.ink};
           line-height: 1;
-          letter-spacing: -0.03em;
+          letter-spacing: -0.02em;
         }
-        .stat-label {
-          font-size: 13px;
-          font-weight: 400;
-          color: ${T.muted};
-          margin-top: 8px;
-          line-height: 1.4;
-        }
+        .stat-label { font-size: 13px; font-weight: 500; color: ${T.muted}; margin-top: 8px; line-height: 1.4; }
 
-        .fade-up {
-          opacity: 0;
-          transform: translateY(20px);
-          transition: opacity 0.7s ease, transform 0.7s ease;
-        }
-        .fade-up.visible {
-          opacity: 1;
-          transform: translateY(0);
-        }
+        .fade-up { opacity: 0; transform: translateY(20px); transition: opacity 0.7s ease, transform 0.7s ease; }
+        .fade-up.visible { opacity: 1; transform: translateY(0); }
 
-        section { padding: 112px 48px; }
+        section { padding: 108px 48px; }
         .section-inner { max-width: 1320px; margin: 0 auto; }
         .section-header { margin-bottom: 72px; }
         .section-title {
-          font-family: ${T.fontSerif};
+          font-family: ${T.fontDisplay};
           font-size: clamp(32px, 3.5vw, 52px);
-          font-weight: 400;
+          font-weight: 500;
           color: ${T.ink};
           line-height: 1.1;
-          letter-spacing: -0.025em;
+          letter-spacing: -0.02em;
           margin-bottom: 16px;
         }
-        .section-sub {
-          font-size: 16px;
-          color: ${T.mid};
-          line-height: 1.7;
-          max-width: 520px;
-          font-weight: 400;
-        }
+        .section-sub { font-size: 16px; color: ${T.mid}; line-height: 1.7; max-width: 520px; font-weight: 400; }
 
         /* ── MODELS ── */
         .models-grid {
@@ -802,145 +825,52 @@ const AgriLinkLanding = () => {
           border-radius: ${T.radiusMd};
           overflow: hidden;
         }
-        .model-card {
-          background: ${T.canvas};
-          padding: 44px 40px;
-          transition: background 0.3s;
-          cursor: default;
+        .model-card { background: ${T.canvas}; padding: 44px 40px; transition: background 0.3s; cursor: default; position: relative; }
+        .model-card::before {
+          content: '';
+          position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+          background: ${T.accent}; transform: scaleY(0); transform-origin: top;
+          transition: transform 0.35s ease;
         }
         .model-card:hover { background: ${T.surface}; }
-        .model-num {
-          font-family: ${T.fontSerif};
-          font-size: 13px;
-          color: ${T.faint};
-          letter-spacing: 0.05em;
-          margin-bottom: 32px;
-        }
-        .model-tag {
-          font-size: 10px;
-          font-weight: 500;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-          color: ${T.gold};
-          margin-bottom: 10px;
-        }
-        .model-name {
-          font-family: ${T.fontSerif};
-          font-size: 24px;
-          font-weight: 400;
-          color: ${T.ink};
-          letter-spacing: -0.02em;
-          margin-bottom: 16px;
-          line-height: 1.2;
-        }
-        .model-desc {
-          font-size: 14px;
-          line-height: 1.75;
-          color: ${T.mid};
-          font-weight: 400;
-        }
+        .model-card:hover::before { transform: scaleY(1); }
+        .model-num { font-family: ${T.fontDisplay}; font-size: 13px; color: ${T.faint}; letter-spacing: 0.05em; margin-bottom: 32px; }
+        .model-tag { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: ${T.gold}; margin-bottom: 10px; }
+        .model-name { font-family: ${T.fontDisplay}; font-size: 24px; font-weight: 500; color: ${T.ink}; letter-spacing: -0.01em; margin-bottom: 16px; line-height: 1.2; }
+        .model-desc { font-size: 14px; line-height: 1.75; color: ${T.mid}; font-weight: 400; }
 
         /* ── FEATURES ── */
         .features-bg { background: ${T.surface}; }
-        .features-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 32px;
-        }
+        .features-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
         .feat-card {
-          padding: 36px 28px;
+          padding: 34px 26px;
           background: ${T.canvas};
           border: 1px solid ${T.rule};
           border-radius: ${T.radiusMd};
-          transition: box-shadow 0.3s;
+          transition: box-shadow 0.3s, transform 0.3s, border-color 0.3s;
         }
-        .feat-card:hover { box-shadow: ${T.shadowMd}; }
-        .feat-num {
-          font-family: ${T.fontSerif};
-          font-size: 11px;
-          color: ${T.faint};
-          margin-bottom: 28px;
-          letter-spacing: 0.05em;
-        }
-        .feat-title {
-          font-size: 15px;
-          font-weight: 500;
-          color: ${T.ink};
-          margin-bottom: 12px;
-          letter-spacing: -0.01em;
-        }
-        .feat-desc {
-          font-size: 14px;
-          line-height: 1.7;
-          color: ${T.muted};
-          font-weight: 400;
-        }
+        .feat-card:hover { box-shadow: ${T.shadowMd}; transform: translateY(-4px); border-color: ${T.accentPale}; }
+        .feat-num { font-family: ${T.fontDisplay}; font-size: 11px; color: ${T.faint}; margin-bottom: 26px; letter-spacing: 0.05em; }
+        .feat-title { font-size: 15px; font-weight: 700; color: ${T.ink}; margin-bottom: 12px; letter-spacing: -0.01em; }
+        .feat-desc { font-size: 14px; line-height: 1.7; color: ${T.muted}; font-weight: 400; }
 
         /* ── ABOUT ── */
-        .about-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 80px;
-          align-items: center;
-        }
+        .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
         .about-content { max-width: 560px; }
-        .about-description {
-          font-size: 16px;
-          line-height: 1.8;
-          color: ${T.mid};
-          margin-bottom: 40px;
-        }
-        .about-values {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 24px;
-          margin-top: 40px;
-        }
-        .about-value-item {
-          border-left: 2px solid ${T.accent};
-          padding-left: 20px;
-        }
-        .about-value-title {
-          font-size: 14px;
-          font-weight: 600;
-          color: ${T.ink};
-          margin-bottom: 8px;
-          letter-spacing: -0.01em;
-        }
-        .about-value-desc {
-          font-size: 13px;
-          color: ${T.muted};
-          line-height: 1.6;
-        }
+        .about-description { font-size: 16px; line-height: 1.8; color: ${T.mid}; margin-bottom: 40px; }
+        .about-values { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 40px; }
+        .about-value-item { border-left: 2px solid ${T.accent}; padding-left: 20px; }
+        .about-value-title { font-size: 14px; font-weight: 700; color: ${T.ink}; margin-bottom: 8px; letter-spacing: -0.01em; }
+        .about-value-desc { font-size: 13px; color: ${T.muted}; line-height: 1.6; }
         .about-visual {
-          position: relative;
-          background: ${T.surface};
-          border-radius: ${T.radiusMd};
-          aspect-ratio: 4/5;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 1px solid ${T.rule};
-          overflow: hidden;
+          position: relative; background: ${T.surface}; border-radius: ${T.radiusMd};
+          aspect-ratio: 4/5; display: flex; align-items: center; justify-content: center;
+          border: 1px solid ${T.rule}; overflow: hidden;
         }
-        .about-visual img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-        .about-visual-placeholder {
-          text-align: center;
-          color: ${T.faint};
-        }
-        .about-visual-placeholder i {
-          font-size: 48px;
-          margin-bottom: 16px;
-        }
-        .about-visual-placeholder p {
-          font-size: 12px;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-        }
+        .about-visual img { width: 100%; height: 100%; object-fit: cover; }
+        .about-visual-placeholder { text-align: center; color: ${T.faint}; }
+        .about-visual-placeholder i { font-size: 48px; margin-bottom: 16px; }
+        .about-visual-placeholder p { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; }
 
         /* ── VISION ── */
         .vision-section {
@@ -948,207 +878,76 @@ const AgriLinkLanding = () => {
           color: white;
           padding: 120px 48px;
           text-align: center;
+          position: relative;
+          overflow: hidden;
+        }
+        .vision-section::before {
+          content: '';
+          position: absolute; inset: 0;
+          background: radial-gradient(560px 320px at 50% 120%, rgba(34,197,94,0.14), transparent 70%);
         }
         .vision-quote {
-          font-family: ${T.fontSerif};
+          position: relative;
+          font-family: ${T.fontDisplay};
           font-size: clamp(32px, 4.5vw, 64px);
           line-height: 1.1;
-          font-weight: 400;
+          font-weight: 500;
           letter-spacing: -0.02em;
           max-width: 800px;
           margin: 0 auto 40px;
         }
-        .vision-quote em {
-          color: ${T.accentL};
-          font-style: italic;
-        }
-        .vision-author {
-          font-size: 14px;
-          color: rgba(255,255,255,0.5);
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-        }
+        .vision-quote em { color: ${T.accentVivid}; font-style: italic; }
+        .vision-author { position: relative; font-size: 14px; color: rgba(255,255,255,0.5); letter-spacing: 0.1em; text-transform: uppercase; }
 
         /* ── CULTURE ── */
-        .culture-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 32px;
-          margin-top: 60px;
-        }
-        .culture-card {
-          padding: 40px 32px;
-          border: 1px solid ${T.rule};
-          border-radius: ${T.radiusMd};
-          transition: all 0.3s;
-        }
-        .culture-card:hover {
-          box-shadow: ${T.shadowMd};
-          border-color: ${T.accentPale};
-        }
-        .culture-icon {
-          font-size: 28px;
-          color: ${T.accent};
-          margin-bottom: 24px;
-        }
-        .culture-title {
-          font-family: ${T.fontSerif};
-          font-size: 20px;
-          margin-bottom: 16px;
-          color: ${T.ink};
-        }
-        .culture-desc {
-          font-size: 14px;
-          color: ${T.muted};
-          line-height: 1.7;
-        }
+        .culture-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin-top: 60px; }
+        .culture-card { padding: 40px 32px; border: 1px solid ${T.rule}; border-radius: ${T.radiusMd}; transition: all 0.3s; }
+        .culture-card:hover { box-shadow: ${T.shadowMd}; border-color: ${T.accentPale}; transform: translateY(-4px); }
+        .culture-icon { font-size: 26px; color: ${T.accent}; margin-bottom: 24px; }
+        .culture-title { font-family: ${T.fontDisplay}; font-size: 20px; font-weight: 500; margin-bottom: 16px; color: ${T.ink}; }
+        .culture-desc { font-size: 14px; color: ${T.muted}; line-height: 1.7; }
 
         /* ── FAQ ── */
         .faq-section { background: ${T.surface}; }
-        .faq-grid {
-          margin-top: 60px;
-          max-width: 800px;
-        }
-        .faq-item {
-          border-bottom: 1px solid ${T.rule};
-          padding: 24px 0;
-          cursor: pointer;
-        }
-        .faq-question {
-          font-size: 18px;
-          font-weight: 500;
-          color: ${T.ink};
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          user-select: none;
-        }
+        .faq-grid { margin-top: 60px; max-width: 800px; }
+        .faq-item { border-bottom: 1px solid ${T.rule}; padding: 24px 0; cursor: pointer; }
+        .faq-question { font-size: 17px; font-weight: 600; color: ${T.ink}; display: flex; justify-content: space-between; align-items: center; user-select: none; }
         .faq-question:hover { color: ${T.accent}; }
-        .faq-answer {
-          font-size: 15px;
-          color: ${T.muted};
-          line-height: 1.7;
-          margin-top: 12px;
-          display: none;
-        }
+        .faq-answer { font-size: 15px; color: ${T.muted}; line-height: 1.7; margin-top: 12px; display: none; }
         .faq-answer.open { display: block; }
 
         /* ── COMMUNITY ── */
-        .community-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 60px;
-          align-items: center;
-          margin-top: 60px;
-        }
+        .community-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; margin-top: 60px; }
         .community-image {
-          background: ${T.surface};
-          border: 1px solid ${T.rule};
-          border-radius: ${T.radiusMd};
-          aspect-ratio: 4/3;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          overflow: hidden;
+          background: ${T.surface}; border: 1px solid ${T.rule}; border-radius: ${T.radiusMd};
+          aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
         }
-        .community-image img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-        .community-image-placeholder {
-          text-align: center;
-          color: ${T.faint};
-        }
-        .community-image-placeholder i {
-          font-size: 56px;
-          margin-bottom: 16px;
-          display: block;
-        }
-        .community-image-placeholder p {
-          font-size: 13px;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-        }
-        .community-provinces {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 12px;
-          margin-top: 32px;
-        }
-        .province-tag {
-          padding: 10px 16px;
-          border: 1px solid ${T.rule};
-          border-radius: ${T.radius};
-          font-size: 13px;
-          text-align: center;
-          color: ${T.mid};
-          transition: all 0.2s;
-        }
-        .province-tag:hover {
-          border-color: ${T.accent};
-          color: ${T.accent};
-          background: ${T.accentPale};
-        }
+        .community-image img { width: 100%; height: 100%; object-fit: cover; }
+        .community-image-placeholder { text-align: center; color: ${T.faint}; }
+        .community-image-placeholder i { font-size: 56px; margin-bottom: 16px; display: block; }
+        .community-image-placeholder p { font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; }
+        .community-provinces { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 32px; }
+        .province-tag { padding: 10px 16px; border: 1px solid ${T.rule}; border-radius: ${T.radius}; font-size: 13px; text-align: center; color: ${T.mid}; transition: all 0.2s; }
+        .province-tag:hover { border-color: ${T.accent}; color: ${T.accentDeep}; background: ${T.accentPale}; }
 
         /* ── TEAM ── */
-        .team-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 28px;
-        }
+        .team-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
         .team-card { cursor: default; }
         .team-photo {
-          aspect-ratio: 3 / 4;
-          background: ${T.surface};
-          border: 1px solid ${T.rule};
-          border-radius: ${T.radiusMd};
-          overflow: hidden;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 18px;
-          position: relative;
-          transition: box-shadow 0.3s;
+          aspect-ratio: 3 / 4; background: ${T.surface}; border: 1px solid ${T.rule}; border-radius: ${T.radiusMd};
+          overflow: hidden; display: flex; align-items: center; justify-content: center; margin-bottom: 18px;
+          position: relative; transition: box-shadow 0.3s;
         }
         .team-card:hover .team-photo { box-shadow: ${T.shadowMd}; }
-        .team-photo img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          object-position: center top;
-          transition: transform 0.4s ease;
-        }
+        .team-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center top; transition: transform 0.4s ease; }
         .team-card:hover .team-photo img { transform: scale(1.03); }
-        .team-photo-init {
-          font-family: ${T.fontSerif};
-          font-size: 40px;
-          color: ${T.faint};
-          font-weight: 400;
-          letter-spacing: -0.03em;
-        }
-        .team-name {
-          font-size: 15px;
-          font-weight: 500;
-          color: ${T.ink};
-          margin-bottom: 5px;
-          letter-spacing: -0.01em;
-        }
-        .team-role {
-          font-size: 13px;
-          font-weight: 400;
-          color: ${T.muted};
-          line-height: 1.4;
-        }
+        .team-photo-init { font-family: ${T.fontDisplay}; font-size: 40px; color: ${T.faint}; font-weight: 500; letter-spacing: -0.02em; }
+        .team-name { font-size: 15px; font-weight: 700; color: ${T.ink}; margin-bottom: 5px; letter-spacing: -0.01em; }
+        .team-role { font-size: 13px; font-weight: 400; color: ${T.muted}; line-height: 1.4; }
 
         /* ── CTA ── */
         .cta-section { background: ${T.canvas}; }
-        .cta-inner {
-          max-width: 1320px;
-          margin: 0 auto;
-          padding: 0 48px;
-        }
+        .cta-inner { max-width: 1320px; margin: 0 auto; padding: 0 48px; }
         .cta-box {
           background: ${T.ink};
           border-radius: ${T.radiusMd};
@@ -1162,137 +961,36 @@ const AgriLinkLanding = () => {
         }
         .cta-box::before {
           content: '';
-          position: absolute;
-          right: -80px;
-          top: -80px;
-          width: 320px;
-          height: 320px;
+          position: absolute; right: -80px; top: -80px; width: 320px; height: 320px;
           border-radius: 50%;
-          background: rgba(255,255,255,0.02);
+          background: radial-gradient(circle, rgba(34,197,94,0.14), transparent 70%);
           pointer-events: none;
         }
         .cta-eyebrow {
-          font-size: 11px;
-          font-weight: 500;
-          letter-spacing: 0.18em;
-          text-transform: uppercase;
-          color: ${T.accentL};
-          margin-bottom: 20px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
+          font-size: 11px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase;
+          color: ${T.accentVivid}; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
         }
-        .cta-eyebrow::before {
-          content: '';
-          display: block;
-          width: 20px;
-          height: 1px;
-          background: ${T.accentL};
-        }
-        .cta-title {
-          font-family: ${T.fontSerif};
-          font-size: clamp(28px, 3vw, 44px);
-          font-weight: 400;
-          color: white;
-          line-height: 1.1;
-          letter-spacing: -0.025em;
-          margin-bottom: 16px;
-        }
-        .cta-sub {
-          font-size: 15px;
-          color: rgba(255,255,255,0.5);
-          line-height: 1.7;
-          font-weight: 400;
-          max-width: 420px;
-        }
+        .cta-eyebrow::before { content: ''; display: block; width: 20px; height: 2px; background: ${T.gold}; }
+        .cta-title { font-family: ${T.fontDisplay}; font-size: clamp(28px, 3vw, 44px); font-weight: 500; color: white; line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 16px; }
+        .cta-sub { font-size: 15px; color: rgba(255,255,255,0.55); line-height: 1.7; font-weight: 400; max-width: 420px; }
         .btn-cta {
-          height: 52px;
-          padding: 0 36px;
-          border-radius: ${T.radius};
-          border: 1px solid white;
-          background: white;
-          color: ${T.ink};
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          display: inline-flex;
-          align-items: center;
-          gap: 10px;
-          white-space: nowrap;
-          transition: all 0.25s;
-          font-family: ${T.fontSans};
-          position: relative;
-          flex-shrink: 0;
+          height: 54px; padding: 0 36px; border-radius: ${T.radius}; border: 1px solid white; background: white; color: ${T.ink};
+          font-size: 14px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 10px;
+          white-space: nowrap; transition: all 0.25s; font-family: ${T.fontSans}; position: relative; flex-shrink: 0;
         }
-        .btn-cta:hover {
-          background: transparent;
-          color: white;
-          transform: translateY(-2px);
-        }
+        .btn-cta:hover { background: transparent; color: white; transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
 
         /* ── FOOTER ── */
-        .footer-section {
-          background: ${T.ink80};
-          padding: 80px 48px 40px;
-        }
-        .footer-grid {
-          max-width: 1320px;
-          margin: 0 auto;
-          display: grid;
-          grid-template-columns: 2fr 1fr 1fr 1fr;
-          gap: 60px;
-          margin-bottom: 60px;
-        }
-        .footer-brand-col p {
-          color: rgba(255,255,255,0.4);
-          font-size: 13px;
-          line-height: 1.7;
-          margin-top: 20px;
-          max-width: 300px;
-        }
-        .footer-col-title {
-          font-size: 13px;
-          font-weight: 600;
-          color: rgba(255,255,255,0.7);
-          text-transform: uppercase;
-          letter-spacing: 0.12em;
-          margin-bottom: 24px;
-        }
-        .footer-link {
-          display: block;
-          color: rgba(255,255,255,0.35);
-          text-decoration: none;
-          font-size: 13px;
-          margin-bottom: 12px;
-          transition: color 0.2s;
-          line-height: 1.6;
-          cursor: pointer;
-        }
-        .footer-link:hover { color: rgba(255,255,255,0.8); }
-        .footer-bottom {
-          max-width: 1320px;
-          margin: 0 auto;
-          padding-top: 32px;
-          border-top: 1px solid rgba(255,255,255,0.08);
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        .footer-copyright {
-          color: rgba(255,255,255,0.25);
-          font-size: 12px;
-        }
-        .footer-brand {
-          font-family: ${T.fontSerif};
-          font-size: 18px;
-          color: rgba(255,255,255,0.85);
-          letter-spacing: -0.01em;
-          margin-bottom: 8px;
-        }
-        .footer-brand em {
-          color: ${T.accentL};
-          font-style: normal;
-        }
+        .footer-section { background: ${T.ink80}; padding: 80px 48px 40px; }
+        .footer-grid { max-width: 1320px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 60px; margin-bottom: 60px; }
+        .footer-brand-col p { color: rgba(255,255,255,0.4); font-size: 13px; line-height: 1.7; margin-top: 20px; max-width: 300px; }
+        .footer-col-title { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 24px; }
+        .footer-link { display: block; color: rgba(255,255,255,0.35); text-decoration: none; font-size: 13px; margin-bottom: 12px; transition: color 0.2s; line-height: 1.6; cursor: pointer; }
+        .footer-link:hover { color: rgba(255,255,255,0.85); }
+        .footer-bottom { max-width: 1320px; margin: 0 auto; padding-top: 32px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; }
+        .footer-copyright { color: rgba(255,255,255,0.25); font-size: 12px; }
+        .footer-brand { font-family: ${T.fontDisplay}; font-size: 18px; color: rgba(255,255,255,0.9); letter-spacing: -0.01em; margin-bottom: 8px; }
+        .footer-brand em { color: ${T.accentVivid}; font-style: normal; }
 
         /* ── RESPONSIVE ── */
         @media (max-width: 1024px) {
@@ -1318,6 +1016,7 @@ const AgriLinkLanding = () => {
           .footer-grid { grid-template-columns: 1fr 1fr; }
           .vision-quote { font-size: clamp(24px, 6vw, 40px); }
           .culture-grid { grid-template-columns: 1fr; }
+          .gold-divider { padding: 0 24px; }
         }
         @media (max-width: 600px) {
           .team-grid { grid-template-columns: 1fr; }
@@ -1332,7 +1031,6 @@ const AgriLinkLanding = () => {
           <a href="#" className="nav-logo">
             <img src={orbisLinkLogo} alt="AgriLink" />
           </a>
-
           <div className="nav-links">
             <a href="#about" className="nav-link">Sobre Nós</a>
             <a href="#models" className="nav-link">{t.nav.models}</a>
@@ -1341,7 +1039,6 @@ const AgriLinkLanding = () => {
             <a href="#community" className="nav-link">Comunidades</a>
             <a href="#contact" className="nav-link">{t.nav.contact}</a>
           </div>
-
           <div className="nav-right">
             {['pt','fr','en'].map(l => (
               <button key={l} className={`lang-btn ${lang === l ? 'active' : ''}`} onClick={() => setLang(l)}>
@@ -1369,6 +1066,16 @@ const AgriLinkLanding = () => {
               <em>{t.hero.title2}</em>
             </h1>
             <p className="hero-sub">{t.hero.sub}</p>
+
+            <div className="hero-proof">
+              <div className="hero-proof-avatars">
+                <img src={fotoFeliciano} alt="" />
+                <img src={fotoMoises} alt="" />
+                <img src={fotoLizeth} alt="" />
+              </div>
+              <div className="hero-proof-text">Junte-se a <strong>agricultores, fábricas e compradores</strong> em 21 províncias</div>
+            </div>
+
             <div className="hero-ctas">
               <button className="btn-primary" onClick={() => navigate('/cadastro')}>
                 {t.hero.cta1}
@@ -1383,13 +1090,21 @@ const AgriLinkLanding = () => {
           </div>
 
           <div className="hero-visual">
+            <div className="hero-photo-panel">
+              {comunidadeImg2 ? (
+                <img src={comunidadeImg2} alt="Comunidade AgriLink" />
+              ) : (
+                <img src={comunidadeImg} alt="Comunidade AgriLink" />
+              )}
+              <div className="hero-photo-caption"><span className="dot" />Comunidade AgriLink · 21 províncias</div>
+            </div>
             <div className="hero-card">
               <div className="access-kicker">
                 <FontAwesomeIcon icon={faShieldHalved} />
                 Acesso institucional AgriLink
               </div>
-              <h2 className="access-title">Criar uma conta AgriLink</h2>
-              <p className="access-copy">Entre como fornecedor, comprador ou agente e confirme o email por código OTP de 6 dígitos.</p>
+              <h2 className="access-title">Criar a sua conta AgriLink</h2>
+              <p className="access-copy">Entre como fornecedor, comprador ou agente e confirme o seu email com um código de 6 dígitos.</p>
               <div className="access-actions">
                 <button className="access-btn access-btn-primary" onClick={() => navigate('/cadastro')}>
                   <FontAwesomeIcon icon={faUserPlus} />
@@ -1428,6 +1143,8 @@ const AgriLinkLanding = () => {
           ))}
         </div>
       </div>
+
+      <GoldDivider />
 
       {/* ═══ MODELS ═══ */}
       <section id="models" ref={modelsRef}>
@@ -1480,8 +1197,8 @@ const AgriLinkLanding = () => {
           <div className="about-grid">
             <div className="about-content">
               <p className="about-description">
-                A AgriLink nasceu da visão de digitalizar o mercado agroalimentar em África. 
-                Somos uma plataforma B2B que conecta agricultores, fábricas, distribuidores 
+                A AgriLink nasceu da visão de digitalizar o mercado agroalimentar em África.
+                Somos uma plataforma B2B que conecta agricultores, fábricas, distribuidores
                 e compradores institucionais através de contratos digitais seguros e rastreáveis.
               </p>
               <div className="about-values">
@@ -1597,11 +1314,11 @@ const AgriLinkLanding = () => {
               )}
             </div>
             <div>
-              <h3 style={{ fontFamily: T.fontSerif, fontSize: '24px', marginBottom: '16px', color: T.ink }}>
+              <h3 style={{ fontFamily: T.fontDisplay, fontWeight: 500, fontSize: '24px', marginBottom: '16px', color: T.ink }}>
                 Encontros Mensais
               </h3>
               <p style={{ color: T.muted, lineHeight: 1.7, marginBottom: '32px' }}>
-                Realizamos encontros presenciais em cada província para fortalecer 
+                Realizamos encontros presenciais em cada província para fortalecer
                 a comunidade, compartilhar conhecimento e criar oportunidades de negócio.
               </p>
               <div className="community-provinces">
