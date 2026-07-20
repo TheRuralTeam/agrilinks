@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faHouseLaptop, faBullseye, faHandshake, faWheatAwn, faGlobe, faUserPlus, faRightToBracket, faShieldHalved, faUsers, faSeedling, faChartLine, faCircleCheck } from '@fortawesome/free-solid-svg-icons'
+import { faHouseLaptop, faBullseye, faHandshake, faWheatAwn, faGlobe, faUserPlus, faRightToBracket, faShieldHalved, faUsers, faSeedling, faChartLine, faCircleCheck, faEnvelopeCircleCheck, faRoute, faLeaf } from '@fortawesome/free-solid-svg-icons'
 
 // ═══════════════════════════════════════════════════════════════
 // IMPORTAÇÃO DAS FOTOS DA EQUIPE E LOGO (com fallbacks)
@@ -34,9 +34,9 @@ const T = {
   ruleSoft: '#EEF2EB',
   surface:  '#F5F8F3',
   canvas:   '#FFFFFF',
-  accent:      '#0E6B3D',
-  accentDeep:  '#083D24',
-  accentVivid: '#22C55E',
+  accent:      '#7CB342',
+  accentDeep:  '#5F8E2F',
+  accentVivid: '#7CB342',
   accentPale:  '#E9F4EC',
   gold:     '#C7A02E',
   goldSoft: '#E4C567',
@@ -277,7 +277,7 @@ const AgriLinkLanding = () => {
 
   const teamMembers = [
     { name: 'Feliciano Cassoma',  role: 'Co-Fundador & CEO',                    photo: fotoFeliciano },
-    { name: 'Moisés Lucamba',     role: 'Co-Fundador & CTO',                    photo: fotoMoises },
+    { name: 'Moisés Lucamba',     role: 'Co-Fundador & CFO',                    photo: fotoMoises },
     { name: 'Cláudio Henriques',  role: 'Co-Fundador & Director de Operações',  photo: fotoClaudio },
     { name: 'Lizeth Caieie',      role: 'Secretária Geral',                     photo: fotoLizeth },
   ]
@@ -454,6 +454,7 @@ const AgriLinkLanding = () => {
           position: relative;
           overflow: hidden;
           background:
+            linear-gradient(135deg, rgba(124,179,66,0.10) 0%, rgba(255,255,255,0) 42%),
             radial-gradient(720px 420px at 88% -6%, ${T.accentPale} 0%, rgba(233,244,236,0) 62%),
             ${T.canvas};
         }
@@ -546,6 +547,28 @@ const AgriLinkLanding = () => {
         .hero-proof-avatars img:first-child { margin-left: 0; }
         .hero-proof-text { font-size: 13px; color: ${T.muted}; }
         .hero-proof-text strong { color: ${T.ink}; font-weight: 700; }
+        .hero-live-rail {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+          margin: 0 0 34px;
+          max-width: 560px;
+          animation: rise 0.9s cubic-bezier(.16,1,.3,1) 0.16s both;
+        }
+        .hero-live-pill {
+          border: 1px solid ${T.rule};
+          background: rgba(255,255,255,0.78);
+          border-radius: 14px;
+          padding: 14px 12px;
+          box-shadow: ${T.shadowSm};
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          color: ${T.ink60};
+          font-size: 12px;
+          font-weight: 800;
+        }
+        .hero-live-pill svg { color: ${T.accent}; font-size: 16px; flex-shrink: 0; }
         .hero-ctas {
           display: flex;
           align-items: center;
@@ -656,6 +679,19 @@ const AgriLinkLanding = () => {
           top: 0; left: 0; right: 0;
           height: 3px;
           background: linear-gradient(90deg, ${T.gold}, ${T.accentVivid} 50%, ${T.gold});
+        }
+        .hero-card::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background: linear-gradient(110deg, transparent 0%, rgba(124,179,66,0.08) 45%, transparent 72%);
+          transform: translateX(-100%);
+          animation: accessScan 5.5s ease-in-out infinite;
+        }
+        @keyframes accessScan {
+          0%, 42% { transform: translateX(-100%); }
+          70%, 100% { transform: translateX(100%); }
         }
         .access-kicker {
           display: inline-flex;
@@ -770,6 +806,7 @@ const AgriLinkLanding = () => {
           text-transform: uppercase;
         }
         @media (max-width: 560px) {
+          .hero-live-rail { grid-template-columns: 1fr; }
           .access-actions, .access-chips { grid-template-columns: 1fr; }
           .access-flow { flex-direction: column; align-items: stretch; }
         }
@@ -1074,6 +1111,12 @@ const AgriLinkLanding = () => {
                 <img src={fotoLizeth} alt="" />
               </div>
               <div className="hero-proof-text">Junte-se a <strong>agricultores, fábricas e compradores</strong> em 21 províncias</div>
+            </div>
+
+            <div className="hero-live-rail" aria-label="Fluxo AgriLink">
+              <div className="hero-live-pill"><FontAwesomeIcon icon={faEnvelopeCircleCheck} /> OTP por email</div>
+              <div className="hero-live-pill"><FontAwesomeIcon icon={faRoute} /> Rastreabilidade</div>
+              <div className="hero-live-pill"><FontAwesomeIcon icon={faLeaf} /> Verde Alface</div>
             </div>
 
             <div className="hero-ctas">
