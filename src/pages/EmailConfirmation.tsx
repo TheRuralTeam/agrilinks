@@ -3,203 +3,108 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2, Mail } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import orbisLinkLogo from "@/assets/orbislink-logo.png";
+import { OtpVerificationModal } from "@/components/OtpVerificationModal";
+import { toast } from "@/hooks/use-toast";
 
 const EmailConfirmation = () => {
   const navigate = useNavigate();
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
-  const [message, setMessage] = useState("");
-
+  const [status, setStatus] = useState<"ready" | "success">("ready");
+  const [email, setEmail] = useState("");
   const [resending, setResending] = useState(false);
+  const [otpOpen, setOtpOpen] = useState(false);
+  const [pendingUser, setPendingUser] = useState<{ id: string; email: string; fullName: string } | null>(null);
 
-  const hasToken = () => {
-    const hash = new URLSearchParams(window.location.hash.substring(1));
-    const query = new URLSearchParams(window.location.search);
-    return !!(hash.get('access_token') || query.get('access_token') || query.get('code') || hash.get('type'));
-  };
-
-  const handleResend = async () => {
-    setResending(true);
-    try {
-      const { data: sess } = await supabase.auth.getSession();
-      const email = sess?.session?.user?.email;
-      if (!email) {
-        setMessage("Faça login para reenviar o email.");
-        setResending(false);
+  useEffect(() => {
+    const loadEmail = async () => {
+      const query = new URLSearchParams(window.location.search);
+      const queryEmail = query.get("email");
+      if (queryEmail) {
+        setEmail(queryEmail);
         return;
       }
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email,
-        options: { emailRedirectTo: `${window.location.origin}/confirmar-email` },
+
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user?.email) setEmail(data.session.user.email);
+    };
+
+    loadEmail();
+  }, []);
+
+  const handleResend = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      toast({ title: "Insira o email", description: "Informe o email usado no cadastro.", variant: "destructive" });
+      return;
+    }
+
+    setResending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-otp-email", {
+        body: { email: cleanEmail },
       });
-      if (error) setMessage("Erro ao reenviar: " + error.message);
-      else setMessage("Email de confirmação reenviado! Verifique sua caixa de entrada.");
+      if (error) throw error;
+
+      setPendingUser({
+        id: data?.user_id || "",
+        email: cleanEmail,
+        fullName: data?.full_name || "Utilizador AgriLink",
+      });
+      setOtpOpen(true);
+      toast({ title: "Código enviado", description: "Verifique o email enviado por contacto@agrilink.ao." });
+    } catch (err: any) {
+      toast({ title: "Erro ao enviar código", description: err?.message || "Tente novamente.", variant: "destructive" });
     } finally {
       setResending(false);
     }
   };
 
-  useEffect(() => {
-    // Se não há token na URL, mostrar tela de "aguardando confirmação"
-    if (!hasToken()) {
-      setStatus("error");
-      setMessage("Seu email ainda não foi confirmado. Verifique sua caixa de entrada (e a pasta de spam) e clique no link de confirmação que enviamos.");
-      return;
-    }
-    const confirmEmail = async () => {
-      try {
-        // Verificar se há tokens na URL (hash ou query params)
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const queryParams = new URLSearchParams(window.location.search);
-        
-        const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
-        const type = hashParams.get('type') || queryParams.get('type');
-        
-        console.log("Email confirmation - type:", type, "has tokens:", !!accessToken);
-
-        // Se temos tokens diretamente (formato antigo do Supabase)
-        if (accessToken && refreshToken) {
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          });
-
-          if (error) {
-            console.error("Erro ao definir sessão:", error);
-            setStatus("error");
-            setMessage("Erro na confirmação. O link pode ter expirado ou já foi usado.");
-            return;
-          }
-
-          if (data?.session?.user) {
-            // Atualizar email_verified na tabela public.users
-            await supabase.rpc('sync_user_email_verified', { 
-              p_user_id: data.session.user.id 
-            });
-            
-            setStatus("success");
-            setMessage("E-mail confirmado com sucesso! Você será redirecionado automaticamente.");
-            setTimeout(() => navigate("/app"), 2000);
-            return;
-          }
-        }
-
-        // Tentar o método PKCE (formato mais novo)
-        const { data, error } = await supabase.auth.exchangeCodeForSession(
-          window.location.href
-        );
-
-        if (error) {
-          console.error("Erro no exchangeCodeForSession:", error);
-          
-          // Verificar se já existe uma sessão ativa
-          const { data: sessionData } = await supabase.auth.getSession();
-          if (sessionData?.session?.user) {
-            // Usuário já está logado, atualizar email_verified
-            await supabase.rpc('sync_user_email_verified', { 
-              p_user_id: sessionData.session.user.id 
-            });
-            
-            setStatus("success");
-            setMessage("E-mail confirmado! Você será redirecionado.");
-            setTimeout(() => navigate("/app"), 2000);
-            return;
-          }
-          
-          setStatus("error");
-          setMessage("Erro na confirmação. O link pode ter expirado ou já foi usado. Tente fazer login normalmente.");
-          return;
-        }
-
-        // Se criou sessão via PKCE, está confirmado!
-        if (data?.session?.user) {
-          // Atualizar email_verified na tabela public.users
-          await supabase.rpc('sync_user_email_verified', { 
-            p_user_id: data.session.user.id 
-          });
-          
-          setStatus("success");
-          setMessage("E-mail confirmado com sucesso! Você será redirecionado automaticamente.");
-          setTimeout(() => navigate("/app"), 2000);
-          return;
-        }
-
-        // Caso inesperado: sem erro e sem usuário
-        setStatus("error");
-        setMessage(
-          "Não foi possível confirmar sua conta. Tente fazer login manualmente."
-        );
-      } catch (err) {
-        console.error("Erro inesperado:", err);
-        setStatus("error");
-        setMessage("Erro inesperado ao confirmar e-mail. Tente fazer login normalmente.");
-      }
-    };
-
-    confirmEmail();
-  }, [navigate]);
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary/10 to-background p-4 flex items-center justify-center">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src={orbisLinkLogo} alt="OrbisLink" className="h-16 mx-auto mb-2" />
-          <h1 className="text-3xl font-bold text-primary">OrbisLink</h1>
+          <img src={orbisLinkLogo} alt="AgriLink" className="h-16 mx-auto mb-2" />
+          <h1 className="text-3xl font-bold text-primary">AgriLink</h1>
         </div>
 
         <Card className="border-0 shadow-xl rounded-2xl">
           <CardHeader>
-            <CardTitle className="text-center">Confirmação de E-mail</CardTitle>
+            <CardTitle className="text-center">Confirmar email com código</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex flex-col items-center gap-4">
-              {status === "loading" && (
+              {status === "success" ? (
                 <>
-                  <Loader2 className="h-16 w-16 text-primary animate-spin" />
-                  <p className="text-center text-muted-foreground">
-                    Confirmando seu e-mail...
-                  </p>
-                </>
-              )}
-
-              {status === "success" && (
-                <>
-                  <CheckCircle2 className="h-16 w-16 text-green-500" />
+                  <CheckCircle2 className="h-16 w-16 text-primary" />
                   <div className="text-center space-y-2">
-                    <p className="text-lg font-semibold text-green-600">
-                      E-mail confirmado!
-                    </p>
-                    <p className="text-muted-foreground">{message}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Redirecionando para o app...
-                    </p>
+                    <p className="text-lg font-semibold text-primary">Email confirmado!</p>
+                    <p className="text-muted-foreground">Agora pode entrar na plataforma AgriLink.</p>
                   </div>
                 </>
-              )}
-
-              {status === "error" && (
+              ) : (
                 <>
-                  <XCircle className="h-16 w-16 text-destructive" />
-                  <div className="text-center space-y-4">
-                    <p className="text-lg font-semibold text-destructive">
-                      Confirmação pendente
+                  <Mail className="h-16 w-16 text-primary" />
+                  <div className="text-center space-y-2">
+                    <p className="text-lg font-semibold text-foreground">Receba um código OTP real no seu email</p>
+                    <p className="text-muted-foreground">
+                      Enviaremos um código de 6 dígitos por contacto@agrilink.ao para concluir a confirmação.
                     </p>
-                    <p className="text-muted-foreground">{message}</p>
-                    <Button
-                      onClick={handleResend}
-                      disabled={resending}
-                      className="w-full"
-                    >
-                      {resending ? "Reenviando..." : "Reenviar email de confirmação"}
+                  </div>
+                  <div className="w-full space-y-3">
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      placeholder="email usado no cadastro"
+                    />
+                    <Button onClick={handleResend} disabled={resending} className="w-full">
+                      {resending ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> A enviar...</>
+                      ) : "Enviar código de confirmação"}
                     </Button>
-                    <Button
-                      variant="outline"
-                      onClick={async () => { await supabase.auth.signOut(); navigate("/login"); }}
-                      className="w-full"
-                    >
+                    <Button variant="outline" onClick={() => navigate("/login")} className="w-full">
                       Voltar para Login
                     </Button>
                   </div>
@@ -209,6 +114,21 @@ const EmailConfirmation = () => {
           </CardContent>
         </Card>
       </div>
+
+      {pendingUser && (
+        <OtpVerificationModal
+          isOpen={otpOpen}
+          onClose={() => setOtpOpen(false)}
+          email={pendingUser.email}
+          userId={pendingUser.id}
+          fullName={pendingUser.fullName}
+          onSuccess={() => {
+            setOtpOpen(false);
+            setStatus("success");
+            setTimeout(() => navigate("/login"), 1400);
+          }}
+        />
+      )}
     </div>
   );
 };
