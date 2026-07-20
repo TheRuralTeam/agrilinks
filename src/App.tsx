@@ -61,8 +61,8 @@ const ProtectedRoute = ({ children, allowIncomplete = false, allowUnverified = f
     return <Navigate to="/login" replace />;
   }
 
-  // Bloqueia acesso se email não estiver confirmado
-  const emailConfirmed = !!(user as any)?.email_confirmed_at || !!userProfile?.email_verified;
+  // Bloqueia ações da plataforma até a confirmação real por OTP AgriLink
+  const emailConfirmed = userProfile?.email_verified === true;
   if (!allowUnverified && !emailConfirmed) {
     return <Navigate to="/confirmar-email" replace />;
   }

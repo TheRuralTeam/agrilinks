@@ -3,11 +3,14 @@ project_id = "oqcrfqtlfqwrxxmsjpaf"
 [functions.send-otp-email]
 verify_jwt = false
 
+[functions.verify-otp-email]
+verify_jwt = false
+
 [auth.email.smtp]
 host = "mail.agrilink.ao"
 port = 465
-user = "no-reply@agrilink.ao"
+user = "contacto@agrilink.ao"
 pass = "[fnN6K)5l4"
-admin_email = "no-reply@agrilink.ao"
+admin_email = "contacto@agrilink.ao"
 sender_name = "AgriLink"
 enable_ssl = true
