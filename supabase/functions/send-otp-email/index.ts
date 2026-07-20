@@ -10,6 +10,14 @@ const BodySchema = z.object({
   full_name: z.string().trim().min(1).max(120).optional(),
 });
 
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -63,37 +71,49 @@ serve(async (req: Request): Promise<Response> => {
       throw new Error("Erro ao gerar código OTP");
     }
 
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      throw new Error("Serviço de email indisponível.");
+    }
+
+    const safeFullName = escapeHtml(fullName);
+
     // Send email using Resend
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+    const resend = new Resend(resendApiKey);
 
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "AgriLink <no-reply@agrilink.ao>",
+      from: "AgriLink <contacto@agrilink.ao>",
       to: [email],
       subject: `${otpCode} é o seu código AgriLink`,
       html: `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff;">
-          <div style="text-align: center; margin-bottom: 30px; padding: 24px 0; border-bottom: 3px solid #7CB342;">
-            <h1 style="color: #7CB342; margin: 0; font-size: 28px; letter-spacing: -0.5px;">AgriLink</h1>
-            <p style="color: #6b7280; margin: 6px 0 0; font-size: 13px;">Conectando o agronegócio</p>
-          </div>
-
-          <div style="background: #f7faf3; border: 1px solid #e5efd7; border-radius: 12px; padding: 32px; text-align: center;">
-            <h2 style="color: #1f2937; margin: 0 0 8px; font-size: 20px;">Olá, ${fullName}!</h2>
-            <p style="color: #6b7280; margin: 0 0 24px; font-size: 15px;">Use o código abaixo para confirmar o seu e-mail:</p>
-
-            <div style="background: #7CB342; color: #ffffff; font-size: 34px; font-weight: 700; letter-spacing: 10px; padding: 20px 32px; border-radius: 10px; display: inline-block;">
-              ${otpCode}
+        <div style="font-family: Arial, Helvetica, sans-serif; max-width: 620px; margin: 0 auto; padding: 28px 18px; background: #ffffff; color: #111714;">
+          <div style="border: 1px solid #DDE8DF; border-radius: 18px; overflow: hidden; background: #ffffff;">
+            <div style="padding: 28px 30px 22px; background: #F6FAEC; border-bottom: 4px solid #7CB342;">
+              <h1 style="color: #7CB342; margin: 0; font-size: 30px; line-height: 1; letter-spacing: -0.3px;">AgriLink</h1>
+              <p style="color: #3A4D40; margin: 10px 0 0; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700;">Confirmação de conta</p>
             </div>
 
-            <p style="color: #6b7280; margin: 24px 0 0; font-size: 13px;">
-              Este código expira em <strong style="color:#B07D0A;">15 minutos</strong>
-            </p>
-          </div>
+            <div style="padding: 32px 30px;">
+              <h2 style="color: #111714; margin: 0 0 10px; font-size: 21px; line-height: 1.3;">Olá, ${safeFullName}</h2>
+              <p style="color: #3D4D40; margin: 0 0 26px; font-size: 15px; line-height: 1.7;">
+                Use este código de 6 dígitos para confirmar o seu email e ativar as ações da sua conta AgriLink.
+              </p>
 
-          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 28px; line-height: 1.5;">
-            Se não solicitaste este código, ignora este e-mail.<br/>
-            © ${new Date().getFullYear()} AgriLink · agrilink.ao
-          </p>
+              <div style="background: #7CB342; color: #ffffff; font-size: 38px; font-weight: 800; letter-spacing: 12px; padding: 22px 24px; border-radius: 12px; text-align: center; font-family: 'Courier New', monospace;">
+                ${otpCode}
+              </div>
+
+              <p style="color: #6B8070; margin: 24px 0 0; font-size: 13px; line-height: 1.6;">
+                Este código expira em <strong style="color:#B07D0A;">15 minutos</strong>. Se não solicitaste este cadastro, podes ignorar este email.
+              </p>
+            </div>
+
+            <div style="padding: 18px 30px; background: #FAFCFA; border-top: 1px solid #DDE8DF;">
+              <p style="color: #9DB5A4; font-size: 12px; text-align: center; margin: 0; line-height: 1.5;">
+                Enviado por contacto@agrilink.ao · © ${new Date().getFullYear()} AgriLink
+              </p>
+            </div>
+          </div>
         </div>
       `,
     });
@@ -108,7 +128,9 @@ serve(async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "Código enviado para " + email
+        message: "Código enviado para " + email,
+        user_id: userId,
+        full_name: fullName,
       }),
       {
         status: 200,
