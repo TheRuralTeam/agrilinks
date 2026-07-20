@@ -272,7 +272,7 @@ const Registration = () => {
 
       const newUserId = data?.user?.id;
       if (newUserId) {
-        // Enviar OTP por email via Resend (no-reply@agrilink.ao)
+        // Enviar OTP por email via Resend (contacto@agrilink.ao)
         const { error: otpErr } = await supabase.functions.invoke('send-otp-email', {
           body: { user_id: newUserId, email: cleanEmail, full_name: cleanName },
         });
@@ -285,7 +285,7 @@ const Registration = () => {
         } else {
           toast({
             title: "Código enviado!",
-            description: `Verifica o teu email ${cleanEmail} para o código de 6 dígitos.`,
+            description: `Verifica ${cleanEmail}; enviámos um código de 6 dígitos por contacto@agrilink.ao.`,
           });
         }
         setPendingUser({ id: newUserId, email: cleanEmail, full_name: cleanName });

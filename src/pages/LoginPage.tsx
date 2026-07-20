@@ -157,22 +157,17 @@ const LoginPage = () => {
     if (!email) { toast({ title: 'Atenção', description: 'Insira o seu email primeiro.' }); return }
     setResendLoading(true)
     try {
-      const { error } = await supabase.functions.invoke('send-otp-email', {
+      const { data, error } = await supabase.functions.invoke('send-otp-email', {
         body: { email },
       })
       if (error) throw error
-      const { data: userData } = await supabase
-        .from('users')
-        .select('id, full_name')
-        .eq('email', email)
-        .maybeSingle()
 
-      if (userData?.id) {
-        setPendingUserId(userData.id)
-        setPendingUserName(userData.full_name || 'Usuário')
+      if (data?.user_id) {
+        setPendingUserId(data.user_id)
+        setPendingUserName(data.full_name || 'Usuário')
         setShowOtpModal(true)
       }
-      toast({ title: 'Código reenviado', description: 'Verifique a sua caixa de entrada ou spam.' })
+      toast({ title: 'Código reenviado', description: 'Verifique o email enviado por contacto@agrilink.ao.' })
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' })
     } finally {

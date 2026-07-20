@@ -233,7 +233,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/app`,
+          emailRedirectTo: `${window.location.origin}/confirmar-email`,
           data: {
             full_name,
             user_type,
@@ -247,6 +247,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       })
 
       if (error) return { error, data: null }
+
+      if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        return { error: { message: 'Este email já está registrado. Faça login ou reenvie o código de confirmação.' }, data: null }
+      }
 
       // Triggers automáticos criam: perfil, carteira, código agente, referral
 
@@ -294,11 +298,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { error: { message: 'No email found' } }
     }
 
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email: user.email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/app`
+    const { error } = await supabase.functions.invoke('send-otp-email', {
+      body: {
+        user_id: user.id,
+        email: user.email,
+        full_name: userProfile?.full_name || user.email,
       }
     })
     return { error }
