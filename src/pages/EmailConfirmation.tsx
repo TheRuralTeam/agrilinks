@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import orbisLinkLogo from "@/assets/orbislink-logo.png";
 import { OtpVerificationModal } from "@/components/OtpVerificationModal";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const EmailConfirmation = () => {
   const navigate = useNavigate();
