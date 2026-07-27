@@ -23,6 +23,8 @@ interface OtpVerificationModalProps {
   userId: string;
   fullName: string;
   onSuccess: () => void;
+  /** Quando true, o modal não pode ser fechado por overlay/ESC (conta ainda bloqueada). */
+  mandatory?: boolean;
 }
 
 export const OtpVerificationModal = ({
@@ -32,6 +34,7 @@ export const OtpVerificationModal = ({
   userId,
   fullName,
   onSuccess,
+  mandatory = false,
 }: OtpVerificationModalProps) => {
   const [otp, setOtp] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
