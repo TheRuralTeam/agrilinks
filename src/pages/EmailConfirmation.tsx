@@ -11,11 +11,19 @@ import { toast } from "@/hooks/use-toast";
 
 const EmailConfirmation = () => {
   const navigate = useNavigate();
+  const { user, userProfile, refreshProfile, logout } = useAuth();
   const [status, setStatus] = useState<"ready" | "success">("ready");
   const [email, setEmail] = useState("");
   const [resending, setResending] = useState(false);
   const [otpOpen, setOtpOpen] = useState(false);
   const [pendingUser, setPendingUser] = useState<{ id: string; email: string; fullName: string } | null>(null);
+
+  // Conta já libertada: não faz sentido ficar nesta etapa
+  useEffect(() => {
+    if (user && userProfile?.email_verified === true) {
+      navigate("/app", { replace: true });
+    }
+  }, [user, userProfile, navigate]);
 
   useEffect(() => {
     const loadEmail = async () => {
