@@ -330,7 +330,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
     verifyEmail,
     resendVerification,
-    resetPassword
+    resetPassword,
+    refreshProfile: async () => {
+      const { data } = await supabase.auth.getUser()
+      if (data.user) await fetchUserProfile(data.user.id)
+    }
   }
 
   return (
