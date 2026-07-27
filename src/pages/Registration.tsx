@@ -710,6 +710,7 @@ const Registration = () => {
           email={pendingUser.email}
           userId={pendingUser.id}
           fullName={pendingUser.full_name}
+          mandatory
           onSuccess={() => {
             setOtpModalOpen(false);
             toast({ title: "E-mail verificado!", description: "A entrar na plataforma." });
