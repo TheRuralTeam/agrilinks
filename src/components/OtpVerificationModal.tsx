@@ -23,6 +23,8 @@ interface OtpVerificationModalProps {
   userId: string;
   fullName: string;
   onSuccess: () => void;
+  /** Quando true, o modal não pode ser fechado por overlay/ESC (conta ainda bloqueada). */
+  mandatory?: boolean;
 }
 
 export const OtpVerificationModal = ({
@@ -32,6 +34,7 @@ export const OtpVerificationModal = ({
   userId,
   fullName,
   onSuccess,
+  mandatory = false,
 }: OtpVerificationModalProps) => {
   const [otp, setOtp] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
@@ -141,8 +144,12 @@ export const OtpVerificationModal = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !mandatory) onClose(); }}>
+      <DialogContent
+        className="sm:max-w-md"
+        onInteractOutside={(e) => { if (mandatory) e.preventDefault(); }}
+        onEscapeKeyDown={(e) => { if (mandatory) e.preventDefault(); }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5 text-primary" />

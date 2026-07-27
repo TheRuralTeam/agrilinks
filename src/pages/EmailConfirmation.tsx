@@ -8,14 +8,23 @@ import { Input } from "@/components/ui/input";
 import orbisLinkLogo from "@/assets/orbislink-logo.png";
 import { OtpVerificationModal } from "@/components/OtpVerificationModal";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const EmailConfirmation = () => {
   const navigate = useNavigate();
+  const { user, userProfile, refreshProfile, logout } = useAuth();
   const [status, setStatus] = useState<"ready" | "success">("ready");
   const [email, setEmail] = useState("");
   const [resending, setResending] = useState(false);
   const [otpOpen, setOtpOpen] = useState(false);
   const [pendingUser, setPendingUser] = useState<{ id: string; email: string; fullName: string } | null>(null);
+
+  // Conta já libertada: não faz sentido ficar nesta etapa
+  useEffect(() => {
+    if (user && userProfile?.email_verified === true) {
+      navigate("/app", { replace: true });
+    }
+  }, [user, userProfile, navigate]);
 
   useEffect(() => {
     const loadEmail = async () => {
@@ -104,9 +113,22 @@ const EmailConfirmation = () => {
                         <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> A enviar...</>
                       ) : "Enviar código de confirmação"}
                     </Button>
-                    <Button variant="outline" onClick={() => navigate("/login")} className="w-full">
-                      Voltar para Login
-                    </Button>
+                    {user ? (
+                      <Button
+                        variant="outline"
+                        onClick={async () => { await logout(); navigate("/login", { replace: true }); }}
+                        className="w-full"
+                      >
+                        Sair e usar outra conta
+                      </Button>
+                    ) : (
+                      <Button variant="outline" onClick={() => navigate("/login")} className="w-full">
+                        Voltar para Login
+                      </Button>
+                    )}
+                    <p className="text-xs text-center text-muted-foreground">
+                      A conta permanece apenas em modo de visualização até validar o código de 6 dígitos.
+                    </p>
                   </div>
                 </>
               )}
@@ -122,10 +144,15 @@ const EmailConfirmation = () => {
           email={pendingUser.email}
           userId={pendingUser.id}
           fullName={pendingUser.fullName}
-          onSuccess={() => {
+          onSuccess={async () => {
             setOtpOpen(false);
             setStatus("success");
-            setTimeout(() => navigate("/login"), 1400);
+            if (user) {
+              await refreshProfile();
+              setTimeout(() => navigate("/app", { replace: true }), 1000);
+            } else {
+              setTimeout(() => navigate("/login", { replace: true }), 1400);
+            }
           }}
         />
       )}

@@ -19,6 +19,7 @@ interface AuthContextType {
   verifyEmail: (token: string) => Promise<{ error: any }>
   resendVerification: () => Promise<{ error: any }>
   resetPassword: (email: string) => Promise<{ error: any }>
+  refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -329,7 +330,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
     verifyEmail,
     resendVerification,
-    resetPassword
+    resetPassword,
+    refreshProfile: async () => {
+      const { data } = await supabase.auth.getUser()
+      if (data.user) await fetchUserProfile(data.user.id)
+    }
   }
 
   return (
