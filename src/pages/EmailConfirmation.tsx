@@ -113,9 +113,22 @@ const EmailConfirmation = () => {
                         <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> A enviar...</>
                       ) : "Enviar código de confirmação"}
                     </Button>
-                    <Button variant="outline" onClick={() => navigate("/login")} className="w-full">
-                      Voltar para Login
-                    </Button>
+                    {user ? (
+                      <Button
+                        variant="outline"
+                        onClick={async () => { await logout(); navigate("/login", { replace: true }); }}
+                        className="w-full"
+                      >
+                        Sair e usar outra conta
+                      </Button>
+                    ) : (
+                      <Button variant="outline" onClick={() => navigate("/login")} className="w-full">
+                        Voltar para Login
+                      </Button>
+                    )}
+                    <p className="text-xs text-center text-muted-foreground">
+                      A conta permanece apenas em modo de visualização até validar o código de 6 dígitos.
+                    </p>
                   </div>
                 </>
               )}
@@ -131,10 +144,15 @@ const EmailConfirmation = () => {
           email={pendingUser.email}
           userId={pendingUser.id}
           fullName={pendingUser.fullName}
-          onSuccess={() => {
+          onSuccess={async () => {
             setOtpOpen(false);
             setStatus("success");
-            setTimeout(() => navigate("/login"), 1400);
+            if (user) {
+              await refreshProfile();
+              setTimeout(() => navigate("/app", { replace: true }), 1000);
+            } else {
+              setTimeout(() => navigate("/login", { replace: true }), 1400);
+            }
           }}
         />
       )}
