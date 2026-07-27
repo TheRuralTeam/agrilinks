@@ -82,7 +82,9 @@ serve(async (req: Request): Promise<Response> => {
     const resend = new Resend(resendApiKey);
 
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "AgriLink <contacto@agrilink.ao>",
+      // Domínio agrilink.ao verificado no Resend (DKIM resend._domainkey + send.agrilink.ao)
+      from: "AgriLink <no-reply@agrilink.ao>",
+      reply_to: "contacto@agrilink.ao",
       to: [email],
       subject: `${otpCode} é o seu código AgriLink`,
       html: `
@@ -110,7 +112,7 @@ serve(async (req: Request): Promise<Response> => {
 
             <div style="padding: 18px 30px; background: #FAFCFA; border-top: 1px solid #DDE8DF;">
               <p style="color: #9DB5A4; font-size: 12px; text-align: center; margin: 0; line-height: 1.5;">
-                Enviado por contacto@agrilink.ao · © ${new Date().getFullYear()} AgriLink
+                Enviado por no-reply@agrilink.ao · Responder para contacto@agrilink.ao · © ${new Date().getFullYear()} AgriLink
               </p>
             </div>
           </div>
