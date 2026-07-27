@@ -82,7 +82,9 @@ serve(async (req: Request): Promise<Response> => {
     const resend = new Resend(resendApiKey);
 
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "AgriLink <contacto@agrilink.ao>",
+      // Domínio agrilink.ao verificado no Resend (DKIM resend._domainkey + send.agrilink.ao)
+      from: "AgriLink <no-reply@agrilink.ao>",
+      reply_to: "contacto@agrilink.ao",
       to: [email],
       subject: `${otpCode} é o seu código AgriLink`,
       html: `
