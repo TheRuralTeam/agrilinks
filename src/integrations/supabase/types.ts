@@ -520,6 +520,51 @@ export type Database = {
         }
         Relationships: []
       }
+      market_prices: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date: string
+          id: string
+          market_location: string
+          market_type: string
+          price_change_pct: number
+          price_kz: number
+          product: string
+          published: boolean
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          market_location: string
+          market_type?: string
+          price_change_pct?: number
+          price_kz: number
+          product: string
+          published?: boolean
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          market_location?: string
+          market_type?: string
+          price_change_pct?: number
+          price_kz?: number
+          product?: string
+          published?: boolean
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
