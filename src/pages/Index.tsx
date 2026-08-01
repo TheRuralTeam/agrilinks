@@ -13,6 +13,8 @@ import fotoLizeth from '@/assets/LIZETH.jpeg';
 import fotoClaudio from '@/assets/CLAUDIO.jpeg';
 import comunidadeImg from '@/assets/agrilink-community-conference.jpg';
 import comunidadeImg2 from '@/assets/agrilink-meetup.jpg';
+import MarketPriceTicker from '@/components/MarketPriceTicker';
+
 
 /* ─────────────────────────────────────────────────────────────────────────
    DESIGN — "Selo Vivo" (Living Seal)
