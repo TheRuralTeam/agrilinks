@@ -272,25 +272,29 @@ const Registration = () => {
 
       const newUserId = data?.user?.id;
       if (newUserId) {
-        // Enviar OTP por email via Resend (contacto@agrilink.ao)
-        const { error: otpErr } = await supabase.functions.invoke('send-otp-email', {
-          body: { user_id: newUserId, email: cleanEmail, full_name: cleanName },
+        // Enviar link mágico de confirmação por email (Resend · no-reply@agrilink.ao)
+        const { error: linkErr } = await supabase.functions.invoke('send-magic-link', {
+          body: {
+            email: cleanEmail,
+            full_name: cleanName,
+            redirect_to: `${window.location.origin}/auth/callback?next=/app`,
+          },
         });
-        if (otpErr) {
+        if (linkErr) {
           toast({
             title: "Conta criada",
-            description: "Não conseguimos enviar o código agora. Podes reenviar dentro do próximo passo.",
+            description: "Não conseguimos enviar o link agora. Podes reenviá-lo no próximo passo.",
             variant: "destructive",
           });
         } else {
           toast({
-            title: "Código enviado!",
-            description: `Verifica ${cleanEmail}; enviámos um código de 6 dígitos por contacto@agrilink.ao.`,
+            title: "Link de confirmação enviado!",
+            description: `Enviámos um link para ${cleanEmail}. Clica nele para confirmares a conta.`,
           });
         }
-        setPendingUser({ id: newUserId, email: cleanEmail, full_name: cleanName });
-        setOtpModalOpen(true);
+        navigate(`/confirmar-email?email=${encodeURIComponent(cleanEmail)}`, { replace: true });
       } else {
+
         toast({ title: "Conta criada com sucesso!", description: "Faz login para continuar." });
         navigate('/login', { replace: true });
       }
