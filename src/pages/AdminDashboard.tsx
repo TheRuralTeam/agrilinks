@@ -62,6 +62,8 @@ import OrbisLinkLogo from "@/assets/orbislink-logo.png";
 import AdminManagement from "@/components/admin/AdminManagement";
 import DeliveryTracking from "@/components/admin/DeliveryTracking";
 import WorkSessionTimer from "@/components/admin/WorkSessionTimer";
+import MarketPricesManager from "@/components/admin/MarketPricesManager";
+
 import { useWorkSession } from "@/hooks/useWorkSession";
 
 type AdminPermission = "manage_users" | "manage_products" | "manage_orders" | "manage_support" | "manage_sourcing" | "view_analytics" | "manage_admins";
