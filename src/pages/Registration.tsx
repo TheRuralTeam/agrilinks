@@ -703,17 +703,8 @@ const Registration = () => {
         </p>
       </div>
 
-      {false && pendingUser && (
-        <OtpVerificationModal
-          isOpen={false}
-          onClose={() => setOtpModalOpen(false)}
-          email={pendingUser!.email}
-          userId={pendingUser!.id}
-          fullName={pendingUser!.full_name}
-          mandatory
-          onSuccess={() => setOtpModalOpen(false)}
-        />
-      )}
+
+
 
     </div>
   );
