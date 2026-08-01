@@ -272,25 +272,29 @@ const Registration = () => {
 
       const newUserId = data?.user?.id;
       if (newUserId) {
-        // Enviar OTP por email via Resend (contacto@agrilink.ao)
-        const { error: otpErr } = await supabase.functions.invoke('send-otp-email', {
-          body: { user_id: newUserId, email: cleanEmail, full_name: cleanName },
+        // Enviar link mágico de confirmação por email (Resend · no-reply@agrilink.ao)
+        const { error: linkErr } = await supabase.functions.invoke('send-magic-link', {
+          body: {
+            email: cleanEmail,
+            full_name: cleanName,
+            redirect_to: `${window.location.origin}/auth/callback?next=/app`,
+          },
         });
-        if (otpErr) {
+        if (linkErr) {
           toast({
             title: "Conta criada",
-            description: "Não conseguimos enviar o código agora. Podes reenviar dentro do próximo passo.",
+            description: "Não conseguimos enviar o link agora. Podes reenviá-lo no próximo passo.",
             variant: "destructive",
           });
         } else {
           toast({
-            title: "Código enviado!",
-            description: `Verifica ${cleanEmail}; enviámos um código de 6 dígitos por contacto@agrilink.ao.`,
+            title: "Link de confirmação enviado!",
+            description: `Enviámos um link para ${cleanEmail}. Clica nele para confirmares a conta.`,
           });
         }
-        setPendingUser({ id: newUserId, email: cleanEmail, full_name: cleanName });
-        setOtpModalOpen(true);
+        navigate(`/confirmar-email?email=${encodeURIComponent(cleanEmail)}`, { replace: true });
       } else {
+
         toast({ title: "Conta criada com sucesso!", description: "Faz login para continuar." });
         navigate('/login', { replace: true });
       }
@@ -703,29 +707,9 @@ const Registration = () => {
         </p>
       </div>
 
-      {pendingUser && (
-        <OtpVerificationModal
-          isOpen={otpModalOpen}
-          onClose={() => setOtpModalOpen(false)}
-          email={pendingUser.email}
-          userId={pendingUser.id}
-          fullName={pendingUser.full_name}
-          mandatory
-          onSuccess={() => {
-            setOtpModalOpen(false);
-            toast({ title: "E-mail verificado!", description: "A entrar na plataforma." });
-            setLoading(true);
-            login(pendingUser.email, password).then(({ error }) => {
-              if (error) {
-                toast({ title: "Email verificado", description: "Faça login para continuar.", variant: "destructive" });
-                navigate('/login', { replace: true });
-                return;
-              }
-              navigate('/app', { replace: true });
-            }).finally(() => setLoading(false));
-          }}
-        />
-      )}
+
+
+
     </div>
   );
 };

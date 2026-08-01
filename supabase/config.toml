@@ -6,6 +6,10 @@ verify_jwt = false
 [functions.verify-otp-email]
 verify_jwt = false
 
+[functions.send-magic-link]
+verify_jwt = false
+
+
 [auth.email.smtp]
 host = "mail.agrilink.ao"
 port = 465

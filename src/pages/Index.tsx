@@ -13,6 +13,8 @@ import fotoLizeth from '@/assets/LIZETH.jpeg';
 import fotoClaudio from '@/assets/CLAUDIO.jpeg';
 import comunidadeImg from '@/assets/agrilink-community-conference.jpg';
 import comunidadeImg2 from '@/assets/agrilink-meetup.jpg';
+import MarketPriceTicker from '@/components/MarketPriceTicker';
+
 
 /* ─────────────────────────────────────────────────────────────────────────
    DESIGN — "Selo Vivo" (Living Seal)
@@ -1104,20 +1106,8 @@ const AgriLinkLanding = () => {
             </h1>
             <p className="hero-sub">{t.hero.sub}</p>
 
-            <div className="hero-proof">
-              <div className="hero-proof-avatars">
-                <img src={fotoFeliciano} alt="" />
-                <img src={fotoMoises} alt="" />
-                <img src={fotoLizeth} alt="" />
-              </div>
-              <div className="hero-proof-text">Junte-se a <strong>agricultores, fábricas e compradores</strong> em 21 províncias</div>
-            </div>
+            <MarketPriceTicker />
 
-            <div className="hero-live-rail" aria-label="Fluxo AgriLink">
-              <div className="hero-live-pill"><FontAwesomeIcon icon={faEnvelopeCircleCheck} /> OTP por email</div>
-              <div className="hero-live-pill"><FontAwesomeIcon icon={faRoute} /> Rastreabilidade</div>
-              <div className="hero-live-pill"><FontAwesomeIcon icon={faLeaf} /> Verde Alface</div>
-            </div>
 
             <div className="hero-ctas">
               <button className="btn-primary" onClick={() => navigate('/cadastro')}>

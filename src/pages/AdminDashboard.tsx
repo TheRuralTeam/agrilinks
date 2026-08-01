@@ -62,6 +62,8 @@ import OrbisLinkLogo from "@/assets/orbislink-logo.png";
 import AdminManagement from "@/components/admin/AdminManagement";
 import DeliveryTracking from "@/components/admin/DeliveryTracking";
 import WorkSessionTimer from "@/components/admin/WorkSessionTimer";
+import MarketPricesManager from "@/components/admin/MarketPricesManager";
+
 import { useWorkSession } from "@/hooks/useWorkSession";
 
 type AdminPermission = "manage_users" | "manage_products" | "manage_orders" | "manage_support" | "manage_sourcing" | "view_analytics" | "manage_admins";
@@ -131,7 +133,7 @@ interface Ficha {
   created_at: string;
 }
 
-type TabType = "dashboard" | "products" | "users" | "transactions" | "notifications" | "orders" | "fichas" | "sourcing" | "market" | "admins" | "referrals" | "deliveries";
+type TabType = "dashboard" | "products" | "users" | "transactions" | "notifications" | "orders" | "fichas" | "sourcing" | "market" | "prices" | "admins" | "referrals" | "deliveries";
 
 interface SourcingRequest {
   id: string;
@@ -713,6 +715,12 @@ const AdminDashboard = () => {
                 <Activity className="h-4 w-4" /> Mercado
               </TabButton>
             )}
+            {hasPermission("view_analytics") && (
+              <TabButton active={activeTab === "prices"} onClick={() => { setActiveTab("prices"); setMenuOpen(false); }}>
+                <DollarSign className="h-4 w-4" /> Preços de Mercado
+              </TabButton>
+            )}
+
             {(isRootAdmin || hasPermission("manage_admins")) && (
               <TabButton active={activeTab === "admins"} onClick={() => { setActiveTab("admins"); setMenuOpen(false); }}>
                 <Crown className="h-4 w-4" /> Admins
@@ -1638,7 +1646,10 @@ const AdminDashboard = () => {
         )}
 
         {/* ADMIN MANAGEMENT */}
+        {activeTab === "prices" && <MarketPricesManager />}
+
         {activeTab === "admins" && currentUserId && (
+
           <AdminManagement
             currentUserId={currentUserId}
             isRootAdmin={isRootAdmin}
