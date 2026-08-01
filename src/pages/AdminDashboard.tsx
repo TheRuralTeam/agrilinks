@@ -713,6 +713,12 @@ const AdminDashboard = () => {
                 <Activity className="h-4 w-4" /> Mercado
               </TabButton>
             )}
+            {hasPermission("view_analytics") && (
+              <TabButton active={activeTab === "prices"} onClick={() => { setActiveTab("prices"); setMenuOpen(false); }}>
+                <DollarSign className="h-4 w-4" /> Preços de Mercado
+              </TabButton>
+            )}
+
             {(isRootAdmin || hasPermission("manage_admins")) && (
               <TabButton active={activeTab === "admins"} onClick={() => { setActiveTab("admins"); setMenuOpen(false); }}>
                 <Crown className="h-4 w-4" /> Admins
