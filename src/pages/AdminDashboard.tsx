@@ -1646,7 +1646,10 @@ const AdminDashboard = () => {
         )}
 
         {/* ADMIN MANAGEMENT */}
+        {activeTab === "prices" && <MarketPricesManager />}
+
         {activeTab === "admins" && currentUserId && (
+
           <AdminManagement
             currentUserId={currentUserId}
             isRootAdmin={isRootAdmin}
