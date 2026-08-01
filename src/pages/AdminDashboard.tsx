@@ -131,7 +131,7 @@ interface Ficha {
   created_at: string;
 }
 
-type TabType = "dashboard" | "products" | "users" | "transactions" | "notifications" | "orders" | "fichas" | "sourcing" | "market" | "admins" | "referrals" | "deliveries";
+type TabType = "dashboard" | "products" | "users" | "transactions" | "notifications" | "orders" | "fichas" | "sourcing" | "market" | "prices" | "admins" | "referrals" | "deliveries";
 
 interface SourcingRequest {
   id: string;
