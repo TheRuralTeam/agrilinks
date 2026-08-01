@@ -703,29 +703,18 @@ const Registration = () => {
         </p>
       </div>
 
-      {pendingUser && (
+      {false && pendingUser && (
         <OtpVerificationModal
-          isOpen={otpModalOpen}
+          isOpen={false}
           onClose={() => setOtpModalOpen(false)}
-          email={pendingUser.email}
-          userId={pendingUser.id}
-          fullName={pendingUser.full_name}
+          email={pendingUser!.email}
+          userId={pendingUser!.id}
+          fullName={pendingUser!.full_name}
           mandatory
-          onSuccess={() => {
-            setOtpModalOpen(false);
-            toast({ title: "E-mail verificado!", description: "A entrar na plataforma." });
-            setLoading(true);
-            login(pendingUser.email, password).then(({ error }) => {
-              if (error) {
-                toast({ title: "Email verificado", description: "Faça login para continuar.", variant: "destructive" });
-                navigate('/login', { replace: true });
-                return;
-              }
-              navigate('/app', { replace: true });
-            }).finally(() => setLoading(false));
-          }}
+          onSuccess={() => setOtpModalOpen(false)}
         />
       )}
+
     </div>
   );
 };
