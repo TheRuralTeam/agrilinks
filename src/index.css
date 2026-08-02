@@ -25,20 +25,20 @@
     --popover-foreground: 95 40% 10%;
 
     /* Primary Brand — Verde Alface #7CB342 (unified across platform) */
-    --primary: 88 46% 48%;
-    --primary-light: 88 55% 60%;
+    --primary: 129 50% 35%;
+    --primary-light: 128 43% 42%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 92 50% 38%;
-    --primary-glow: 88 60% 55%;
+    --primary-hover: 130 57% 23%;
+    --primary-glow: 122 39% 49%;
 
     /* Secondary — Pale Lettuce */
-    --secondary: 88 45% 92%;
-    --secondary-light: 88 50% 96%;
+    --secondary: 125 39% 94%;
+    --secondary-light: 128 35% 97%;
     --secondary-foreground: 95 40% 14%;
 
     /* Business — Deep Lettuce (same hue family, darker) */
-    --business: 94 55% 22%;
-    --business-light: 90 48% 32%;
+    --business: 130 57% 23%;
+    --business-light: 128 43% 33%;
     --business-foreground: 0 0% 100%;
 
     /* Accent — OrbisLink Gold #B07D0A */
@@ -52,7 +52,7 @@
     --muted-foreground: 95 14% 38%;
 
     /* Status — derived from lettuce */
-    --success: 88 46% 42%;
+    --success: 129 50% 35%;
     --success-foreground: 0 0% 100%;
     --warning: 41 89% 40%;
     --warning-foreground: 0 0% 100%;
@@ -63,12 +63,12 @@
     --border: 88 26% 87%;
     --border-strong: 88 26% 74%;
     --input: 88 26% 90%;
-    --ring: 88 46% 48%;
+    --ring: 129 50% 35%;
 
     /* Gradients — single green family */
-    --gradient-primary: linear-gradient(135deg, hsl(88 46% 48%), hsl(88 55% 60%));
-    --gradient-business: linear-gradient(135deg, hsl(94 55% 22%), hsl(90 48% 32%));
-    --gradient-hero: linear-gradient(145deg, hsl(94 55% 22%) 0%, hsl(88 46% 40%) 60%, hsl(88 55% 55%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(130 57% 23%), hsl(129 50% 35%));
+    --gradient-business: linear-gradient(135deg, hsl(130 57% 23%), hsl(128 43% 33%));
+    --gradient-hero: linear-gradient(145deg, hsl(130 57% 23%) 0%, hsl(129 50% 35%) 60%, hsl(122 39% 49%) 100%);
     --gradient-gold: linear-gradient(135deg, hsl(41 89% 36%), hsl(39 75% 47%));
     --gradient-card: linear-gradient(160deg, hsl(0 0% 100%) 0%, hsl(88 40% 98%) 100%);
     --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(84 38% 97%) 100%);
@@ -91,7 +91,7 @@
     /* Sidebar */
     --sidebar-background: 84 38% 97%;
     --sidebar-foreground: 95 40% 14%;
-    --sidebar-primary: 88 46% 48%;
+    --sidebar-primary: 129 50% 35%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 88 25% 94%;
     --sidebar-accent-foreground: 140 35% 12%;
@@ -155,10 +155,10 @@
     --popover: 95 30% 9%;
     --popover-foreground: 84 25% 95%;
 
-    --primary: 88 55% 55%;
-    --primary-light: 88 60% 65%;
+    --primary: 122 39% 49%;
+    --primary-light: 128 43% 58%;
     --primary-foreground: 95 40% 8%;
-    --primary-hover: 88 50% 48%;
+    --primary-hover: 129 50% 35%;
 
     --secondary: 95 22% 16%;
     --secondary-light: 95 22% 22%;
@@ -177,16 +177,16 @@
     --border: 95 22% 16%;
     --border-strong: 95 22% 24%;
     --input: 95 22% 16%;
-    --ring: 88 55% 55%;
+    --ring: 122 39% 49%;
 
     --sidebar-background: 95 30% 7%;
     --sidebar-foreground: 84 25% 92%;
-    --sidebar-primary: 88 55% 55%;
+    --sidebar-primary: 122 39% 49%;
     --sidebar-primary-foreground: 95 40% 8%;
     --sidebar-accent: 95 22% 14%;
     --sidebar-accent-foreground: 84 25% 92%;
     --sidebar-border: 95 22% 16%;
-    --sidebar-ring: 88 55% 55%;
+    --sidebar-ring: 122 39% 49%;
 
     /* Map & Satellite Panel — dark mode (Verde Alface preservada) */
     --map-g950: #ECF5DC;
