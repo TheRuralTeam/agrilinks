@@ -150,7 +150,7 @@ serve(async (req: Request): Promise<Response> => {
 
 
     return new Response(
-      JSON.stringify({ success: true, message: "Link de confirmação enviado para " + email }),
+      JSON.stringify({ success: true, from: usedFrom, expires_in_minutes: 60, message: "Link de confirmação enviado para " + email }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
     );
   } catch (error: any) {
