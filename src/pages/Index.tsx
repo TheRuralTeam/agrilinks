@@ -1131,34 +1131,6 @@ const AgriLinkLanding = () => {
               )}
               <div className="hero-photo-caption"><span className="dot" />Comunidade AgriLink · 21 províncias</div>
             </div>
-            <div className="hero-card">
-              <div className="access-kicker">
-                <FontAwesomeIcon icon={faShieldHalved} />
-                Acesso institucional AgriLink
-              </div>
-              <h2 className="access-title">Criar a sua conta AgriLink</h2>
-              <p className="access-copy">Entre como fornecedor, comprador ou agente e confirme o seu email com um código de 6 dígitos.</p>
-              <div className="access-actions">
-                <button className="access-btn access-btn-primary" onClick={() => navigate('/cadastro')}>
-                  <FontAwesomeIcon icon={faUserPlus} />
-                  Criar conta
-                </button>
-                <button className="access-btn access-btn-secondary" onClick={() => navigate('/login')}>
-                  <FontAwesomeIcon icon={faRightToBracket} />
-                  Entrar
-                </button>
-              </div>
-              <div className="access-chips">
-                <div className="access-chip"><FontAwesomeIcon icon={faSeedling} />Fornecedores</div>
-                <div className="access-chip"><FontAwesomeIcon icon={faChartLine} />Compradores</div>
-                <div className="access-chip"><FontAwesomeIcon icon={faUsers} />Agentes</div>
-              </div>
-              <div className="access-flow">
-                <span>Dados</span>
-                <span>Código OTP</span>
-                <span>Acesso</span>
-              </div>
-            </div>
           </div>
         </div>
 
