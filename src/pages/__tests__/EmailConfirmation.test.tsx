@@ -74,10 +74,16 @@ describe("Fluxo de confirmação por magic link", () => {
     const resend = await screen.findByRole("button", { name: /Reenviar link em 60s/i });
     expect(resend).toBeDisabled();
 
-    await act(async () => { vi.advanceTimersByTime(30_000); });
+    const tick = async (seconds: number) => {
+      for (let i = 0; i < seconds; i++) {
+        await act(async () => { vi.advanceTimersByTime(1000); });
+      }
+    };
+
+    await tick(30);
     expect(screen.getByRole("button", { name: /Reenviar link em 30s/i })).toBeDisabled();
 
-    await act(async () => { vi.advanceTimersByTime(30_000); });
+    await tick(30);
     const ready = await screen.findByRole("button", { name: /Reenviar link de confirmação/i });
     expect(ready).not.toBeDisabled();
 
