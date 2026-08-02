@@ -89,11 +89,8 @@ serve(async (req: Request): Promise<Response> => {
 
     const resend = new Resend(resendApiKey);
     const safeFullName = escapeHtml(fullName);
-
-    const { error: emailError } = await resend.emails.send({
-      from: "AgriLink <no-reply@agrilink.ao>",
-      reply_to: "contacto@agrilink.ao",
-      to: [email],
+    const PRIMARY_FROM = Deno.env.get("RESEND_FROM") || "AgriLink <no-reply@agrilink.ao>";
+    const FALLBACK_FROM = "AgriLink <onboarding@resend.dev>";
       subject: "Confirme o seu email AgriLink",
       html: `
         <div style="font-family: Arial, Helvetica, sans-serif; max-width: 620px; margin: 0 auto; padding: 28px 18px; background: #ffffff; color: #111714;">
