@@ -132,10 +132,22 @@ serve(async (req: Request): Promise<Response> => {
       `,
     });
 
+    let usedFrom = PRIMARY_FROM;
+    let { error: emailError } = await resend.emails.send(buildPayload(PRIMARY_FROM) as any);
+
+    // Domínio ainda não verificado no Resend → não bloquear o fluxo de confirmação
+    if (emailError && /not verified|domain/i.test(emailError.message || "")) {
+      console.warn("Domínio primário indisponível no Resend, a usar fallback:", emailError.message);
+      usedFrom = FALLBACK_FROM;
+      const retry = await resend.emails.send(buildPayload(FALLBACK_FROM) as any);
+      emailError = retry.error;
+    }
+
     if (emailError) {
       console.error("Resend error:", emailError);
       throw new Error("Erro ao enviar email: " + emailError.message);
     }
+
 
     return new Response(
       JSON.stringify({ success: true, message: "Link de confirmação enviado para " + email }),
