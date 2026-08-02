@@ -22,12 +22,14 @@ vi.mock("@/assets/orbislink-logo.png", () => ({ default: "logo.png" }));
 
 import EmailConfirmation from "@/pages/EmailConfirmation";
 
-const renderPage = () =>
-  render(
+const renderPage = () => {
+  window.history.replaceState({}, "", "/confirmar-email?email=teste@agrilink.ao");
+  return render(
     <MemoryRouter initialEntries={["/confirmar-email?email=teste@agrilink.ao"]}>
       <EmailConfirmation />
     </MemoryRouter>,
   );
+};
 
 describe("Fluxo de confirmação por magic link", () => {
   beforeEach(() => {
