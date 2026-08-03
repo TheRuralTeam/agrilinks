@@ -8,35 +8,7 @@ import { OtpVerificationModal } from '@/components/OtpVerificationModal'
 import { toast } from '@/hooks/use-toast'
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
-const T = {
-  // Greens
-  g700: '#1A5C24',
-  g600: '#2D7D3A',
-  g500: '#3D9A48',
-  g50:  '#F2FAF3',
-  gBorder: '#C8E6CA',
-
-  // Gold / Earth
-  gold:        '#A0722A',
-  goldMid:     '#C9922A',
-  goldDark:    '#7A5520',
-  goldLight:   '#C9A96E',
-  goldBg:      '#FDF8F0',
-  goldPale:    '#FBF3E4',
-  goldBorder:  '#C9A96E',
-
-  // Neutrals
-  ink:    '#111714',
-  mid:    '#3D4D40',
-  muted:  '#758A79',
-  faint:  '#A8BAA9',
-  canvas: '#F8F5EF',
-  white:  '#FFFFFF',
-  rule:   '#E8E0D0',
-
-  // Shadows
-  shadowLg: '0 8px 40px rgba(160,114,42,0.16)',
-}
+import { T } from '@/lib/brand';
 
 // ─── Input style ──────────────────────────────────────────────────────────────
 const inputStyle: React.CSSProperties = {

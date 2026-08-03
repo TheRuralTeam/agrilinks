@@ -17,40 +17,7 @@ import { changeLanguage, getSavedCountry } from "@/i18n";
 import { OtpVerificationModal } from "@/components/OtpVerificationModal";
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
-const T = {
-  // Greens
-  g900: '#1A3D20',
-  g700: '#1A5C24',
-  g600: '#2D7D3A',
-  g500: '#3D9A48',
-  g400: '#4CAF50',
-  g100: '#E8F5E9',
-  g50:  '#F2FAF3',
-  gBorder: '#C8E6CA',
-
-  // Gold / Earth — primary accent
-  gold:       '#A0722A',
-  goldMid:    '#C9922A',
-  goldDark:   '#7A5520',
-  goldLight:  '#C9A96E',
-  goldBg:     '#FDF8F0',
-  goldPale:   '#FBF3E4',
-  goldBorder: '#C9A96E',
-  goldDeep:   '#8B6020',
-
-  // Neutrals
-  ink:    '#111714',
-  mid:    '#3D4D40',
-  muted:  '#758A79',
-  faint:  '#A8BAA9',
-  canvas: '#F8F5EF',
-  white:  '#FFFFFF',
-  rule:   '#E8E0D0',
-
-  // Shadows
-  shadow: '0 2px 16px rgba(160,114,42,0.10)',
-  shadowLg: '0 8px 40px rgba(160,114,42,0.16)',
-}
+import { T } from '@/lib/brand';
 
 // ─── Native Select (fixes mobile scroll-to-top bug) ──────────────────────────
 const NativeSelect = ({
@@ -322,7 +289,7 @@ const Registration = () => {
         padding: '24px 16px',
         position: 'relative',
         overflow: 'hidden',
-        fontFamily: "'Segoe UI', system-ui, sans-serif",
+        fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
       }}
     >
       {/* Decorative blobs */}

@@ -131,7 +131,7 @@ const CompletarPerfil = () => {
     <div style={{
       minHeight: "100vh", backgroundColor: T.canvas,
       display: "flex", alignItems: "center", justifyContent: "center",
-      padding: "24px 16px", fontFamily: "'Segoe UI', system-ui, sans-serif",
+      padding: "24px 16px", fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
     }}>
       <div style={{
         width: "100%", maxWidth: 480, backgroundColor: T.white,
@@ -145,7 +145,7 @@ const CompletarPerfil = () => {
             textTransform: "uppercase", color: T.gold,
           }}>AgriLink Platform</span>
           <h1 style={{
-            fontFamily: "'DM Serif Display', serif",
+            fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
             fontSize: 26, color: T.ink, margin: "8px 0 6px",
           }}>Complete o seu Perfil</h1>
           <p style={{ fontSize: 13, color: T.muted, margin: 0 }}>

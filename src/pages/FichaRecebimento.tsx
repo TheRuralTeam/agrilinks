@@ -149,8 +149,8 @@ const FichaRecebimento = () => {
   };
 
   const T = {
-    green: "#2D7D3A",
-    greenLight: "#4CAF50",
+    green: "#2c863b",
+    greenLight: "#2c863b",
     greenPale: "#E8F5E9",
     charcoal: "#1C2B1E",
     muted: "#6B7C6E",
@@ -331,8 +331,8 @@ const FichaRecebimento = () => {
                   zoom={10}
                   height={280}
                   onClick={(c) => setLocalTemp((prev) => ({ ...prev, coordenadas: c }))}
-                  markers={localTemp.coordenadas ? [{ lat: localTemp.coordenadas.lat, lng: localTemp.coordenadas.lng, color: '#2D7D3A' }] : []}
-                  clickMarkerColor="#2D7D3A"
+                  markers={localTemp.coordenadas ? [{ lat: localTemp.coordenadas.lat, lng: localTemp.coordenadas.lng, color: '#2c863b' }] : []}
+                  clickMarkerColor="#2c863b"
                 />
               </div>
             )}

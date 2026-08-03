@@ -15,32 +15,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from '@/hooks/use-toast'
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
-const T = {
-  g900:    '#0D2B12',
-  g700:    '#1A5C24',
-  g600:    '#2D7D3A',
-  g500:    '#3D9A48',
-  g400:    '#4CAF50',
-  g100:    '#E8F5E9',
-  g50:     '#F2FAF3',
-  gBorder: '#C8E6CA',
-  e700:    '#5C3317',
-  e500:    '#7B4F2E',
-  e300:    '#A0522D',
-  ePale:   '#FDF5EE',
-  eBorder: '#EDD9C6',
-  ink:     '#111714',
-  mid:     '#3D4D40',
-  muted:   '#758A79',
-  faint:   '#A8BAA9',
-  canvas:  '#F7F9F7',
-  white:   '#FFFFFF',
-  rule:    '#E5EDE6',
-  gold:    '#B07D0A',
-  goldL:   '#E5A020',
-  shadow:  'rgba(13,43,18,0.10)',
-  shadowMd:'rgba(13,43,18,0.15)',
-}
+import { T } from '@/lib/brand';
 
 /* ─── Interfaces ─────────────────────────────────────────────────────────────── */
 interface UserProduct {

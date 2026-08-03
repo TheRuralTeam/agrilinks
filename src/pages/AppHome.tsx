@@ -46,41 +46,7 @@ const CATEGORIES = [
 const MAPBOX_TOKEN = 'pk.eyJ1IjoibHVjYW1iYSIsImEiOiJjbWdqY293Z2QwaGRwMmlyNGlwNW4xYXhwIn0.qOjQNe8kbbfmdK5G0MHWDA'
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
-const T = {
-  /* Greens */
-  g900:   '#2c863b',
-  g700:   '#1A5C24',
-  g600:   '#2D7D3A',
-  g500:   '#3D9A48',
-  g400:   '#4CAF50',
-  g100:   '#E8F5E9',
-  g50:    '#F2FAF3',
-  gBorder:'#C8E6CA',
-
-  /* Earth */
-  e700:   '#5C3317',
-  e500:   '#7B4F2E',
-  e300:   '#A0522D',
-  ePale:  '#FDF5EE',
-  eBorder:'#EDD9C6',
-
-  /* Neutrals */
-  ink:    '#111714',
-  mid:    '#3D4D40',
-  muted:  '#758A79',
-  faint:  '#A8BAA9',
-  canvas: '#F7F9F7',
-  white:  '#FFFFFF',
-  rule:   '#E5EDE6',
-
-  /* Accents */
-  gold:   '#B07D0A',
-  goldL:  '#E5A020',
-
-  /* Shadow */
-  shadow: 'rgba(13,43,18,0.10)',
-  shadowMd:'rgba(13,43,18,0.15)',
-}
+import { T } from '@/lib/brand';
 
 /* ─── Countries ─────────────────────────────────────────────────────────────── */
 const COUNTRIES = [

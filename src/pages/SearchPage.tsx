@@ -29,10 +29,10 @@ const MAPBOX_TOKEN = 'pk.eyJ1IjoibHVjYW1iYSIsImEiOiJjbWdqY283Z2QwaGRwMmlyNGlwNW4
 */
 const T = {
   /* Greens - Primary Brand Colors */
-  g900:   '#1A5C24', // Deep Forest Green
-  g700:   '#2D7D3A', // Rich Leaf Green
-  g600:   '#3D9A48', // Vibrant Grass
-  g500:   '#4CAF50', // Standard Green
+  g900:   '#2c863b', // Deep Forest Green
+  g700:   '#2c863b', // Rich Leaf Green
+  g600:   '#2c863b', // Vibrant Grass
+  g500:   '#2c863b', // Standard Green
   g400:   '#81C784', // Soft Green
   g100:   '#E8F5E9', // Mint Tint
   g50:    '#F2FAF3', // Subtle Green Wash
@@ -337,7 +337,7 @@ const SearchPage = () => {
               variant="ghost" 
               size="icon" 
               onClick={() => navigate(-1)}
-              className="text-[#1A5C24] hover:bg-[#E8F5E9]"
+              className="text-[#2c863b] hover:bg-[#E8F5E9]"
             >
               <ChevronLeft className="h-6 w-6" />
             </Button>
@@ -345,7 +345,7 @@ const SearchPage = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#758A79]" />
               <Input 
                 placeholder="Pesquisar produtos, agricultores..." 
-                className="pl-10 bg-[#F2FAF3] border-[#C8E6CA] focus:ring-[#4CAF50] focus:border-[#4CAF50]"
+                className="pl-10 bg-[#F2FAF3] border-[#C8E6CA] focus:ring-[#2c863b] focus:border-[#2c863b]"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -354,7 +354,7 @@ const SearchPage = () => {
               variant="outline" 
               size="icon"
               onClick={() => setShowFilters(!showFilters)}
-              className={showFilters ? "bg-[#1A5C24] text-white border-[#1A5C24]" : "border-[#C8E6CA] text-[#1A5C24]"}
+              className={showFilters ? "bg-[#2c863b] text-white border-[#2c863b]" : "border-[#C8E6CA] text-[#2c863b]"}
             >
               <SlidersHorizontal className="h-5 w-5" />
             </Button>
@@ -370,7 +370,7 @@ const SearchPage = () => {
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`rounded-full whitespace-nowrap flex items-center gap-2 ${
                   selectedCategory === cat.id 
-                    ? "bg-[#1A5C24] text-white" 
+                    ? "bg-[#2c863b] text-white" 
                     : "border-[#C8E6CA] text-[#3D4D40] hover:bg-[#E8F5E9]"
                 }`}
               >
@@ -429,8 +429,8 @@ const SearchPage = () => {
                       variant={selectedProvince === p.id ? "default" : "outline"}
                       className={`cursor-pointer px-3 py-1 transition-all ${
                         selectedProvince === p.id 
-                          ? "bg-[#4CAF50] text-white" 
-                          : "bg-white text-[#758A79] border-[#C8E6CA] hover:border-[#4CAF50]"
+                          ? "bg-[#2c863b] text-white" 
+                          : "bg-white text-[#758A79] border-[#C8E6CA] hover:border-[#2c863b]"
                       }`}
                       onClick={() => handleProvinceClick(p.id)}
                     >
@@ -448,15 +448,15 @@ const SearchPage = () => {
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-8">
         <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-[#E5EDE6]">
-            <TabsTrigger value="all" className="data-[state=active]:bg-white data-[state=active]:text-[#1A5C24]">Tudo</TabsTrigger>
-            <TabsTrigger value="products" className="data-[state=active]:bg-white data-[state=active]:text-[#1A5C24]">Produtos</TabsTrigger>
-            <TabsTrigger value="users" className="data-[state=active]:bg-white data-[state=active]:text-[#1A5C24]">Usuários</TabsTrigger>
+            <TabsTrigger value="all" className="data-[state=active]:bg-white data-[state=active]:text-[#2c863b]">Tudo</TabsTrigger>
+            <TabsTrigger value="products" className="data-[state=active]:bg-white data-[state=active]:text-[#2c863b]">Produtos</TabsTrigger>
+            <TabsTrigger value="users" className="data-[state=active]:bg-white data-[state=active]:text-[#2c863b]">Usuários</TabsTrigger>
           </TabsList>
         </Tabs>
 
         {loading && (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1A5C24]"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2c863b]"></div>
             <p className="text-[#758A79] font-medium">Buscando as melhores ofertas...</p>
           </div>
         )}
@@ -465,9 +465,9 @@ const SearchPage = () => {
         {(activeTab === 'all' || activeTab === 'users') && userResults.length > 0 && (
           <div className="animate-in fade-in duration-500">
             <div className="flex items-center gap-2 mb-4">
-              <User className="h-5 w-5 text-[#1A5C24]" />
+              <User className="h-5 w-5 text-[#2c863b]" />
               <h2 className="font-bold text-lg text-[#111714]">Agricultores e Agentes</h2>
-              <Badge className="bg-[#E8F5E9] text-[#1A5C24] border-none">{userResults.length}</Badge>
+              <Badge className="bg-[#E8F5E9] text-[#2c863b] border-none">{userResults.length}</Badge>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {userResults.map(user => (
@@ -478,14 +478,14 @@ const SearchPage = () => {
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12 border-2 border-[#E8F5E9] group-hover:border-[#4CAF50] transition-colors">
+                      <Avatar className="h-12 w-12 border-2 border-[#E8F5E9] group-hover:border-[#2c863b] transition-colors">
                         <AvatarImage src={user.avatar_url} />
-                        <AvatarFallback className="bg-[#F2FAF3] text-[#1A5C24] font-bold">
+                        <AvatarFallback className="bg-[#F2FAF3] text-[#2c863b] font-bold">
                           {user.full_name.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-[#111714] truncate group-hover:text-[#1A5C24] transition-colors">
+                        <p className="font-bold text-[#111714] truncate group-hover:text-[#2c863b] transition-colors">
                           {user.full_name}
                         </p>
                         <p className="text-xs text-[#758A79] capitalize">{user.user_type}</p>
@@ -503,9 +503,9 @@ const SearchPage = () => {
           <div className="animate-in fade-in duration-500">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-[#1A5C24]" />
+                <Package className="h-5 w-5 text-[#2c863b]" />
                 <h2 className="font-bold text-lg text-[#111714]">Produtos Disponíveis</h2>
-                <Badge className="bg-[#E8F5E9] text-[#1A5C24] border-none">{sortedProducts.length}</Badge>
+                <Badge className="bg-[#E8F5E9] text-[#2c863b] border-none">{sortedProducts.length}</Badge>
               </div>
             </div>
             {/* 
@@ -530,7 +530,7 @@ const SearchPage = () => {
         {!loading && !searchTerm && sortedProducts.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl border border-dashed border-[#C8E6CA]">
             <div className="bg-[#F2FAF3] p-6 rounded-full mb-4">
-              <Search className="h-12 w-12 text-[#4CAF50]" />
+              <Search className="h-12 w-12 text-[#2c863b]" />
             </div>
             <h3 className="text-xl font-bold text-[#111714]">Encontre o que precisa</h3>
             <p className="text-[#758A79] max-w-xs mt-2">
@@ -544,7 +544,7 @@ const SearchPage = () => {
       <Dialog open={mapModalOpen} onOpenChange={setMapModalOpen}>
         <DialogContent className="max-w-4xl border-[#C8E6CA]">
           <DialogHeader>
-            <DialogTitle className="text-[#1A5C24]">Localização do Produto</DialogTitle>
+            <DialogTitle className="text-[#2c863b]">Localização do Produto</DialogTitle>
             <DialogDescription className="text-[#758A79]">
               {selectedProduct?.product_type} - {selectedProduct?.farmer_name}
             </DialogDescription>
@@ -557,7 +557,7 @@ const SearchPage = () => {
       <Dialog open={preOrderModalOpen} onOpenChange={setPreOrderModalOpen}>
         <DialogContent className="border-[#C8E6CA]">
           <DialogHeader>
-            <DialogTitle className="text-[#1A5C24]">Pré-Compra de {selectedProduct?.product_type}</DialogTitle>
+            <DialogTitle className="text-[#2c863b]">Pré-Compra de {selectedProduct?.product_type}</DialogTitle>
             <DialogDescription className="text-[#758A79]">
               Preencha os dados para solicitar a pré-compra deste produto.
             </DialogDescription>
@@ -571,10 +571,10 @@ const SearchPage = () => {
                 max={selectedProduct?.quantity}
                 value={orderData.quantity}
                 onChange={(e) => setOrderData({ ...orderData, quantity: Number(e.target.value) })}
-                className="bg-[#F2FAF3] border-[#C8E6CA] focus:ring-[#4CAF50]"
+                className="bg-[#F2FAF3] border-[#C8E6CA] focus:ring-[#2c863b]"
               />
               <p className="text-xs text-[#758A79]">
-                Disponível: <span className="font-bold text-[#1A5C24]">{selectedProduct?.quantity.toLocaleString()} kg</span>
+                Disponível: <span className="font-bold text-[#2c863b]">{selectedProduct?.quantity.toLocaleString()} kg</span>
               </p>
             </div>
             <div className="space-y-2">
@@ -583,7 +583,7 @@ const SearchPage = () => {
                 placeholder="Digite o local de entrega"
                 value={orderData.location}
                 onChange={(e) => setOrderData({ ...orderData, location: e.target.value })}
-                className="bg-[#F2FAF3] border-[#C8E6CA] focus:ring-[#4CAF50]"
+                className="bg-[#F2FAF3] border-[#C8E6CA] focus:ring-[#2c863b]"
               />
             </div>
             <div className="bg-[#F2FAF3] p-4 rounded-xl border border-[#C8E6CA] space-y-2">
@@ -599,7 +599,7 @@ const SearchPage = () => {
                 <span>Taxa de Serviço (10%):</span>
                 <span className="font-medium">{(orderData.quantity * (selectedProduct?.price || 0) * TAX_RATE).toLocaleString()} Kz</span>
               </div>
-              <div className="flex justify-between font-bold text-xl pt-3 border-t border-[#C8E6CA] text-[#1A5C24]">
+              <div className="flex justify-between font-bold text-xl pt-3 border-t border-[#C8E6CA] text-[#2c863b]">
                 <span>Total Estimado:</span>
                 <span>{totalPrice.toLocaleString()} Kz</span>
               </div>
@@ -609,7 +609,7 @@ const SearchPage = () => {
             <Button variant="outline" onClick={() => setPreOrderModalOpen(false)} className="border-[#C8E6CA] text-[#758A79]">
               Cancelar
             </Button>
-            <Button onClick={handlePreOrderSubmit} className="bg-[#1A5C24] hover:bg-[#2D7D3A] text-white">
+            <Button onClick={handlePreOrderSubmit} className="bg-[#2c863b] hover:bg-[#2c863b] text-white">
               Confirmar Pré-Compra
             </Button>
           </DialogFooter>

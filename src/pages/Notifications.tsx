@@ -28,10 +28,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 const T = {
   /* Greens */
   g900:   '#2c863b',
-  g700:   '#1A5C24',
-  g600:   '#2D7D3A',
-  g500:   '#3D9A48',
-  g400:   '#4CAF50',
+  g700:   '#2c863b',
+  g600:   '#2c863b',
+  g500:   '#2c863b',
+  g400:   '#2c863b',
   g100:   '#E8F5E9',
   g50:    '#F2FAF3',
   gBorder:'#C8E6CA',
