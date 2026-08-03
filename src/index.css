@@ -236,6 +236,16 @@
     font-feature-settings: 'cv11', 'ss01';
   }
 
+  /* AgriLink typography — one font, consistent weights everywhere */
+  h1, h2, h3, h4, h5, h6, button, input, textarea, select, label, .badge {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+  h1 { @apply text-2xl font-extrabold tracking-tight; }
+  h2 { @apply text-xl font-bold tracking-tight; }
+  h3 { @apply text-base font-bold; }
+  p, span, li { font-weight: 400; }
+  button { font-weight: 700; }
+
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
