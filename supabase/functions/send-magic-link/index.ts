@@ -82,7 +82,21 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    const actionLink = linkData.properties.action_link;
+    // Build our OWN confirmation URL using the hashed token.
+    // The email never exposes the Supabase /verify endpoint directly, so
+    // Gmail/Outlook link scanners cannot consume the one-time token before
+    // the user actually clicks. The token is only exchanged on a real click.
+    const hashedToken = (linkData.properties as any)?.hashed_token as string | undefined;
+    let actionLink = linkData.properties.action_link;
+    try {
+      const base = new URL(redirectTo);
+      if (hashedToken) {
+        const nextPath = base.searchParams.get("next") || "/app";
+        actionLink = `${base.origin}/auth/callback?token_hash=${encodeURIComponent(hashedToken)}&type=magiclink&next=${encodeURIComponent(nextPath)}`;
+      }
+    } catch (_) {
+      // keep the default action link
+    }
 
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) throw new Error("Serviço de email indisponível.");
