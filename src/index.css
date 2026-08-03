@@ -11,8 +11,8 @@
 @layer base {
   :root {
     /* Background System — Fresh light canvas */
-    --background: 84 38% 97%;
-    --background-secondary: 88 40% 94%;
+    --background: 0 0% 100%;
+    --background-secondary: 130 20% 97%;
     --foreground: 95 40% 10%;
 
     /* Card System */
@@ -25,11 +25,11 @@
     --popover-foreground: 95 40% 10%;
 
     /* Primary Brand — Verde Alface #7CB342 (unified across platform) */
-    --primary: 129 50% 35%;
-    --primary-light: 128 43% 42%;
+    --primary: 130 51% 35%;
+    --primary-light: 130 51% 35%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 130 57% 23%;
-    --primary-glow: 122 39% 49%;
+    --primary-hover: 130 51% 29%;
+    --primary-glow: 130 51% 45%;
 
     /* Secondary — Pale Lettuce */
     --secondary: 125 39% 94%;
@@ -37,8 +37,8 @@
     --secondary-foreground: 95 40% 14%;
 
     /* Business — Deep Lettuce (same hue family, darker) */
-    --business: 130 57% 23%;
-    --business-light: 128 43% 33%;
+    --business: 130 51% 35%;
+    --business-light: 130 51% 35%;
     --business-foreground: 0 0% 100%;
 
     /* Accent — OrbisLink Gold #B07D0A */
@@ -52,7 +52,7 @@
     --muted-foreground: 95 14% 38%;
 
     /* Status — derived from lettuce */
-    --success: 129 50% 35%;
+    --success: 130 51% 35%;
     --success-foreground: 0 0% 100%;
     --warning: 41 89% 40%;
     --warning-foreground: 0 0% 100%;
@@ -63,12 +63,12 @@
     --border: 88 26% 87%;
     --border-strong: 88 26% 74%;
     --input: 88 26% 90%;
-    --ring: 129 50% 35%;
+    --ring: 130 51% 35%;
 
     /* Gradients — single green family */
-    --gradient-primary: linear-gradient(135deg, hsl(130 57% 23%), hsl(129 50% 35%));
-    --gradient-business: linear-gradient(135deg, hsl(130 57% 23%), hsl(128 43% 33%));
-    --gradient-hero: linear-gradient(145deg, hsl(130 57% 23%) 0%, hsl(129 50% 35%) 60%, hsl(122 39% 49%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(130 51% 35%), hsl(130 51% 42%));
+    --gradient-business: linear-gradient(135deg, hsl(130 51% 35%), hsl(130 51% 42%));
+    --gradient-hero: linear-gradient(145deg, hsl(130 51% 35%) 0%, hsl(130 51% 40%) 60%, hsl(130 51% 46%) 100%);
     --gradient-gold: linear-gradient(135deg, hsl(41 89% 36%), hsl(39 75% 47%));
     --gradient-card: linear-gradient(160deg, hsl(0 0% 100%) 0%, hsl(88 40% 98%) 100%);
     --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(84 38% 97%) 100%);
@@ -89,14 +89,14 @@
     --radius: 0.875rem;
 
     /* Sidebar */
-    --sidebar-background: 84 38% 97%;
+    --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 95 40% 14%;
-    --sidebar-primary: 129 50% 35%;
+    --sidebar-primary: 130 51% 35%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 88 25% 94%;
     --sidebar-accent-foreground: 140 35% 12%;
     --sidebar-border: 95 22% 88%;
-    --sidebar-ring: 130 57% 23%;
+    --sidebar-ring: 130 51% 35%;
 
     /* Safe areas */
     --safe-area-inset-top: env(safe-area-inset-top, 0px);
