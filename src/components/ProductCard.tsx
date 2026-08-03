@@ -45,7 +45,7 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: '0 2px 12px rgba(45,125,58,0.08)',
     transition: 'box-shadow 0.4s ease, transform 0.4s ease',
     position: 'relative',
-    fontFamily: "'Lato', 'Nunito', sans-serif",
+    fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
   },
   cardHover: {
     boxShadow: '0 12px 40px rgba(45,125,58,0.18)',

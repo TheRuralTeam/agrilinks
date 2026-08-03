@@ -179,16 +179,16 @@ const PublishProduct = () => {
   return (
     <div className="min-h-screen bg-white p-4">
       <div className="max-w-2xl mx-auto">
-       <div className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-md shadow-md z-50 p-4 flex justify-between items-center border-b border-[#B8860B]/30">
+       <div className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-md shadow-md z-50 p-4 flex justify-between items-center border-b border-[#B07D0A]/30">
       <div className="flex items-center gap-2">
           <img src={orbisLinkLogo} alt="OrbisLink" className="h-12" />
 
           </div>
-        <h1 className="font-semibold text-lg text-[#0a1628]">📦 Publicar Produto</h1>
+        <h1 className="font-semibold text-lg text-[#111714]">📦 Publicar Produto</h1>
         <Button
           variant="outline"
           size="sm"
-          className="border-[#B8860B] text-[#B8860B] hover:bg-[#B8860B] hover:text-white"
+          className="border-[#B07D0A] text-[#B07D0A] hover:bg-[#B07D0A] hover:text-white"
           onClick={() => navigate(-1)}
         >
           Voltar
@@ -198,9 +198,9 @@ const PublishProduct = () => {
          
         
 
-<Card className="shadow-strong border border-[#B8860B]/30 mt-20 bg-white">
+<Card className="shadow-strong border border-[#B07D0A]/30 mt-20 bg-white">
           <CardHeader className="bg-white">
-            <CardTitle className="text-xl text-[#0a1628] flex items-center gap-3">
+            <CardTitle className="text-xl text-[#111714] flex items-center gap-3">
               <Package className="h-6 w-6" />
               Informações do Produto
             </CardTitle>
@@ -251,7 +251,7 @@ const PublishProduct = () => {
               className="flex flex-col items-center justify-center gap-1 rounded-xl py-3 px-2 border transition-all"
               style={{
                 background: active ? c.color : '#fff',
-                color: active ? '#fff' : '#1A1A1A',
+                color: active ? '#fff' : '#111714',
                 borderColor: active ? c.color : '#E5EDE6',
                 boxShadow: active ? `0 4px 12px ${c.color}40` : 'none',
               }}
@@ -419,7 +419,7 @@ const PublishProduct = () => {
         />
       </div>
       {location && (
-        <p className="text-xs font-mono text-[#1A5C24]">
+        <p className="text-xs font-mono text-[#2c863b]">
           Coordenadas: {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
         </p>
       )}
@@ -533,7 +533,7 @@ const PublishProduct = () => {
         e.preventDefault();
         handleSubmit(e);
       }}
-      className="w-full bg-[#B8860B] hover:bg-[#B8860B]/90 text-white font-bold"
+      className="w-full bg-[#B07D0A] hover:bg-[#B07D0A]/90 text-white font-bold"
       size="lg"
       disabled={loading}
     >

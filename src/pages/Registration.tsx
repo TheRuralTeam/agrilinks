@@ -289,7 +289,7 @@ const Registration = () => {
         padding: '24px 16px',
         position: 'relative',
         overflow: 'hidden',
-        fontFamily: "'Segoe UI', system-ui, sans-serif",
+        fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
       }}
     >
       {/* Decorative blobs */}
