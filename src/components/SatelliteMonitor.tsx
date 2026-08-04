@@ -233,7 +233,7 @@ export const SatelliteMonitor: React.FC = () => {
               position: 'absolute', right: 0, top: 0, bottom: 0,
               width: 'min(460px, 100vw)', background: CANVAS,
               display: 'flex', flexDirection: 'column', boxShadow: '-8px 0 30px rgba(0,0,0,0.25)',
-              fontFamily: "'League Spartan', system-ui, sans-serif",
+              fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
             }}
           >
             {/* Header */}

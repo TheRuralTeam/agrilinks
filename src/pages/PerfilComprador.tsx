@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Badge } from '@/components/ui/badge'
 import { 
   Settings, LogOut, Mail, Phone, MapPin, ClipboardList, BarChart3, Camera, 
-  ShoppingCart, Clock, XCircle, CheckCircle, ArrowLeft, AlertTriangle
+  ShoppingCart, Clock, XCircle, CheckCircle, ArrowLeft, AlertTriangle,
+  FileText, FileSignature, ShieldCheck,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
@@ -288,7 +289,22 @@ const PerfilComprador = () => {
               <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-muted-foreground"/> {profileData.province_id || 'Não informado'}</div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardContent className="p-4 space-y-2">
+              <Button className="w-full justify-start gap-2" variant="outline" onClick={() => navigate('/ficharecebimento')}>
+                <FileText className="h-4 w-4" /> Ficha Técnica de Recebimento
+              </Button>
+              <Button className="w-full justify-start gap-2 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => navigate('/contratos-futuros/novo')}>
+                <FileSignature className="h-4 w-4" /> Criar Contrato de Futuros
+              </Button>
+              <Button className="w-full justify-start gap-2" variant="ghost" onClick={() => navigate('/contratos-futuros')}>
+                <ShieldCheck className="h-4 w-4" /> Meus Contratos de Futuros
+              </Button>
+            </CardContent>
+          </Card>
         </div>
+
 
         {/* Lado direito */}
         <div className="lg:col-span-2 space-y-6">
