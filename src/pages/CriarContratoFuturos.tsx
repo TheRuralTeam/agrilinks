@@ -100,8 +100,8 @@ const CriarContratoFuturos = () => {
             <label style={label}>Produto *</label>
             <select style={field} value={form.product_name} onChange={e => set('product_name', e.target.value)}>
               <option value="">Seleccione o produto/categoria</option>
-              {PRODUCT_CATEGORIES.map((c: any) => (
-                <option key={c.id ?? c.value ?? c} value={c.label ?? c.name ?? c}>{c.label ?? c.name ?? c}</option>
+              {PRODUCT_CATEGORIES.map(c => (
+                <option key={c.id} value={c.label}>{c.label}</option>
               ))}
             </select>
           </div>
