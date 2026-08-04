@@ -520,6 +520,151 @@ export type Database = {
         }
         Relationships: []
       }
+      futures_contracts: {
+        Row: {
+          admin_notes: string | null
+          agreed_price: number | null
+          buyer_id: string
+          buyer_signature_name: string | null
+          cancelled_at: string | null
+          created_at: string
+          currency: string
+          delivery_date: string
+          delivery_location: string | null
+          description: string | null
+          ficha_id: string | null
+          fulfilled_at: string | null
+          id: string
+          match_notes: string | null
+          municipality_id: string | null
+          packaging: string | null
+          penalty_percentage: number
+          producer_confirmed_at: string | null
+          producer_id: string | null
+          product_id: string | null
+          product_name: string
+          proposed_price: number
+          province_id: string | null
+          quality_specs: string | null
+          quantity: number
+          status: string
+          terms_accepted_at: string | null
+          terms_version: string
+          transport: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          agreed_price?: number | null
+          buyer_id: string
+          buyer_signature_name?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          delivery_date: string
+          delivery_location?: string | null
+          description?: string | null
+          ficha_id?: string | null
+          fulfilled_at?: string | null
+          id?: string
+          match_notes?: string | null
+          municipality_id?: string | null
+          packaging?: string | null
+          penalty_percentage?: number
+          producer_confirmed_at?: string | null
+          producer_id?: string | null
+          product_id?: string | null
+          product_name: string
+          proposed_price: number
+          province_id?: string | null
+          quality_specs?: string | null
+          quantity: number
+          status?: string
+          terms_accepted_at?: string | null
+          terms_version?: string
+          transport?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          agreed_price?: number | null
+          buyer_id?: string
+          buyer_signature_name?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          delivery_date?: string
+          delivery_location?: string | null
+          description?: string | null
+          ficha_id?: string | null
+          fulfilled_at?: string | null
+          id?: string
+          match_notes?: string | null
+          municipality_id?: string | null
+          packaging?: string | null
+          penalty_percentage?: number
+          producer_confirmed_at?: string | null
+          producer_id?: string | null
+          product_id?: string | null
+          product_name?: string
+          proposed_price?: number
+          province_id?: string | null
+          quality_specs?: string | null
+          quantity?: number
+          status?: string
+          terms_accepted_at?: string | null
+          terms_version?: string
+          transport?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "futures_contracts_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "futures_contracts_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "users_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "futures_contracts_ficha_id_fkey"
+            columns: ["ficha_id"]
+            isOneToOne: false
+            referencedRelation: "fichas_recebimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "futures_contracts_producer_id_fkey"
+            columns: ["producer_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "futures_contracts_producer_id_fkey"
+            columns: ["producer_id"]
+            isOneToOne: false
+            referencedRelation: "users_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "futures_contracts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_prices: {
         Row: {
           created_at: string
