@@ -53,7 +53,7 @@ const StatCard = ({ icon, value, label, color = T.g600 }: { icon: React.ReactNod
     <div style={{ width: 38, height: 38, borderRadius: 10, background: T.g50, border: `1px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       {icon}
     </div>
-    <div style={{ fontSize: 26, fontWeight: 900, color, letterSpacing: '-0.03em', fontFamily: "'Cormorant Garamond', Georgia, serif", fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+    <div style={{ fontSize: 26, fontWeight: 900, color, letterSpacing: '-0.03em', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontVariantNumeric: 'tabular-nums' }}>{value}</div>
     <div style={{ fontSize: 10, color: T.faint, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: 'center', lineHeight: 1.3 }}>{label}</div>
   </div>
 )
@@ -401,7 +401,7 @@ const Profile = () => {
   ]
 
   return (
-    <div style={{ minHeight: '100vh', background: T.canvas, fontFamily: "'DM Sans', system-ui, sans-serif", paddingBottom: 80 }}>
+    <div style={{ minHeight: '100vh', background: T.canvas, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", paddingBottom: 80 }}>
 
       {/* ═══ HEADER ═══════════════════════════════════════════════════════════ */}
       <header style={{
@@ -412,7 +412,7 @@ const Profile = () => {
       }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 20, fontWeight: 700, color: T.ink, margin: 0, letterSpacing: '-0.01em' }}>
+            <h1 style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontSize: 20, fontWeight: 700, color: T.ink, margin: 0, letterSpacing: '-0.01em' }}>
               {t('profile.title')}
             </h1>
             <p style={{ fontSize: 11, color: T.faint, margin: 0, marginTop: 1, fontWeight: 500 }}>
@@ -458,7 +458,7 @@ const Profile = () => {
                 }}>
                   {userProfile?.avatar_url
                     ? <img src={userProfile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
-                    : <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 28, fontWeight: 700, color: T.white }}>{profileData.full_name.charAt(0) || 'U'}</span>
+                    : <span style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontSize: 28, fontWeight: 700, color: T.white }}>{profileData.full_name.charAt(0) || 'U'}</span>
                   }
                 </div>
                 <label htmlFor="avatar-upload" style={{
@@ -475,7 +475,7 @@ const Profile = () => {
               {/* Name + type */}
               <div style={{ marginBottom: 18 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                  <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 22, fontWeight: 700, color: T.ink, margin: 0, letterSpacing: '-0.01em' }}>
+                  <h2 style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontSize: 22, fontWeight: 700, color: T.ink, margin: 0, letterSpacing: '-0.01em' }}>
                     {profileData.full_name || 'Utilizador'}
                   </h2>
                   {(userProfile as any)?.verified && (
@@ -500,7 +500,7 @@ const Profile = () => {
                   {isAgente && (userProfile as any)?.agent_code && (
                     <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 12, background: T.g50, border: `1px solid ${T.gBorder}` }}>
                       <p style={{ fontSize: 10, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{t('profile.agentCode')}</p>
-                      <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 24, fontWeight: 700, color: T.g600, letterSpacing: '0.08em', margin: 0 }}>{(userProfile as any).agent_code}</p>
+                      <p style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontSize: 24, fontWeight: 700, color: T.g600, letterSpacing: '0.08em', margin: 0 }}>{(userProfile as any).agent_code}</p>
                     </div>
                   )}
 
@@ -586,7 +586,7 @@ const Profile = () => {
                   <ProductCardBlock key={ficha.id} delay={i * 0.04}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                       <div>
-                        <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 17, fontWeight: 700, color: T.ink, margin: 0 }}>{ficha.nomeFicha}</h3>
+                        <h3 style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontSize: 17, fontWeight: 700, color: T.ink, margin: 0 }}>{ficha.nomeFicha}</h3>
                         <StatusPill status="active" />
                       </div>
                       <div style={{ display: 'flex', gap: 4 }}>
@@ -608,7 +608,7 @@ const Profile = () => {
                   <ProductCardBlock key={product.id} delay={i * 0.04}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                       <div style={{ flex: 1 }}>
-                        <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 17, fontWeight: 700, color: T.ink, margin: '0 0 4px' }}>{product.product_type}</h3>
+                        <h3 style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontSize: 17, fontWeight: 700, color: T.ink, margin: '0 0 4px' }}>{product.product_type}</h3>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <StatusPill status={product.status} />
                           <span style={{ fontSize: 13, fontWeight: 800, color: T.g600 }}>{product.price.toLocaleString()} Kz/kg</span>
@@ -637,7 +637,7 @@ const Profile = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                 <div>
-                  <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 18, fontWeight: 700, color: T.ink, margin: 0 }}>{t('sourcing.title')}</h3>
+                  <h3 style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontSize: 18, fontWeight: 700, color: T.ink, margin: 0 }}>{t('sourcing.title')}</h3>
                   <p style={{ fontSize: 12, color: T.faint, marginTop: 2 }}>{t('sourcing.subtitle')}</p>
                 </div>
                 <Btn variant="primary" size="sm" onClick={() => setShowSourcingForm(!showSourcingForm)}>
@@ -683,7 +683,7 @@ const Profile = () => {
                   <div style={{ height: 3, borderRadius: 2, background: order.status === 'pending' ? T.goldL : order.status === 'accepted' ? T.g400 : '#EF4444', marginBottom: 14 }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                     <div>
-                      <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 17, fontWeight: 700, color: T.ink, margin: '0 0 4px' }}>{order.product?.product_type || t('profile.product')}</h3>
+                      <h3 style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontSize: 17, fontWeight: 700, color: T.ink, margin: '0 0 4px' }}>{order.product?.product_type || t('profile.product')}</h3>
                       <StatusPill status={order.status} />
                     </div>
                     <div style={{ textAlign: 'right' }}>
@@ -725,11 +725,11 @@ const Profile = () => {
               {/* Summary row */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <div style={{ background: T.g900, borderRadius: 16, padding: '20px', textAlign: 'center', boxShadow: `0 4px 20px ${T.shadowMd}` }}>
-                  <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 36, fontWeight: 700, color: T.white }}>{agentStats?.totalReferrals || 0}</div>
+                  <div style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontSize: 36, fontWeight: 700, color: T.white }}>{agentStats?.totalReferrals || 0}</div>
                   <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 4 }}>{t('profile.usersReferred')}</div>
                 </div>
                 <div style={{ background: `linear-gradient(135deg, ${T.gold}, ${T.goldL})`, borderRadius: 16, padding: '20px', textAlign: 'center', boxShadow: `0 4px 20px rgba(176,125,10,0.28)` }}>
-                  <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 36, fontWeight: 700, color: T.white }}>{agentStats?.totalPoints || 0}</div>
+                  <div style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontSize: 36, fontWeight: 700, color: T.white }}>{agentStats?.totalPoints || 0}</div>
                   <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 4 }}>{t('profile.pointsEarned')}</div>
                 </div>
               </div>
@@ -752,7 +752,7 @@ const Profile = () => {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <Star size={13} color={T.goldL} fill={T.goldL}/>
-                    <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 20, fontWeight: 700, color: T.gold }}>+{referral.points}</span>
+                    <span style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontSize: 20, fontWeight: 700, color: T.gold }}>+{referral.points}</span>
                   </div>
                 </div>
               ))}
@@ -762,7 +762,7 @@ const Profile = () => {
           {/* ── Statistics ── */}
           {activeTab === 'statistics' && (
             <div style={{ background: T.white, borderRadius: 20, border: `1px solid ${T.rule}`, padding: 24, boxShadow: `0 1px 8px ${T.shadow}` }}>
-              <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 20, fontWeight: 700, color: T.ink, margin: '0 0 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h3 style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontSize: 20, fontWeight: 700, color: T.ink, margin: '0 0 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <TrendingUp size={18} color={T.g500}/> {t('profile.performanceSummary')}
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -781,7 +781,7 @@ const Profile = () => {
                 ]).map((row, i, arr) => (
                   <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.rule}` : 'none' }}>
                     <span style={{ fontSize: 13, color: T.muted, fontWeight: 500 }}>{row.label}</span>
-                    <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 22, fontWeight: 700, color: row.color, fontVariantNumeric: 'tabular-nums' }}>{typeof row.val === 'number' ? row.val.toLocaleString() : row.val}</span>
+                    <span style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontSize: 22, fontWeight: 700, color: row.color, fontVariantNumeric: 'tabular-nums' }}>{typeof row.val === 'number' ? row.val.toLocaleString() : row.val}</span>
                   </div>
                 ))}
               </div>
@@ -799,7 +799,7 @@ const Profile = () => {
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
         <DialogContent style={{ maxWidth: 420, borderRadius: 20, border: `1px solid ${T.rule}`, boxShadow: `0 24px 80px ${T.shadowMd}` }}>
           <DialogHeader>
-            <DialogTitle style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 20, fontWeight: 700, color: T.ink, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <DialogTitle style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontSize: 20, fontWeight: 700, color: T.ink, display: 'flex', alignItems: 'center', gap: 8 }}>
               <Settings size={17} color={T.g600}/> {t('profile.settings')}
             </DialogTitle>
           </DialogHeader>
@@ -882,7 +882,7 @@ const IconBtn = ({ icon, title, danger = false, onClick }: { icon: React.ReactNo
 const EmptyState = ({ icon, message, sub }: { icon: React.ReactNode; message: string; sub?: string }) => (
   <div style={{ gridColumn: '1/-1', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '64px 20px', textAlign: 'center' }}>
     <div style={{ width: 60, height: 60, borderRadius: 16, background: T.g50, border: `1px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>{icon}</div>
-    <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 18, fontWeight: 700, color: T.ink, margin: 0 }}>{message}</p>
+    <p style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontSize: 18, fontWeight: 700, color: T.ink, margin: 0 }}>{message}</p>
     {sub && <p style={{ fontSize: 12, color: T.faint, marginTop: 6, maxWidth: 260, lineHeight: 1.6 }}>{sub}</p>}
   </div>
 )

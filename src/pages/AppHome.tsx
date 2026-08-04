@@ -363,7 +363,7 @@ const AppHome = () => {
 
   /* ── Main render ── */
   return (
-    <div style={{ minHeight:'100vh', background: T.canvas, fontFamily:"'DM Sans', system-ui, sans-serif" }}>
+    <div style={{ minHeight:'100vh', background: T.canvas, fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif" }}>
 
       {/* ═══ LIVE TICKER ═══════════════════════════════════════════════════ */}
       <LiveTicker products={products}/>
@@ -552,7 +552,7 @@ const AppHome = () => {
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:28, flexWrap:'wrap', gap:12 }}>
           <div>
             <h2 style={{
-              fontFamily:"'Cormorant Garamond', Georgia, serif",
+              fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif",
               fontSize:'clamp(18px, 2.5vw, 24px)', fontWeight:700, color: T.ink, margin:0, letterSpacing:'-0.01em'
             }}>
               Produtos disponíveis
@@ -602,7 +602,7 @@ const AppHome = () => {
             <div style={{ width:56, height:56, borderRadius:16, background: T.g50, border:`1px solid ${T.gBorder}`, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:20 }}>
               <Package size={24} color={T.g500}/>
             </div>
-            <h3 style={{ fontFamily:"'Cormorant Garamond', Georgia, serif", fontSize:22, color: T.ink, margin:'0 0 10px', fontWeight:700 }}>
+            <h3 style={{ fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif", fontSize:22, color: T.ink, margin:'0 0 10px', fontWeight:700 }}>
               Sem produtos disponíveis
             </h3>
             <p style={{ fontSize:13, color: T.faint, maxWidth:320, lineHeight:1.65 }}>
@@ -625,7 +625,7 @@ const AppHome = () => {
                 <ShoppingCart size={17} color={T.g600}/>
               </div>
               <div>
-                <DialogTitle style={{ fontFamily:"'Cormorant Garamond', Georgia, serif", fontSize:18, fontWeight:700, color: T.ink, margin:0 }}>
+                <DialogTitle style={{ fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif", fontSize:18, fontWeight:700, color: T.ink, margin:0 }}>
                   Pré-Compra
                 </DialogTitle>
                 <p style={{ fontSize:12, color: T.faint, margin:0, marginTop:1 }}>
@@ -777,7 +777,7 @@ const AppHome = () => {
               </div>
             </div>
             <div style={{ textAlign:'center' }}>
-              <p style={{ fontFamily:"'Cormorant Garamond', Georgia, serif", fontSize:16, fontWeight:700, color: T.ink }}>A processar</p>
+              <p style={{ fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif", fontSize:16, fontWeight:700, color: T.ink }}>A processar</p>
               <p style={{ fontSize:12, color: T.faint, marginTop:4 }}>Registando encomenda...</p>
             </div>
             <div style={{ width:200, height:2, borderRadius:99, background: T.g50, overflow:'hidden' }}>
@@ -795,7 +795,7 @@ const AppHome = () => {
               <MapPin size={15} color={T.g600}/>
             </div>
             <div>
-              <DialogTitle style={{ fontFamily:"'Cormorant Garamond', Georgia, serif", fontSize:16, fontWeight:700, color: T.ink, margin:0 }}>
+              <DialogTitle style={{ fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif", fontSize:16, fontWeight:700, color: T.ink, margin:0 }}>
                 Localização do Fornecedor
               </DialogTitle>
               <DialogDescription style={{ fontSize:11, color: T.faint, marginTop:2 }}>

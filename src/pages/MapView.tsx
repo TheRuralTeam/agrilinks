@@ -51,7 +51,7 @@ const T = {
   shadowLg:'var(--map-shadow-lg)',
 }
 
-const FONT = "'League Spartan', 'Helvetica Neue', Arial, sans-serif"
+const FONT = "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
 
 /* ─── Types ─────────────────────────────────────────────────────────────────── */
 interface Product {
