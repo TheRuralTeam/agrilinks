@@ -28,6 +28,8 @@ import Wallet from "./pages/Wallet";
 import AppLayout from "./layouts/AppLayout";
 import AdminDashboard from "./pages/AdminDashboard";
 import FichaRecebimento from "./pages/FichaRecebimento";
+import CriarContratoFuturos from "./pages/CriarContratoFuturos";
+import ContratosFuturos from "./pages/ContratosFuturos";
 import SearchPage from "./pages/SearchPage";
 import EmailConfirmation from "./pages/EmailConfirmation";
 import ResetPassword from "./pages/ResetPassword";
@@ -247,6 +249,22 @@ const AppRoutes = () => {
             <AppLayout>
               <SearchPage />
             </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/contratos-futuros/novo"
+        element={
+          <ProtectedRoute>
+            <CriarContratoFuturos />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/contratos-futuros"
+        element={
+          <ProtectedRoute>
+            <ContratosFuturos />
           </ProtectedRoute>
         }
       />
