@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Badge } from '@/components/ui/badge'
 import { 
   Settings, LogOut, Mail, Phone, MapPin, ClipboardList, BarChart3, Camera, 
-  ShoppingCart, Clock, XCircle, CheckCircle, ArrowLeft, AlertTriangle
+  ShoppingCart, Clock, XCircle, CheckCircle, ArrowLeft, AlertTriangle,
   FileText, FileSignature, ShieldCheck,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
