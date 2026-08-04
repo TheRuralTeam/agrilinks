@@ -809,7 +809,7 @@ const AppHome = () => {
 
       {/* ── Global keyframes & utility styles ── */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@400;500;600;700;800;900&display=swap');
+        
 
         @keyframes spin        { to { transform: rotate(360deg) } }
         @keyframes shimmer     { 0%,100% { opacity:1 } 50% { opacity:0.4 } }

@@ -831,7 +831,7 @@ const Profile = () => {
       </Dialog>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@400;500;600;700;800;900&display=swap');
+        
         @keyframes spin    { to { transform: rotate(360deg) } }
         @keyframes fadeUp  { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
         * { box-sizing: border-box; }
