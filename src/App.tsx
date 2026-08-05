@@ -38,6 +38,10 @@ import UserProfile from "./pages/UserProfile";
 import CompletarPerfil from "./pages/CompletarPerfil";
 import PublicProductLocation from "./pages/PublicProductLocation";
 import AuthCallback from "./pages/AuthCallback";
+import MeusContratos from "./pages/MeusContratos";
+import { GuestGateProvider } from "@/contexts/GuestGateContext";
+import GuestCTABar from "@/components/GuestCTABar";
+import { purgeExpiredGuestSession } from "@/lib/guestSession";
 
 const queryClient = new QueryClient();
 
@@ -76,27 +80,42 @@ const ProtectedRoute = ({ children, allowIncomplete = false, allowUnverified = f
   return <>{children}</>;
 };
 
+/**
+ * Rota aberta: utilizadores autenticados passam pelas mesmas validações do
+ * ProtectedRoute; visitantes entram em Modo Convidado (dados locais, 2h).
+ */
+const OpenRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, userProfile, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (user) {
+    const emailConfirmed = userProfile?.email_verified === true;
+    if (!emailConfirmed) return <Navigate to="/confirmar-email" replace />;
+    if (userProfile && !isProfileComplete(userProfile)) return <Navigate to="/completar-perfil" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 const AppRoutes = () => {
   const { user, loading } = useAuth();
 
-  const rootElement = loading ? (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <p className="text-sm text-muted-foreground">Carregando...</p>
-      </div>
-    </div>
-  ) : user ? (
-    <Navigate to="/app" replace />
-  ) : (
-    <Navigate to="/login" replace />
-  );
 
   return (
     <Routes>
-      <Route path="/" element={rootElement} />
-      <Route path="/index" element={<Navigate to="/" replace />} />
-      <Route path="/home" element={<Navigate to="/" replace />} />
+      <Route path="/" element={<Navigate to="/app" replace />} />
+      <Route path="/index" element={<Navigate to="/app" replace />} />
+      <Route path="/home" element={<Navigate to="/app" replace />} />
       <Route path="/site" element={<Index />} />
       <Route path="/login" element={user ? <Navigate to="/app" replace /> : <LoginPage />} />
       <Route path="/cadastro" element={<Registration />} />
@@ -111,31 +130,31 @@ const AppRoutes = () => {
       <Route
         path="/app"
         element={
-          <ProtectedRoute>
+          <OpenRoute>
             <AppLayout>
               <AppHome />
             </AppLayout>
-          </ProtectedRoute>
+          </OpenRoute>
         }
       />
       <Route
         path="/mapa-app"
         element={
-          <ProtectedRoute>
+          <OpenRoute>
             <AppLayout>
               <MapView />
             </AppLayout>
-          </ProtectedRoute>
+          </OpenRoute>
         }
       />
       <Route
         path="/notificacoes"
         element={
-          <ProtectedRoute>
+          <OpenRoute>
             <AppLayout>
               <Notifications />
             </AppLayout>
-          </ProtectedRoute>
+          </OpenRoute>
         }
       />
       <Route
@@ -151,21 +170,21 @@ const AppRoutes = () => {
       <Route
         path="/listamensagens"
         element={
-          <ProtectedRoute>
+          <OpenRoute>
             <AppLayout>
               <ConversationsList />
             </AppLayout>
-          </ProtectedRoute>
+          </OpenRoute>
         }
       />
       <Route
         path="/perfil"
         element={
-          <ProtectedRoute>
+          <OpenRoute>
             <AppLayout>
               <Profile />
             </AppLayout>
-          </ProtectedRoute>
+          </OpenRoute>
         }
       />
       <Route
@@ -191,21 +210,21 @@ const AppRoutes = () => {
       <Route
         path="/suporte"
         element={
-          <ProtectedRoute>
+          <OpenRoute>
             <AppLayout>
               <Support />
             </AppLayout>
-          </ProtectedRoute>
+          </OpenRoute>
         }
       />
       <Route
         path="/mercado"
         element={
-          <ProtectedRoute>
+          <OpenRoute>
             <AppLayout>
               <MarketData />
             </AppLayout>
-          </ProtectedRoute>
+          </OpenRoute>
         }
       />
       <Route
@@ -221,9 +240,9 @@ const AppRoutes = () => {
       <Route
         path="/publicar-produto"
         element={
-          <ProtectedRoute>
+          <OpenRoute>
             <PublishProduct />
-          </ProtectedRoute>
+          </OpenRoute>
         }
       />
       <Route
@@ -245,11 +264,11 @@ const AppRoutes = () => {
       <Route
         path="/search"
         element={
-          <ProtectedRoute>
+          <OpenRoute>
             <AppLayout>
               <SearchPage />
             </AppLayout>
-          </ProtectedRoute>
+          </OpenRoute>
         }
       />
       <Route
@@ -258,6 +277,16 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <CriarContratoFuturos />
           </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/contratos"
+        element={
+          <OpenRoute>
+            <AppLayout>
+              <MeusContratos />
+            </AppLayout>
+          </OpenRoute>
         }
       />
       <Route
@@ -271,9 +300,9 @@ const AppRoutes = () => {
       <Route
         path="/ficharecebimento"
         element={
-          <ProtectedRoute>
+          <OpenRoute>
             <FichaRecebimento />
-          </ProtectedRoute>
+          </OpenRoute>
         }
       />
       <Route
@@ -302,6 +331,7 @@ const AppRoutes = () => {
 
 const App = () => {
 useEffect(() => {
+  purgeExpiredGuestSession();
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.ready.then((registration) => {
       console.log("SW já ativo:", registration);
@@ -320,7 +350,10 @@ useEffect(() => {
             <Sonner />
             <LanguageWelcomeBanner />
             <BrowserRouter>
-              <AppRoutes />
+              <GuestGateProvider>
+                <AppRoutes />
+                <GuestCTABar />
+              </GuestGateProvider>
             </BrowserRouter>
           </TooltipProvider>
         </AuthProvider>
