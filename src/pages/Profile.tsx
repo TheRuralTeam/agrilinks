@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from "react"
 import { useTranslation } from 'react-i18next'
 import i18n from '@/i18n'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -174,7 +174,10 @@ const Profile = () => {
   const { t } = useTranslation()
   const { user, userProfile: realProfile, logout } = useAuth()
   const { isGuest } = useGuestGate()
-  const userProfile: any = realProfile || (isGuest ? { ...GUEST_PROFILE, ...getGuestProfile() } : null)
+  const userProfile: any = React.useMemo(
+    () => realProfile || (isGuest ? { ...GUEST_PROFILE, ...getGuestProfile() } : null),
+    [realProfile, isGuest]
+  )
   const navigate = useNavigate()
 
   const [activeTab, setActiveTab] = useState('products')
