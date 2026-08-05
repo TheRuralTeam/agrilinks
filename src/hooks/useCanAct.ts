@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext'
+import { useGuestGate } from '@/contexts/GuestGateContext'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
 
@@ -11,6 +12,7 @@ import { useNavigate } from 'react-router-dom'
 export const useCanAct = () => {
   const { user, userProfile } = useAuth()
   const navigate = useNavigate()
+  const { requireAuth } = useGuestGate()
 
   const isLoggedIn = !!user
   const emailConfirmed = !!(user as any)?.email_confirmed_at || !!userProfile?.email_verified
@@ -18,9 +20,7 @@ export const useCanAct = () => {
 
   const requireAct = (action = 'esta acção') => {
     if (!isLoggedIn) {
-      toast.error('Faça login para executar ' + action, {
-        action: { label: 'Entrar', onClick: () => navigate('/login') },
-      })
+      requireAuth('Precisas de uma conta AgriLink para ' + action + '.')
       return false
     }
     if (!emailConfirmed) {

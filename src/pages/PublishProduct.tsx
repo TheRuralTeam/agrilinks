@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, Package, Calendar, DollarSign, Hash, MapPin, User, Upload, X } from 'lucide-react';
 import { angolaProvinces } from '@/data/angola-locations';
 import { useAuth } from '@/contexts/AuthContext';
+import { useGuestGate } from '@/contexts/GuestGateContext';
+import { pushGuestItem } from '@/lib/guestSession';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import agrilinkLogo from '@/assets/agrilink-logo.png'
@@ -20,6 +22,7 @@ import SimpleLeafletMap from '@/components/SimpleLeafletMap';
 const PublishProduct = () => {
   const navigate = useNavigate();
   const { user, userProfile } = useAuth();
+  const { requireAuth } = useGuestGate();
   const [loading, setLoading] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -99,7 +102,19 @@ const PublishProduct = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
-      toast({ title: "Erro de autenticação", description: "Você precisa estar logado para publicar um produto", variant: "destructive" });
+      // Modo convidado: guarda o rascunho localmente e convida ao cadastro
+      pushGuestItem('products', {
+        id: `guest-${Date.now()}`,
+        ...formData,
+        photos: imagePreviews,
+        status: 'rascunho_local',
+        created_at: new Date().toISOString(),
+      });
+      toast({
+        title: "Guardado no modo de teste",
+        description: "Cria a tua conta para publicar este produto de verdade no AgriLink.",
+      });
+      requireAuth('Para publicares este produto de verdade e chegares a compradores reais, precisas de uma conta AgriLink.');
       return;
     }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from "react"
 import { useTranslation } from 'react-i18next'
 import i18n from '@/i18n'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -9,7 +9,10 @@ import {
   ClipboardList, Bell, ShoppingCart, Search, BadgeCheck, Globe, ChevronRight,
   TrendingUp, Zap, ArrowUpRight, MessageCircle, Heart
 } from 'lucide-react'
+import { FileSignature } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useGuestGate } from '@/contexts/GuestGateContext'
+import { GUEST_PROFILE, getGuestData, getGuestProfile } from '@/lib/guestSession'
 import { supabase } from '@/integrations/supabase/client'
 import { useNavigate } from 'react-router-dom'
 import { toast } from '@/hooks/use-toast'
@@ -169,7 +172,12 @@ const StatusPill = ({ status }: { status: string }) => {
    ════════════════════════════════════════════════════════════════════════════ */
 const Profile = () => {
   const { t } = useTranslation()
-  const { user, userProfile, logout } = useAuth()
+  const { user, userProfile: realProfile, logout } = useAuth()
+  const { isGuest } = useGuestGate()
+  const userProfile: any = React.useMemo(
+    () => realProfile || (isGuest ? { ...GUEST_PROFILE, ...getGuestProfile() } : null),
+    [realProfile, isGuest]
+  )
   const navigate = useNavigate()
 
   const [activeTab, setActiveTab] = useState('products')
@@ -296,12 +304,19 @@ const Profile = () => {
   }
 
   useEffect(() => {
-    if (!user) return
+    if (!user) {
+      if (isGuest) {
+        setUserProducts(getGuestData<any[]>('products', []))
+        setFichasRecebimento(getGuestData<any[]>('fichas', []))
+      }
+      setLoading(false)
+      return
+    }
     if (userProfile?.user_type === 'comprador') { fetchFichasRecebimento(); fetchSourcingRequests(); fetchBuyerStats() }
     else { fetchUserProducts(); fetchReceivedOrders() }
     if (userProfile?.user_type === 'agente') fetchAgentStats()
     setLoading(false)
-  }, [user, userProfile])
+  }, [user, userProfile, isGuest])
 
   useEffect(() => {
     if (userProfile) {
@@ -420,6 +435,9 @@ const Profile = () => {
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
+            <Btn variant="outline" size="sm" onClick={() => navigate('/contratos')}>
+              <FileSignature size={14}/> <span className="hidden sm:inline">Contratos</span>
+            </Btn>
             <Btn variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
               <Settings size={14}/> <span className="hidden sm:inline">{t('profile.settings')}</span>
             </Btn>

@@ -439,6 +439,129 @@ export type Database = {
           },
         ]
       }
+      digital_contracts: {
+        Row: {
+          admin_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          buyer_id: string | null
+          conditions: string | null
+          created_at: string
+          currency: string
+          delivery_terms: string | null
+          id: string
+          price: number | null
+          product_name: string
+          quantity: number | null
+          requested_by: string
+          source_id: string
+          source_type: string
+          status: string
+          supplier_id: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          buyer_id?: string | null
+          conditions?: string | null
+          created_at?: string
+          currency?: string
+          delivery_terms?: string | null
+          id?: string
+          price?: number | null
+          product_name: string
+          quantity?: number | null
+          requested_by: string
+          source_id: string
+          source_type: string
+          status?: string
+          supplier_id?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          buyer_id?: string | null
+          conditions?: string | null
+          created_at?: string
+          currency?: string
+          delivery_terms?: string | null
+          id?: string
+          price?: number | null
+          product_name?: string
+          quantity?: number | null
+          requested_by?: string
+          source_id?: string
+          source_type?: string
+          status?: string
+          supplier_id?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "digital_contracts_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "digital_contracts_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "users_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "digital_contracts_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "digital_contracts_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "users_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "digital_contracts_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "digital_contracts_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "users_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "digital_contracts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "digital_contracts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "users_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_verification_codes: {
         Row: {
           code: string
