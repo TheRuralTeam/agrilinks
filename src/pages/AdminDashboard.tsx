@@ -634,7 +634,7 @@ const AdminDashboard = () => {
 
   if (loading && products.length === 0) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
           <p className="text-muted-foreground">Carregando dashboard...</p>
@@ -644,7 +644,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white">
       {/* Header Moderno */}
       <header className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="max-w-7xl mx-auto px-4 py-3">
@@ -763,10 +763,10 @@ const AdminDashboard = () => {
         {activeTab === "dashboard" && (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-              <MetricCard title="Produtos" value={products.length} icon={<Package className="h-5 w-5 sm:h-6 sm:w-6" />} trend={12} color="bg-gradient-to-br from-emerald-500 to-green-600" />
-              <MetricCard title="Usuários" value={users.length} icon={<Users className="h-5 w-5 sm:h-6 sm:w-6" />} trend={8} color="bg-gradient-to-br from-blue-500 to-indigo-600" />
-              <MetricCard title="Pedidos" value={orders.length} icon={<ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" />} trend={15} color="bg-gradient-to-br from-amber-500 to-orange-600" />
-              <MetricCard title="Transações" value={transactions.length} icon={<DollarSign className="h-5 w-5 sm:h-6 sm:w-6" />} trend={5} color="bg-gradient-to-br from-purple-500 to-pink-600" />
+              <MetricCard title="Produtos" value={products.length} icon={<Package className="h-5 w-5 sm:h-6 sm:w-6" />} trend={12} color="bg-primary" />
+              <MetricCard title="Usuários" value={users.length} icon={<Users className="h-5 w-5 sm:h-6 sm:w-6" />} trend={8} color="bg-primary" />
+              <MetricCard title="Pedidos" value={orders.length} icon={<ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" />} trend={15} color="bg-primary" />
+              <MetricCard title="Transações" value={transactions.length} icon={<DollarSign className="h-5 w-5 sm:h-6 sm:w-6" />} trend={5} color="bg-primary" />
             </div>
 
             {/* Top 3 Agentes Leaderboard */}
@@ -1408,25 +1408,25 @@ const AdminDashboard = () => {
                 title="Total Produtos"
                 value={products.length}
                 icon={<Package className="h-6 w-6" />}
-                color="bg-gradient-to-br from-blue-500 to-blue-600"
+                color="bg-primary"
               />
               <MetricCard
                 title="Volume Total (kg)"
                 value={products.reduce((acc, p) => acc + p.quantity, 0).toLocaleString()}
                 icon={<TrendingUp className="h-6 w-6" />}
-                color="bg-gradient-to-br from-green-500 to-green-600"
+                color="bg-primary"
               />
               <MetricCard
                 title="Preço Médio (AOA)"
                 value={products.length > 0 ? Math.round(products.reduce((acc, p) => acc + p.price, 0) / products.length).toLocaleString() : 0}
                 icon={<DollarSign className="h-6 w-6" />}
-                color="bg-gradient-to-br from-amber-500 to-amber-600"
+                color="bg-primary"
               />
               <MetricCard
                 title="Tipos de Produtos"
                 value={new Set(products.map(p => p.product_type)).size}
                 icon={<Activity className="h-6 w-6" />}
-                color="bg-gradient-to-br from-purple-500 to-purple-600"
+                color="bg-primary"
               />
             </div>
 
@@ -1625,7 +1625,7 @@ const AdminDashboard = () => {
               <CardContent>
                 {aiAnalysis ? (
                   <div className="prose prose-sm max-w-none">
-                    <div className="p-4 bg-gradient-to-br from-green-50 to-blue-50 rounded-xl border border-green-100">
+                    <div className="p-4 bg-primary/5 rounded-xl border border-primary/15">
                       <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
                         {aiAnalysis}
                       </div>
@@ -1663,7 +1663,7 @@ const AdminDashboard = () => {
           <div className="space-y-6">
             {/* Summary Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl p-4 text-white">
+              <div className="bg-white border border-primary/15 rounded-2xl p-4 text-foreground shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-white/80">Total Indicações</p>
@@ -1674,7 +1674,7 @@ const AdminDashboard = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-4 text-white">
+              <div className="bg-white border border-primary/15 rounded-2xl p-4 text-foreground shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-white/80">Total Pontos</p>
@@ -1685,7 +1685,7 @@ const AdminDashboard = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-4 text-white">
+              <div className="bg-white border border-primary/15 rounded-2xl p-4 text-foreground shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-white/80">Agentes Ativos</p>
@@ -1696,7 +1696,7 @@ const AdminDashboard = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl p-4 text-white">
+              <div className="bg-white border border-primary/15 rounded-2xl p-4 text-foreground shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-white/80">Média Pts/Indicação</p>
