@@ -10,6 +10,8 @@ import {
   TrendingUp, Zap, ArrowUpRight, MessageCircle, Heart
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useGuestGate } from '@/contexts/GuestGateContext'
+import { GUEST_PROFILE, getGuestData, getGuestProfile } from '@/lib/guestSession'
 import { supabase } from '@/integrations/supabase/client'
 import { useNavigate } from 'react-router-dom'
 import { toast } from '@/hooks/use-toast'
@@ -169,7 +171,9 @@ const StatusPill = ({ status }: { status: string }) => {
    ════════════════════════════════════════════════════════════════════════════ */
 const Profile = () => {
   const { t } = useTranslation()
-  const { user, userProfile, logout } = useAuth()
+  const { user, userProfile: realProfile, logout } = useAuth()
+  const { isGuest } = useGuestGate()
+  const userProfile: any = realProfile || (isGuest ? { ...GUEST_PROFILE, ...getGuestProfile() } : null)
   const navigate = useNavigate()
 
   const [activeTab, setActiveTab] = useState('products')
@@ -296,12 +300,19 @@ const Profile = () => {
   }
 
   useEffect(() => {
-    if (!user) return
+    if (!user) {
+      if (isGuest) {
+        setUserProducts(getGuestData<any[]>('products', []))
+        setFichasRecebimento(getGuestData<any[]>('fichas', []))
+      }
+      setLoading(false)
+      return
+    }
     if (userProfile?.user_type === 'comprador') { fetchFichasRecebimento(); fetchSourcingRequests(); fetchBuyerStats() }
     else { fetchUserProducts(); fetchReceivedOrders() }
     if (userProfile?.user_type === 'agente') fetchAgentStats()
     setLoading(false)
-  }, [user, userProfile])
+  }, [user, userProfile, isGuest])
 
   useEffect(() => {
     if (userProfile) {
