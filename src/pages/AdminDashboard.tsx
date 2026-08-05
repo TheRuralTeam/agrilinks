@@ -1666,10 +1666,10 @@ const AdminDashboard = () => {
               <div className="bg-white border border-primary/15 rounded-2xl p-4 text-foreground shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-white/80">Total Indicações</p>
+                    <p className="text-xs font-medium text-muted-foreground">Total Indicações</p>
                     <p className="text-2xl font-bold mt-1">{allReferrals.length}</p>
                   </div>
-                  <div className="p-2 bg-white/20 rounded-xl">
+                  <div className="p-2 bg-primary/10 text-primary rounded-xl">
                     <Users className="h-5 w-5" />
                   </div>
                 </div>
@@ -1677,10 +1677,10 @@ const AdminDashboard = () => {
               <div className="bg-white border border-primary/15 rounded-2xl p-4 text-foreground shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-white/80">Total Pontos</p>
+                    <p className="text-xs font-medium text-muted-foreground">Total Pontos</p>
                     <p className="text-2xl font-bold mt-1">{allReferrals.reduce((sum, r) => sum + r.points, 0)}</p>
                   </div>
-                  <div className="p-2 bg-white/20 rounded-xl">
+                  <div className="p-2 bg-primary/10 text-primary rounded-xl">
                     <Star className="h-5 w-5" />
                   </div>
                 </div>
@@ -1688,10 +1688,10 @@ const AdminDashboard = () => {
               <div className="bg-white border border-primary/15 rounded-2xl p-4 text-foreground shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-white/80">Agentes Ativos</p>
+                    <p className="text-xs font-medium text-muted-foreground">Agentes Ativos</p>
                     <p className="text-2xl font-bold mt-1">{new Set(allReferrals.map(r => r.agent_id)).size}</p>
                   </div>
-                  <div className="p-2 bg-white/20 rounded-xl">
+                  <div className="p-2 bg-primary/10 text-primary rounded-xl">
                     <BadgeCheck className="h-5 w-5" />
                   </div>
                 </div>
@@ -1699,12 +1699,12 @@ const AdminDashboard = () => {
               <div className="bg-white border border-primary/15 rounded-2xl p-4 text-foreground shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-white/80">Média Pts/Indicação</p>
+                    <p className="text-xs font-medium text-muted-foreground">Média Pts/Indicação</p>
                     <p className="text-2xl font-bold mt-1">
                       {allReferrals.length > 0 ? Math.round(allReferrals.reduce((sum, r) => sum + r.points, 0) / allReferrals.length) : 0}
                     </p>
                   </div>
-                  <div className="p-2 bg-white/20 rounded-xl">
+                  <div className="p-2 bg-primary/10 text-primary rounded-xl">
                     <TrendingUp className="h-5 w-5" />
                   </div>
                 </div>
