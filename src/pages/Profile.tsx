@@ -9,6 +9,7 @@ import {
   ClipboardList, Bell, ShoppingCart, Search, BadgeCheck, Globe, ChevronRight,
   TrendingUp, Zap, ArrowUpRight, MessageCircle, Heart
 } from 'lucide-react'
+import { FileSignature } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useGuestGate } from '@/contexts/GuestGateContext'
 import { GUEST_PROFILE, getGuestData, getGuestProfile } from '@/lib/guestSession'
@@ -431,6 +432,9 @@ const Profile = () => {
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
+            <Btn variant="outline" size="sm" onClick={() => navigate('/contratos')}>
+              <FileSignature size={14}/> <span className="hidden sm:inline">Contratos</span>
+            </Btn>
             <Btn variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
               <Settings size={14}/> <span className="hidden sm:inline">{t('profile.settings')}</span>
             </Btn>
