@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { corsHeaders } from "npm:@supabase/supabase-js@2.57.4/cors";
 import { Resend } from "npm:resend@2.0.0";
+import { sendEmailWithRetry } from "../_shared/resend.ts";
 import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 
 const BodySchema = z.object({
@@ -147,19 +148,20 @@ serve(async (req: Request): Promise<Response> => {
     });
 
     let usedFrom = PRIMARY_FROM;
-    let { error: emailError } = await resend.emails.send(buildPayload(PRIMARY_FROM) as any);
+    const first = await sendEmailWithRetry(resend, buildPayload(PRIMARY_FROM));
+    let emailError = first?.error;
 
     // Domínio ainda não verificado no Resend → não bloquear o fluxo de confirmação
     if (emailError && /not verified|domain/i.test(emailError.message || "")) {
       console.warn("Domínio primário indisponível no Resend, a usar fallback:", emailError.message);
       usedFrom = FALLBACK_FROM;
-      const retry = await resend.emails.send(buildPayload(FALLBACK_FROM) as any);
-      emailError = retry.error;
+      const retry = await sendEmailWithRetry(resend, buildPayload(FALLBACK_FROM));
+      emailError = retry?.error;
     }
 
     if (emailError) {
       console.error("Resend error:", emailError);
-      throw new Error("Erro ao enviar email: " + emailError.message);
+      throw new Error("Erro ao enviar email: " + (emailError.message || String(emailError)));
     }
 
 
