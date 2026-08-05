@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useGuestGate } from "@/contexts/GuestGateContext";
+import { pushGuestItem } from "@/lib/guestSession";
 import {
   ArrowLeft,
   ArrowRight,
@@ -42,6 +44,7 @@ const STEPS = [
 const __FICHA_GUEST__ = true
 
 const FichaRecebimento = () => {
+  const { requireAuth } = useGuestGate();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({
