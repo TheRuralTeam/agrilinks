@@ -128,55 +128,6 @@ const CountrySelector = ({
   </DropdownMenu>
 )
 
-/* ─── Live Ticker ────────────────────────────────────────────────────────────── */
-const LiveTicker = ({ products }: { products: Product[] }) => {
-  const total = products.reduce((s, p) => s + (p.quantity || 0), 0)
-  const engagement = products.reduce((s, p) => s + (p.likes_count || 0), 0)
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 0,
-      background: T.g900, overflow: 'hidden',
-      borderBottom: `1px solid rgba(255,255,255,0.06)`,
-    }}>
-      {/* Live badge */}
-      <div style={{
-        flexShrink: 0, padding: '8px 18px',
-        display: 'flex', alignItems: 'center', gap: 7,
-        borderRight: '1px solid rgba(255,255,255,0.08)',
-        background: 'rgba(255,255,255,0.04)',
-      }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ADE80', display: 'block', animation: 'breathe 2s ease-in-out infinite' }}/>
-        <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Ao vivo</span>
-      </div>
-      {/* Scrolling items */}
-      <div style={{ flex: 1, overflow: 'hidden', padding: '8px 20px' }}>
-        <div style={{ display: 'flex', gap: 32, animation: 'tickerScroll 18s linear infinite' }}>
-          {[
-            `${products.length} produtos activos`,
-            `${total.toLocaleString('pt-AO')} kg disponíveis`,
-            `${engagement} interacções`,
-            '7 países cobertos',
-            'Verificação em tempo real',
-            'B2B · Directo · Rastreável',
-          ].concat([
-            `${products.length} produtos activos`,
-            `${total.toLocaleString('pt-AO')} kg disponíveis`,
-            `${engagement} interacções`,
-            '7 países cobertos',
-            'Verificação em tempo real',
-            'B2B · Directo · Rastreável',
-          ]).map((item, i) => (
-            <span key={i} style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap', fontWeight: 500, letterSpacing: '0.02em' }}>
-              {item}
-              {i < 11 && <span style={{ marginLeft: 32, color: 'rgba(255,255,255,0.18)' }}>◆</span>}
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 /* ════════════════════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ════════════════════════════════════════════════════════════════════════════ */
@@ -364,9 +315,6 @@ const AppHome = () => {
   /* ── Main render ── */
   return (
     <div style={{ minHeight:'100vh', background: T.canvas, fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif" }}>
-
-      {/* ═══ LIVE TICKER ═══════════════════════════════════════════════════ */}
-      <LiveTicker products={products}/>
 
       {/* ═══ HEADER ════════════════════════════════════════════════════════ */}
       <header style={{
