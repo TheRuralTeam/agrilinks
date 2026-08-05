@@ -39,6 +39,8 @@ const STEPS = [
   { id: 4, label: "Resumo", icon: FileText },
 ];
 
+const __FICHA_GUEST__ = true
+
 const FichaRecebimento = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
@@ -110,7 +112,19 @@ const FichaRecebimento = () => {
         error: userError,
       } = await supabase.auth.getUser();
       if (userError || !user) {
-        toast.error("Utilizador não autenticado!");
+        // Modo convidado: guarda a ficha localmente e convida ao cadastro
+        pushGuestItem('fichas', {
+          id: `guest-${Date.now()}`,
+          nome_ficha: formData.nomeFicha,
+          produto: formData.produto,
+          tipo_negocio: formData.tipoNegocio,
+          created_at: new Date().toISOString(),
+          status: 'rascunho_local',
+        });
+        toast.success("Guardado no modo de teste", {
+          description: "Cria a tua conta para enviar esta ficha aos fornecedores.",
+        });
+        requireAuth('Para enviares esta ficha técnica a fornecedores reais, precisas de uma conta AgriLink.');
         setLoading(false);
         return;
       }
