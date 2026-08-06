@@ -1,5 +1,5 @@
 /// <reference types="https://esm.sh/@types/web-push@3.6.3" />
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

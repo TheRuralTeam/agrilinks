@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { corsHeaders } from "npm:@supabase/supabase-js@2.57.4/cors";
 import { Resend } from "npm:resend@2.0.0";
+import { sendEmailWithRetry } from "../_shared/resend.ts";
 import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 
 const BodySchema = z.object({
@@ -78,10 +79,10 @@ serve(async (req: Request): Promise<Response> => {
 
     const safeFullName = escapeHtml(fullName);
 
-    // Send email using Resend
+    // Send email using Resend with retry
     const resend = new Resend(resendApiKey);
 
-    const { data: emailData, error: emailError } = await resend.emails.send({
+    const sendResult = await sendEmailWithRetry(resend, {
       // Domínio agrilink.ao verificado no Resend (DKIM resend._domainkey + send.agrilink.ao)
       from: "AgriLink <no-reply@agrilink.ao>",
       reply_to: "contacto@agrilink.ao",
@@ -120,9 +121,12 @@ serve(async (req: Request): Promise<Response> => {
       `,
     });
 
+    const emailError = sendResult?.error;
+    const emailData = sendResult?.data ?? sendResult;
+
     if (emailError) {
       console.error("Error sending email:", emailError);
-      throw new Error("Erro ao enviar email: " + emailError.message);
+      throw new Error("Erro ao enviar email: " + (emailError.message || String(emailError)));
     }
 
     console.log("Email sent successfully to:", email, "Email ID:", emailData?.id);
