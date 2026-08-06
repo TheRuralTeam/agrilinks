@@ -48,86 +48,155 @@ const EmailConfirmation = () => {
   }, []);
 
   const handleSend = async () => {
-  const cleanEmail = email.trim().toLowerCase();
+    const cleanEmail = email.trim().toLowerCase();
 
-  if (!cleanEmail) {
-    toast({
-      title: "Insira o email",
-      description: "Informe o email usado no cadastro.",
-      variant: "destructive",
-    });
-    return;
-  }
+    if (!cleanEmail) {
+      toast({
+        title: "Insira o email",
+        description: "Informe o email usado no cadastro.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  if (countdown > 0 || sending) return;
+    if (countdown > 0 || sending) return;
 
-  setSending(true);
+    setSending(true);
 
-  try {
-    const redirectTo = `${window.location.origin}/auth/callback?next=/app`;
+    try {
+      const redirectTo = `${window.location.origin}/auth/callback?next=/app`;
 
-    console.log("[AgriLink] Enviando magic link:", {
-      email: cleanEmail,
-      redirect_to: redirectTo,
-    });
+      console.log("[AgriLink] Enviando magic link:", {
+        email: cleanEmail,
+        redirect_to: redirectTo,
+      });
 
-    const { data, error } = await supabase.functions.invoke(
-      "send-magic-link",
-      {
-        body: {
-          email: cleanEmail,
-          redirect_to: redirectTo,
+      const { data, error } = await supabase.functions.invoke(
+        "send-magic-link",
+        {
+          body: {
+            email: cleanEmail,
+            redirect_to: redirectTo,
+          },
         },
-      },
-    );
-
-    console.log("[AgriLink] Resposta da Edge Function:", {
-      data,
-      error,
-    });
-
-    if (error) {
-      console.error("[AgriLink] Erro da Edge Function:", error);
-
-      throw new Error(
-        error.message || "A Edge Function não conseguiu processar o pedido.",
       );
+
+      console.log("[AgriLink] Resposta da Edge Function:", {
+        data,
+        error,
+      });
+
+      if (error) {
+        console.error("[AgriLink] Erro da Edge Function:", error);
+
+        throw new Error(
+          error.message || "A Edge Function não conseguiu processar o pedido.",
+        );
+      }
+
+      if (!data) {
+        throw new Error("A Edge Function não retornou nenhuma resposta.");
+      }
+
+      if (data.error) {
+        console.error("[AgriLink] Erro retornado pela função:", data.error);
+        throw new Error(data.error);
+      }
+
+      if (data.success !== true) {
+        throw new Error(
+          "O servidor não confirmou o envio do email.",
+        );
+      }
+
+      setSent(true);
+      setCountdown(RESEND_COOLDOWN);
+
+      toast({
+        title: "Link enviado",
+        description:
+          "Verifique a caixa de entrada e a pasta de spam do seu email.",
+      });
+    } catch (err: any) {
+      console.error("[AgriLink] Falha ao enviar magic link:", err);
+
+      toast({
+        title: "Erro ao enviar link",
+        description:
+          err?.message ||
+          "Não foi possível enviar o link. Tente novamente dentro de instantes.",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
     }
+  };
 
-    if (!data) {
-      throw new Error("A Edge Function não retornou nenhuma resposta.");
-    }
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center space-y-4">
+          <img src={orbisLinkLogo} alt="OrbisLink" className="h-10 mx-auto" />
+          <CardTitle className="flex items-center justify-center gap-2">
+            {sent ? (
+              <>
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                Link enviado
+              </>
+            ) : (
+              <>
+                <MailCheck className="h-5 w-5" />
+                Confirme o seu email
+              </>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {sent ? (
+            <p className="text-sm text-muted-foreground text-center">
+              Enviámos um link de acesso para <strong>{email}</strong>.
+              Verifique a caixa de entrada e a pasta de spam.
+            </p>
+          ) : (
+            <>
+              <Input
+                type="email"
+                placeholder="seu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <Button
+                className="w-full"
+                onClick={handleSend}
+                disabled={sending || countdown > 0}
+              >
+                {sending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    A enviar...
+                  </>
+                ) : countdown > 0 ? (
+                  `Aguarde ${countdown}s`
+                ) : (
+                  "Enviar link de acesso"
+                )}
+              </Button>
+            </>
+          )}
 
-    if (data.error) {
-      console.error("[AgriLink] Erro retornado pela função:", data.error);
-      throw new Error(data.error);
-    }
+          {sent && countdown === 0 && (
+            <Button variant="outline" className="w-full" onClick={handleSend}>
+              Reenviar link
+            </Button>
+          )}
 
-    if (data.success !== true) {
-      throw new Error(
-        "O servidor não confirmou o envio do email.",
-      );
-    }
-
-    setSent(true);
-    setCountdown(RESEND_COOLDOWN);
-
-    toast({
-      title: "Link enviado",
-      description:
-        "Verifique a caixa de entrada e a pasta de spam do seu email.",
-    });
-  } catch (err: any) {
-    console.error("[AgriLink] Falha ao enviar magic link:", err);
-
-    toast({
-      title: "Erro ao enviar link",
-      description:
-        err?.message ||
-        "Não foi possível enviar o link. Tente novamente dentro de instantes.",
-      variant: "destructive",
-    });
-  } finally {
-    setSending(false);
-  }
+          <Button variant="ghost" className="w-full" onClick={logout}>
+            Sair
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
 };
+
+export default EmailConfirmation;
