@@ -167,6 +167,22 @@ interface Referral {
   referred_user_name: string;
 }
 
+const TAB_TITLES: Record<TabType, string> = {
+  dashboard: "Dashboard",
+  orders: "Pedidos",
+  products: "Produtos",
+  users: "Usuários",
+  transactions: "Transações",
+  notifications: "Notificações",
+  fichas: "Fichas de Recebimento",
+  sourcing: "OrbisLink Sourcing",
+  market: "Mercado",
+  prices: "Preços de Mercado",
+  admins: "Administradores",
+  referrals: "Indicações",
+  deliveries: "Entregas",
+};
+
 // --- Componentes Auxiliares ---
 const MetricCard = ({ title, value, icon, trend, color }: {
   title: string;
@@ -175,43 +191,46 @@ const MetricCard = ({ title, value, icon, trend, color }: {
   trend?: number;
   color: string;
 }) => (
-  <div className={`rounded-2xl p-3 sm:p-5 ${color} transition-all hover:scale-[1.02] hover:shadow-lg`}>
+  <div className="rounded-2xl p-3 sm:p-5 bg-white border border-gray-100 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
     <div className="flex items-center justify-between gap-2">
       <div className="min-w-0 flex-1">
-        <p className="text-xs sm:text-sm font-medium text-white/80 truncate">{title}</p>
-        <p className="text-xl sm:text-3xl font-bold text-white mt-1">{value}</p>
+        <p className="text-xs sm:text-sm font-medium text-gray-500 truncate">{title}</p>
+        <p className="text-xl sm:text-3xl font-bold text-gray-900 mt-1 tracking-tight">{value}</p>
         {trend !== undefined && (
-          <p className="text-xs sm:text-sm mt-1 text-white/70 flex items-center gap-1">
+          <p className="text-xs sm:text-sm mt-1 text-emerald-600 flex items-center gap-1 font-semibold">
             <TrendingUp className="h-3 w-3" />
             {trend >= 0 ? "+" : ""}{trend}%
           </p>
         )}
       </div>
-      <div className="p-2 sm:p-3 bg-white/20 rounded-xl text-white flex-shrink-0">
+      <div className={`p-2 sm:p-3 rounded-xl text-white flex-shrink-0 ${color}`}>
         {icon}
       </div>
     </div>
   </div>
 );
 
-const TabButton = ({ active, onClick, children, badge }: {
+/* ── Item de navegação vertical (sidebar) ── */
+const SidebarItem = ({ active, onClick, icon, children, badge }: {
   active: boolean;
   onClick: () => void;
+  icon: React.ReactNode;
   children: React.ReactNode;
   badge?: number;
 }) => (
   <button
     onClick={onClick}
-    className={`px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-xl font-medium text-xs sm:text-sm transition-all flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
-      active 
-        ? "bg-primary text-primary-foreground shadow-md" 
-        : "bg-card text-foreground hover:bg-muted border border-border"
+    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+      active
+        ? "bg-primary/10 text-primary"
+        : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
     }`}
   >
-    {children}
+    <span className={`flex-shrink-0 ${active ? "text-primary" : "text-gray-400"}`}>{icon}</span>
+    <span className="flex-1 text-left truncate">{children}</span>
     {badge !== undefined && badge > 0 && (
-      <span className="bg-destructive text-destructive-foreground text-[10px] sm:text-xs font-bold rounded-full min-w-[18px] sm:min-w-[20px] h-4 sm:h-5 px-1 sm:px-1.5 flex items-center justify-center">
-        {badge > 99 ? '99+' : badge}
+      <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center flex-shrink-0">
+        {badge > 99 ? "99+" : badge}
       </span>
     )}
   </button>
@@ -644,99 +663,120 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header Moderno */}
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src={OrbisLinkLogo} alt="OrbisLink" className="h-9" />
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-bold text-foreground">Painel Admin</h1>
-                <p className="text-xs text-muted-foreground">Gerenciamento OrbisLink</p>
-              </div>
-            </div>
+    <div className="min-h-screen bg-[#F7F9F7]">
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setActiveTab("notifications")}
-                className="relative p-2 hover:bg-gray-100 rounded-xl transition-colors"
-              >
-                <Bell className="h-5 w-5 text-gray-600" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
-              <button onClick={() => navigate("/")} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
-                <ArrowLeft className="h-5 w-5 text-gray-600" />
-              </button>
-              <button className="md:hidden p-2 hover:bg-gray-100 rounded-xl" onClick={() => setMenuOpen(!menuOpen)}>
-                {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </button>
-            </div>
+      {/* ═══ SIDEBAR (navegação vertical) ═══════════════════════════════════ */}
+      <aside className={`fixed top-0 left-0 h-screen w-64 bg-white border-r border-gray-100 z-40 flex flex-col transition-transform duration-300 ease-out ${menuOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}>
+        <div className="h-16 flex items-center gap-3 px-5 border-b border-gray-100 flex-shrink-0">
+          <img src={OrbisLinkLogo} alt="OrbisLink" className="h-8" />
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-gray-900 leading-tight truncate">Painel Admin</p>
+            <p className="text-[11px] text-gray-400 leading-tight">OrbisLink</p>
           </div>
-
-          {/* Tabs */}
-          <div className={`mt-3 overflow-x-auto pb-1 ${menuOpen ? "flex" : "hidden md:flex"} flex-wrap gap-2`}>
-            <TabButton active={activeTab === "dashboard"} onClick={() => { setActiveTab("dashboard"); setMenuOpen(false); }}>
-              <Activity className="h-4 w-4" /> Dashboard
-            </TabButton>
-            <TabButton active={activeTab === "orders"} onClick={() => { setActiveTab("orders"); setMenuOpen(false); }}>
-              <ShoppingCart className="h-4 w-4" /> Pedidos
-            </TabButton>
-            {hasPermission("manage_products") && (
-              <TabButton active={activeTab === "products"} onClick={() => { setActiveTab("products"); setMenuOpen(false); }}>
-                <Package className="h-4 w-4" /> Produtos
-              </TabButton>
-            )}
-            {hasPermission("manage_users") && (
-              <TabButton active={activeTab === "users"} onClick={() => { setActiveTab("users"); setMenuOpen(false); }}>
-                <Users className="h-4 w-4" /> Usuários
-              </TabButton>
-            )}
-            <TabButton active={activeTab === "transactions"} onClick={() => { setActiveTab("transactions"); setMenuOpen(false); }}>
-              <DollarSign className="h-4 w-4" /> Transações
-            </TabButton>
-            <TabButton active={activeTab === "notifications"} onClick={() => { setActiveTab("notifications"); setMenuOpen(false); }} badge={unreadCount}>
-              <Bell className="h-4 w-4" /> Notificações
-            </TabButton>
-            <TabButton active={activeTab === "fichas"} onClick={() => { setActiveTab("fichas"); setMenuOpen(false); }}>
-              <FileText className="h-4 w-4" /> Fichas
-            </TabButton>
-            {hasPermission("manage_sourcing") && (
-              <TabButton active={activeTab === "sourcing"} onClick={() => { setActiveTab("sourcing"); setMenuOpen(false); }} badge={sourcingRequests.filter(s => s.status === 'pending').length}>
-                <TrendingUp className="h-4 w-4" /> Sourcing
-              </TabButton>
-            )}
-            {hasPermission("view_analytics") && (
-              <TabButton active={activeTab === "market"} onClick={() => { setActiveTab("market"); setMenuOpen(false); }}>
-                <Activity className="h-4 w-4" /> Mercado
-              </TabButton>
-            )}
-            <TabButton active={activeTab === "prices"} onClick={() => { setActiveTab("prices"); setMenuOpen(false); }}>
-              <DollarSign className="h-4 w-4" /> Preços de Mercado
-            </TabButton>
-
-            {(isRootAdmin || hasPermission("manage_admins")) && (
-              <TabButton active={activeTab === "admins"} onClick={() => { setActiveTab("admins"); setMenuOpen(false); }}>
-                <Crown className="h-4 w-4" /> Admins
-              </TabButton>
-            )}
-            {hasPermission("view_analytics") && (
-              <TabButton active={activeTab === "referrals"} onClick={() => { setActiveTab("referrals"); setMenuOpen(false); }} badge={allReferrals.length}>
-                <Star className="h-4 w-4" /> Indicações
-              </TabButton>
-            )}
-            {(isSupportAgent || hasPermission("manage_orders")) && (
-              <TabButton active={activeTab === "deliveries"} onClick={() => { setActiveTab("deliveries"); setMenuOpen(false); }}>
-                <Truck className="h-4 w-4" /> Entregas
-              </TabButton>
-            )}
-          </div>
+          <button className="md:hidden ml-auto p-1.5 hover:bg-gray-100 rounded-lg flex-shrink-0" onClick={() => setMenuOpen(false)}>
+            <X className="h-4 w-4 text-gray-500" />
+          </button>
         </div>
-      </header>
+
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+          <SidebarItem active={activeTab === "dashboard"} onClick={() => { setActiveTab("dashboard"); setMenuOpen(false); }} icon={<Activity className="h-4 w-4" />}>
+            Dashboard
+          </SidebarItem>
+          <SidebarItem active={activeTab === "orders"} onClick={() => { setActiveTab("orders"); setMenuOpen(false); }} icon={<ShoppingCart className="h-4 w-4" />}>
+            Pedidos
+          </SidebarItem>
+          {hasPermission("manage_products") && (
+            <SidebarItem active={activeTab === "products"} onClick={() => { setActiveTab("products"); setMenuOpen(false); }} icon={<Package className="h-4 w-4" />}>
+              Produtos
+            </SidebarItem>
+          )}
+          {hasPermission("manage_users") && (
+            <SidebarItem active={activeTab === "users"} onClick={() => { setActiveTab("users"); setMenuOpen(false); }} icon={<Users className="h-4 w-4" />}>
+              Usuários
+            </SidebarItem>
+          )}
+          <SidebarItem active={activeTab === "transactions"} onClick={() => { setActiveTab("transactions"); setMenuOpen(false); }} icon={<DollarSign className="h-4 w-4" />}>
+            Transações
+          </SidebarItem>
+          <SidebarItem active={activeTab === "notifications"} onClick={() => { setActiveTab("notifications"); setMenuOpen(false); }} icon={<Bell className="h-4 w-4" />} badge={unreadCount}>
+            Notificações
+          </SidebarItem>
+          <SidebarItem active={activeTab === "fichas"} onClick={() => { setActiveTab("fichas"); setMenuOpen(false); }} icon={<FileText className="h-4 w-4" />}>
+            Fichas
+          </SidebarItem>
+          {hasPermission("manage_sourcing") && (
+            <SidebarItem active={activeTab === "sourcing"} onClick={() => { setActiveTab("sourcing"); setMenuOpen(false); }} icon={<TrendingUp className="h-4 w-4" />} badge={sourcingRequests.filter(s => s.status === 'pending').length}>
+              Sourcing
+            </SidebarItem>
+          )}
+          {hasPermission("view_analytics") && (
+            <SidebarItem active={activeTab === "market"} onClick={() => { setActiveTab("market"); setMenuOpen(false); }} icon={<Activity className="h-4 w-4" />}>
+              Mercado
+            </SidebarItem>
+          )}
+          <SidebarItem active={activeTab === "prices"} onClick={() => { setActiveTab("prices"); setMenuOpen(false); }} icon={<DollarSign className="h-4 w-4" />}>
+            Preços de Mercado
+          </SidebarItem>
+          {(isRootAdmin || hasPermission("manage_admins")) && (
+            <SidebarItem active={activeTab === "admins"} onClick={() => { setActiveTab("admins"); setMenuOpen(false); }} icon={<Crown className="h-4 w-4" />}>
+              Admins
+            </SidebarItem>
+          )}
+          {hasPermission("view_analytics") && (
+            <SidebarItem active={activeTab === "referrals"} onClick={() => { setActiveTab("referrals"); setMenuOpen(false); }} icon={<Star className="h-4 w-4" />} badge={allReferrals.length}>
+              Indicações
+            </SidebarItem>
+          )}
+          {(isSupportAgent || hasPermission("manage_orders")) && (
+            <SidebarItem active={activeTab === "deliveries"} onClick={() => { setActiveTab("deliveries"); setMenuOpen(false); }} icon={<Truck className="h-4 w-4" />}>
+              Entregas
+            </SidebarItem>
+          )}
+        </nav>
+
+        <div className="p-3 border-t border-gray-100 flex-shrink-0">
+          {isRootAdmin && (
+            <div className="flex items-center gap-2 px-3 py-2 mb-1 rounded-xl bg-amber-50 border border-amber-100">
+              <Crown className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+              <span className="text-[11px] font-semibold text-amber-700 truncate">Root Admin</span>
+            </div>
+          )}
+          <button onClick={() => navigate("/")} className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors">
+            <ArrowLeft className="h-4 w-4" /> Voltar ao site
+          </button>
+        </div>
+      </aside>
+
+      {/* Overlay para fechar a sidebar em mobile */}
+      {menuOpen && (
+        <div className="fixed inset-0 bg-black/25 z-30 md:hidden" onClick={() => setMenuOpen(false)} />
+      )}
+
+      {/* ═══ CONTEÚDO PRINCIPAL ═══════════════════════════════════════════════ */}
+      <div className="md:pl-64">
+
+        {/* Top bar fina */}
+        <header className="sticky top-0 z-20 bg-white/85 backdrop-blur-md border-b border-gray-100">
+          <div className="flex items-center justify-between px-4 sm:px-6 h-16">
+            <div className="flex items-center gap-3 min-w-0">
+              <button className="md:hidden p-2 hover:bg-gray-100 rounded-xl flex-shrink-0" onClick={() => setMenuOpen(true)}>
+                <Menu className="h-5 w-5 text-gray-600" />
+              </button>
+              <h1 className="text-base sm:text-lg font-bold text-gray-900 truncate">{TAB_TITLES[activeTab]}</h1>
+            </div>
+            <button
+              onClick={() => setActiveTab("notifications")}
+              className="relative p-2 hover:bg-gray-100 rounded-xl transition-colors flex-shrink-0"
+            >
+              <Bell className="h-5 w-5 text-gray-600" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+          </div>
+        </header>
 
       <main className="max-w-7xl mx-auto p-4 space-y-6">
         {/* Support Agent Work Timer */}
@@ -747,16 +787,6 @@ const AdminDashboard = () => {
             stats={workSessionStats}
             onEndSession={endSession}
           />
-        )}
-
-        {/* Root Admin Badge */}
-        {isRootAdmin && (
-          <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-200 rounded-xl">
-            <Crown className="h-5 w-5 text-amber-600" />
-            <span className="text-sm font-medium text-amber-800">
-              Você é um Root Admin - Acesso total ao sistema
-            </span>
-          </div>
         )}
 
         {/* DASHBOARD */}
@@ -1926,6 +1956,7 @@ const AdminDashboard = () => {
           <DeliveryTracking currentUserId={currentUserId} />
         )}
       </main>
+      </div>
 
       {/* Modal de Notificação */}
       <Dialog open={notificationModalOpen} onOpenChange={setNotificationModalOpen}>

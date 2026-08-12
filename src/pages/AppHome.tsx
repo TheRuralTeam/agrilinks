@@ -62,8 +62,8 @@ const COUNTRIES = [
 /* ─── Skeleton ──────────────────────────────────────────────────────────────── */
 const ProductSkeleton = () => (
   <div style={{
-    background: T.white, borderRadius: 20, border: `1px solid ${T.rule}`,
-    overflow: 'hidden', boxShadow: `0 1px 6px ${T.shadow}`
+    background: T.white, borderRadius: 20, border: `1px solid rgba(0,0,0,0.05)`,
+    overflow: 'hidden'
   }}>
     <div style={{ aspectRatio:'4/3', background: `linear-gradient(135deg, ${T.g50}, ${T.g100})`, animation:'shimmer 1.8s ease-in-out infinite' }}/>
     <div style={{ padding: 18, display:'flex', flexDirection:'column', gap: 10 }}>
@@ -85,22 +85,20 @@ const CountrySelector = ({
     <DropdownMenuTrigger asChild>
       <button style={{
         display:'flex', alignItems:'center', gap: 6, padding:'7px 12px',
-        borderRadius: 10, border: `1px solid ${T.rule}`,
-        background: T.white, cursor:'pointer', transition:'all 0.18s',
+        borderRadius: 980, border: 'none',
+        background: 'rgba(118,118,128,0.08)', cursor:'pointer', transition:'background 0.15s',
         color: T.ink, fontSize: 13, fontWeight: 600,
-        boxShadow: `0 1px 3px ${T.shadow}`,
       }}
-        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = T.g600 }}
-        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = T.rule }}
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(118,118,128,0.13)' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(118,118,128,0.08)' }}
       >
-        <Globe2 size={13} color={T.g600}/>
         <span style={{ fontSize: 15 }}>{selectedCountry.flag}</span>
         <ChevronDown size={11} color={T.muted}/>
       </button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" style={{
-      width: 230, borderRadius: 16, border: `1px solid ${T.rule}`,
-      boxShadow: `0 16px 48px ${T.shadowMd}`, background: T.white, padding: '6px',
+      width: 220, borderRadius: 16, border: `1px solid rgba(0,0,0,0.06)`,
+      boxShadow: `0 12px 32px rgba(0,0,0,0.10)`, background: T.white, padding: '6px',
     }}>
       <div style={{ padding:'8px 12px 6px', fontSize:10, fontWeight:800, color: T.g600, textTransform:'uppercase', letterSpacing:'0.1em', borderBottom:`1px solid ${T.rule}`, marginBottom: 4 }}>
         Região de Operação
@@ -185,10 +183,14 @@ const AppHome = () => {
     detect()
   }, [])
 
-  /* Fetch products */
-  useEffect(() => { if (user) fetchProducts() }, [user])
+  /* Fetch products — corre sempre, mesmo sem sessão (modo convidado),
+     para o spinner nunca ficar preso à espera de um `user` que pode nunca existir. */
+  useEffect(() => {
+    fetchProducts()
+  }, [user])
 
   const fetchProducts = async () => {
+    setLoading(true)
     try {
       const { data: productsData, error } = await supabase
         .from('products').select('*').eq('status', 'active').limit(100)
@@ -198,14 +200,18 @@ const AppHome = () => {
         (productsData || []).map(async (product) => {
           const { data: productUser } = await supabase.from('users').select('verified').eq('id', product.user_id).maybeSingle()
           const { count: likesCount } = await supabase.from('product_likes').select('*', { count:'exact', head:true }).eq('product_id', product.id)
-          const { data: userLike } = await supabase.from('product_likes').select('id').eq('product_id', product.id).eq('user_id', user?.id||'').maybeSingle()
+          const { data: userLike } = user
+            ? await supabase.from('product_likes').select('id').eq('product_id', product.id).eq('user_id', user.id).maybeSingle()
+            : { data: null }
           const { data: comments } = await supabase.from('product_comments').select('id, user_id, comment_text, created_at').eq('product_id', product.id).order('created_at', { ascending: false })
 
           const commentsWithUserInfo = await Promise.all(
             (comments || []).map(async (c) => {
               const { data: userData } = await supabase.from('users').select('full_name, user_type, avatar_url').eq('id', c.user_id).maybeSingle()
               const { count: cLikes } = await supabase.from('comment_likes').select('*', { count:'exact', head:true }).eq('comment_id', c.id)
-              const { data: userCLike } = await supabase.from('comment_likes').select('id').eq('comment_id', c.id).eq('user_id', user?.id||'').maybeSingle()
+              const { data: userCLike } = user
+                ? await supabase.from('comment_likes').select('id').eq('comment_id', c.id).eq('user_id', user.id).maybeSingle()
+                : { data: null }
               const { data: replies } = await supabase.from('comment_replies').select('id, user_id, reply_text, created_at').eq('comment_id', c.id).order('created_at', { ascending: true })
               const repliesWithUser = await Promise.all(
                 (replies || []).map(async (r) => {
@@ -227,7 +233,10 @@ const AppHome = () => {
         return sB - sA
       })
       setProducts(ranked.slice(0, 20))
-    } catch { setProducts([]) }
+    } catch (err) {
+      console.error('Erro ao carregar produtos:', err)
+      setProducts([])
+    }
     finally { setLoading(false) }
   }
 
@@ -319,11 +328,11 @@ const AppHome = () => {
       {/* ═══ HEADER ════════════════════════════════════════════════════════ */}
       <header style={{
         position:'sticky', top:0, zIndex:30,
-        background:'rgba(247,249,247,0.97)', backdropFilter:'blur(20px)',
-        borderBottom:`1px solid ${T.rule}`,
-        boxShadow: `0 1px 0 ${T.rule}, 0 4px 24px rgba(13,43,18,0.04)`,
+        background:'rgba(255,255,255,0.8)', backdropFilter:'saturate(180%) blur(20px)',
+        WebkitBackdropFilter:'saturate(180%) blur(20px)',
+        borderBottom:`1px solid rgba(0,0,0,0.06)`,
       }}>
-        <div style={{ maxWidth:1320, margin:'0 auto', padding:'0 20px', height:62, display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
+        <div style={{ maxWidth:1320, margin:'0 auto', padding:'0 16px', height:56, display:'flex', alignItems:'center', gap:10 }}>
 
           {/* Logo */}
           <div
@@ -333,47 +342,34 @@ const AppHome = () => {
             <img
               src={orbisLinkLogo}
               alt="OrbisLink"
-              style={{ height: 32, width: 'auto', objectFit: 'contain', display: 'block' }}
+              style={{ height: 26, width: 'auto', objectFit: 'contain', display: 'block' }}
             />
           </div>
 
-          {/* Search bar — visible only sm and above (≥ 640px) */}
+          {/* Pesquisa — pílula leve, sempre visível, encolhe em mobile sem sair da navbar */}
           <div
-            style={{
-              flex:1, maxWidth:460, display:'flex', alignItems:'center', gap:10,
-              padding:'9px 16px', borderRadius:12,
-              border:`1px solid ${T.rule}`, background: T.white,
-              cursor:'pointer', transition:'all 0.18s',
-              boxShadow: `0 1px 4px ${T.shadow}`,
-            }}
             onClick={() => navigate('/search')}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = T.g600; (e.currentTarget as HTMLElement).style.boxShadow = `0 1px 8px ${T.shadowMd}` }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = T.rule; (e.currentTarget as HTMLElement).style.boxShadow = `0 1px 4px ${T.shadow}` }}
-            className="hidden sm:flex"
+            style={{
+              flex: '1 1 auto', minWidth: 0, maxWidth: 480,
+              display:'flex', alignItems:'center', gap:8,
+              padding:'8px 14px', borderRadius: 980,
+              background: 'rgba(118,118,128,0.08)',
+              cursor:'pointer', transition:'background 0.15s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(118,118,128,0.13)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(118,118,128,0.08)' }}
           >
-            <Search size={14} color={T.g500}/>
-            <span style={{ fontSize:13, color: T.faint }}>Pesquisar produtos, fornecedores...</span>
-            <span style={{ marginLeft:'auto', fontSize:10, color: T.faint, padding:'2px 7px', borderRadius:6, border:`1px solid ${T.rule}`, fontWeight:600 }}>⌘K</span>
+            <Search size={14} color={T.faint} style={{ flexShrink: 0 }}/>
+            <span style={{
+              fontSize:13, color: T.faint, fontWeight:500,
+              overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+            }}>
+              Pesquisar
+            </span>
           </div>
 
-          {/* Search icon — visible only below sm (< 640px) */}
-          <button
-            style={{
-              padding:'8px', borderRadius:10, border:`1px solid ${T.rule}`, background: T.white,
-              cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-              color: T.mid, transition:'all 0.18s',
-              boxShadow: `0 1px 3px ${T.shadow}`,
-            }}
-            onClick={() => navigate('/search')}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = T.g600 }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = T.rule }}
-            className="sm:hidden"
-          >
-            <Search size={16}/>
-          </button>
-
           {/* Right actions */}
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink: 0 }}>
             <div className="hidden sm:flex">
               <CountrySelector selectedCountry={selectedCountry} onCountryChange={(c) => { setSelectedCountry(c); toast.success(`${c.flag} ${c.name}`) }}/>
             </div>
@@ -381,14 +377,13 @@ const AppHome = () => {
             {isAdmin && (
               <button
                 style={{
-                  padding:'7px 14px', borderRadius:10, border:`1px solid ${T.rule}`, background: T.white,
+                  padding:'7px 13px', borderRadius: 980, border:'none', background: 'rgba(118,118,128,0.08)',
                   cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontSize:13,
-                  fontWeight:600, color: T.ink, transition:'all 0.18s',
-                  boxShadow: `0 1px 3px ${T.shadow}`,
+                  fontWeight:600, color: T.ink, transition:'background 0.15s',
                 }}
                 onClick={() => navigate('/admindashboard')}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = T.g600; (e.currentTarget as HTMLElement).style.color = T.g600 }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = T.rule; (e.currentTarget as HTMLElement).style.color = T.ink }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(118,118,128,0.13)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(118,118,128,0.08)' }}
                 className="hidden sm:flex"
               >
                 <LayoutDashboard size={14} color={T.g500}/>
@@ -399,15 +394,14 @@ const AppHome = () => {
             {/* Mobile Menu Toggle */}
             <button
               style={{
-                padding:'8px', borderRadius:10, border:`1px solid ${T.rule}`, background: T.white,
+                width: 32, height: 32, borderRadius: '50%', border:'none', background: 'rgba(118,118,128,0.08)',
                 cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-                color: T.mid, transition:'all 0.18s',
-                boxShadow: `0 1px 3px ${T.shadow}`,
+                color: T.mid, transition:'background 0.15s',
               }}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="sm:hidden"
             >
-              {mobileMenuOpen ? <X size={20}/> : <Menu size={20}/>}
+              {mobileMenuOpen ? <X size={17}/> : <Menu size={17}/>}
             </button>
           </div>
         </div>
@@ -416,9 +410,10 @@ const AppHome = () => {
         {mobileMenuOpen && (
           <div style={{
             position: 'absolute', top: 62, left: 0, right: 0,
-            background: T.white, borderBottom: `1px solid ${T.rule}`,
+            background: 'rgba(255,255,255,0.92)', backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)',
+            borderBottom: `1px solid rgba(0,0,0,0.06)`,
             padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12,
-            boxShadow: `0 10px 20px ${T.shadow}`,
+            boxShadow: `0 8px 24px rgba(0,0,0,0.06)`,
             animation: 'cardEnter 0.3s ease-out'
           }} className="sm:hidden">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -445,12 +440,12 @@ const AppHome = () => {
       {/* ═══ CATEGORY FILTERS ════════════════════════════════════════════════ */}
       <section style={{
         background: T.white,
-        borderBottom: `1px solid ${T.rule}`,
-        padding: '14px 0',
+        borderBottom: `1px solid rgba(0,0,0,0.05)`,
+        padding: '12px 0',
       }}>
         <div style={{
           maxWidth: 1320, margin: '0 auto', padding: '0 20px',
-          display: 'flex', gap: 10, overflowX: 'auto', scrollbarWidth: 'none',
+          display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none',
         }} className="hide-scrollbar">
           {CATEGORIES.map(cat => {
             const active = activeCategory === cat.id
@@ -461,30 +456,29 @@ const AppHome = () => {
                 title={cat.label}
                 style={{
                   flexShrink: 0,
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  gap: 6, padding: '10px 14px', minWidth: 76,
-                  borderRadius: 14,
-                  border: `1.5px solid ${active ? cat.color : T.rule}`,
-                  background: active ? `${cat.color}10` : T.white,
-                  cursor: 'pointer', transition: 'all 0.18s',
-                  boxShadow: active ? `0 2px 8px ${cat.color}25` : `0 1px 3px ${T.shadow}`,
+                  display: 'flex', alignItems: 'center',
+                  gap: 7, padding: '8px 14px 8px 10px',
+                  borderRadius: 980,
+                  border: 'none',
+                  background: active ? cat.color : 'rgba(118,118,128,0.08)',
+                  cursor: 'pointer', transition: 'background 0.15s',
                 }}
               >
                 <div style={{
-                  width: 36, height: 36, borderRadius: 10,
+                  width: 22, height: 22, borderRadius: '50%',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: active ? cat.color : `${cat.color}15`,
-                  transition: 'all 0.18s',
+                  background: active ? 'rgba(255,255,255,0.25)' : `${cat.color}18`,
+                  transition: 'all 0.18s', flexShrink: 0,
                 }}>
                   <FontAwesomeIcon
                     icon={cat.icon}
-                    style={{ fontSize: 16, color: active ? T.white : cat.color }}
+                    style={{ fontSize: 11, color: active ? T.white : cat.color }}
                   />
                 </div>
                 <span style={{
-                  fontSize: 11, fontWeight: 700,
-                  color: active ? cat.color : T.mid,
-                  letterSpacing: '0.01em',
+                  fontSize: 13, fontWeight: 600,
+                  color: active ? T.white : T.mid,
+                  letterSpacing: '0.01em', whiteSpace: 'nowrap',
                 }}>{cat.label}</span>
               </button>
             )
@@ -497,28 +491,18 @@ const AppHome = () => {
       <main id="products-grid" style={{ maxWidth:1320, margin:'0 auto', padding:'clamp(24px, 4vw, 48px) 20px clamp(80px, 12vw, 140px)' }}>
 
         {/* Section header */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:28, flexWrap:'wrap', gap:12 }}>
-          <div>
-            <h2 style={{
-              fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif",
-              fontSize:'clamp(18px, 2.5vw, 24px)', fontWeight:700, color: T.ink, margin:0, letterSpacing:'-0.01em'
-            }}>
-              Produtos disponíveis
-            </h2>
-            <p style={{ fontSize:12, color: T.faint, marginTop:4, fontWeight:500 }}>
-              {filteredProducts.length} listings · ordenados por relevância
-            </p>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 12px', borderRadius:10, background: T.white, border:`1px solid ${T.rule}`, boxShadow:`0 1px 3px ${T.shadow}` }}>
-              <span style={{ width:6, height:6, borderRadius:'50%', background:'#4ADE80', display:'block', animation:'breathe 2s ease-in-out infinite' }}/>
-              <span style={{ fontSize:11, fontWeight:700, color: T.mid, letterSpacing:'0.03em' }}>Ao vivo</span>
-            </div>
-          </div>
+        <div style={{ marginBottom:24 }}>
+          <h2 style={{
+            fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif",
+            fontSize:'clamp(20px, 2.5vw, 26px)', fontWeight:700, color: T.ink, margin:0, letterSpacing:'-0.02em'
+          }}>
+            Produtos disponíveis
+          </h2>
+          <p style={{ fontSize:13, color: T.faint, marginTop:4, fontWeight:500 }}>
+            {filteredProducts.length} listings · ordenados por relevância
+          </p>
         </div>
 
-        {/* Divider */}
-        <div style={{ height:1, background: T.rule, marginBottom:28 }}/>
 
         {/* Grid */}
         <div style={{
@@ -547,7 +531,7 @@ const AppHome = () => {
         {/* Empty state */}
         {!loading && filteredProducts.length === 0 && (
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'100px 20px', textAlign:'center' }}>
-            <div style={{ width:56, height:56, borderRadius:16, background: T.g50, border:`1px solid ${T.gBorder}`, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:20 }}>
+            <div style={{ width:56, height:56, borderRadius:'50%', background: T.g50, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:20 }}>
               <Package size={24} color={T.g500}/>
             </div>
             <h3 style={{ fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif", fontSize:22, color: T.ink, margin:'0 0 10px', fontWeight:700 }}>

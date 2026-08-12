@@ -134,12 +134,14 @@ const SearchPage = () => {
             .select('*', { count: 'exact', head: true })
             .eq('product_id', product.id)
 
-          const { data: userLike } = await supabase
-            .from('product_likes')
-            .select('id')
-            .eq('product_id', product.id)
-            .eq('user_id', user?.id || '')
-            .maybeSingle()
+          const { data: userLike } = user
+            ? await supabase
+                .from('product_likes')
+                .select('id')
+                .eq('product_id', product.id)
+                .eq('user_id', user.id)
+                .maybeSingle()
+            : { data: null }
 
           const { data: comments } = await supabase
             .from('product_comments')
@@ -329,74 +331,94 @@ const SearchPage = () => {
 
   return (
     <div className="min-h-screen bg-[#F7F9F7] pb-20">
-      {/* Header com Branding Melhorado */}
-      <div className="bg-white border-b sticky top-0 z-40 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
+      {/* Header — estilo leve, translúcido com blur, sem sombras duras */}
+      <div
+        className="sticky top-0 z-40 border-b border-black/[0.06]"
+        style={{
+          background: 'rgba(255,255,255,0.8)',
+          backdropFilter: 'saturate(180%) blur(20px)',
+          WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center gap-3">
+            <button
               onClick={() => navigate(-1)}
-              className="text-[#2c863b] hover:bg-[#E8F5E9]"
+              className="flex items-center justify-center w-9 h-9 rounded-full text-[#2c863b] transition-colors"
+              style={{ background: 'rgba(118,118,128,0.08)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(118,118,128,0.13)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(118,118,128,0.08)' }}
             >
-              <ChevronLeft className="h-6 w-6" />
-            </Button>
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#758A79]" />
-              <Input 
-                placeholder="Pesquisar produtos, agricultores..." 
-                className="pl-10 bg-[#F2FAF3] border-[#C8E6CA] focus:ring-[#2c863b] focus:border-[#2c863b]"
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+
+            {/* Pesquisa — pílula leve, sem borda/sombra dura */}
+            <div
+              className="relative flex-1 min-w-0 flex items-center gap-2 rounded-full px-4 h-10 transition-colors"
+              style={{ background: 'rgba(118,118,128,0.08)' }}
+            >
+              <Search className="h-4 w-4 text-[#A8BAA9] flex-shrink-0" />
+              <input
+                placeholder="Pesquisar produtos, agricultores..."
+                className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm text-[#111714] placeholder:text-[#A8BAA9]"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button 
-              variant="outline" 
-              size="icon"
+
+            <button
               onClick={() => setShowFilters(!showFilters)}
-              className={showFilters ? "bg-[#2c863b] text-white border-[#2c863b]" : "border-[#C8E6CA] text-[#2c863b]"}
+              className="flex items-center justify-center w-9 h-9 rounded-full flex-shrink-0 transition-colors"
+              style={{
+                background: showFilters ? '#2c863b' : 'rgba(118,118,128,0.08)',
+                color: showFilters ? '#fff' : '#2c863b',
+              }}
+              onMouseEnter={e => { if (!showFilters) e.currentTarget.style.background = 'rgba(118,118,128,0.13)' }}
+              onMouseLeave={e => { if (!showFilters) e.currentTarget.style.background = 'rgba(118,118,128,0.08)' }}
             >
-              <SlidersHorizontal className="h-5 w-5" />
-            </Button>
+              <SlidersHorizontal className="h-4 w-4" />
+            </button>
           </div>
 
-          {/* Filtros Rápidos */}
-          <div className="mt-4 flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-            {productCategories.map((cat) => (
-              <Button
-                key={cat.id}
-                variant={selectedCategory === cat.id ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`rounded-full whitespace-nowrap flex items-center gap-2 ${
-                  selectedCategory === cat.id 
-                    ? "bg-[#2c863b] text-white" 
-                    : "border-[#C8E6CA] text-[#3D4D40] hover:bg-[#E8F5E9]"
-                }`}
-              >
-                <cat.icon className="h-4 w-4" />
-                {cat.name}
-              </Button>
-            ))}
+          {/* Filtros Rápidos — pílulas leves, sem borda dura */}
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+            {productCategories.map((cat) => {
+              const active = selectedCategory === cat.id
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className="rounded-full whitespace-nowrap flex items-center gap-1.5 px-3.5 h-8 text-sm font-medium transition-colors flex-shrink-0"
+                  style={{
+                    background: active ? '#2c863b' : 'rgba(118,118,128,0.08)',
+                    color: active ? '#fff' : '#3D4D40',
+                  }}
+                >
+                  <cat.icon className="h-3.5 w-3.5" />
+                  {cat.name}
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
 
       {/* Painel de Filtros Expandido */}
       {showFilters && (
-        <div className="bg-white border-b p-4 animate-in slide-in-from-top duration-200">
+        <div
+          className="border-b border-black/[0.06] p-4 animate-in slide-in-from-top duration-200"
+          style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(16px)' }}
+        >
           <div className="max-w-7xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-[#111714]">Filtros Avançados</h3>
               {hasActiveFilters && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <button
                   onClick={clearFilters}
-                  className="text-[#B07D0A] hover:text-[#E5A020]"
+                  className="text-sm font-medium text-[#B07D0A] hover:text-[#E5A020] transition-colors"
                 >
                   Limpar Tudo
-                </Button>
+                </button>
               )}
             </div>
 
@@ -406,7 +428,7 @@ const SearchPage = () => {
                   <ArrowUpDown className="h-4 w-4" /> Ordenar por
                 </label>
                 <Select value={sortBy} onValueChange={(v: SortOption) => setSortBy(v)}>
-                  <SelectTrigger className="bg-[#F2FAF3] border-[#C8E6CA]">
+                  <SelectTrigger className="border-none rounded-xl" style={{ background: 'rgba(118,118,128,0.08)' }}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -423,20 +445,22 @@ const SearchPage = () => {
                   <Filter className="h-4 w-4" /> Província
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {angolaProvinces.map(p => (
-                    <Badge
-                      key={p.id}
-                      variant={selectedProvince === p.id ? "default" : "outline"}
-                      className={`cursor-pointer px-3 py-1 transition-all ${
-                        selectedProvince === p.id 
-                          ? "bg-[#2c863b] text-white" 
-                          : "bg-white text-[#758A79] border-[#C8E6CA] hover:border-[#2c863b]"
-                      }`}
-                      onClick={() => handleProvinceClick(p.id)}
-                    >
-                      {p.name}
-                    </Badge>
-                  ))}
+                  {angolaProvinces.map(p => {
+                    const active = selectedProvince === p.id
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => handleProvinceClick(p.id)}
+                        className="cursor-pointer px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
+                        style={{
+                          background: active ? '#2c863b' : 'rgba(118,118,128,0.08)',
+                          color: active ? '#fff' : '#758A79',
+                        }}
+                      >
+                        {p.name}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             </div>
@@ -447,16 +471,16 @@ const SearchPage = () => {
       {/* Conteúdo Principal */}
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-8">
         <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-[#E5EDE6]">
-            <TabsTrigger value="all" className="data-[state=active]:bg-white data-[state=active]:text-[#2c863b]">Tudo</TabsTrigger>
-            <TabsTrigger value="products" className="data-[state=active]:bg-white data-[state=active]:text-[#2c863b]">Produtos</TabsTrigger>
-            <TabsTrigger value="users" className="data-[state=active]:bg-white data-[state=active]:text-[#2c863b]">Usuários</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 bg-[#E5EDE6] rounded-full p-1">
+            <TabsTrigger value="all" className="rounded-full data-[state=active]:bg-white data-[state=active]:text-[#2c863b] data-[state=active]:shadow-none">Tudo</TabsTrigger>
+            <TabsTrigger value="products" className="rounded-full data-[state=active]:bg-white data-[state=active]:text-[#2c863b] data-[state=active]:shadow-none">Produtos</TabsTrigger>
+            <TabsTrigger value="users" className="rounded-full data-[state=active]:bg-white data-[state=active]:text-[#2c863b] data-[state=active]:shadow-none">Usuários</TabsTrigger>
           </TabsList>
         </Tabs>
 
         {loading && (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2c863b]"></div>
+            <div className="animate-spin rounded-full h-10 w-10 border-2 border-[#E5EDE6] border-t-[#2c863b]"></div>
             <p className="text-[#758A79] font-medium">Buscando as melhores ofertas...</p>
           </div>
         )}
@@ -471,28 +495,27 @@ const SearchPage = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {userResults.map(user => (
-                <Card 
-                  key={user.id} 
-                  className="hover:shadow-md transition-all border-[#C8E6CA] overflow-hidden group cursor-pointer"
+                <div
+                  key={user.id}
+                  className="rounded-2xl p-4 transition-shadow cursor-pointer group"
+                  style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.05)' }}
                   onClick={() => navigate(`/profile/${user.id}`)}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12 border-2 border-[#E8F5E9] group-hover:border-[#2c863b] transition-colors">
-                        <AvatarImage src={user.avatar_url} />
-                        <AvatarFallback className="bg-[#F2FAF3] text-[#2c863b] font-bold">
-                          {user.full_name.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-[#111714] truncate group-hover:text-[#2c863b] transition-colors">
-                          {user.full_name}
-                        </p>
-                        <p className="text-xs text-[#758A79] capitalize">{user.user_type}</p>
-                      </div>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-12 w-12 border-2 border-[#E8F5E9] group-hover:border-[#2c863b] transition-colors">
+                      <AvatarImage src={user.avatar_url} />
+                      <AvatarFallback className="bg-[#F2FAF3] text-[#2c863b] font-bold">
+                        {user.full_name.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-[#111714] truncate group-hover:text-[#2c863b] transition-colors">
+                        {user.full_name}
+                      </p>
+                      <p className="text-xs text-[#758A79] capitalize">{user.user_type}</p>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
@@ -508,10 +531,6 @@ const SearchPage = () => {
                 <Badge className="bg-[#E8F5E9] text-[#2c863b] border-none">{sortedProducts.length}</Badge>
               </div>
             </div>
-            {/* 
-              IMPROVED GRID: Max 4 columns (lg:grid-cols-4) 
-              Ensures the layout doesn't get too large or cluttered
-            */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {sortedProducts.map(product => (
                 <ProductCard
@@ -528,8 +547,8 @@ const SearchPage = () => {
 
         {/* Estado vazio sem pesquisa */}
         {!loading && !searchTerm && sortedProducts.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl border border-dashed border-[#C8E6CA]">
-            <div className="bg-[#F2FAF3] p-6 rounded-full mb-4">
+          <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl" style={{ background: '#fff', border: '1px dashed rgba(0,0,0,0.08)' }}>
+            <div className="p-6 rounded-full mb-4" style={{ background: '#F2FAF3' }}>
               <Search className="h-12 w-12 text-[#2c863b]" />
             </div>
             <h3 className="text-xl font-bold text-[#111714]">Encontre o que precisa</h3>
@@ -542,20 +561,20 @@ const SearchPage = () => {
 
       {/* MAP MODAL */}
       <Dialog open={mapModalOpen} onOpenChange={setMapModalOpen}>
-        <DialogContent className="max-w-4xl border-[#C8E6CA]">
+        <DialogContent className="max-w-4xl border-none rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-[#2c863b]">Localização do Produto</DialogTitle>
             <DialogDescription className="text-[#758A79]">
               {selectedProduct?.product_type} - {selectedProduct?.farmer_name}
             </DialogDescription>
           </DialogHeader>
-          <div ref={mapContainerRef} className="w-full h-[400px] rounded-lg border border-[#C8E6CA] shadow-inner" />
+          <div ref={mapContainerRef} className="w-full h-[400px] rounded-xl" style={{ border: '1px solid rgba(0,0,0,0.06)' }} />
         </DialogContent>
       </Dialog>
 
       {/* PRE-ORDER MODAL */}
       <Dialog open={preOrderModalOpen} onOpenChange={setPreOrderModalOpen}>
-        <DialogContent className="border-[#C8E6CA]">
+        <DialogContent className="border-none rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-[#2c863b]">Pré-Compra de {selectedProduct?.product_type}</DialogTitle>
             <DialogDescription className="text-[#758A79]">
@@ -571,7 +590,8 @@ const SearchPage = () => {
                 max={selectedProduct?.quantity}
                 value={orderData.quantity}
                 onChange={(e) => setOrderData({ ...orderData, quantity: Number(e.target.value) })}
-                className="bg-[#F2FAF3] border-[#C8E6CA] focus:ring-[#2c863b]"
+                className="border-none rounded-xl"
+                style={{ background: 'rgba(118,118,128,0.08)' }}
               />
               <p className="text-xs text-[#758A79]">
                 Disponível: <span className="font-bold text-[#2c863b]">{selectedProduct?.quantity.toLocaleString()} kg</span>
@@ -583,10 +603,11 @@ const SearchPage = () => {
                 placeholder="Digite o local de entrega"
                 value={orderData.location}
                 onChange={(e) => setOrderData({ ...orderData, location: e.target.value })}
-                className="bg-[#F2FAF3] border-[#C8E6CA] focus:ring-[#2c863b]"
+                className="border-none rounded-xl"
+                style={{ background: 'rgba(118,118,128,0.08)' }}
               />
             </div>
-            <div className="bg-[#F2FAF3] p-4 rounded-xl border border-[#C8E6CA] space-y-2">
+            <div className="p-4 rounded-2xl space-y-2" style={{ background: 'rgba(118,118,128,0.06)' }}>
               <div className="flex justify-between text-sm text-[#3D4D40]">
                 <span>Preço por kg:</span>
                 <span className="font-medium">{selectedProduct?.price.toLocaleString()} Kz</span>
@@ -599,17 +620,17 @@ const SearchPage = () => {
                 <span>Taxa de Serviço (10%):</span>
                 <span className="font-medium">{(orderData.quantity * (selectedProduct?.price || 0) * TAX_RATE).toLocaleString()} Kz</span>
               </div>
-              <div className="flex justify-between font-bold text-xl pt-3 border-t border-[#C8E6CA] text-[#2c863b]">
+              <div className="flex justify-between font-bold text-xl pt-3 border-t border-black/[0.06] text-[#2c863b]">
                 <span>Total Estimado:</span>
                 <span>{totalPrice.toLocaleString()} Kz</span>
               </div>
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setPreOrderModalOpen(false)} className="border-[#C8E6CA] text-[#758A79]">
+            <Button variant="ghost" onClick={() => setPreOrderModalOpen(false)} className="text-[#758A79] rounded-full">
               Cancelar
             </Button>
-            <Button onClick={handlePreOrderSubmit} className="bg-[#2c863b] hover:bg-[#2c863b] text-white">
+            <Button onClick={handlePreOrderSubmit} className="bg-[#2c863b] hover:bg-[#256e32] text-white rounded-full">
               Confirmar Pré-Compra
             </Button>
           </DialogFooter>

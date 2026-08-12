@@ -296,7 +296,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const resendVerification = async () => {
     if (!user?.email) {
-      return { error: { message: 'No email found' } }
+      console.error('resendVerification: user.email missing', { user });
+      return { error: { message: 'Email do usuário não está disponível no momento.' } };
     }
 
     const { error } = await supabase.functions.invoke('send-otp-email', {

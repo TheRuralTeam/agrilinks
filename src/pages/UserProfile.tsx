@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { 
-  ArrowLeft, MapPin, Calendar, Package, MessageCircle, Phone, 
-  CheckCircle, Star, Eye, ShoppingCart, Users, Verified, BadgeCheck 
+import {
+  ArrowLeft, MapPin, Calendar, Package, MessageCircle, Phone,
+  Star, ShoppingCart, Users, Verified, BadgeCheck, Sparkles
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ProductCard, Product } from '@/components/ProductCard';
+
+/* ─── Design tokens — mesma linguagem visual do Perfil e do Mapa ────────────── */
+import { T } from '@/lib/brand';
+
+const FONT = "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
 
 interface UserData {
   id: string;
@@ -34,6 +34,71 @@ interface UserStats {
   rating: number;
 }
 
+/* ─── Micro components (alinhados com o Profile.tsx) ─────────────────────────── */
+const StatBlock = ({ icon, value, label, color = T.g600 }: { icon: React.ReactNode; value: number | string; label: string; color?: string }) => (
+  <div style={{
+    background: T.white, borderRadius: 18, padding: '18px 14px',
+    border: `1px solid ${T.rule}`, boxShadow: `0 2px 10px ${T.shadow}`,
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+    transition: 'transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s',
+  }}
+    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 10px 28px ${T.shadowMd}` }}
+    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 2px 10px ${T.shadow}` }}
+  >
+    <div style={{ width: 36, height: 36, borderRadius: 11, background: T.g50, border: `1px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {icon}
+    </div>
+    <div style={{ fontSize: 22, fontWeight: 800, color, letterSpacing: '-0.03em', fontFamily: FONT, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{value}</div>
+    <div style={{ fontSize: 10, color: T.faint, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', textAlign: 'center' }}>{label}</div>
+  </div>
+)
+
+const InfoRow = ({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: string; accent?: string }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 0', borderBottom: `1px solid ${T.rule}` }}>
+    <div style={{ width: 34, height: 34, borderRadius: 10, background: accent ? `${accent}14` : T.g50, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{icon}</div>
+    <div style={{ minWidth: 0 }}>
+      <p style={{ fontSize: 10.5, color: T.faint, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>{label}</p>
+      <p style={{ fontSize: 13.5, color: T.ink, fontWeight: 600, fontFamily: FONT, margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || '—'}</p>
+    </div>
+  </div>
+)
+
+const Btn = ({ children, onClick, variant = 'primary', style: extraStyle = {} }: any) => {
+  const base: React.CSSProperties = {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+    borderRadius: 13, cursor: 'pointer', fontWeight: 700, fontFamily: FONT,
+    transition: 'all 0.18s', border: 'none', fontSize: 14, padding: '13px 22px',
+    ...extraStyle,
+  }
+  const variants: Record<string, React.CSSProperties> = {
+    primary: { background: `linear-gradient(135deg, ${T.g500}, ${T.g700})`, color: T.white, boxShadow: `0 6px 18px rgba(45,125,58,0.3)` },
+    outline: { background: T.white, color: T.mid, border: `1px solid ${T.rule}`, boxShadow: `0 2px 8px ${T.shadow}` },
+  }
+  return (
+    <button style={{ ...base, ...variants[variant] }} onClick={onClick}
+      onMouseEnter={e => { if (variant === 'primary') { (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 10px 26px rgba(45,125,58,0.4)` } }}
+      onMouseLeave={e => { if (variant === 'primary') { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 18px rgba(45,125,58,0.3)` } }}
+    >{children}</button>
+  )
+}
+
+const TypeBadge = ({ type }: { type: string | null }) => {
+  const map: Record<string, { bg: string; color: string; border: string; label: string; icon: React.ReactNode }> = {
+    agricultor: { bg: T.g50,   color: T.g600,  border: T.gBorder,               label: 'Fornecedor', icon: <Package size={12}/> },
+    comprador:  { bg: '#EFF6FF', color: '#2563EB', border: 'rgba(37,99,235,0.18)', label: 'Comprador',   icon: <ShoppingCart size={12}/> },
+    agente:     { bg: '#F5F0FF', color: '#7C3AED', border: 'rgba(124,58,237,0.18)', label: 'Agente',      icon: <Users size={12}/> },
+  }
+  const s = map[type || ''] || { bg: T.canvas, color: T.muted, border: T.rule, label: 'Utilizador', icon: null }
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, padding: '5px 13px', borderRadius: 20, background: s.bg, color: s.color, border: `1px solid ${s.border}`, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      {s.icon} {s.label}
+    </span>
+  )
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   MAIN COMPONENT
+   ════════════════════════════════════════════════════════════════════════════ */
 const UserProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -56,7 +121,7 @@ const UserProfile = () => {
   const fetchUserData = async () => {
     try {
       setLoading(true);
-      
+
       const { data: profileData, error: profileError } = await supabase
         .from('users')
         .select('id, full_name, avatar_url, user_type, province_id, municipality_id, created_at, phone, agent_code, verified')
@@ -171,213 +236,159 @@ const UserProfile = () => {
     }
   };
 
-  const getUserTypeLabel = (type: string | null) => {
-    switch (type) {
-      case 'agricultor': return 'Fornecedor';
-      case 'comprador': return 'Comprador';
-      case 'agente': return 'Agente';
-      default: return 'Usuário';
-    }
-  };
-
-  const getUserTypeColor = (type: string | null) => {
-    switch (type) {
-      case 'agricultor': return 'bg-accent/10 text-accent border-accent/20';
-      case 'comprador': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
-      case 'agente': return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
-      default: return 'bg-muted text-muted-foreground';
-    }
-  };
-
-  const getUserTypeIcon = (type: string | null) => {
-    switch (type) {
-      case 'agricultor': return <Package className="h-3 w-3" />;
-      case 'comprador': return <ShoppingCart className="h-3 w-3" />;
-      case 'agente': return <Users className="h-3 w-3" />;
-      default: return null;
-    }
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div style={{ minHeight: '100vh', background: T.canvas, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 48, height: 48, borderRadius: '50%', border: `2px solid ${T.gBorder}`, borderTopColor: T.g500, animation: 'spin 0.9s linear infinite' }}/>
+          <p style={{ fontSize: 13, color: T.faint, fontWeight: 500, fontFamily: FONT }}>A carregar perfil…</p>
+        </div>
       </div>
     );
   }
 
   if (!userData) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <p className="text-muted-foreground mb-4">Usuário não encontrado</p>
-        <Button onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/app')}>Voltar</Button>
+      <div style={{ minHeight: '100vh', background: T.canvas, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: FONT }}>
+        <div style={{ width: 62, height: 62, borderRadius: 18, background: T.g50, border: `1px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+          <Users size={26} color={T.faint}/>
+        </div>
+        <p style={{ color: T.muted, marginBottom: 18, fontSize: 14, fontWeight: 600 }}>Utilizador não encontrado</p>
+        <Btn variant="primary" onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/app')}>Voltar</Btn>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary/5 to-background pb-20">
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border px-4 py-3 flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/app')}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="text-lg font-semibold">Perfil do Usuário</h1>
+    <div style={{ minHeight: '100vh', background: T.canvas, fontFamily: FONT, paddingBottom: 80 }}>
+
+      {/* ═══ HEADER ═══════════════════════════════════════════════════════════ */}
+      <header style={{
+        position: 'sticky', top: 0, zIndex: 30,
+        background: 'rgba(247,249,247,0.85)', backdropFilter: 'saturate(180%) blur(20px)', WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+        borderBottom: `1px solid ${T.rule}`,
+      }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 20px', height: 58, display: 'flex', alignItems: 'center', gap: 14 }}>
+          <button
+            onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/app')}
+            style={{ width: 34, height: 34, borderRadius: '50%', background: T.g50, border: `1px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: T.g600, flexShrink: 0, transition: 'background 0.15s' }}
+          >
+            <ArrowLeft size={16}/>
+          </button>
+          <h1 style={{ fontFamily: FONT, fontSize: 16, fontWeight: 800, color: T.ink, margin: 0, letterSpacing: '-0.01em' }}>Perfil do Utilizador</h1>
+        </div>
       </header>
 
-      {/* Hero Section com Avatar */}
-      <div className="relative">
-        <div className="h-32 bg-gradient-to-r from-primary/20 via-primary/10 to-accent/20" />
-        <div className="px-4 -mt-16">
-          <div className="flex flex-col items-center">
-            <Avatar className="h-28 w-28 ring-4 ring-background shadow-xl">
-              <AvatarImage src={userData.avatar_url || ''} className="object-cover" />
-              <AvatarFallback className="bg-primary text-primary-foreground text-3xl font-bold">
-                {userData.full_name?.charAt(0)?.toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
-            
-            <div className="mt-3 text-center">
-              <div className="flex items-center justify-center gap-2">
-                <h2 className="text-2xl font-bold">{userData.full_name}</h2>
-                {userData.verified && (
-                  <BadgeCheck className="h-5 w-5 text-primary" />
-                )}
-              </div>
-              
-              <Badge variant="outline" className={`mt-2 ${getUserTypeColor(userData.user_type)}`}>
-                {getUserTypeIcon(userData.user_type)}
-                <span className="ml-1">{getUserTypeLabel(userData.user_type)}</span>
-              </Badge>
+      <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 20px 0' }}>
+
+        {/* ═══ HERO CARD ══════════════════════════════════════════════════════ */}
+        <div style={{
+          background: T.white, borderRadius: 24, border: `1px solid ${T.rule}`,
+          boxShadow: `0 4px 20px ${T.shadow}`, overflow: 'hidden',
+          animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both',
+        }}>
+          <div style={{ height: 108, background: `linear-gradient(135deg, ${T.g900}, ${T.g700} 55%, ${T.g500})`, position: 'relative' }}>
+            <div style={{ position: 'absolute', inset: 0, opacity: 0.07, backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)', backgroundSize: '28px 28px' }}/>
+            <div style={{ position: 'absolute', top: 14, right: 16, display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.16)', backdropFilter: 'blur(6px)' }}>
+              <Sparkles size={10} color="#fff"/>
+              <span style={{ fontSize: 9.5, fontWeight: 700, color: '#fff', letterSpacing: '0.04em' }}>AgriLink</span>
+            </div>
+          </div>
+
+          <div style={{ padding: '0 28px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+            <div style={{
+              width: 100, height: 100, borderRadius: '50%', marginTop: -50,
+              border: `4px solid ${T.white}`, boxShadow: `0 8px 24px ${T.shadowMd}`,
+              background: `linear-gradient(135deg, ${T.g600}, ${T.g400})`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0,
+            }}>
+              {userData.avatar_url
+                ? <img src={userData.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+                : <span style={{ fontFamily: FONT, fontSize: 36, fontWeight: 800, color: T.white }}>{userData.full_name?.charAt(0)?.toUpperCase() || 'U'}</span>
+              }
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 14 }}>
+              <h2 style={{ fontFamily: FONT, fontSize: 23, fontWeight: 800, color: T.ink, margin: 0, letterSpacing: '-0.02em' }}>{userData.full_name}</h2>
+              {userData.verified && (
+                <div style={{ width: 21, height: 21, borderRadius: '50%', background: T.g50, border: `1.5px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <BadgeCheck size={12} color={T.g600}/>
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop: 10 }}>
+              <TypeBadge type={userData.user_type}/>
+            </div>
+
+            {/* Action buttons */}
+            <div style={{ display: 'flex', gap: 10, marginTop: 22, width: '100%' }}>
+              <Btn variant="primary" onClick={startConversation} style={{ flex: 1 }}>
+                <MessageCircle size={16}/> Enviar Mensagem
+              </Btn>
+              {userData.phone && (
+                <Btn variant="outline" onClick={() => window.open(`tel:${userData.phone}`, '_self')} style={{ width: 50, padding: 0 }}>
+                  <Phone size={16}/>
+                </Btn>
+              )}
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Info Cards */}
-      <div className="px-4 mt-6 space-y-4">
-        {/* Estatísticas */}
-        <div className="grid grid-cols-3 gap-3">
-          <Card className="text-center border-none shadow-sm bg-card/50">
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-primary">{stats.totalProducts}</div>
-              <p className="text-xs text-muted-foreground">Produtos</p>
-            </CardContent>
-          </Card>
-          <Card className="text-center border-none shadow-sm bg-card/50">
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-green-600">{stats.totalSales}</div>
-              <p className="text-xs text-muted-foreground">Vendas</p>
-            </CardContent>
-          </Card>
-          <Card className="text-center border-none shadow-sm bg-card/50">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-center gap-1">
-                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                <span className="text-2xl font-bold">{stats.rating}</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Avaliação</p>
-            </CardContent>
-          </Card>
+        {/* ═══ STATS ══════════════════════════════════════════════════════════ */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 18, animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) 0.06s both' }}>
+          <StatBlock icon={<Package size={15} color={T.g500}/>} value={stats.totalProducts} label="Produtos" color={T.g600}/>
+          <StatBlock icon={<ShoppingCart size={15} color={T.g500}/>} value={stats.totalSales} label="Vendas" color={T.g600}/>
+          <StatBlock icon={<Star size={15} color={T.goldL}/>} value={stats.rating} label="Avaliação" color={T.gold}/>
         </div>
 
-        {/* Informações de Contato */}
-        <Card className="border-none shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Informações</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-3 text-sm">
-              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-                <MapPin className="h-4 w-4 text-primary" />
+        {/* ═══ INFO CARD ══════════════════════════════════════════════════════ */}
+        <div style={{
+          background: T.white, borderRadius: 20, border: `1px solid ${T.rule}`,
+          boxShadow: `0 2px 10px ${T.shadow}`, padding: '18px 20px', marginTop: 14,
+          animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) 0.1s both',
+        }}>
+          <h3 style={{ fontFamily: FONT, fontSize: 14, fontWeight: 700, color: T.ink, margin: '0 0 4px' }}>Informações</h3>
+          <InfoRow icon={<MapPin size={14} color={T.g600}/>} label="Localização" value={`${userData.province_id}${userData.municipality_id ? ', ' + userData.municipality_id : ''}`}/>
+          <InfoRow icon={<Calendar size={14} color={T.g600}/>} label="Membro desde" value={new Date(userData.created_at).toLocaleDateString('pt-AO', { month: 'long', year: 'numeric' })}/>
+          {userData.user_type === 'agente' && userData.agent_code && (
+            <InfoRow icon={<Verified size={14} color="#7C3AED"/>} label="Código de Agente" value={userData.agent_code} accent="#7C3AED"/>
+          )}
+          {userData.user_type === 'agente' && stats.totalReferrals > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 0' }}>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: T.g50, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Users size={14} color={T.g600}/>
               </div>
               <div>
-                <p className="text-muted-foreground text-xs">Localização</p>
-                <p className="font-medium">{userData.province_id}, {userData.municipality_id}</p>
+                <p style={{ fontSize: 10.5, color: T.faint, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Indicações</p>
+                <p style={{ fontSize: 13.5, color: T.g600, fontWeight: 700, fontFamily: FONT, margin: '2px 0 0' }}>{stats.totalReferrals} utilizadores indicados</p>
               </div>
             </div>
-            
-            <Separator />
-            
-            <div className="flex items-center gap-3 text-sm">
-              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-                <Calendar className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs">Membro desde</p>
-                <p className="font-medium">{new Date(userData.created_at).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</p>
-              </div>
-            </div>
-
-            {userData.user_type === 'agente' && userData.agent_code && (
-              <>
-                <Separator />
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="h-9 w-9 rounded-full bg-purple-500/10 flex items-center justify-center">
-                    <Verified className="h-4 w-4 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Código de Agente</p>
-                    <p className="font-mono font-bold text-purple-600">{userData.agent_code}</p>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {userData.user_type === 'agente' && stats.totalReferrals > 0 && (
-              <>
-                <Separator />
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="h-9 w-9 rounded-full bg-green-500/10 flex items-center justify-center">
-                    <Users className="h-4 w-4 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Indicações</p>
-                    <p className="font-bold text-green-600">{stats.totalReferrals} usuários indicados</p>
-                  </div>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Botões de Ação */}
-        <div className="flex gap-3">
-          <Button onClick={startConversation} className="flex-1 h-12 shadow-sm">
-            <MessageCircle className="h-5 w-5 mr-2" />
-            Enviar Mensagem
-          </Button>
-          {userData.phone && (
-            <Button 
-              variant="outline" 
-              className="h-12 w-12 p-0"
-              onClick={() => window.open(`tel:${userData.phone}`, '_self')}
-            >
-              <Phone className="h-5 w-5" />
-            </Button>
           )}
         </div>
 
-        {/* Produtos do usuário */}
+        {/* ═══ PRODUCTS ═══════════════════════════════════════════════════════ */}
         {userData.user_type !== 'comprador' && (
-          <div className="space-y-3 mt-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Package className="h-5 w-5 text-primary" />
-                Produtos Publicados
+          <div style={{ marginTop: 26, animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) 0.14s both' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <h3 style={{ fontFamily: FONT, fontSize: 17, fontWeight: 700, color: T.ink, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Package size={17} color={T.g600}/> Produtos Publicados
               </h3>
-              <Badge variant="secondary">{products.length}</Badge>
+              <span style={{ fontSize: 12, fontWeight: 800, color: T.g600, background: T.g50, border: `1px solid ${T.gBorder}`, padding: '3px 11px', borderRadius: 20 }}>{products.length}</span>
             </div>
 
             {products.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="p-8 text-center">
-                  <Package className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
-                  <p className="text-muted-foreground">Nenhum produto publicado</p>
-                </CardContent>
-              </Card>
+              <div style={{
+                borderRadius: 20, border: `1.5px dashed ${T.rule}`, background: T.white,
+                padding: '48px 20px', textAlign: 'center',
+              }}>
+                <div style={{ width: 56, height: 56, borderRadius: 16, background: T.g50, border: `1px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                  <Package size={24} color={T.faint}/>
+                </div>
+                <p style={{ color: T.muted, fontSize: 13.5, fontWeight: 600, margin: 0 }}>Nenhum produto publicado</p>
+              </div>
             ) : (
-              <div className="space-y-4">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {products.map(product => (
                   <ProductCard
                     key={product.id}
@@ -390,6 +401,12 @@ const UserProfile = () => {
           </div>
         )}
       </div>
+
+      <style>{`
+        @keyframes spin   { to { transform: rotate(360deg) } }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
+        * { box-sizing: border-box; }
+      `}</style>
     </div>
   );
 };

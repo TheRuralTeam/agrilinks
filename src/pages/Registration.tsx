@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   User, CreditCard, Mail, Lock, Eye, EyeOff,
-  UserPlus, ShieldCheck, ArrowRight, Check, X, ChevronDown, ArrowLeft
+  ArrowRight, Check, X, ChevronDown, ArrowLeft
 } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTractor, faUserTie, faBuildingColumns } from "@fortawesome/free-solid-svg-icons";
@@ -11,6 +11,10 @@ import { getProvincesForCountry, getProvinceLabel, getMunicipalityLabel } from "
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import orbisLinkLogo from "@/assets/orbislink-logo.png";
+import AUTH1 from '@/assets/auth1.jpg'
+
+// Imagem partilhada com o ecrã de Login para manter a mesma identidade visual.
+// Para trocar por vídeo: substituir o <img> do painel esquerdo por um <video autoPlay muted loop playsInline>.
 import { toast } from "@/hooks/use-toast";
 import { CountryPhoneInput, countries, Country } from "@/components/CountryPhoneInput";
 import { changeLanguage, getSavedCountry } from "@/i18n";
@@ -36,11 +40,11 @@ const NativeSelect = ({
       disabled={disabled}
       required
       style={{
-        height: '52px',
+        height: '50px',
         width: '100%',
         borderRadius: '14px',
-        border: `1.5px solid ${T.goldBorder}`,
-        backgroundColor: disabled ? '#F5F0E8' : T.goldBg,
+        border: `1px solid ${T.rule}`,
+        backgroundColor: disabled ? '#FAFAF8' : T.white,
         color: value ? T.ink : T.muted,
         fontSize: '15px',
         paddingLeft: '16px',
@@ -55,11 +59,11 @@ const NativeSelect = ({
         transition: 'border-color 0.2s, box-shadow 0.2s',
       }}
       onFocus={e => {
-        e.currentTarget.style.borderColor = T.goldMid;
-        e.currentTarget.style.boxShadow = `0 0 0 3px rgba(201,146,42,0.15)`;
+        e.currentTarget.style.borderColor = T.g600;
+        e.currentTarget.style.boxShadow = `0 0 0 4px rgba(45,125,58,0.10)`;
       }}
       onBlur={e => {
-        e.currentTarget.style.borderColor = T.goldBorder;
+        e.currentTarget.style.borderColor = T.rule;
         e.currentTarget.style.boxShadow = 'none';
       }}
     >
@@ -70,17 +74,17 @@ const NativeSelect = ({
     </select>
     <ChevronDown
       className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-      style={{ color: T.goldLight, width: 18, height: 18 }}
+      style={{ color: T.muted, width: 16, height: 16 }}
     />
   </div>
 );
 
-// ─── Shared input style ───────────────────────────────────────────────────────
+// ─── Shared input style (mais leve: menos borda, menos sombra) ───────────────
 const inputStyle: React.CSSProperties = {
-  height: '52px',
+  height: '50px',
   borderRadius: '14px',
-  border: `1.5px solid ${T.goldBorder}`,
-  backgroundColor: T.goldBg,
+  border: `1px solid ${T.rule}`,
+  backgroundColor: T.white,
   color: T.ink,
   fontSize: '15px',
   paddingLeft: '44px',
@@ -95,10 +99,10 @@ const FieldLabel = ({ children }: { children: React.ReactNode }) => (
     style={{
       display: 'block',
       fontSize: '10px',
-      fontWeight: 900,
-      letterSpacing: '0.12em',
+      fontWeight: 800,
+      letterSpacing: '0.1em',
       textTransform: 'uppercase',
-      color: T.mid,
+      color: T.muted,
       marginBottom: '6px',
       marginLeft: '2px',
     }}
@@ -164,14 +168,14 @@ const Registration = () => {
       const { data, error } = await supabase.rpc('validate_agent_code', { p_code: code });
       if (error) throw error;
       setAgentCodeValid(data === true);
-    } catch { setAgentCodeValid(false); } 
+    } catch { setAgentCodeValid(false); }
     finally { setValidatingCode(false); }
   };
 
   const steps = [
-    { title: 'Perfil', hint: 'Tipo de conta e identificação' },
-    { title: 'Contacto', hint: 'Email, telefone e localização' },
-    { title: 'Segurança', hint: 'Senha, indicação e OTP' },
+    { title: 'Perfil', hint: 'Quem és tu na plataforma' },
+    { title: 'Contacto', hint: 'Como te encontramos' },
+    { title: 'Segurança', hint: 'Protege a tua conta' },
   ];
 
   const validateCurrentStep = () => {
@@ -261,7 +265,6 @@ const Registration = () => {
         }
         navigate(`/confirmar-email?email=${encodeURIComponent(cleanEmail)}`, { replace: true });
       } else {
-
         toast({ title: "Conta criada com sucesso!", description: "Faz login para continuar." });
         navigate('/login', { replace: true });
       }
@@ -278,225 +281,191 @@ const Registration = () => {
     { id: 'comprador', label: t('registration.buyer'), icon: faBuildingColumns },
   ];
 
-  return (
-    <div
-      style={{
-        minHeight: '100vh',
-        backgroundColor: T.canvas,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px 16px',
-        position: 'relative',
-        overflow: 'hidden',
-        fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-      }}
-    >
-      {/* Decorative blobs */}
-      <div style={{
-        position: 'absolute', top: '-8%', left: '-8%',
-        width: '400px', height: '400px', borderRadius: '50%',
-        filter: 'blur(80px)', opacity: 0.18,
-        background: 'radial-gradient(circle, #C8E6CA, transparent)',
-        pointerEvents: 'none',
-      }} />
-      <div style={{
-        position: 'absolute', bottom: '-8%', right: '-8%',
-        width: '480px', height: '480px', borderRadius: '50%',
-        filter: 'blur(80px)', opacity: 0.12,
-        background: 'radial-gradient(circle, #C9A96E, transparent)',
-        pointerEvents: 'none',
-      }} />
+  const progressPercent = ((currentStep + 1) / steps.length) * 100;
 
-      {/* Loading overlay */}
-      {loading && (
-        <div style={{
-          position: 'fixed', inset: 0,
-          backgroundColor: 'rgba(255,255,255,0.65)',
-          backdropFilter: 'blur(12px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 9999,
-        }}>
-          <div style={{
-            backgroundColor: T.white,
-            padding: '40px 48px',
-            borderRadius: '28px',
-            boxShadow: T.shadowLg,
-            border: `1.5px solid ${T.goldBorder}`,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px',
-          }}>
-            <div style={{ position: 'relative', width: 64, height: 64 }}>
-              <div style={{
-                width: 64, height: 64,
-                border: `4px solid ${T.goldPale}`,
-                borderTopColor: T.goldMid,
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-              }} />
-              <ShieldCheck style={{
-                position: 'absolute', top: '50%', left: '50%',
-                transform: 'translate(-50%, -50%)',
-                color: T.goldMid, width: 24, height: 24,
-              }} />
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ fontWeight: 900, fontSize: 20, color: T.ink, margin: 0 }}>Criando Conta</p>
-              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.muted, margin: '4px 0 0' }}>
-                Aguarde um instante
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+  return (
+    <div className="min-h-screen flex flex-col lg:flex-row" style={{ backgroundColor: T.canvas, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(24px); }
+          from { opacity: 0; transform: translateY(16px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        input:focus { border-color: ${T.goldMid} !important; box-shadow: 0 0 0 3px rgba(201,146,42,0.15) !important; }
-        .field-group { animation: fadeUp 0.5s ease both; }
-        .user-type-btn { transition: all 0.18s ease; cursor: pointer; }
+        input:focus { border-color: ${T.g600} !important; box-shadow: 0 0 0 4px rgba(45,125,58,0.10) !important; }
+        .field-group { animation: fadeUp 0.45s ease both; }
+        .user-type-btn { transition: transform 0.18s ease, border-color 0.18s ease, background-color 0.18s ease; cursor: pointer; }
         .user-type-btn:hover { transform: translateY(-2px); }
-        .user-type-btn.selected { transform: translateY(-2px); }
-        .submit-btn { transition: all 0.18s ease; }
-        .submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(45,125,58,0.3) !important; }
+        .submit-btn { transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease; }
+        .submit-btn:hover:not(:disabled) { transform: translateY(-1px); }
         .submit-btn:active:not(:disabled) { transform: scale(0.98); }
-        .step-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
-        .step-pill { border-radius: 16px; padding: 12px; border: 1.5px solid ${T.rule}; background: ${T.goldBg}; }
-        .step-pill.active { border-color: ${T.goldMid}; background: ${T.goldPale}; box-shadow: 0 4px 16px rgba(201,146,42,0.16); }
-        .step-count { width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; margin-bottom: 8px; }
-        @media (max-width: 640px) {
-          .step-grid { grid-template-columns: 1fr; }
-        }
+        .progress-track { height: 4px; border-radius: 999px; background: ${T.rule}; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 999px; background: ${T.g600}; transition: width 0.35s ease; }
       `}</style>
 
-      <div style={{ width: '100%', maxWidth: 680, position: 'relative', zIndex: 10, animation: 'fadeUp 0.6s ease both' }}>
-
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <img src={orbisLinkLogo} alt="AgriLink" style={{ height: 72, margin: '0 auto 12px', display: 'block', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.08))' }} />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-            <div style={{ height: 1, width: 32, backgroundColor: T.goldBorder }} />
-            <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.22em', textTransform: 'uppercase', color: T.gold }}>
-              AgriLink Platform
-            </span>
-            <div style={{ height: 1, width: 32, backgroundColor: T.goldBorder }} />
+      {/* ── Painel esquerdo: imagem/vídeo da plataforma + mensagem conceitual ── */}
+      <div className="relative lg:w-2/5 h-64 sm:h-80 lg:h-auto overflow-hidden">
+        <img
+          src={AUTH1}
+          alt="Produtores e compradores conectados pela AgriLink"
+          className="w-full h-full object-cover"
+        />
+        <div
+          className="absolute inset-0"
+          style={{ background: `linear-gradient(to bottom, rgba(26, 92, 36, 0.35), ${T.g900} 96%)` }}
+        />
+        <div className="absolute inset-0 flex flex-col justify-end p-8 lg:p-14">
+          <div className="max-w-md animate-in fade-in slide-in-from-left-6 duration-700">
+            <div className="h-1 w-10 mb-6 rounded-full" style={{ backgroundColor: T.goldL }} />
+            <h2 className="text-3xl lg:text-4xl font-black mb-4 leading-tight text-white">
+              A tua produção, ligada ao mundo
+            </h2>
+            <p className="text-sm lg:text-base font-medium text-white/85 leading-relaxed">
+              Junta-te a milhares de fornecedores, agentes e compradores que já negoceiam
+              todos os dias na maior rede agrícola digital de Angola.
+            </p>
           </div>
         </div>
+      </div>
 
-        {/* Card */}
-        <div style={{
-          backgroundColor: T.white,
-          borderRadius: 28,
-          border: `1.5px solid ${T.goldBorder}`,
-          boxShadow: T.shadowLg,
-          overflow: 'hidden',
-        }}>
-          {/* Card Header */}
+      {/* ── Painel direito: formulário, mais leve e espaçoso ── */}
+      <div className="flex-1 flex items-center justify-center px-6 py-10 lg:px-16 lg:py-16 relative overflow-hidden">
+        <div className="absolute top-[-10%] right-[-10%] w-72 h-72 rounded-full blur-3xl opacity-[0.07] pointer-events-none" style={{ backgroundColor: T.g400 }} />
+
+        {/* Overlay de loading, discreto */}
+        {loading && (
           <div style={{
-            padding: '32px 36px 24px',
-            borderBottom: `1px solid ${T.rule}`,
-            background: `linear-gradient(135deg, ${T.goldPale} 0%, ${T.white} 60%)`,
+            position: 'fixed', inset: 0,
+            backgroundColor: 'rgba(255,255,255,0.7)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 9999,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
               <div style={{
-                width: 44, height: 44, borderRadius: 14,
-                backgroundColor: T.goldBg,
-                border: `1.5px solid ${T.goldBorder}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <UserPlus style={{ color: T.gold, width: 20, height: 20 }} />
-              </div>
-              <div>
-                <h1 style={{ fontSize: 22, fontWeight: 900, color: T.ink, margin: 0, lineHeight: 1.2 }}>
-                  {t('registration.infoTitle') || 'Criar Conta'}
-                </h1>
-                <p style={{ fontSize: 13, color: T.muted, margin: '4px 0 0', fontWeight: 500 }}>
-                  Preencha os dados para se registar na plataforma
-                </p>
-              </div>
+                width: 40, height: 40,
+                border: `3px solid ${T.rule}`,
+                borderTopColor: T.g600,
+                borderRadius: '50%',
+                animation: 'spin 0.8s linear infinite',
+              }} />
+              <p style={{ fontWeight: 700, fontSize: 14, color: T.ink, margin: 0 }}>A criar a tua conta…</p>
             </div>
           </div>
+        )}
 
-          {/* Card Body */}
-          <div style={{ padding: '32px 36px 40px' }}>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div className="w-full max-w-md relative z-10" style={{ animation: 'fadeUp 0.5s ease both' }}>
 
-              {errorMessage && (
-                <div style={{
-                  padding: '14px 16px',
-                  borderRadius: 14,
-                  backgroundColor: '#FEF2F2',
-                  border: '1.5px solid #FECACA',
-                  color: '#B91C1C',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  display: 'flex', alignItems: 'center', gap: 10,
-                }}>
-                  <X style={{ width: 16, height: 16, flexShrink: 0 }} />
-                  {errorMessage}
-                </div>
-              )}
+          {/* Logo, maior, sem legenda */}
+          <div className="mb-10 flex justify-center lg:justify-start">
+            <img
+              src={orbisLinkLogo}
+              alt="AgriLink"
+              style={{ height: 104, display: 'block', filter: 'drop-shadow(0 2px 10px rgba(0,0,0,0.08))' }}
+            />
+          </div>
 
-              <div className="step-grid">
-                {steps.map((step, index) => (
-                  <div key={step.title} className={`step-pill${currentStep === index ? ' active' : ''}`}>
-                    <span className="step-count" style={{ backgroundColor: currentStep >= index ? T.goldMid : T.rule, color: currentStep >= index ? T.white : T.muted }}>
-                      {currentStep > index ? <Check style={{ width: 13, height: 13 }} /> : index + 1}
-                    </span>
-                    <div style={{ fontSize: 12, fontWeight: 900, color: T.ink }}>{step.title}</div>
-                    <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>{step.hint}</div>
-                  </div>
-                ))}
+          <div className="mb-8 text-center lg:text-left">
+            <h1 style={{ fontSize: 26, fontWeight: 800, color: T.ink, margin: 0, lineHeight: 1.2, letterSpacing: '-0.01em' }}>
+              Cria a tua conta
+            </h1>
+            <p style={{ fontSize: 14, color: T.muted, margin: '8px 0 0', fontWeight: 500 }}>
+              Leva menos de dois minutos. Começa por nos dizer quem és.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+
+            {errorMessage && (
+              <div style={{
+                padding: '12px 16px',
+                borderRadius: 14,
+                backgroundColor: '#FEF2F2',
+                border: '1px solid #FECACA',
+                color: '#B91C1C',
+                fontSize: 13,
+                fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: 10,
+              }}>
+                <X style={{ width: 15, height: 15, flexShrink: 0 }} />
+                {errorMessage}
               </div>
+            )}
 
-              {currentStep === 0 && (
-                <div className="field-group" style={{ animationDelay: '0.05s' }}>
+            {/* Progresso leve: barra + rótulo do passo atual, sem caixas pesadas */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span style={{ fontSize: 12, fontWeight: 800, color: T.ink }}>
+                  {steps[currentStep].title}
+                </span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: T.muted }}>
+                  Passo {currentStep + 1} de {steps.length}
+                </span>
+              </div>
+              <div className="progress-track">
+                <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
+              </div>
+              <p style={{ fontSize: 12, color: T.muted, marginTop: 8 }}>{steps[currentStep].hint}</p>
+            </div>
+
+            {currentStep === 0 && (
+              <div className="field-group flex flex-col gap-5">
+                <div>
                   <FieldLabel>{t('registration.userType') || 'Tipo de Conta'}</FieldLabel>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                     {userTypeOptions.map(opt => (
-                      <button key={opt.id} type="button" className={`user-type-btn${userType === opt.id ? ' selected' : ''}`} onClick={() => setUserType(opt.id)} style={{ padding: '16px 8px', borderRadius: 14, border: `1.5px solid ${userType === opt.id ? T.goldMid : T.goldBorder}`, backgroundColor: userType === opt.id ? T.goldPale : T.goldBg, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, boxShadow: userType === opt.id ? `0 4px 16px rgba(201,146,42,0.20)` : 'none' }}>
-                        <FontAwesomeIcon icon={opt.icon} style={{ color: userType === opt.id ? T.goldDark : T.gold, fontSize: 21 }} />
-                        <span style={{ fontSize: 12, fontWeight: 800, color: userType === opt.id ? T.goldDark : T.mid, letterSpacing: '0.02em' }}>{opt.label}</span>
-                        {userType === opt.id && <Check style={{ color: T.goldMid, width: 16, height: 16 }} />}
+                      <button
+                        key={opt.id}
+                        type="button"
+                        className={`user-type-btn${userType === opt.id ? ' selected' : ''}`}
+                        onClick={() => setUserType(opt.id)}
+                        style={{
+                          padding: '14px 6px',
+                          borderRadius: 14,
+                          border: `1px solid ${userType === opt.id ? T.g600 : T.rule}`,
+                          backgroundColor: userType === opt.id ? T.g50 : T.white,
+                          cursor: 'pointer',
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                        }}
+                      >
+                        <FontAwesomeIcon icon={opt.icon} style={{ color: userType === opt.id ? T.g700 : T.muted, fontSize: 18 }} />
+                        <span style={{ fontSize: 11, fontWeight: 700, color: userType === opt.id ? T.g700 : T.mid }}>{opt.label}</span>
                       </button>
                     ))}
                   </div>
+                </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px 24px', marginTop: 24 }}>
-                    <div>
-                      <FieldLabel>{t('registration.fullName') || 'Nome Completo'}</FieldLabel>
-                      <div style={{ position: 'relative' }}>
-                        <User style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.goldLight, width: 18, height: 18, pointerEvents: 'none' }} />
-                        <input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('registration.fullNamePlaceholder') || 'Nome completo'} style={inputStyle} required />
-                      </div>
-                    </div>
-                    <div>
-                      <FieldLabel>{t('registration.identityDocument') || 'Documento de Identidade'}</FieldLabel>
-                      <div style={{ position: 'relative' }}>
-                        <CreditCard style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.goldLight, width: 18, height: 18, pointerEvents: 'none' }} />
-                        <input value={identityDocument} onChange={e => setIdentityDocument(e.target.value)} placeholder="000000000AA000" style={inputStyle} required />
-                      </div>
-                    </div>
+                <div>
+                  <FieldLabel>{t('registration.fullName') || 'Nome Completo'}</FieldLabel>
+                  <div style={{ position: 'relative' }}>
+                    <User style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.muted, width: 17, height: 17, pointerEvents: 'none' }} />
+                    <input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('registration.fullNamePlaceholder') || 'Nome completo'} style={inputStyle} required />
                   </div>
                 </div>
-              )}
+                <div>
+                  <FieldLabel>{t('registration.identityDocument') || 'Documento de Identidade'}</FieldLabel>
+                  <div style={{ position: 'relative' }}>
+                    <CreditCard style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.muted, width: 17, height: 17, pointerEvents: 'none' }} />
+                    <input value={identityDocument} onChange={e => setIdentityDocument(e.target.value)} placeholder="000000000AA000" style={inputStyle} required />
+                  </div>
+                </div>
+              </div>
+            )}
 
-              {currentStep === 1 && (
-                <div className="field-group" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px 24px' }}>
-                  <div>
-                    <FieldLabel>Email</FieldLabel>
-                    <div style={{ position: 'relative' }}>
-                      <Mail style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.goldLight, width: 18, height: 18, pointerEvents: 'none' }} />
-                      <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" style={inputStyle} required />
-                    </div>
+            {currentStep === 1 && (
+              <div className="field-group flex flex-col gap-5">
+                <div>
+                  <FieldLabel>Email</FieldLabel>
+                  <div style={{ position: 'relative' }}>
+                    <Mail style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.muted, width: 17, height: 17, pointerEvents: 'none' }} />
+                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" style={inputStyle} required />
                   </div>
-                  <div>
-                    <FieldLabel>{t('registration.phone') || 'Telefone'}</FieldLabel>
-                    <CountryPhoneInput value={phone} onChange={setPhone} selectedCountry={selectedCountry} onCountryChange={handleCountryChange} />
-                  </div>
+                </div>
+                <div>
+                  <FieldLabel>{t('registration.phone') || 'Telefone'}</FieldLabel>
+                  <CountryPhoneInput value={phone} onChange={setPhone} selectedCountry={selectedCountry} onCountryChange={handleCountryChange} />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
                     <FieldLabel>{provinceLabel || 'Província'}</FieldLabel>
                     <NativeSelect value={selectedProvince} onChange={v => { setSelectedProvince(v); setSelectedMunicipality(""); }} placeholder={t('registration.selectProvince') || 'Selecionar província'} options={availableProvinces} />
@@ -506,177 +475,175 @@ const Registration = () => {
                     <NativeSelect value={selectedMunicipality} onChange={setSelectedMunicipality} placeholder={t('registration.selectMunicipality') || 'Selecionar município'} options={availableMunicipalities} disabled={!selectedProvince} />
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {currentStep === 2 && (
-                <>
-                  <div className="field-group" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px 24px' }}>
-                    <div>
-                      <FieldLabel>{t('registration.password') || 'Senha'}</FieldLabel>
-                      <div style={{ position: 'relative' }}>
-                        <Lock style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.goldLight, width: 18, height: 18, pointerEvents: 'none' }} />
-                        <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" style={{ ...inputStyle, paddingRight: '48px' }} required />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                          {showPassword ? <EyeOff style={{ color: T.goldLight, width: 18, height: 18 }} /> : <Eye style={{ color: T.goldLight, width: 18, height: 18 }} />}
-                        </button>
-                      </div>
-                    </div>
-                    <div>
-                      <FieldLabel>{t('registration.confirmPassword') || 'Confirmar Senha'}</FieldLabel>
-                      <div style={{ position: 'relative' }}>
-                        <Lock style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.goldLight, width: 18, height: 18, pointerEvents: 'none' }} />
-                        <input type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" style={{ ...inputStyle, paddingRight: '48px' }} required />
-                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                          {showConfirmPassword ? <EyeOff style={{ color: T.goldLight, width: 18, height: 18 }} /> : <Eye style={{ color: T.goldLight, width: 18, height: 18 }} />}
-                        </button>
-                      </div>
-                    </div>
+            {currentStep === 2 && (
+              <div className="field-group flex flex-col gap-5">
+                <div>
+                  <FieldLabel>{t('registration.password') || 'Senha'}</FieldLabel>
+                  <div style={{ position: 'relative' }}>
+                    <Lock style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.muted, width: 17, height: 17, pointerEvents: 'none' }} />
+                    <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" style={{ ...inputStyle, paddingRight: '48px' }} required />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                      {showPassword ? <EyeOff style={{ color: T.muted, width: 17, height: 17 }} /> : <Eye style={{ color: T.muted, width: 17, height: 17 }} />}
+                    </button>
                   </div>
-
-                  <div className="field-group" style={{
-                animationDelay: '0.24s',
-                padding: '20px 22px',
-                borderRadius: 18,
-                border: `1.5px solid ${T.goldBorder}`,
-                backgroundColor: T.goldPale,
-              }}>
-                <p style={{ fontSize: 12, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.goldDark, margin: '0 0 14px' }}>
-                  Foi indicado por um agente AgriLink?
-                </p>
-                <div style={{ display: 'flex', gap: 20 }}>
-                  {(['nao', 'sim'] as const).map(v => (
-                    <label key={v} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                      <div
-                        onClick={() => setWasReferred(v)}
-                        style={{
-                          width: 20, height: 20, borderRadius: '50%',
-                          border: `2px solid ${wasReferred === v ? T.goldMid : T.goldLight}`,
-                          backgroundColor: wasReferred === v ? T.goldMid : T.white,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          cursor: 'pointer', transition: 'all 0.15s',
-                        }}
-                      >
-                        {wasReferred === v && <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: T.white }} />}
-                      </div>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: T.mid }}>
-                        {v === 'nao' ? 'Não' : 'Sim'}
-                      </span>
-                    </label>
-                  ))}
+                </div>
+                <div>
+                  <FieldLabel>{t('registration.confirmPassword') || 'Confirmar Senha'}</FieldLabel>
+                  <div style={{ position: 'relative' }}>
+                    <Lock style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.muted, width: 17, height: 17, pointerEvents: 'none' }} />
+                    <input type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" style={{ ...inputStyle, paddingRight: '48px' }} required />
+                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                      {showConfirmPassword ? <EyeOff style={{ color: T.muted, width: 17, height: 17 }} /> : <Eye style={{ color: T.muted, width: 17, height: 17 }} />}
+                    </button>
+                  </div>
                 </div>
 
-                {wasReferred === 'sim' && (
-                  <div style={{ marginTop: 16 }}>
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        placeholder="Código de 6 dígitos"
-                        value={agentCode}
-                        onChange={e => {
-                          const val = e.target.value.toUpperCase().slice(0, 6);
-                          setAgentCode(val);
-                          if (val.length === 6) validateAgentCode(val);
-                          else setAgentCodeValid(null);
-                        }}
-                        style={{
-                          height: '48px',
-                          width: '100%',
-                          borderRadius: '12px',
-                          border: `1.5px solid ${agentCodeValid === false ? '#FECACA' : agentCodeValid === true ? T.gBorder : T.goldBorder}`,
-                          backgroundColor: T.white,
-                          color: T.ink,
-                          fontSize: 16,
-                          letterSpacing: '0.18em',
-                          fontWeight: 800,
-                          paddingLeft: '16px',
-                          paddingRight: '44px',
-                          outline: 'none',
-                          fontFamily: 'inherit',
-                        }}
-                      />
-                      <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)' }}>
-                        {validatingCode
-                          ? <div style={{ width: 18, height: 18, border: `2.5px solid ${T.goldBorder}`, borderTopColor: T.goldMid, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                          : agentCodeValid === true
-                            ? <Check style={{ color: '#16a34a', width: 20, height: 20 }} />
-                            : agentCodeValid === false
-                              ? <X style={{ color: '#dc2626', width: 20, height: 20 }} />
-                              : null}
+                <div style={{ paddingTop: 4 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: T.ink, margin: '0 0 12px' }}>
+                    Foi indicado por um agente AgriLink?
+                  </p>
+                  <div style={{ display: 'flex', gap: 20 }}>
+                    {(['nao', 'sim'] as const).map(v => (
+                      <label key={v} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                        <div
+                          onClick={() => setWasReferred(v)}
+                          style={{
+                            width: 18, height: 18, borderRadius: '50%',
+                            border: `2px solid ${wasReferred === v ? T.g600 : T.rule}`,
+                            backgroundColor: wasReferred === v ? T.g600 : T.white,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', transition: 'all 0.15s',
+                          }}
+                        >
+                          {wasReferred === v && <div style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: T.white }} />}
+                        </div>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: T.mid }}>
+                          {v === 'nao' ? 'Não' : 'Sim'}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+
+                  {wasReferred === 'sim' && (
+                    <div style={{ marginTop: 14 }}>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          placeholder="Código de 6 dígitos"
+                          value={agentCode}
+                          onChange={e => {
+                            const val = e.target.value.toUpperCase().slice(0, 6);
+                            setAgentCode(val);
+                            if (val.length === 6) validateAgentCode(val);
+                            else setAgentCodeValid(null);
+                          }}
+                          style={{
+                            height: '46px',
+                            width: '100%',
+                            borderRadius: '12px',
+                            border: `1px solid ${agentCodeValid === false ? '#FECACA' : agentCodeValid === true ? T.g600 : T.rule}`,
+                            backgroundColor: T.white,
+                            color: T.ink,
+                            fontSize: 15,
+                            letterSpacing: '0.16em',
+                            fontWeight: 700,
+                            paddingLeft: '16px',
+                            paddingRight: '44px',
+                            outline: 'none',
+                            fontFamily: 'inherit',
+                          }}
+                        />
+                        <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)' }}>
+                          {validatingCode
+                            ? <div style={{ width: 16, height: 16, border: `2px solid ${T.rule}`, borderTopColor: T.g600, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                            : agentCodeValid === true
+                              ? <Check style={{ color: '#16a34a', width: 18, height: 18 }} />
+                              : agentCodeValid === false
+                                ? <X style={{ color: '#dc2626', width: 18, height: 18 }} />
+                                : null}
+                        </div>
                       </div>
+                      {agentCodeValid === false && (
+                        <p style={{ fontSize: 11, fontWeight: 700, color: '#dc2626', marginTop: 6 }}>
+                          Código inválido
+                        </p>
+                      )}
                     </div>
-                    {agentCodeValid === false && (
-                      <p style={{ fontSize: 11, fontWeight: 700, color: '#dc2626', marginTop: 6, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                        Código inválido
-                      </p>
-                    )}
-                  </div>
-                )}
-                  </div>
-                </>
-              )}
+                  )}
+                </div>
+              </div>
+            )}
 
-              {/* Submit */}
-              <div style={{ display: 'flex', gap: 12 }}>
-                {currentStep > 0 && (
-                  <button type="button" onClick={() => { setErrorMessage(''); setCurrentStep(step => step - 1); }} style={{ width: 56, height: 56, borderRadius: 16, border: `1.5px solid ${T.goldBorder}`, background: T.white, color: T.goldDark, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <ArrowLeft style={{ width: 20, height: 20 }} />
-                  </button>
-                )}
-                <button type="submit" disabled={loading} className="submit-btn" style={{ flex: 1, height: 56, borderRadius: 16, border: 'none', background: loading ? T.muted : `linear-gradient(135deg, ${T.g600} 0%, ${T.g500} 100%)`, color: T.white, fontSize: 16, fontWeight: 900, cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: loading ? 'none' : '0 4px 20px rgba(45,125,58,0.25)', letterSpacing: '0.02em' }}>
-                  {loading ? 'Criando Conta...' : currentStep === steps.length - 1 ? 'Criar conta e enviar OTP' : 'Continuar'}
-                  <ArrowRight style={{ width: 20, height: 20 }} />
+            {/* Ações */}
+            <div style={{ display: 'flex', gap: 10 }}>
+              {currentStep > 0 && (
+                <button
+                  type="button"
+                  onClick={() => { setErrorMessage(''); setCurrentStep(step => step - 1); }}
+                  style={{ width: 52, height: 52, borderRadius: 999, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <ArrowLeft style={{ width: 18, height: 18 }} />
                 </button>
-              </div>
-
-              {/* Divider */}
-              <div style={{ display: 'flex', alignItems: 'center', margin: '4px 0' }}>
-                <div style={{ flex: 1, height: 1, backgroundColor: T.rule }} />
-                <span style={{
-                  padding: '0 14px', fontSize: 10, fontWeight: 900,
-                  letterSpacing: '0.18em', textTransform: 'uppercase', color: T.faint,
-                }}>Ou</span>
-                <div style={{ flex: 1, height: 1, backgroundColor: T.rule }} />
-              </div>
-
-              {/* Google Sign-up */}
+              )}
               <button
-                type="button"
-                onClick={handleGoogleSignUp}
-                disabled={googleLoading}
+                type="submit"
+                disabled={loading}
+                className="submit-btn"
                 style={{
-                  width: '100%', height: 52, borderRadius: 16,
-                  border: `1.5px solid ${T.rule}`, backgroundColor: T.white,
-                  color: T.ink, fontSize: 14, fontWeight: 800,
-                  cursor: googleLoading ? 'not-allowed' : 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  flex: 1, height: 52, borderRadius: 999, border: 'none',
+                  backgroundColor: loading ? T.muted : T.g600,
+                  color: T.white, fontSize: 15, fontWeight: 700,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 }}
               >
-                <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-                  <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.4-.4-3.5z"/>
-                  <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16.1 19 13 24 13c3 0 5.7 1.1 7.8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.4 6.3 14.7z"/>
-                  <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.5-5.2l-6.2-5.2c-2 1.4-4.5 2.4-7.3 2.4-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.6 39.5 16.2 44 24 44z"/>
-                  <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.6l6.2 5.2c-.4.4 6.7-4.9 6.7-14.8 0-1.2-.1-2.4-.4-3.5z"/>
-                </svg>
-                {googleLoading ? 'A conectar...' : 'Continuar com Google'}
+                {loading ? 'A criar conta…' : currentStep === steps.length - 1 ? 'Criar conta' : 'Continuar'}
+                <ArrowRight style={{ width: 18, height: 18 }} />
               </button>
+            </div>
 
-              <p style={{ textAlign: 'center', fontSize: 14, color: T.muted, fontWeight: 500, margin: 0 }}>
-                Já tem uma conta?{' '}
-                <Link to="/login" style={{ color: T.g600, fontWeight: 900, textDecoration: 'none' }}>
-                  Faça Login
-                </Link>
-              </p>
-            </form>
-          </div>
+            {/* Divisor */}
+            <div className="flex items-center">
+              <div style={{ flex: 1, height: 1, backgroundColor: T.rule }} />
+              <span style={{ padding: '0 12px', fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.faint }}>
+                Ou
+              </span>
+              <div style={{ flex: 1, height: 1, backgroundColor: T.rule }} />
+            </div>
+
+            {/* Google Sign-up */}
+            <button
+              type="button"
+              onClick={handleGoogleSignUp}
+              disabled={googleLoading}
+              style={{
+                width: '100%', height: 50, borderRadius: 999,
+                border: `1px solid ${T.rule}`, backgroundColor: T.white,
+                color: T.ink, fontSize: 14, fontWeight: 700,
+                cursor: googleLoading ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              }}
+            >
+              <svg width="17" height="17" viewBox="0 0 48 48" aria-hidden="true">
+                <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.4-.4-3.5z"/>
+                <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16.1 19 13 24 13c3 0 5.7 1.1 7.8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.4 6.3 14.7z"/>
+                <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.5-5.2l-6.2-5.2c-2 1.4-4.5 2.4-7.3 2.4-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.6 39.5 16.2 44 24 44z"/>
+                <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.6l6.2 5.2c-.4.4 6.7-4.9 6.7-14.8 0-1.2-.1-2.4-.4-3.5z"/>
+              </svg>
+              {googleLoading ? 'A conectar…' : 'Continuar com Google'}
+            </button>
+
+            <p style={{ textAlign: 'center', fontSize: 13, color: T.muted, fontWeight: 500, margin: 0 }}>
+              Já tem uma conta?{' '}
+              <Link to="/login" style={{ color: T.g600, fontWeight: 700, textDecoration: 'none' }}>
+                Faça Login
+              </Link>
+            </p>
+          </form>
         </div>
-
-        <p style={{ textAlign: 'center', marginTop: 24, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.faint }}>
-          © 2025 AgriLink Lda • Produção Sustentável
-        </p>
       </div>
-
-
-
-
     </div>
   );
 };
