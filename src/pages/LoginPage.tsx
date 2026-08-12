@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client'
 import orbisLinkLogo from '@/assets/orbislink-logo.png'
 // Imagem partilhada com o ecrã de Cadastro para manter a mesma identidade visual.
 // Para trocar por vídeo: substituir o <img> do painel esquerdo por um <video autoPlay muted loop playsInline>.
-import AUTH1 from '@/assets/auth1.jpg'
+import auth1 from '@/assets/auth1.jpg'
 import { OtpVerificationModal } from '@/components/OtpVerificationModal'
 import { toast } from '@/hooks/use-toast'
 
@@ -190,7 +190,7 @@ const LoginPage = () => {
       {/* ── Painel esquerdo: imagem/vídeo da plataforma + mensagem conceitual ── */}
       <div className="relative lg:w-2/5 h-64 sm:h-80 lg:h-auto overflow-hidden">
         <img
-          src={AUTH1}
+          src={auth1}
           alt="Rede AgriLink de produtores e compradores"
           className="w-full h-full object-cover"
         />
