@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client'
 import orbisLinkLogo from '@/assets/orbislink-logo.png'
 // Imagem partilhada com o ecrã de Cadastro para manter a mesma identidade visual.
 // Para trocar por vídeo: substituir o <img> do painel esquerdo por um <video autoPlay muted loop playsInline>.
+
 import autenticar from '@/assets/auth1.jpg'
 import { OtpVerificationModal } from '@/components/OtpVerificationModal'
 import { toast } from '@/hooks/use-toast'
