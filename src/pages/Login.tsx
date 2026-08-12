@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Building2, BarChart3, Truck, ArrowRight, Package, Globe, ShieldCheck, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import orbisLinkLogo from "@/assets/orbislink-logo.png";
-import supplyChainHero from "@/assets/supply-chain-hero.jpg";
 
 // --- Branding Tokens ---
 import { T } from '@/lib/brand';
@@ -15,12 +14,7 @@ const Login = () => {
     <div className="min-h-screen flex flex-col lg:flex-row" style={{ backgroundColor: T.canvas }}>
       {/* Left Side - Hero Section */}
       <div className="relative lg:w-5/12 h-80 lg:h-auto overflow-hidden">
-        <img 
-          src={supplyChainHero} 
-          alt="Supply Chain Operations" 
-          className="w-full h-full object-cover scale-105 animate-pulse-slow"
-          style={{ animationDuration: '10s' }}
-        />
+      
         {/* Overlay com gradiente usando as cores da marca */}
         <div 
           className="absolute inset-0" 
