@@ -11,7 +11,7 @@ import { getProvincesForCountry, getProvinceLabel, getMunicipalityLabel } from "
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import orbisLinkLogo from "@/assets/orbislink-logo.png";
-import autenticar from '@/assets/autenticar.jpg'
+import autenticar from '@/assets/auth1.jpg'
 
 // Imagem partilhada com o ecrã de Login para manter a mesma identidade visual.
 // Para trocar por vídeo: substituir o <img> do painel esquerdo por um <video autoPlay muted loop playsInline>.
