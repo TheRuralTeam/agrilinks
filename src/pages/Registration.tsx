@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   User, CreditCard, Mail, Lock, Eye, EyeOff,
-  ArrowRight, Check, X, ChevronDown, ArrowLeft
+  ArrowRight, Check, X, ChevronDown, ArrowLeft, Sparkles
 } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTractor, faUserTie, faBuildingColumns } from "@fortawesome/free-solid-svg-icons";
@@ -22,6 +22,12 @@ import { OtpVerificationModal } from "@/components/OtpVerificationModal";
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 import { T } from '@/lib/brand';
+
+// NIF/documento de identidade é opcional — se o utilizador não preencher,
+// enviamos este valor por omissão e ele pode ser actualizado mais tarde no perfil.
+const DEFAULT_NIF = "0000000000000";
+const GOLD_BORDER = 'rgba(229,160,32,0.28)';
+const GOLD_SOFT = 'rgba(229,160,32,0.16)';
 
 // ─── Native Select (fixes mobile scroll-to-top bug) ──────────────────────────
 const NativeSelect = ({
@@ -111,6 +117,25 @@ const FieldLabel = ({ children }: { children: React.ReactNode }) => (
   </label>
 );
 
+// Rótulo de campo com uma badge dourada "Opcional" alinhada à direita.
+const FieldLabelRow = ({ children, optional }: { children: React.ReactNode; optional?: boolean }) => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, marginLeft: 2, marginRight: 2 }}>
+    <label style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.muted }}>
+      {children}
+    </label>
+    {optional && (
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
+        color: T.gold, background: T.goldBg, border: `1px solid ${GOLD_BORDER}`,
+        padding: '2px 9px', borderRadius: 20,
+      }}>
+        <Sparkles style={{ width: 9, height: 9 }} /> Opcional
+      </span>
+    )}
+  </div>
+);
+
 // ─── Component ────────────────────────────────────────────────────────────────
 const Registration = () => {
   const navigate = useNavigate();
@@ -179,8 +204,8 @@ const Registration = () => {
   ];
 
   const validateCurrentStep = () => {
-    if (currentStep === 0 && (!userType || !fullName.trim() || !identityDocument.trim())) {
-      setErrorMessage('Preencha o tipo de conta, nome completo e documento.');
+    if (currentStep === 0 && (!userType || !fullName.trim())) {
+      setErrorMessage('Preencha o tipo de conta e o nome completo.');
       return false;
     }
     if (currentStep === 1 && (!email.trim() || !phone.trim() || !selectedProvince || !selectedMunicipality)) {
@@ -228,7 +253,7 @@ const Registration = () => {
       const { error, data } = await register({
         email: cleanEmail, phone: fullPhone, password,
         full_name: cleanName,
-        identity_document: identityDocument.trim(),
+        identity_document: identityDocument.trim() || DEFAULT_NIF,
         user_type: userType as "agricultor" | "agente" | "comprador",
         province_id: selectedProvince,
         municipality_id: selectedMunicipality,
@@ -299,8 +324,10 @@ const Registration = () => {
         .submit-btn { transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease; }
         .submit-btn:hover:not(:disabled) { transform: translateY(-1px); }
         .submit-btn:active:not(:disabled) { transform: scale(0.98); }
-        .progress-track { height: 4px; border-radius: 999px; background: ${T.rule}; overflow: hidden; }
-        .progress-fill { height: 100%; border-radius: 999px; background: ${T.g600}; transition: width 0.35s ease; }
+        .progress-track { height: 5px; border-radius: 999px; background: ${T.rule}; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, ${T.g600}, ${T.goldL}); transition: width 0.35s ease; }
+        .google-btn { transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
+        .google-btn:hover:not(:disabled) { transform: translateY(-1px); border-color: ${GOLD_BORDER} !important; box-shadow: 0 6px 18px rgba(229,160,32,0.14); }
       `}</style>
 
       {/* ── Painel esquerdo: imagem/vídeo da plataforma + mensagem conceitual ── */}
@@ -331,6 +358,7 @@ const Registration = () => {
       {/* ── Painel direito: formulário, mais leve e espaçoso ── */}
       <div className="flex-1 flex items-center justify-center px-6 py-10 lg:px-16 lg:py-16 relative overflow-hidden">
         <div className="absolute top-[-10%] right-[-10%] w-72 h-72 rounded-full blur-3xl opacity-[0.07] pointer-events-none" style={{ backgroundColor: T.g400 }} />
+        <div className="absolute bottom-[-8%] left-[-6%] w-64 h-64 rounded-full blur-3xl opacity-[0.06] pointer-events-none" style={{ backgroundColor: T.goldL }} />
 
         {/* Overlay de loading, discreto */}
         {loading && (
@@ -392,13 +420,17 @@ const Registration = () => {
               </div>
             )}
 
-            {/* Progresso leve: barra + rótulo do passo atual, sem caixas pesadas */}
+            {/* Progresso: barra verde→dourado + rótulo do passo atual, sem caixas pesadas */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span style={{ fontSize: 12, fontWeight: 800, color: T.ink }}>
                   {steps[currentStep].title}
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: T.muted }}>
+                <span style={{
+                  fontSize: 10, fontWeight: 800, color: T.gold, background: T.goldBg,
+                  border: `1px solid ${GOLD_BORDER}`, padding: '2px 9px', borderRadius: 20,
+                  letterSpacing: '0.04em',
+                }}>
                   Passo {currentStep + 1} de {steps.length}
                 </span>
               </div>
@@ -442,11 +474,28 @@ const Registration = () => {
                     <input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('registration.fullNamePlaceholder') || 'Nome completo'} style={inputStyle} required />
                   </div>
                 </div>
+
                 <div>
-                  <FieldLabel>{t('registration.identityDocument') || 'Documento de Identidade'}</FieldLabel>
+                  <FieldLabelRow optional>
+                    {t('registration.identityDocument') || 'Documento de Identidade (NIF)'}
+                  </FieldLabelRow>
                   <div style={{ position: 'relative' }}>
                     <CreditCard style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.muted, width: 17, height: 17, pointerEvents: 'none' }} />
-                    <input value={identityDocument} onChange={e => setIdentityDocument(e.target.value)} placeholder="000000000AA000" style={inputStyle} required />
+                    <input value={identityDocument} onChange={e => setIdentityDocument(e.target.value)} placeholder="000000000AA000 (opcional)" style={inputStyle} />
+                  </div>
+
+                  {/* Aviso dourado: explica o preenchimento automático quando fica em branco */}
+                  <div style={{
+                    marginTop: 10, padding: '11px 13px', borderRadius: 14,
+                    border: `1px solid ${GOLD_BORDER}`, backgroundColor: T.goldBg,
+                    display: 'flex', alignItems: 'flex-start', gap: 10,
+                  }}>
+                    <div style={{ width: 26, height: 26, borderRadius: '50%', background: GOLD_SOFT, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                      <Sparkles style={{ width: 13, height: 13, color: T.gold }} />
+                    </div>
+                    <p style={{ fontSize: 11.5, color: T.mid, margin: 0, lineHeight: 1.55 }}>
+                      Não tens o número à mão? Sem problema — deixa em branco e preenchemos automaticamente. Podes atualizá-lo mais tarde no teu perfil.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -618,6 +667,7 @@ const Registration = () => {
               type="button"
               onClick={handleGoogleSignUp}
               disabled={googleLoading}
+              className="google-btn"
               style={{
                 width: '100%', height: 50, borderRadius: 999,
                 border: `1px solid ${T.rule}`, backgroundColor: T.white,

@@ -1,8 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 import { corsHeaders } from "npm:@supabase/supabase-js@2.57.4/cors";
-import { Resend } from "npm:resend@2.0.0";
-import { sendEmailWithRetry } from "../_shared/resend.ts";
 import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 
 const BodySchema = z.object({
@@ -11,6 +9,16 @@ const BodySchema = z.object({
   redirect_to: z.string().trim().url().max(500).optional(),
 });
 
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get(
+  "SUPABASE_SERVICE_ROLE_KEY",
+);
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+
+const RESEND_FROM =
+  Deno.env.get("RESEND_FROM") ||
+  "AgriLink <no-reply@agrilink.ao>";
+
 const ALLOWED_HOSTS = [
   "agrilink.ao",
   "www.agrilink.ao",
@@ -18,162 +26,573 @@ const ALLOWED_HOSTS = [
   "localhost",
 ];
 
-const escapeHtml = (value: string) =>
-  value
+const DEFAULT_REDIRECT =
+  "https://agrilink.ao/auth/callback?next=/app";
+
+/**
+ * Escapa HTML para evitar injeção no email.
+ */
+function escapeHtml(value: string): string {
+  return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
 
-const safeRedirect = (candidate?: string) => {
-  const fallback = "https://agrilink.ao/auth/callback?next=/app";
-  if (!candidate) return fallback;
+/**
+ * Verifica se a URL de redirect pertence a um domínio autorizado.
+ */
+function safeRedirect(candidate?: string): string {
+  if (!candidate) {
+    return DEFAULT_REDIRECT;
+  }
+
   try {
     const url = new URL(candidate);
-    const host = url.hostname;
-    const ok = ALLOWED_HOSTS.some((h) => host === h || host.endsWith(`.${h}`));
-    return ok ? url.toString() : fallback;
+    const hostname = url.hostname.toLowerCase();
+
+    const allowed = ALLOWED_HOSTS.some(
+      (host) =>
+        hostname === host ||
+        hostname.endsWith(`.${host}`),
+    );
+
+    if (!allowed) {
+      console.warn(
+        "Redirect rejeitado:",
+        candidate,
+      );
+
+      return DEFAULT_REDIRECT;
+    }
+
+    return url.toString();
   } catch {
-    return fallback;
+    return DEFAULT_REDIRECT;
   }
-};
+}
+
+/**
+ * Envia email através do Resend.
+ */
+async function sendEmail(
+  to: string,
+  subject: string,
+  html: string,
+) {
+  if (!RESEND_API_KEY) {
+    throw new Error(
+      "RESEND_API_KEY não está configurada.",
+    );
+  }
+
+  const response = await fetch(
+    "https://api.resend.com/emails",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: RESEND_FROM,
+        to: [to],
+        reply_to: "contacto@agrilink.ao",
+        subject,
+        html,
+      }),
+    },
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error(
+      "Resend API error:",
+      JSON.stringify(data),
+    );
+
+    throw new Error(
+      data?.message ||
+        data?.error ||
+        "O Resend recusou o envio do email.",
+    );
+  }
+
+  return data;
+}
 
 serve(async (req: Request): Promise<Response> => {
+  /**
+   * CORS
+   */
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", {
+      status: 200,
+      headers: corsHeaders,
+    });
+  }
+
+  /**
+   * Apenas POST
+   */
+  if (req.method !== "POST") {
+    return new Response(
+      JSON.stringify({
+        error: "Método não permitido.",
+      }),
+      {
+        status: 405,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      },
+    );
   }
 
   try {
-    const parsed = BodySchema.safeParse(await req.json());
-    if (!parsed.success) {
-      return new Response(JSON.stringify({ error: "Email inválido." }), {
-        status: 400,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
+    /**
+     * Verifica configuração básica.
+     */
+    if (
+      !SUPABASE_URL ||
+      !SUPABASE_SERVICE_ROLE_KEY
+    ) {
+      console.error(
+        "Supabase environment variables ausentes.",
+      );
 
-    const email = parsed.data.email.toLowerCase();
-    const redirectTo = safeRedirect(parsed.data.redirect_to);
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    );
-
-    let fullName = parsed.data.full_name || "Utilizador AgriLink";
-    const { data: userRow } = await supabase
-      .from("users")
-      .select("id, full_name")
-      .eq("email", email)
-      .maybeSingle();
-    if (userRow?.full_name) fullName = userRow.full_name;
-
-    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-      type: "magiclink",
-      email,
-      options: { redirectTo },
-    });
-
-    if (linkError || !linkData?.properties?.action_link) {
-      console.error("generateLink error:", linkError);
       return new Response(
-        JSON.stringify({ error: "Não foi possível gerar o link de confirmação para este email." }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } },
+        JSON.stringify({
+          error:
+            "Configuração do Supabase incompleta.",
+        }),
+        {
+          status: 500,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        },
       );
     }
 
-    // Build our OWN confirmation URL using the hashed token.
-    // The email never exposes the Supabase /verify endpoint directly, so
-    // Gmail/Outlook link scanners cannot consume the one-time token before
-    // the user actually clicks. The token is only exchanged on a real click.
-    const hashedToken = (linkData.properties as any)?.hashed_token as string | undefined;
-    let actionLink = linkData.properties.action_link;
+    /**
+     * Lê o body.
+     */
+    let body: unknown;
+
     try {
-      const base = new URL(redirectTo);
-      if (hashedToken) {
-        const nextPath = base.searchParams.get("next") || "/app";
-        actionLink = `${base.origin}/auth/callback?token_hash=${encodeURIComponent(hashedToken)}&type=magiclink&next=${encodeURIComponent(nextPath)}`;
-      }
-    } catch (_) {
-      // keep the default action link
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({
+          error: "JSON inválido.",
+        }),
+        {
+          status: 400,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        },
+      );
     }
 
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    if (!resendApiKey) throw new Error("Serviço de email indisponível.");
+    /**
+     * Validação.
+     */
+    const parsed = BodySchema.safeParse(body);
 
-    const resend = new Resend(resendApiKey);
-    const safeFullName = escapeHtml(fullName);
-    const PRIMARY_FROM = Deno.env.get("RESEND_FROM") || "AgriLink <no-reply@agrilink.ao>";
-    const FALLBACK_FROM = "AgriLink <onboarding@resend.dev>";
+    if (!parsed.success) {
+      console.error(
+        "Validation error:",
+        parsed.error.flatten(),
+      );
 
-    const buildPayload = (from: string) => ({
-      from,
-      reply_to: "contacto@agrilink.ao",
-      to: [email],
-      subject: "Confirme o seu email AgriLink",
-      html: `
-        <div style="font-family: Arial, Helvetica, sans-serif; max-width: 620px; margin: 0 auto; padding: 28px 18px; background: #ffffff; color: #111714;">
-          <div style="border: 1px solid #DDE8DF; border-radius: 18px; overflow: hidden;">
-            <div style="padding: 28px 30px 22px; background: #F6FAEC; border-bottom: 4px solid #7CB342;">
-              <h1 style="color: #7CB342; margin: 0; font-size: 30px;">AgriLink</h1>
-              <p style="color: #3A4D40; margin: 10px 0 0; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700;">Confirmação de conta</p>
-            </div>
-            <div style="padding: 32px 30px;">
-              <h2 style="margin: 0 0 10px; font-size: 21px;">Olá, ${safeFullName}</h2>
-              <p style="color: #3D4D40; margin: 0 0 26px; font-size: 15px; line-height: 1.7;">
-                Clique no botão abaixo para confirmar o seu email e libertar todas as ações da sua conta AgriLink.
-              </p>
-              <div style="text-align:center; margin: 8px 0 22px;">
-                <a href="${actionLink}" style="display:inline-block; background:#7CB342; color:#ffffff; text-decoration:none; font-weight:800; font-size:16px; padding:16px 30px; border-radius:12px;">
-                  Confirmar o meu email
-                </a>
-              </div>
-              <p style="color: #6B8070; margin: 0; font-size: 13px; line-height: 1.6;">
-                Este link expira em <strong style="color:#B07D0A;">1 hora</strong> e só pode ser usado uma vez.
-                Se não solicitou este acesso, ignore este email.
-              </p>
-              <p style="color:#9DB5A4; font-size:12px; word-break:break-all; margin-top:18px;">
-                Se o botão não funcionar, copie este endereço: ${actionLink}
-              </p>
-            </div>
-            <div style="padding: 18px 30px; background: #FAFCFA; border-top: 1px solid #DDE8DF;">
-              <p style="color: #9DB5A4; font-size: 12px; text-align: center; margin: 0;">
-                Enviado por no-reply@agrilink.ao · © ${new Date().getFullYear()} AgriLink
-              </p>
-            </div>
-          </div>
-        </div>
-      `,
+      return new Response(
+        JSON.stringify({
+          error: "Email inválido.",
+        }),
+        {
+          status: 400,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+    }
+
+    const email = parsed.data.email
+      .trim()
+      .toLowerCase();
+
+    const redirectTo = safeRedirect(
+      parsed.data.redirect_to,
+    );
+
+    /**
+     * Cliente administrativo.
+     *
+     * SERVICE_ROLE_KEY fica SOMENTE na Edge Function.
+     */
+    const supabaseAdmin = createClient(
+      SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      },
+    );
+
+    /**
+     * Procura o nome do utilizador.
+     *
+     * Se a tabela users não existir ou não tiver
+     * o email, simplesmente usamos o nome enviado
+     * pelo frontend.
+     */
+    let fullName =
+      parsed.data.full_name?.trim() ||
+      "Utilizador AgriLink";
+
+    try {
+      const { data: userRow, error: userError } =
+        await supabaseAdmin
+          .from("users")
+          .select("id, full_name")
+          .eq("email", email)
+          .maybeSingle();
+
+      if (userError) {
+        console.warn(
+          "Não foi possível consultar users:",
+          userError.message,
+        );
+      }
+
+      if (userRow?.full_name) {
+        fullName = userRow.full_name;
+      }
+    } catch (error) {
+      console.warn(
+        "Consulta users ignorada:",
+        error,
+      );
+    }
+
+    /**
+     * Gera o Magic Link através do Supabase Auth.
+     *
+     * O token NÃO é criado manualmente.
+     */
+    const {
+      data: linkData,
+      error: linkError,
+    } = await supabaseAdmin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+      options: {
+        redirectTo,
+      },
     });
 
-    let usedFrom = PRIMARY_FROM;
-    const first = await sendEmailWithRetry(resend, buildPayload(PRIMARY_FROM));
-    let emailError = first?.error;
+    if (linkError) {
+      console.error(
+        "Supabase generateLink error:",
+        linkError,
+      );
 
-    // Domínio ainda não verificado no Resend → não bloquear o fluxo de confirmação
-    if (emailError && /not verified|domain/i.test(emailError.message || "")) {
-      console.warn("Domínio primário indisponível no Resend, a usar fallback:", emailError.message);
-      usedFrom = FALLBACK_FROM;
-      const retry = await sendEmailWithRetry(resend, buildPayload(FALLBACK_FROM));
-      emailError = retry?.error;
+      return new Response(
+        JSON.stringify({
+          error:
+            "Não foi possível gerar o Magic Link.",
+          details: linkError.message,
+        }),
+        {
+          status: 400,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        },
+      );
     }
 
-    if (emailError) {
-      console.error("Resend error:", emailError);
-      throw new Error("Erro ao enviar email: " + (emailError.message || String(emailError)));
+    /**
+     * O Supabase retorna o link de autenticação.
+     */
+    const actionLink =
+      linkData?.properties?.action_link;
+
+    if (!actionLink) {
+      console.error(
+        "Supabase não retornou action_link.",
+        linkData,
+      );
+
+      return new Response(
+        JSON.stringify({
+          error:
+            "O Supabase não retornou o Magic Link.",
+        }),
+        {
+          status: 500,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        },
+      );
     }
 
+    /**
+     * Escapa nome para HTML.
+     */
+    const safeFullName =
+      escapeHtml(fullName);
+
+    /**
+     * HTML do email.
+     */
+    const html = `
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confirme o seu email</title>
+</head>
+
+<body
+  style="
+    margin:0;
+    padding:0;
+    background:#f4f7f3;
+    font-family:Arial,Helvetica,sans-serif;
+  "
+>
+  <div
+    style="
+      max-width:620px;
+      margin:0 auto;
+      padding:40px 18px;
+    "
+  >
+
+    <div
+      style="
+        background:#ffffff;
+        border:1px solid #dce7dc;
+        border-radius:18px;
+        overflow:hidden;
+      "
+    >
+
+      <!-- Header -->
+      <div
+        style="
+          padding:30px;
+          background:#f5faed;
+          border-bottom:4px solid #7cb342;
+        "
+      >
+        <h1
+          style="
+            margin:0;
+            color:#7cb342;
+            font-size:30px;
+          "
+        >
+          AgriLink
+        </h1>
+
+        <p
+          style="
+            margin:8px 0 0;
+            color:#405247;
+            font-size:13px;
+            font-weight:bold;
+            letter-spacing:1px;
+            text-transform:uppercase;
+          "
+        >
+          Confirmação de conta
+        </p>
+      </div>
+
+      <!-- Content -->
+      <div style="padding:34px 30px;">
+
+        <h2
+          style="
+            margin:0 0 12px;
+            color:#172019;
+            font-size:22px;
+          "
+        >
+          Olá, ${safeFullName}
+        </h2>
+
+        <p
+          style="
+            margin:0 0 26px;
+            color:#435248;
+            font-size:15px;
+            line-height:1.7;
+          "
+        >
+          Recebemos um pedido para aceder à sua
+          conta AgriLink. Clique no botão abaixo
+          para confirmar o seu email e continuar.
+        </p>
+
+        <!-- Button -->
+        <div
+          style="
+            text-align:center;
+            margin:30px 0;
+          "
+        >
+          <a
+            href="${actionLink}"
+            target="_blank"
+            style="
+              display:inline-block;
+              background:#7cb342;
+              color:#ffffff;
+              text-decoration:none;
+              font-weight:bold;
+              font-size:16px;
+              padding:16px 30px;
+              border-radius:10px;
+            "
+          >
+            Confirmar o meu email
+          </a>
+        </div>
+
+        <p
+          style="
+            margin:0;
+            color:#6b7d70;
+            font-size:13px;
+            line-height:1.6;
+          "
+        >
+          Este link é de utilização única e
+          expira de acordo com a configuração
+          do Supabase Auth.
+        </p>
+
+        <p
+          style="
+            margin-top:20px;
+            color:#98a99d;
+            font-size:12px;
+            line-height:1.5;
+            word-break:break-all;
+          "
+        >
+          Se o botão não funcionar, copie e cole
+          este endereço no navegador:
+          <br /><br />
+          ${escapeHtml(actionLink)}
+        </p>
+
+      </div>
+
+      <!-- Footer -->
+      <div
+        style="
+          padding:18px 30px;
+          background:#fafcf9;
+          border-top:1px solid #dce7dc;
+          text-align:center;
+        "
+      >
+        <p
+          style="
+            margin:0;
+            color:#9aaba0;
+            font-size:12px;
+          "
+        >
+          AgriLink · contacto@agrilink.ao
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+</body>
+</html>
+`;
+
+    /**
+     * Envia pelo Resend.
+     */
+    const resendResult = await sendEmail(
+      email,
+      "Confirme o seu email — AgriLink",
+      html,
+    );
+
+    console.log(
+      "Magic Link enviado:",
+      {
+        email,
+        resendId: resendResult?.id,
+      },
+    );
+
+    /**
+     * Resposta final.
+     */
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message:
+          "Magic Link enviado com sucesso.",
+        email,
+        resend_id: resendResult?.id ?? null,
+      }),
+      {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+  } catch (error) {
+    console.error(
+      "send-magic-link fatal error:",
+      error,
+    );
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Erro interno ao enviar o Magic Link.";
 
     return new Response(
-      JSON.stringify({ success: true, from: usedFrom, expires_in_minutes: 60, message: "Link de confirmação enviado para " + email }),
-      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      JSON.stringify({
+        error: message,
+      }),
+      {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      },
     );
-  } catch (error: any) {
-    console.error("send-magic-link error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
   }
 });

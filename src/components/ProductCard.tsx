@@ -1,55 +1,43 @@
-import React, { useState, useEffect, useRef, memo } from 'react'
+import React, { useState, memo } from 'react'
 import Slider from 'react-slick'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import {
   Heart, MessageCircle, Calendar, MapPin, Send, ChevronLeft, ChevronRight,
-  ShoppingCart, Reply, ThumbsUp, BadgeCheck, TrendingUp, Clock, Eye, Share2, Leaf
+  ShoppingCart, Reply, ThumbsUp, BadgeCheck, TrendingUp, Clock, Share2, Leaf
 } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCanAct } from '@/hooks/useCanAct'
 import { useNavigate } from 'react-router-dom'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import SimpleLeafletMap from '@/components/SimpleLeafletMap'
 import "slick-carousel/slick/slick.css"
 import "slick-carousel/slick/slick-theme.css"
 
-/* ─── Brand tokens (AgriLink) ──────────────────────────────────────────────── */
-const brand = {
-  green:       '#2D7D3A',   // deep forest green — logo primary
-  greenLight:  '#4CAF50',   // fresh mid-green
-  greenPale:   '#E8F5E9',   // mint tint background
-  earth:       '#7B4F2E',   // warm brown / castanho
-  earthLight:  '#A0522D',
-  earthPale:   '#FDF3EC',   // pale terracotta
-  cream:       '#FAFAF7',   // off-white base
-  charcoal:    '#1C2B1E',   // near-black text
-  muted:       '#6B7C6E',   // muted sage-grey
-  border:      '#D4E8D1',   // soft green border
-  gold:        '#C8860A',   // harvest gold accent
-  goldLight:   '#F5A623',
-}
+/* ─── Design tokens — same source as AppHome, single accent colour ─────────── */
+import { T } from '@/lib/brand'
 
-/* ─── Inline styles (CSS vars not available via Tailwind here) ─────────────── */
+/* ─── Inline styles ──────────────────────────────────────────────────────────
+   Apple-style rules borrowed from AppHome:
+   - one accent colour only (T.g500/600 green), everything else neutral grey/ink
+   - pill controls on translucent grey (rgba(118,118,128,0.08))
+   - hairline borders instead of coloured borders
+   - no gradients except the single primary CTA
+────────────────────────────────────────────────────────────────────────────── */
 const styles: Record<string, React.CSSProperties> = {
   card: {
-    background: brand.cream,
-    border: `1.5px solid ${brand.border}`,
-    borderRadius: '24px',
+    background: T.white,
+    border: `1px solid rgba(0,0,0,0.05)`,
+    borderRadius: 20,
     overflow: 'hidden',
-    boxShadow: '0 2px 12px rgba(45,125,58,0.08)',
-    transition: 'box-shadow 0.4s ease, transform 0.4s ease',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+    transition: 'box-shadow 0.3s ease, transform 0.3s ease',
     position: 'relative',
     fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
   },
   cardHover: {
-    boxShadow: '0 12px 40px rgba(45,125,58,0.18)',
-    transform: 'translateY(-3px)',
+    boxShadow: '0 12px 32px rgba(0,0,0,0.08)',
+    transform: 'translateY(-2px)',
   },
   imageBadge: {
     position: 'absolute',
@@ -61,26 +49,27 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 6,
   },
   badgeNew: {
-    background: `linear-gradient(135deg, ${brand.greenLight}, ${brand.green})`,
-    color: '#fff',
+    background: 'rgba(20,20,22,0.55)',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+    color: T.white,
     fontSize: 11,
-    fontWeight: 800,
+    fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: 20,
-    letterSpacing: '0.05em',
-    boxShadow: '0 2px 8px rgba(45,125,58,0.35)',
+    borderRadius: 980,
+    letterSpacing: '0.04em',
     display: 'inline-flex',
     alignItems: 'center',
     gap: 4,
   },
   badgeDiscount: {
-    background: `linear-gradient(135deg, ${brand.goldLight}, ${brand.gold})`,
-    color: '#fff',
+    background: T.white,
+    color: T.g600,
     fontSize: 11,
     fontWeight: 800,
     padding: '4px 10px',
-    borderRadius: 20,
-    boxShadow: '0 2px 8px rgba(200,134,10,0.35)',
+    borderRadius: 980,
+    border: `1px solid ${T.gBorder}`,
     display: 'inline-flex',
     alignItems: 'center',
   },
@@ -89,22 +78,22 @@ const styles: Record<string, React.CSSProperties> = {
     top: 12,
     right: 12,
     zIndex: 20,
-    background: 'rgba(255,255,255,0.92)',
+    background: 'rgba(255,255,255,0.9)',
     backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
     border: 'none',
     borderRadius: '50%',
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
     transition: 'transform 0.2s',
   },
   imageWrap: {
     position: 'relative',
-    background: `linear-gradient(135deg, ${brand.greenPale}, #d4edda)`,
+    background: `linear-gradient(135deg, ${T.g50}, ${T.g100})`,
     aspectRatio: '4/3',
     overflow: 'hidden',
   },
@@ -113,14 +102,14 @@ const styles: Record<string, React.CSSProperties> = {
     bottom: 0,
     left: 0,
     right: 0,
-    height: 80,
-    background: 'linear-gradient(to top, rgba(28,43,30,0.45), transparent)',
+    height: 70,
+    background: 'linear-gradient(to top, rgba(0,0,0,0.28), transparent)',
     pointerEvents: 'none',
     zIndex: 5,
   },
   content: {
-    padding: '20px 20px 16px',
-    background: brand.cream,
+    padding: '18px 20px 16px',
+    background: T.white,
   },
   farmerRow: {
     display: 'flex',
@@ -129,26 +118,25 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 16,
   },
   avatarWrap: {
-    width: 46,
-    height: 46,
+    width: 44,
+    height: 44,
     borderRadius: '50%',
-    border: `2.5px solid ${brand.green}`,
     overflow: 'hidden',
     cursor: 'pointer',
     flexShrink: 0,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: `linear-gradient(135deg, ${brand.green}, ${brand.greenLight})`,
-    color: '#fff',
-    fontWeight: 800,
-    fontSize: 18,
+    background: `linear-gradient(135deg, ${T.g500}, ${T.g700})`,
+    color: T.white,
+    fontWeight: 700,
+    fontSize: 17,
     transition: 'transform 0.2s',
   },
   farmerName: {
-    fontWeight: 800,
-    fontSize: 15,
-    color: brand.charcoal,
+    fontWeight: 700,
+    fontSize: 14,
+    color: T.ink,
     cursor: 'pointer',
     transition: 'color 0.2s',
     display: 'flex',
@@ -157,7 +145,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   location: {
     fontSize: 12,
-    color: brand.muted,
+    color: T.faint,
     display: 'flex',
     alignItems: 'center',
     gap: 4,
@@ -165,19 +153,18 @@ const styles: Record<string, React.CSSProperties> = {
   },
   typeBadge: {
     marginLeft: 'auto',
-    background: brand.greenPale,
-    color: brand.green,
-    border: `1px solid ${brand.border}`,
-    borderRadius: 12,
+    background: 'rgba(118,118,128,0.08)',
+    color: T.mid,
+    borderRadius: 980,
     fontSize: 11,
-    fontWeight: 700,
+    fontWeight: 600,
     padding: '4px 10px',
     whiteSpace: 'nowrap' as const,
   },
   productTitle: {
-    fontWeight: 900,
-    fontSize: 22,
-    color: brand.green,
+    fontWeight: 700,
+    fontSize: 20,
+    color: T.ink,
     letterSpacing: '-0.02em',
     lineHeight: 1.2,
     marginBottom: 10,
@@ -189,49 +176,48 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 6,
   },
   price: {
-    fontSize: 28,
-    fontWeight: 900,
-    color: brand.earth,
-    letterSpacing: '-0.03em',
+    fontSize: 26,
+    fontWeight: 800,
+    color: T.ink,
+    letterSpacing: '-0.02em',
+    fontVariantNumeric: 'tabular-nums',
   },
   priceOld: {
     fontSize: 13,
-    color: brand.muted,
+    color: T.faint,
     textDecoration: 'line-through',
     fontWeight: 500,
   },
   stockRow: {
     fontSize: 12,
-    color: brand.muted,
+    color: T.faint,
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-    fontWeight: 600,
+    fontWeight: 500,
     marginBottom: 14,
   },
   buyBtn: {
     width: '100%',
-    background: `linear-gradient(135deg, ${brand.green} 0%, ${brand.greenLight} 100%)`,
-    color: '#fff',
+    background: `linear-gradient(135deg, ${T.g500}, ${T.g700})`,
+    color: T.white,
     border: 'none',
-    borderRadius: 14,
-    height: 48,
+    borderRadius: 980,
+    height: 46,
     fontSize: 14,
-    fontWeight: 800,
-    letterSpacing: '0.04em',
+    fontWeight: 700,
+    letterSpacing: '0.02em',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    transition: 'all 0.25s ease',
-    boxShadow: `0 4px 16px rgba(45,125,58,0.3)`,
-    position: 'relative' as const,
-    overflow: 'hidden',
+    transition: 'all 0.2s ease',
+    boxShadow: `0 4px 16px rgba(45,125,58,0.28)`,
   },
   description: {
     fontSize: 13,
-    color: brand.muted,
+    color: T.muted,
     lineHeight: 1.6,
     marginTop: 12,
     display: '-webkit-box',
@@ -245,18 +231,18 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 16,
     flexWrap: 'wrap' as const,
     paddingTop: 14,
-    borderTop: `1px solid ${brand.border}`,
+    borderTop: `1px solid ${T.rule}`,
     fontSize: 12,
-    color: brand.muted,
-    fontWeight: 600,
+    color: T.faint,
+    fontWeight: 500,
     marginTop: 14,
   },
   locationBtn: {
     display: 'flex',
     alignItems: 'center',
     gap: 5,
-    color: brand.earth,
-    fontWeight: 700,
+    color: T.g600,
+    fontWeight: 600,
     background: 'none',
     border: 'none',
     cursor: 'pointer',
@@ -269,7 +255,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 14,
-    borderTop: `1px solid ${brand.border}`,
+    borderTop: `1px solid ${T.rule}`,
     marginTop: 14,
   },
   actionBtn: {
@@ -279,15 +265,15 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'none',
     border: 'none',
     cursor: 'pointer',
-    borderRadius: 12,
+    borderRadius: 980,
     padding: '6px 12px',
     fontSize: 13,
-    fontWeight: 700,
+    fontWeight: 600,
     transition: 'all 0.2s',
   },
   commentBox: {
     paddingTop: 16,
-    borderTop: `1px solid ${brand.border}`,
+    borderTop: `1px solid ${T.rule}`,
     marginTop: 14,
   },
   commentInputRow: {
@@ -298,20 +284,20 @@ const styles: Record<string, React.CSSProperties> = {
   commentInput: {
     flex: 1,
     height: 42,
-    borderRadius: 12,
-    border: `1.5px solid ${brand.border}`,
-    padding: '0 14px',
+    borderRadius: 980,
+    border: `1px solid ${T.rule}`,
+    padding: '0 16px',
     fontSize: 13,
     outline: 'none',
-    transition: 'border-color 0.2s',
-    background: '#fff',
-    color: brand.charcoal,
+    transition: 'border-color 0.2s, box-shadow 0.2s',
+    background: T.white,
+    color: T.ink,
   },
   sendBtn: {
     width: 42,
     height: 42,
-    borderRadius: 12,
-    background: brand.green,
+    borderRadius: '50%',
+    background: T.g600,
     border: 'none',
     cursor: 'pointer',
     display: 'flex',
@@ -321,24 +307,23 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'background 0.2s',
   },
   commentItem: {
-    background: brand.greenPale,
+    background: T.canvas,
     borderRadius: 16,
     padding: '12px 14px',
-    border: `1px solid ${brand.border}`,
+    border: `1px solid ${T.rule}`,
     marginBottom: 10,
   },
   replyItem: {
-    background: brand.earthPale,
+    background: 'rgba(118,118,128,0.06)',
     borderRadius: 10,
     padding: '8px 12px',
-    border: `1px solid #e8d5c4`,
     fontSize: 12,
     marginBottom: 6,
   },
   emptyComments: {
     textAlign: 'center' as const,
     padding: '28px 0',
-    color: brand.muted,
+    color: T.faint,
     fontSize: 13,
   },
   noPhoto: {
@@ -349,9 +334,9 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    color: brand.muted,
+    color: T.faint,
     fontSize: 13,
-    fontWeight: 600,
+    fontWeight: 500,
   },
 }
 
@@ -359,26 +344,24 @@ const styles: Record<string, React.CSSProperties> = {
 const CustomPrevArrow = memo(({ onClick }: { onClick?: () => void }) => (
   <button onClick={onClick} style={{
     position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
-    background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(6px)',
-    border: 'none', borderRadius: '50%', width: 34, height: 34,
+    background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(6px)',
+    border: 'none', borderRadius: '50%', width: 32, height: 32,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    cursor: 'pointer', zIndex: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-    transition: 'transform 0.2s',
+    cursor: 'pointer', zIndex: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
   }} aria-label="Imagem anterior">
-    <ChevronLeft size={18} color={brand.green} />
+    <ChevronLeft size={17} color={T.ink} />
   </button>
 ))
 
 const CustomNextArrow = memo(({ onClick }: { onClick?: () => void }) => (
   <button onClick={onClick} style={{
     position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-    background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(6px)',
-    border: 'none', borderRadius: '50%', width: 34, height: 34,
+    background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(6px)',
+    border: 'none', borderRadius: '50%', width: 32, height: 32,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    cursor: 'pointer', zIndex: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-    transition: 'transform 0.2s',
+    cursor: 'pointer', zIndex: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
   }} aria-label="Próxima imagem">
-    <ChevronRight size={18} color={brand.green} />
+    <ChevronRight size={17} color={T.ink} />
   </button>
 ))
 CustomPrevArrow.displayName = 'CustomPrevArrow'
@@ -570,7 +553,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
             </span>
           )}
           {discount > 0 && (
-            <span style={styles.badgeDiscount}>−{discount}% OFF</span>
+            <span style={styles.badgeDiscount}>−{discount}%</span>
           )}
         </div>
 
@@ -579,10 +562,10 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
           onClick={handleShare}
           style={styles.shareBtn}
           aria-label="Compartilhar"
-          onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.12)')}
+          onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.1)')}
           onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
         >
-          <Share2 size={16} color={brand.green} />
+          <Share2 size={15} color={T.mid} />
         </button>
 
         {/* ── Photo carousel ── */}
@@ -608,7 +591,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
             </Slider>
           ) : (
             <div style={styles.noPhoto}>
-              <Leaf size={40} color={brand.greenLight} />
+              <Leaf size={36} color={T.g400} />
               <span>Sem imagem</span>
             </div>
           )}
@@ -623,7 +606,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
             <div
               style={styles.avatarWrap}
               onClick={() => navigate(`/perfil/${product.user_id}`)}
-              onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.08)')}
+              onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.06)')}
               onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
             >
               {product.farmer_name.charAt(0).toUpperCase()}
@@ -633,14 +616,14 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
               <div
                 style={styles.farmerName}
                 onClick={() => navigate(`/perfil/${product.user_id}`)}
-                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = brand.green)}
-                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = brand.charcoal)}
+                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = T.g600)}
+                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = T.ink)}
               >
                 {product.farmer_name}
-                {product.user_verified && <BadgeCheck size={15} color={brand.green} />}
+                {product.user_verified && <BadgeCheck size={14} color={T.g500} />}
               </div>
               <div style={styles.location}>
-                <MapPin size={12} color={brand.earth} />
+                <MapPin size={12} color={T.faint} />
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {product.province_id}, {product.municipality_id}
                 </span>
@@ -660,7 +643,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
           </div>
 
           <div style={styles.stockRow}>
-            <TrendingUp size={14} color={brand.goldLight} />
+            <TrendingUp size={13} color={T.g500} />
             {product.quantity.toLocaleString()} kg em estoque
           </div>
 
@@ -670,16 +653,16 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
               style={styles.buyBtn}
               onClick={() => onOpenPreOrder(product)}
               onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.transform = 'scale(1.02)'
-                ;(e.currentTarget as HTMLElement).style.boxShadow = `0 6px 24px rgba(45,125,58,0.45)`
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'
+                ;(e.currentTarget as HTMLElement).style.boxShadow = `0 6px 22px rgba(45,125,58,0.4)`
               }}
               onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.transform = 'scale(1)'
-                ;(e.currentTarget as HTMLElement).style.boxShadow = `0 4px 16px rgba(45,125,58,0.3)`
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'
+                ;(e.currentTarget as HTMLElement).style.boxShadow = `0 4px 16px rgba(45,125,58,0.28)`
               }}
             >
-              <ShoppingCart size={18} />
-              COMPRAR AGORA
+              <ShoppingCart size={17} />
+              Comprar agora
             </button>
           )}
 
@@ -691,7 +674,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
           {/* Meta row */}
           <div style={styles.metaRow}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Calendar size={13} color={brand.goldLight} />
+              <Calendar size={13} color={T.faint} />
               Colheita: {formatDate(product.harvest_date)}
             </span>
             {product.location_lat && product.location_lng && (
@@ -702,7 +685,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                 onMouseLeave={e => ((e.currentTarget as HTMLElement).style.opacity = '1')}
               >
                 <MapPin size={13} />
-                Ver Localização
+                Ver localização
               </button>
             )}
           </div>
@@ -714,14 +697,14 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
               <button
                 style={{
                   ...styles.actionBtn,
-                  color: product.is_liked ? '#e53e3e' : brand.muted,
-                  background: product.is_liked ? '#fff5f5' : 'transparent',
+                  color: product.is_liked ? '#e53e3e' : T.mid,
+                  background: product.is_liked ? 'rgba(229,62,62,0.08)' : 'transparent',
                 }}
                 onClick={toggleLike}
-                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = '#fff5f5')}
-                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = product.is_liked ? '#fff5f5' : 'transparent')}
+                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(118,118,128,0.08)')}
+                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = product.is_liked ? 'rgba(229,62,62,0.08)' : 'transparent')}
               >
-                <Heart size={18} fill={product.is_liked ? '#e53e3e' : 'none'} />
+                <Heart size={17} fill={product.is_liked ? '#e53e3e' : 'none'} />
                 {product.likes_count ? <span>{product.likes_count}</span> : null}
               </button>
 
@@ -729,20 +712,19 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
               <button
                 style={{
                   ...styles.actionBtn,
-                  color: commentVisible ? brand.earth : brand.muted,
-                  background: commentVisible ? brand.earthPale : 'transparent',
+                  color: commentVisible ? T.g600 : T.mid,
+                  background: commentVisible ? T.g50 : 'transparent',
                 }}
                 onClick={() => setCommentVisible(!commentVisible)}
-                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = brand.earthPale)}
-                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = commentVisible ? brand.earthPale : 'transparent')}
+                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(118,118,128,0.08)')}
+                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = commentVisible ? T.g50 : 'transparent')}
               >
-                <MessageCircle size={18} />
+                <MessageCircle size={17} />
                 {product.comments?.length ? <span>{product.comments.length}</span> : null}
               </button>
             </div>
 
-            <span style={{ fontSize: 11, color: brand.muted, display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Eye size={12} />
+            <span style={{ fontSize: 11, color: T.faint, display: 'flex', alignItems: 'center', gap: 5 }}>
               <Clock size={12} />
               {formatDate(product.created_at)}
             </span>
@@ -750,9 +732,9 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
 
           {/* Comments section */}
           {commentVisible && (
-            <div style={{ ...styles.commentBox, animation: 'slideDown 0.25s ease' }}>
+            <div style={{ ...styles.commentBox, animation: 'pcSlideDown 0.25s ease' }}>
               <style>{`
-                @keyframes slideDown { from { opacity:0; transform:translateY(-8px) } to { opacity:1; transform:translateY(0) } }
+                @keyframes pcSlideDown { from { opacity:0; transform:translateY(-8px) } to { opacity:1; transform:translateY(0) } }
               `}</style>
 
               {/* Input */}
@@ -763,15 +745,15 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                   value={comment}
                   onChange={e => setComment(e.target.value)}
                   onKeyPress={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addComment() } }}
-                  onFocus={e => (e.currentTarget.style.borderColor = brand.green)}
-                  onBlur={e => (e.currentTarget.style.borderColor = brand.border)}
+                  onFocus={e => { e.currentTarget.style.borderColor = T.g600; e.currentTarget.style.boxShadow = `0 0 0 3px rgba(61,154,72,0.1)` }}
+                  onBlur={e => { e.currentTarget.style.borderColor = T.rule; e.currentTarget.style.boxShadow = 'none' }}
                 />
                 <button
                   style={{ ...styles.sendBtn, opacity: comment.trim() ? 1 : 0.5 }}
                   onClick={addComment}
                   disabled={!comment.trim()}
                 >
-                  <Send size={16} color="#fff" />
+                  <Send size={16} color={T.white} />
                 </button>
               </div>
 
@@ -783,10 +765,10 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                       <div style={{ display: 'flex', gap: 10 }}>
                         {/* Avatar */}
                         <div style={{
-                          width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-                          background: `linear-gradient(135deg, ${brand.green}, ${brand.greenLight})`,
+                          width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                          background: `linear-gradient(135deg, ${T.g500}, ${T.g700})`,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: '#fff', fontWeight: 800, fontSize: 14,
+                          color: T.white, fontWeight: 700, fontSize: 13,
                         }}>
                           {c.user_avatar
                             ? <img src={c.user_avatar} alt={c.user_name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
@@ -796,11 +778,11 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
 
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-                            <span style={{ fontWeight: 700, fontSize: 13, color: brand.charcoal }}>{c.user_name}</span>
-                            <span style={{ fontSize: 10, color: brand.muted, background: '#fff', border: `1px solid ${brand.border}`, borderRadius: 8, padding: '2px 7px' }}>{c.user_type}</span>
-                            <span style={{ fontSize: 11, color: brand.muted }}>{formatDate(c.created_at)}</span>
+                            <span style={{ fontWeight: 700, fontSize: 13, color: T.ink }}>{c.user_name}</span>
+                            <span style={{ fontSize: 10, color: T.faint, background: T.white, border: `1px solid ${T.rule}`, borderRadius: 980, padding: '2px 8px' }}>{c.user_type}</span>
+                            <span style={{ fontSize: 11, color: T.faint }}>{formatDate(c.created_at)}</span>
                           </div>
-                          <p style={{ fontSize: 13, color: brand.charcoal, lineHeight: 1.55, margin: 0 }}>{c.comment_text}</p>
+                          <p style={{ fontSize: 13, color: T.ink, lineHeight: 1.55, margin: 0 }}>{c.comment_text}</p>
 
                           {/* Like + reply actions */}
                           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
@@ -808,7 +790,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                               onClick={() => toggleCommentLike(c.id, c.is_liked || false)}
                               style={{
                                 ...styles.actionBtn, padding: '3px 0', fontSize: 12,
-                                color: c.is_liked ? '#e53e3e' : brand.muted,
+                                color: c.is_liked ? '#e53e3e' : T.faint,
                               }}
                             >
                               <ThumbsUp size={13} fill={c.is_liked ? '#e53e3e' : 'none'} />
@@ -816,7 +798,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                             </button>
                             <button
                               onClick={() => setReplyingTo(replyingTo === c.id ? null : c.id)}
-                              style={{ ...styles.actionBtn, padding: '3px 0', fontSize: 12, color: brand.earth }}
+                              style={{ ...styles.actionBtn, padding: '3px 0', fontSize: 12, color: T.g600 }}
                             >
                               <Reply size={13} />
                               Responder
@@ -835,22 +817,22 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                                 autoFocus
                               />
                               <button
-                                style={{ ...styles.sendBtn, width: 36, height: 36, background: brand.earth }}
+                                style={{ ...styles.sendBtn, width: 36, height: 36, background: T.g600 }}
                                 onClick={() => addReply(c.id)}
                               >
-                                <Send size={14} color="#fff" />
+                                <Send size={14} color={T.white} />
                               </button>
                             </div>
                           )}
 
                           {/* Replies */}
                           {c.replies && c.replies.length > 0 && (
-                            <div style={{ marginTop: 10, paddingLeft: 12, borderLeft: `2.5px solid ${brand.border}` }}>
+                            <div style={{ marginTop: 10, paddingLeft: 12, borderLeft: `2px solid ${T.rule}` }}>
                               {c.replies.map(reply => (
                                 <div key={reply.id} style={styles.replyItem}>
-                                  <span style={{ fontWeight: 700, color: brand.charcoal }}>{reply.user_name}</span>
-                                  <span style={{ color: brand.muted, margin: '0 6px' }}>·</span>
-                                  <span style={{ color: brand.muted }}>{reply.reply_text}</span>
+                                  <span style={{ fontWeight: 700, color: T.ink }}>{reply.user_name}</span>
+                                  <span style={{ color: T.faint, margin: '0 6px' }}>·</span>
+                                  <span style={{ color: T.muted }}>{reply.reply_text}</span>
                                 </div>
                               ))}
                             </div>
@@ -862,7 +844,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                 </div>
               ) : (
                 <div style={styles.emptyComments}>
-                  <Leaf size={36} color={brand.border} style={{ margin: '0 auto 8px', display: 'block' }} />
+                  <Leaf size={32} color={T.rule as unknown as string} style={{ margin: '0 auto 8px', display: 'block' }} />
                   <p>Seja o primeiro a comentar!</p>
                 </div>
               )}
@@ -874,18 +856,22 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
       {/* ── Map modal ── */}
       <Dialog open={mapModalOpen} onOpenChange={setMapModalOpen}>
         <DialogContent style={{
-          maxWidth: 760, padding: 0, overflow: 'hidden', borderRadius: 24,
-          border: `2px solid ${brand.border}`,
+          maxWidth: 760, padding: 0, overflow: 'hidden', borderRadius: 20,
+          border: `1px solid ${T.rule}`, boxShadow: `0 24px 80px rgba(0,0,0,0.18)`,
         }}>
-          <DialogHeader style={{
-            padding: '20px 24px 16px',
-            background: `linear-gradient(135deg, ${brand.green}, ${brand.greenLight})`,
-          }}>
-            <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#fff', fontSize: 18, fontWeight: 800 }}>
-              <MapPin size={20} color="#ffd700" />
-              Localização do Produto
-            </DialogTitle>
-          </DialogHeader>
+          <div style={{ padding: '16px 22px', background: T.white, borderBottom: `1px solid ${T.rule}`, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 9, background: T.g50, border: `1px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <MapPin size={15} color={T.g600} />
+            </div>
+            <div>
+              <DialogTitle style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontSize: 16, fontWeight: 700, color: T.ink, margin: 0 }}>
+                Localização do produto
+              </DialogTitle>
+              <p style={{ fontSize: 11, color: T.faint, marginTop: 2, margin: 0 }}>
+                {product.farmer_name} · {product.province_id}, {product.municipality_id}
+              </p>
+            </div>
+          </div>
 
           <div style={{ width: '100%', height: 420 }}>
             {mapModalOpen && product.location_lat && product.location_lng && (
@@ -896,7 +882,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                 markers={[{
                   lat: product.location_lat,
                   lng: product.location_lng,
-                  color: brand.green,
+                  color: T.g600 as unknown as string,
                   popupHtml: `<strong>${product.product_type}</strong><br/>${product.farmer_name}`,
                 }]}
               />
@@ -904,32 +890,25 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
           </div>
 
           <div style={{
-            padding: '16px 24px', background: brand.greenPale,
-            borderTop: `1px solid ${brand.border}`,
+            padding: '14px 22px', background: T.canvas,
+            borderTop: `1px solid ${T.rule}`,
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
             <div>
-              <p style={{ fontWeight: 800, color: brand.green, fontSize: 17, margin: 0 }}>{product.product_type}</p>
-              <p style={{ fontSize: 13, color: brand.muted, marginTop: 4 }}>
-                <span style={{ fontWeight: 600 }}>{product.farmer_name}</span>
-                {' · '}{product.province_id}, {product.municipality_id}
+              <p style={{ fontWeight: 700, color: T.ink, fontSize: 15, margin: 0 }}>{product.product_type}</p>
+              <p style={{ fontSize: 12, color: T.faint, marginTop: 3 }}>
+                {product.quantity.toLocaleString()} kg disponíveis
               </p>
             </div>
             <button
               onClick={() => setMapModalOpen(false)}
               style={{
-                border: `1.5px solid ${brand.border}`, borderRadius: 12, background: '#fff',
-                padding: '8px 18px', cursor: 'pointer', fontWeight: 700,
-                color: brand.charcoal, fontSize: 13, transition: 'all 0.2s',
+                border: `1px solid ${T.rule}`, borderRadius: 980, background: T.white,
+                padding: '8px 18px', cursor: 'pointer', fontWeight: 600,
+                color: T.ink, fontSize: 13, transition: 'all 0.2s',
               }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.borderColor = brand.earth
-                ;(e.currentTarget as HTMLElement).style.color = brand.earth
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.borderColor = brand.border
-                ;(e.currentTarget as HTMLElement).style.color = brand.charcoal
-              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = T.g50 }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = T.white }}
             >
               Fechar
             </button>
