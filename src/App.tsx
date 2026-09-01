@@ -291,6 +291,16 @@ const AppRoutes = () => {
         }
       />
       <Route
+        path="/cargas"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <ProximasCargas />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/contratos-futuros"
         element={
           <ProtectedRoute>
