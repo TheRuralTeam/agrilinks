@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -442,6 +442,7 @@ export type Database = {
       digital_contracts: {
         Row: {
           admin_notes: string | null
+          agent_id: string | null
           approved_at: string | null
           approved_by: string | null
           buyer_id: string | null
@@ -449,6 +450,7 @@ export type Database = {
           created_at: string
           currency: string
           delivery_terms: string | null
+          driver_id: string | null
           id: string
           price: number | null
           product_name: string
@@ -463,6 +465,7 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          agent_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
           buyer_id?: string | null
@@ -470,6 +473,7 @@ export type Database = {
           created_at?: string
           currency?: string
           delivery_terms?: string | null
+          driver_id?: string | null
           id?: string
           price?: number | null
           product_name: string
@@ -484,6 +488,7 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          agent_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
           buyer_id?: string | null
@@ -491,6 +496,7 @@ export type Database = {
           created_at?: string
           currency?: string
           delivery_terms?: string | null
+          driver_id?: string | null
           id?: string
           price?: number | null
           product_name?: string
@@ -504,6 +510,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "digital_contracts_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "digital_contracts_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "users_public"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "digital_contracts_approved_by_fkey"
             columns: ["approved_by"]
@@ -528,6 +548,20 @@ export type Database = {
           {
             foreignKeyName: "digital_contracts_buyer_id_fkey"
             columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "users_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "digital_contracts_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "digital_contracts_driver_id_fkey"
+            columns: ["driver_id"]
             isOneToOne: false
             referencedRelation: "users_public"
             referencedColumns: ["id"]
@@ -642,6 +676,137 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      freight_loads: {
+        Row: {
+          accepted_at: string | null
+          contract_id: string | null
+          created_at: string
+          created_by: string
+          currency: string
+          delivered_at: string | null
+          destination_label: string
+          destination_lat: number | null
+          destination_lng: number | null
+          driver_id: string | null
+          id: string
+          in_transit_at: string | null
+          notes: string | null
+          offered_price: number | null
+          order_id: string | null
+          origin_label: string
+          origin_lat: number | null
+          origin_lng: number | null
+          pickup_date: string | null
+          product_id: string | null
+          product_name: string
+          status: string
+          updated_at: string
+          weight_kg: number
+        }
+        Insert: {
+          accepted_at?: string | null
+          contract_id?: string | null
+          created_at?: string
+          created_by: string
+          currency?: string
+          delivered_at?: string | null
+          destination_label: string
+          destination_lat?: number | null
+          destination_lng?: number | null
+          driver_id?: string | null
+          id?: string
+          in_transit_at?: string | null
+          notes?: string | null
+          offered_price?: number | null
+          order_id?: string | null
+          origin_label: string
+          origin_lat?: number | null
+          origin_lng?: number | null
+          pickup_date?: string | null
+          product_id?: string | null
+          product_name: string
+          status?: string
+          updated_at?: string
+          weight_kg?: number
+        }
+        Update: {
+          accepted_at?: string | null
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string
+          currency?: string
+          delivered_at?: string | null
+          destination_label?: string
+          destination_lat?: number | null
+          destination_lng?: number | null
+          driver_id?: string | null
+          id?: string
+          in_transit_at?: string | null
+          notes?: string | null
+          offered_price?: number | null
+          order_id?: string | null
+          origin_label?: string
+          origin_lat?: number | null
+          origin_lng?: number | null
+          pickup_date?: string | null
+          product_id?: string | null
+          product_name?: string
+          status?: string
+          updated_at?: string
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_loads_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "digital_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_loads_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_loads_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_loads_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_loads_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "users_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_loads_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_loads_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       futures_contracts: {
         Row: {
@@ -1648,6 +1813,7 @@ export type Database = {
           identity_document: string | null
           is_root_admin: boolean | null
           is_super_root: boolean | null
+          load_capacity_kg: number | null
           municipality_id: string | null
           phone: string | null
           phone_verified: boolean | null
@@ -1670,6 +1836,7 @@ export type Database = {
           identity_document?: string | null
           is_root_admin?: boolean | null
           is_super_root?: boolean | null
+          load_capacity_kg?: number | null
           municipality_id?: string | null
           phone?: string | null
           phone_verified?: boolean | null
@@ -1692,6 +1859,7 @@ export type Database = {
           identity_document?: string | null
           is_root_admin?: boolean | null
           is_super_root?: boolean | null
+          load_capacity_kg?: number | null
           municipality_id?: string | null
           phone?: string | null
           phone_verified?: boolean | null
@@ -2052,7 +2220,7 @@ export type Database = {
         | "deposit"
         | "commission"
         | "refund"
-      user_type_enum: "agente" | "agricultor" | "comprador"
+      user_type_enum: "agente" | "agricultor" | "comprador" | "motorista"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2207,7 +2375,7 @@ export const Constants = {
         "commission",
         "refund",
       ],
-      user_type_enum: ["agente", "agricultor", "comprador"],
+      user_type_enum: ["agente", "agricultor", "comprador", "motorista"],
     },
   },
 } as const
