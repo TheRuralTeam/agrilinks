@@ -428,6 +428,17 @@ const LoginPage = () => {
             Criar Nova Conta
           </button>
 
+          <button
+            onClick={() => navigate('/app')}
+            style={{
+              width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+              color: T.muted, fontSize: 12.5, fontWeight: 700,
+              textDecoration: 'underline', marginBottom: 16, padding: 0,
+            }}
+          >
+            Explorar como convidado
+          </button>
+
           {/* Cartão: entrar como visitante */}
           <Link
             to="/"

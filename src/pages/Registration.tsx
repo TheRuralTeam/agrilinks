@@ -691,6 +691,12 @@ const Registration = () => {
                 Faça Login
               </Link>
             </p>
+
+            <p style={{ textAlign: 'center', fontSize: 12.5, color: T.faint, fontWeight: 500, margin: 0 }}>
+              <Link to="/app" style={{ color: T.muted, fontWeight: 700, textDecoration: 'underline' }}>
+                Entrar como convidado
+              </Link>
+            </p>
           </form>
         </div>
       </div>
