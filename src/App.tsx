@@ -39,6 +39,7 @@ import CompletarPerfil from "./pages/CompletarPerfil";
 import PublicProductLocation from "./pages/PublicProductLocation";
 import AuthCallback from "./pages/AuthCallback";
 import MeusContratos from "./pages/MeusContratos";
+import ProximasCargas from "./pages/ProximasCargas";
 import { GuestGateProvider } from "@/contexts/GuestGateContext";
 import GuestCTABar from "@/components/GuestCTABar";
 import { purgeExpiredGuestSession } from "@/lib/guestSession";
@@ -287,6 +288,16 @@ const AppRoutes = () => {
               <MeusContratos />
             </AppLayout>
           </OpenRoute>
+        }
+      />
+      <Route
+        path="/cargas"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <ProximasCargas />
+            </AppLayout>
+          </ProtectedRoute>
         }
       />
       <Route
