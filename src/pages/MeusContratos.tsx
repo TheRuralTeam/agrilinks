@@ -20,6 +20,8 @@ interface Contract {
   status: string
   buyer_id: string | null
   supplier_id: string | null
+  driver_id: string | null
+  agent_id: string | null
   approved_at: string | null
   created_at: string
 }
@@ -47,7 +49,7 @@ const MeusContratos = () => {
       const list = (data || []) as Contract[]
       setContracts(list)
 
-      const ids = Array.from(new Set(list.flatMap(c => [c.buyer_id, c.supplier_id]).filter(Boolean))) as string[]
+      const ids = Array.from(new Set(list.flatMap(c => [c.buyer_id, c.supplier_id, c.driver_id, c.agent_id]).filter(Boolean))) as string[]
       if (ids.length) {
         const { data: users } = await supabase.from('users').select('id, full_name').in('id', ids)
         setNames(Object.fromEntries((users || []).map(u => [u.id, u.full_name])))
@@ -121,6 +123,8 @@ const MeusContratos = () => {
                         ...c,
                         buyer_name: c.buyer_id ? names[c.buyer_id] : null,
                         supplier_name: c.supplier_id ? names[c.supplier_id] : null,
+                        driver_name: c.driver_id ? names[c.driver_id] : null,
+                        agent_name: c.agent_id ? names[c.agent_id] : null,
                       })}
                       style={{
                         marginTop: 14, width: '100%', padding: '11px 16px', borderRadius: 12,
