@@ -12,6 +12,8 @@ export interface ContractPdfData {
   conditions?: string | null
   buyer_name?: string | null
   supplier_name?: string | null
+  driver_name?: string | null
+  agent_name?: string | null
   approved_at?: string | null
   created_at?: string | null
   source_type?: string
@@ -65,6 +67,8 @@ export function generateContractPdf(c: ContractPdfData) {
   doc.text('2. Partes envolvidas', M, y)
   line('Comprador', c.buyer_name || 'A designar')
   line('Fornecedor / Produtor', c.supplier_name || 'A designar')
+  if (c.agent_name) line('Agente de campo', c.agent_name)
+  if (c.driver_name) line('Transportador', c.driver_name)
   line('Intermediária', 'AgriLink (agrilink.ao)')
 
   y += 34
@@ -92,13 +96,22 @@ export function generateContractPdf(c: ContractPdfData) {
   y += lines.length * 14 + 40
 
   // Assinaturas
+  const parties: string[] = ['Comprador', 'Fornecedor / Produtor']
+  if (c.agent_name) parties.push('Agente de campo')
+  if (c.driver_name) parties.push('Transportador')
   doc.setDrawColor(200, 214, 202)
-  doc.line(M, y, M + 190, y)
-  doc.line(W - M - 190, y, W - M, y)
-  y += 14
-  doc.setFontSize(9); doc.setTextColor(120, 135, 122)
-  doc.text('Comprador', M, y)
-  doc.text('Fornecedor / Produtor', W - M - 190, y)
+  doc.setFontSize(9)
+  const colW = 190
+  parties.forEach((label, i) => {
+    const col = i % 2
+    const row = Math.floor(i / 2)
+    const x = col === 0 ? M : W - M - colW
+    const ly = y + row * 52
+    doc.setDrawColor(200, 214, 202)
+    doc.line(x, ly, x + colW, ly)
+    doc.setTextColor(120, 135, 122)
+    doc.text(label, x, ly + 14)
+  })
 
   // Rodapé
   const H = doc.internal.pageSize.getHeight()

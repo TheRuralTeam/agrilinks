@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Feather, FileText, ClipboardCheck } from 'lucide-react'
+import { Feather, FileText, ClipboardCheck, Truck } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 
 const FloatingActionButton = () => {
@@ -36,11 +36,21 @@ const FloatingActionButton = () => {
       icon: (
         <ClipboardCheck
           strokeWidth={3}
-          className="h-7 w-7 text-purple-500 drop-shadow-[0_0_10px_rgba(168,85,247,0.8)] animate-pulse"
+          className="h-7 w-7 text-[#2c863b] drop-shadow-[0_0_10px_rgba(44,134,59,0.7)] animate-pulse"
         />
       ),
       path: '/publicar-produto',
-      shadowColor: 'shadow-[0_0_25px_rgba(168,85,247,0.45)]',
+      shadowColor: 'shadow-[0_0_25px_rgba(44,134,59,0.45)]',
+    },
+    motorista: {
+      icon: (
+        <Truck
+          strokeWidth={3}
+          className="h-7 w-7 text-[#B07D0A] drop-shadow-[0_0_10px_rgba(176,125,10,0.7)] animate-pulse"
+        />
+      ),
+      path: '/cargas',
+      shadowColor: 'shadow-[0_0_25px_rgba(176,125,10,0.45)]',
     },
   }[userProfile.user_type]
 
