@@ -178,7 +178,7 @@ const EmptyState = ({ icon, message, sub }: { icon: React.ReactNode; message: st
 /* ── Responsive data table: real table on desktop, stacked cards on mobile ── */
 interface RCol<T> { key: string; label: string; align?: 'left' | 'right' | 'center'; width?: string; render: (row: T) => React.ReactNode }
 function RTable<T>({ columns, rows, keyField, actions, empty, accent }: {
-  columns: RCol<T>[]; rows: T[]; keyField: (r: T) => string
+  columns: RCol<T>[]; rows: T[]; keyField: (r: T, i: number) => string
   actions?: (r: T) => React.ReactNode; empty: React.ReactNode; accent?: (r: T) => string | undefined
 }) {
   if (!rows.length) return <>{empty}</>
@@ -195,7 +195,7 @@ function RTable<T>({ columns, rows, keyField, actions, empty, accent }: {
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={keyField(row)} style={{ animationDelay: `${i * 0.03}s`, position: 'relative' }}>
+            <tr key={keyField(row, i)} style={{ animationDelay: `${i * 0.03}s`, position: 'relative' }}>
               {accent?.(row) && <td className="ag-accent-cell" data-accent={accent(row)} />}
               {columns.map(c => (
                 <td key={c.key} data-label={c.label} style={{ textAlign: c.align || 'left' }}>{c.render(row)}</td>
@@ -510,7 +510,7 @@ const Profile = () => {
             animation: `ag-fade-up 0.5s ${EASE} both`,
           }}>
             {/* Faixa superior — mais baixa e mais suave */}
-            <div style={{ height: 64, background: `linear-gradient(135deg, ${T.g800 || T.g900}, ${T.g600} 65%, ${T.g400})`, position: 'relative' }}>
+            <div style={{ height: 64, background: `linear-gradient(135deg, ${T.g900}, ${T.g600} 65%, ${T.g400})`, position: 'relative' }}>
               <div style={{ position: 'absolute', inset: 0, opacity: 0.04, backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)', backgroundSize: '28px 28px' }}/>
               <div style={{ position: 'absolute', top: 10, right: 12, display: 'flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 20, background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(6px)' }}>
                 <Sparkles size={9} color="#fff" strokeWidth={1.75}/>

@@ -18,7 +18,7 @@ interface UserData {
   id: string;
   full_name: string;
   avatar_url: string | null;
-  user_type: 'agricultor' | 'comprador' | 'agente' | null;
+  user_type: 'agricultor' | 'comprador' | 'agente' | 'motorista' | null;
   province_id: string;
   municipality_id: string;
   created_at: string;

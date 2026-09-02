@@ -7,7 +7,7 @@
  } from 'lucide-react';
  
  export type CompanyTier = 'bronze' | 'silver' | 'gold' | 'enterprise';
- export type UserType = 'agricultor' | 'comprador' | 'agente';
+ export type UserType = 'agricultor' | 'comprador' | 'agente' | 'motorista';
  
  interface CompanyHeaderProps {
    name: string;
@@ -58,7 +58,7 @@
    userType
  }) => {
    const tierInfo = tierConfig[tier];
-   const userTypeLabel = userType === 'comprador' ? 'Comprador' : 'Fornecedor';
+   const userTypeLabel = userType === 'comprador' ? 'Comprador' : userType === 'motorista' ? 'Motorista' : 'Fornecedor';
    
    return (
      <div className="bg-white border-b border-border">
