@@ -12,6 +12,8 @@ export interface ContractPdfData {
   conditions?: string | null
   buyer_name?: string | null
   supplier_name?: string | null
+  driver_name?: string | null
+  agent_name?: string | null
   approved_at?: string | null
   created_at?: string | null
   source_type?: string
