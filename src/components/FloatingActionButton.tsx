@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Feather, FileText, ClipboardCheck } from 'lucide-react'
+import { Feather, FileText, ClipboardCheck, Truck } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 
 const FloatingActionButton = () => {
