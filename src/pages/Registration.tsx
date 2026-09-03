@@ -18,7 +18,6 @@ import autenticar from '@/assets/auth1.jpg'
 import { toast } from "@/hooks/use-toast";
 import { CountryPhoneInput, countries, Country } from "@/components/CountryPhoneInput";
 import { changeLanguage, getSavedCountry } from "@/i18n";
-import { OtpVerificationModal } from "@/components/OtpVerificationModal";
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 import { T } from '@/lib/brand';
@@ -157,6 +156,7 @@ const Registration = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [identityDocument, setIdentityDocument] = useState("");
+  const [loadCapacity, setLoadCapacity] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -165,8 +165,6 @@ const Registration = () => {
   const [agentCode, setAgentCode] = useState("");
   const [validatingCode, setValidatingCode] = useState(false);
   const [agentCodeValid, setAgentCodeValid] = useState<boolean | null>(null);
-  const [otpModalOpen, setOtpModalOpen] = useState(false);
-  const [pendingUser, setPendingUser] = useState<{ id: string; email: string; full_name: string } | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
 
   const [selectedCountry, setSelectedCountry] = useState<Country>(() => {
@@ -206,6 +204,10 @@ const Registration = () => {
   const validateCurrentStep = () => {
     if (currentStep === 0 && (!userType || !fullName.trim())) {
       setErrorMessage('Preencha o tipo de conta e o nome completo.');
+      return false;
+    }
+    if (currentStep === 0 && userType === 'motorista' && (!loadCapacity || Number(loadCapacity) <= 0)) {
+      setErrorMessage('Indique a capacidade de carga do seu veículo (kg).');
       return false;
     }
     if (currentStep === 1 && (!email.trim() || !phone.trim() || !selectedProvince || !selectedMunicipality)) {
@@ -254,7 +256,8 @@ const Registration = () => {
         email: cleanEmail, phone: fullPhone, password,
         full_name: cleanName,
         identity_document: identityDocument.trim() || DEFAULT_NIF,
-        user_type: userType as "agricultor" | "agente" | "comprador",
+        user_type: userType as "agricultor" | "agente" | "comprador" | "motorista",
+        load_capacity_kg: userType === "motorista" && loadCapacity ? Number(loadCapacity) : null,
         province_id: selectedProvince,
         municipality_id: selectedMunicipality,
         referred_by_agent_id: wasReferred === 'sim' && agentCode ? agentCode.toUpperCase() : null,
@@ -304,6 +307,7 @@ const Registration = () => {
     { id: 'agricultor', label: 'Fornecedor', icon: faTractor },
     { id: 'agente', label: t('registration.agent'), icon: faUserTie },
     { id: 'comprador', label: t('registration.buyer'), icon: faBuildingColumns },
+    { id: 'motorista', label: 'Motorista', icon: faTruck },
   ];
 
   const progressPercent = ((currentStep + 1) / steps.length) * 100;
@@ -498,6 +502,26 @@ const Registration = () => {
                     </p>
                   </div>
                 </div>
+
+                {userType === 'motorista' && (
+                  <div className="field-group">
+                    <FieldLabel>Capacidade de carga (kg)</FieldLabel>
+                    <div style={{ position: 'relative' }}>
+                      <Truck style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.muted, width: 17, height: 17, pointerEvents: 'none' }} />
+                      <input
+                        type="number"
+                        min={1}
+                        value={loadCapacity}
+                        onChange={e => setLoadCapacity(e.target.value)}
+                        placeholder="Ex.: 8000"
+                        style={inputStyle}
+                      />
+                    </div>
+                    <p style={{ fontSize: 11.5, color: T.muted, margin: '8px 2px 0', lineHeight: 1.55 }}>
+                      Usamos esta capacidade para lhe mostrar apenas cargas compatíveis com o seu veículo.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 

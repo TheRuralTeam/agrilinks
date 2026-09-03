@@ -5,12 +5,13 @@ export interface User {
   phone: string | null
   full_name: string
   identity_document: string
-  user_type: 'agricultor' | 'agente' | 'comprador'
+  user_type: 'agricultor' | 'agente' | 'comprador' | 'motorista'
   province_id: string
   municipality_id: string
   email_verified: boolean
   phone_verified: boolean
   avatar_url?: string
+  load_capacity_kg?: number | null
   created_at: string
   updated_at: string
 }
@@ -39,9 +40,10 @@ export interface RegisterData {
   phone?: string
   full_name: string
   identity_document: string
-  user_type: 'agricultor' | 'agente' | 'comprador'
+  user_type: 'agricultor' | 'agente' | 'comprador' | 'motorista'
   province_id: string
   municipality_id: string
   password: string
+  load_capacity_kg?: number | null
   referred_by_agent_id?: string | null
 }
