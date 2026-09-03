@@ -81,51 +81,74 @@ function safeRedirect(candidate?: string): string {
 /**
  * Envia email através do Resend.
  */
-async function sendEmail(
+async function postResend(
+  from: string,
   to: string,
   subject: string,
   html: string,
 ) {
-  if (!RESEND_API_KEY) {
-    throw new Error(
-      "RESEND_API_KEY não está configurada.",
-    );
-  }
-
-  const response = await fetch(
-    "https://api.resend.com/emails",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: RESEND_FROM,
-        to: [to],
-        reply_to: "contacto@agrilink.ao",
-        subject,
-        html,
-      }),
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      "Content-Type": "application/json",
     },
-  );
+    body: JSON.stringify({
+      from,
+      to: [to],
+      reply_to: "contacto@agrilink.ao",
+      subject,
+      html,
+    }),
+  });
 
   const data = await response.json();
+  return { ok: response.ok, data };
+}
 
-  if (!response.ok) {
-    console.error(
-      "Resend API error:",
-      JSON.stringify(data),
-    );
+/**
+ * Envia através do Resend com fallback para o remetente partilhado
+ * quando o domínio agrilink.ao ainda não está verificado.
+ */
+async function sendEmail(to: string, subject: string, html: string) {
+  if (!RESEND_API_KEY) {
+    throw new Error("RESEND_API_KEY não está configurada.");
+  }
 
+  let attempt = await postResend(RESEND_FROM, to, subject, html);
+
+  if (!attempt.ok) {
+    console.error("Resend API error:", JSON.stringify(attempt.data));
+
+    const message = String(
+      attempt.data?.message || attempt.data?.error || "",
+    ).toLowerCase();
+
+    const domainIssue =
+      message.includes("domain is not verified") ||
+      message.includes("not verified") ||
+      message.includes("domain");
+
+    if (domainIssue) {
+      console.warn("A tentar fallback com onboarding@resend.dev");
+      attempt = await postResend(
+        "AgriLink <onboarding@resend.dev>",
+        to,
+        subject,
+        html,
+      );
+    }
+  }
+
+  if (!attempt.ok) {
     throw new Error(
-      data?.message ||
-        data?.error ||
+      attempt.data?.message ||
+        attempt.data?.error ||
         "O Resend recusou o envio do email.",
     );
   }
 
-  return data;
+  return attempt.data;
 }
 
 Deno.serve(async (req: Request): Promise<Response> => {
