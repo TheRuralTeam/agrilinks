@@ -209,6 +209,22 @@ const CompletarPerfil = () => {
             </div>
           </div>
 
+          {userType === "motorista" && (
+            <div>
+              <Label>Capacidade de carga (kg)</Label>
+              <input
+                style={inputStyle}
+                type="number"
+                min={1}
+                value={loadCapacity}
+                onChange={(e) => setLoadCapacity(e.target.value)}
+                placeholder="Ex.: 8000"
+                required
+              />
+            </div>
+          )}
+
+
           <div>
             <Label>{getProvinceLabel(selectedCountry.code) || "Província"}</Label>
             <NativeSelect

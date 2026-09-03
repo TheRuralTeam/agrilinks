@@ -1,11 +1,5 @@
 project_id = "oqcrfqtlfqwrxxmsjpaf"
 
-[functions.send-otp-email]
-verify_jwt = false
-
-[functions.verify-otp-email]
-verify_jwt = false
-
 [functions.send-magic-link]
 verify_jwt = false
 
