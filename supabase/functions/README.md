@@ -1,6 +1,6 @@
 # Edge Functions — configuração de env vars
 
-Esses scripts e instruções ajudam a definir as variáveis de ambiente necessárias para as Edge Functions do Supabase (por exemplo `send-magic-link` e `send-otp-email`).
+Esses scripts e instruções ajudam a definir as variáveis de ambiente necessárias para as Edge Functions do Supabase (por exemplo `send-magic-link`).
 
 Variáveis necessárias (mínimo):
 
@@ -46,10 +46,10 @@ supabase functions serve
 supabase functions serve send-magic-link
 ```
 
-Enviar um POST de teste (exemplo para `send-otp-email`):
+Enviar um POST de teste (exemplo para `send-magic-link`):
 
 ```bash
-curl -X POST http://localhost:54321/functions/v1/send-otp-email \
+curl -X POST http://localhost:54321/functions/v1/send-magic-link \
   -H "Content-Type: application/json" \
   -d '{"email":"seu@exemplo.com"}'
 ```

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Home, Map, Bell, MessageSquare, User, Plus, LayoutDashboard, BarChart3 } from 'lucide-react'
+import { Home, Map, Bell, MessageSquare, User, Plus, LayoutDashboard, BarChart3, Truck } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
 
@@ -27,7 +27,7 @@ const BottomNavigation = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
-  const { isAdmin, user } = useAuth()
+  const { isAdmin, user, userProfile } = useAuth()
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [unreadMessages, setUnreadMessages] = useState(0)
 
@@ -56,13 +56,17 @@ const BottomNavigation = () => {
     return () => { supabase.removeChannel(notifChannel); supabase.removeChannel(msgChannel) }
   }, [user?.id])
 
+  const isDriver = (userProfile as any)?.user_type === 'motorista'
+
   // Item de publicação (Ação principal)
-  const publishItem = { 
-    icon: Plus, 
-    label: t('navigation.publish'), 
-    path: '/publicar-produto', 
-    isAction: true 
-  }
+  const publishItem = isDriver
+    ? { icon: Truck, label: 'Cargas', path: '/cargas', isAction: true }
+    : {
+        icon: Plus,
+        label: t('navigation.publish'),
+        path: '/publicar-produto',
+        isAction: true,
+      }
 
   // Itens de navegação (7 itens no total)
   const navItems = [
@@ -73,7 +77,9 @@ const BottomNavigation = () => {
     { icon: MessageSquare, label: t('navigation.messages'), path: '/listamensagens', badge: unreadMessages },
     publishItem, // Posição central (4 de 7)
     { icon: Bell, label: t('navigation.notifications'), path: '/notificacoes', badge: unreadNotifications },
-    { icon: BarChart3, label: 'Mercado', path: '/mercado' }, // Rota corrigida para /mercado
+    isDriver
+      ? { icon: Truck, label: 'Cargas', path: '/cargas' }
+      : { icon: BarChart3, label: 'Mercado', path: '/mercado' },
     { icon: User, label: t('navigation.profile'), path: '/perfil' },
   ]
 

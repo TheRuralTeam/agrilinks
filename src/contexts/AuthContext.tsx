@@ -113,7 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const profile = data ? {
         ...data,
-        user_type: data.user_type as 'agricultor' | 'agente' | 'comprador'
+        user_type: data.user_type as 'agricultor' | 'agente' | 'comprador' | 'motorista'
       } : null
 
       setUserProfile(profile)
@@ -234,7 +234,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/confirmar-email`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/app`,
           data: {
             full_name,
             user_type,
@@ -242,6 +242,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             municipality_id,
             identity_document,
             phone,
+            load_capacity_kg: (userData as any).load_capacity_kg ?? null,
             referred_by_agent_id: referredByAgentId
           }
         }
@@ -295,19 +296,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const resendVerification = async () => {
-    if (!user?.email) {
-      console.error('resendVerification: user.email missing', { user });
-      return { error: { message: 'Email do usuário não está disponível no momento.' } };
+    const email = user?.email
+    if (!email) {
+      return { error: { message: 'Email do utilizador não está disponível no momento.' } }
     }
 
-    const { error } = await supabase.functions.invoke('send-otp-email', {
+    const { data, error } = await supabase.functions.invoke('send-magic-link', {
       body: {
-        user_id: user.id,
-        email: user.email,
-        full_name: userProfile?.full_name || user.email,
-      }
+        email,
+        full_name: userProfile?.full_name || email,
+        redirect_to: `${window.location.origin}/auth/callback?next=/app`,
+      },
     })
-    return { error }
+    if (error) return { error }
+    if (data?.error) return { error: { message: data.error } }
+    return { error: null }
   }
 
   const resetPassword = async (email: string) => {

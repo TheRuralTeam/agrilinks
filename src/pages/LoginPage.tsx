@@ -8,7 +8,6 @@ import orbisLinkLogo from '@/assets/orbislink-logo.png'
 // Para trocar por vídeo: substituir o <img> do painel esquerdo por um <video autoPlay muted loop playsInline>.
 
 import autenticar from '@/assets/auth1.jpg'
-import { OtpVerificationModal } from '@/components/OtpVerificationModal'
 import { toast } from '@/hooks/use-toast'
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
@@ -52,9 +51,6 @@ const LoginPage = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
   const [resendLoading, setResendLoading] = useState(false)
-  const [showOtpModal, setShowOtpModal] = useState(false)
-  const [pendingUserId, setPendingUserId] = useState('')
-  const [pendingUserName, setPendingUserName] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
   const [googleLoading, setGoogleLoading] = useState(false)
 
@@ -79,25 +75,8 @@ const LoginPage = () => {
           error.message.includes('User not confirmed') ||
           error.message.includes('Email not confirmed')
         ) {
-          const { data: userData } = await supabase
-            .from('users')
-            .select('id, full_name, email_verified')
-            .eq('email', email)
-            .maybeSingle()
-
-          if (userData && !userData.email_verified) {
-            setPendingUserId(userData.id)
-            setPendingUserName(userData.full_name || 'Usuário')
-            try {
-              await supabase.functions.invoke('send-otp-email', {
-                body: { user_id: userData.id, email, full_name: userData.full_name || 'Usuário' },
-              })
-              toast({ title: 'Código enviado!', description: 'Verifique o seu e-mail.' })
-            } catch (otpErr) {
-              console.error('OTP error:', otpErr)
-            }
-            setShowOtpModal(true)
-          }
+          await sendMagicLink(email)
+          setErrorMsg('A sua conta ainda não foi confirmada. Enviámos um novo link de confirmação para o seu email.')
         } else {
           setErrorMsg('Credenciais inválidas. Verifique e tente novamente.')
         }
@@ -129,39 +108,28 @@ const LoginPage = () => {
     }
   }
 
+  const sendMagicLink = async (targetEmail: string) => {
+    const { data, error } = await supabase.functions.invoke('send-magic-link', {
+      body: {
+        email: targetEmail.trim().toLowerCase(),
+        redirect_to: `${window.location.origin}/auth/callback?next=/app`,
+      },
+    })
+    if (error) throw new Error(error.message || 'Não foi possível enviar o link.')
+    if (data?.error) throw new Error(data.error)
+    return true
+  }
+
   const handleResendConfirmation = async () => {
     if (!email) { toast({ title: 'Atenção', description: 'Insira o seu email primeiro.' }); return }
     setResendLoading(true)
     try {
-      const { data, error } = await supabase.functions.invoke('send-otp-email', {
-        body: { email },
-      })
-      if (error) throw error
-
-      if (data?.user_id) {
-        setPendingUserId(data.user_id)
-        setPendingUserName(data.full_name || 'Usuário')
-        setShowOtpModal(true)
-      }
-      toast({ title: 'Código reenviado', description: 'Verifique o email enviado por contacto@agrilink.ao.' })
+      await sendMagicLink(email)
+      toast({ title: 'Link enviado', description: 'Verifique a caixa de entrada (e o spam) do seu email.' })
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' })
     } finally {
       setResendLoading(false)
-    }
-  }
-
-  const handleOtpSuccess = async () => {
-    setShowOtpModal(false)
-    toast({ title: 'Email verificado!', description: 'Faça login novamente.' })
-    if (email && password) {
-      setLoading(true)
-      try {
-        const { error } = await login(email, password)
-        if (!error) navigate('/app')
-      } finally {
-        setLoading(false)
-      }
     }
   }
 
@@ -368,7 +336,7 @@ const LoginPage = () => {
                 opacity: resendLoading || !email ? 0.4 : 1,
               }}
             >
-              {resendLoading ? 'A reenviar...' : 'Reenviar confirmação de email'}
+              {resendLoading ? 'A enviar...' : 'Reenviar link de confirmação'}
             </button>
           </div>
 
@@ -561,17 +529,6 @@ const LoginPage = () => {
         </div>
       )}
 
-      {/* OTP Modal */}
-      {showOtpModal && (
-        <OtpVerificationModal
-          isOpen={showOtpModal}
-          onClose={() => setShowOtpModal(false)}
-          onSuccess={handleOtpSuccess}
-          userId={pendingUserId}
-          fullName={pendingUserName}
-          email={email}
-        />
-      )}
     </div>
   )
 }

@@ -65,13 +65,14 @@ const CompletarPerfil = () => {
   const [fullName, setFullName] = useState("");
   const [identityDocument, setIdentityDocument] = useState("");
   const [phone, setPhone] = useState("");
-  const [userType, setUserType] = useState<"agricultor" | "agente" | "comprador" | "">("");
+  const [userType, setUserType] = useState<"agricultor" | "agente" | "comprador" | "motorista" | "">("");
   const [selectedCountry, setSelectedCountry] = useState<Country>(
     () => countries.find(c => c.code === getSavedCountry()) || countries[0]
   );
   const [provinceId, setProvinceId] = useState("");
   const [municipalityId, setMunicipalityId] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loadCapacity, setLoadCapacity] = useState("");
 
   const provinces = getProvincesForCountry(selectedCountry.code);
   const municipalities = provinces.find(p => p.id === provinceId)?.municipalities || [];
@@ -97,6 +98,10 @@ const CompletarPerfil = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (userType === "motorista" && (!loadCapacity || Number(loadCapacity) <= 0)) {
+      toast({ title: "Capacidade em falta", description: "Indique a capacidade de carga do veículo (kg).", variant: "destructive" });
+      return;
+    }
     if (!fullName || !identityDocument || !phone || !userType || !provinceId || !municipalityId) {
       toast({ title: "Campos obrigatórios", description: "Preencha todos os campos.", variant: "destructive" });
       return;
@@ -110,7 +115,8 @@ const CompletarPerfil = () => {
       user_type: userType as any,
       province_id: provinceId,
       municipality_id: municipalityId,
-    }).eq("id", user.id);
+      load_capacity_kg: userType === "motorista" && loadCapacity ? Number(loadCapacity) : null,
+    } as any).eq("id", user.id);
     setSaving(false);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -125,6 +131,7 @@ const CompletarPerfil = () => {
     { id: "agricultor", label: "Fornecedor" },
     { id: "agente", label: "Agente" },
     { id: "comprador", label: "Comprador" },
+    { id: "motorista", label: "Motorista" },
   ];
 
   return (
@@ -182,7 +189,7 @@ const CompletarPerfil = () => {
 
           <div>
             <Label>Tipo de Conta</Label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {userTypes.map(o => {
                 const active = userType === o.id;
                 return (
@@ -201,6 +208,22 @@ const CompletarPerfil = () => {
               })}
             </div>
           </div>
+
+          {userType === "motorista" && (
+            <div>
+              <Label>Capacidade de carga (kg)</Label>
+              <input
+                style={inputStyle}
+                type="number"
+                min={1}
+                value={loadCapacity}
+                onChange={(e) => setLoadCapacity(e.target.value)}
+                placeholder="Ex.: 8000"
+                required
+              />
+            </div>
+          )}
+
 
           <div>
             <Label>{getProvinceLabel(selectedCountry.code) || "Província"}</Label>
