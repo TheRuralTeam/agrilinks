@@ -1,7 +1,11 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-import { corsHeaders } from "npm:@supabase/supabase-js@2.57.4/cors";
-import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+import { z } from "npm:zod@3.23.8";
 
 const BodySchema = z.object({
   email: z.string().trim().email().max(255),
@@ -124,7 +128,7 @@ async function sendEmail(
   return data;
 }
 
-serve(async (req: Request): Promise<Response> => {
+Deno.serve(async (req: Request): Promise<Response> => {
   /**
    * CORS
    */
