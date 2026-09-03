@@ -242,6 +242,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             municipality_id,
             identity_document,
             phone,
+            load_capacity_kg: (userData as any).load_capacity_kg ?? null,
             referred_by_agent_id: referredByAgentId
           }
         }

@@ -3,10 +3,10 @@ import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   User, CreditCard, Mail, Lock, Eye, EyeOff,
-  ArrowRight, Check, X, ChevronDown, ArrowLeft, Sparkles
+  ArrowRight, Check, X, ChevronDown, ArrowLeft, Sparkles, Truck
 } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTractor, faUserTie, faBuildingColumns } from "@fortawesome/free-solid-svg-icons";
+import { faTractor, faUserTie, faBuildingColumns, faTruck } from "@fortawesome/free-solid-svg-icons";
 import { getProvincesForCountry, getProvinceLabel, getMunicipalityLabel } from "@/data/country-locations";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -448,7 +448,7 @@ const Registration = () => {
               <div className="field-group flex flex-col gap-5">
                 <div>
                   <FieldLabel>{t('registration.userType') || 'Tipo de Conta'}</FieldLabel>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
                     {userTypeOptions.map(opt => (
                       <button
                         key={opt.id}
