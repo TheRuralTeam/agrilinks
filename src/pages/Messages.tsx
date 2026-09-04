@@ -280,7 +280,7 @@ const Messages = () => {
         }
       ).subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, id, toast]);
+  }, [user, id]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -333,7 +333,7 @@ const Messages = () => {
     } finally {
       setIsSending(false);
     }
-  }, [user, conversation, id, newMessage, selectedFiles, toast]);
+  }, [user, conversation, id, newMessage, selectedFiles]);
 
   const groupedMessages = useMemo(() => {
     const groups: { messages: Message[]; sender: string }[] = [];

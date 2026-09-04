@@ -43,109 +43,97 @@
    const [companyData, setCompanyData] = useState<CompanyData | null>(null);
    const [products, setProducts] = useState<PortfolioProduct[]>([]);
  
-   // Mock trust metrics (in production, these would come from aggregated data)
-   const trustMetrics = {
-     completedNegotiations: 127,
-     averageRating: 4.8,
-     totalReviews: 89,
-     deliveryRate: 98,
-     paymentRate: 100,
-     responseTime: '< 2 horas',
-     onTimeDelivery: 95,
-     repeatBuyerRate: 72
-   };
- 
-   // Mock buyer profile data
-   const buyerProfileData = {
-     categories: ['Cereais', 'Leguminosas', 'Frutas', 'Vegetais', 'Oleaginosas'],
-     monthlyVolume: '50-100 ton',
-     purchaseFrequency: 'Semanal',
-     budgetRange: '10M - 50M Kz/mês',
-     preferredIncoterms: ['FOB', 'CIF', 'DAP'],
-     paymentTerms: ['30 dias', '60 dias', 'À vista com desconto']
-   };
- 
-   // Mock supplier data
-   const supplierData = {
-     productionCapacity: '500 ton/mês',
-     certifications: ['ISO 9001', 'HACCP', 'Global GAP', 'Orgânico'],
-     logistics: ['Transporte próprio', 'Armazém refrigerado', 'Entrega nacional']
-   };
- 
-   const fetchCompanyData = React.useCallback(async () => {
-     try {
-       setLoading(true);
+  const trustMetrics = null;
 
-       const { data: userData, error } = await supabase
-         .from('users')
-         .select('*')
-         .eq('id', id)
-         .single();
+  const buyerProfileData = {
+    categories: [] as string[],
+    monthlyVolume: '',
+    purchaseFrequency: '',
+    budgetRange: '',
+    preferredIncoterms: [] as string[],
+    paymentTerms: [] as string[]
+  };
 
-       if (error) throw error;
+  const supplierData = {
+    productionCapacity: '',
+    certifications: [] as string[],
+    logistics: [] as string[]
+  };
 
-       const determineTier = (): CompanyTier => {
-         if (userData.is_root_admin) return 'enterprise';
-         if (userData.verified) return 'gold';
-         return 'bronze';
-       };
+  const fetchCompanyData = React.useCallback(async () => {
+    try {
+      setLoading(true);
 
-       const publicUserData = isNeutralPublicView(user) ? sanitizePublicProfile(userData) : userData;
-       const profileName = getProfileDisplayName((publicUserData as any) || userData);
-       const safeLogo = resolveAvatarUrl((publicUserData as any)?.avatar_url || userData.avatar_url);
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-       setCompanyData({
-         id: userData.id,
-         name: profileName,
-         logo: safeLogo,
-         sector: userData.user_type === 'comprador' ? 'Agroindústria' : 'Produção Agrícola',
-         location: `${userData.municipality_id}, ${userData.province_id}`,
-         memberSince: new Date(userData.created_at).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
-         isVerified: userData.verified || false,
-         tier: determineTier(),
-         userType: userData.user_type || 'comprador',
-         description: `Empresa sediada em ${userData.province_id} com foco em operações de ${userData.user_type === 'comprador' ? 'aquisição e distribuição' : 'produção e fornecimento'} de produtos agrícolas de alta qualidade. Comprometida com práticas sustentáveis e parcerias de longo prazo.`,
-         foundedYear: 2018,
-         employees: '25-50',
-         annualRevenue: '500M+ Kz',
-         phone: userData.phone
-       });
+      if (error) throw error;
 
-       if (userData.user_type !== 'comprador') {
-         const { data: productsData } = await supabase
-           .from('products')
-           .select('*')
-           .eq('user_id', id)
-           .eq('status', 'active')
-           .order('created_at', { ascending: false })
-           .limit(10);
+      const determineTier = (): CompanyTier => {
+        if (userData.is_root_admin) return 'enterprise';
+        if (userData.verified) return 'gold';
+        return 'bronze';
+      };
 
-         if (productsData) {
-           const portfolioProducts: PortfolioProduct[] = productsData.map((p, index) => ({
-             id: p.id,
-             name: p.product_type,
-             sku: `SKU-${String(index + 1).padStart(4, '0')}`,
-             unit: 'kg',
-             moq: Math.min(p.quantity, 100),
-             prices: [
-               { minQty: 100, price: p.price },
-               { minQty: 500, price: Math.round(p.price * 0.95) },
-               { minQty: 1000, price: Math.round(p.price * 0.90) }
-             ],
-             stock: p.quantity,
-             leadTime: '3-5 dias',
-             photo: p.photos?.[0]
-           }));
-           setProducts(portfolioProducts);
-         }
-       }
-     } catch (error) {
-       console.error('Erro ao carregar perfil:', error);
-       toast.error('Erro ao carregar perfil da empresa');
-     } finally {
-       setLoading(false);
-     }
-   }, [id, user]);
+      const publicUserData = isNeutralPublicView(user) ? sanitizePublicProfile(userData) : userData;
+      const profileName = getProfileDisplayName((publicUserData as any) || userData);
+      const safeLogo = resolveAvatarUrl((publicUserData as any)?.avatar_url || userData.avatar_url);
+
+      setCompanyData({
+        id: userData.id,
+        name: profileName,
+        logo: safeLogo,
+        sector: userData.user_type === 'comprador' ? 'Agroindústria' : 'Produção Agrícola',
+        location: [userData.municipality_id, userData.province_id].filter(Boolean).join(', ') || 'Localização não divulgada',
+        memberSince: userData.created_at ? new Date(userData.created_at).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : 'Data não disponível',
+        isVerified: !!userData.verified,
+        tier: determineTier(),
+        userType: userData.user_type || 'comprador',
+        description: userData.bio || userData.description || '',
+        foundedYear: userData.company_founded_year || undefined,
+        employees: userData.company_employees || undefined,
+        annualRevenue: userData.company_annual_revenue || undefined,
+        phone: userData.phone
+      });
+
+      if (userData.user_type !== 'comprador') {
+        const { data: productsData } = await supabase
+          .from('products')
+          .select('*')
+          .eq('user_id', id)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (productsData) {
+          const portfolioProducts: PortfolioProduct[] = productsData.map((p, index) => ({
+            id: p.id,
+            name: p.product_type,
+            sku: `SKU-${String(index + 1).padStart(4, '0')}`,
+            unit: 'kg',
+            moq: Math.min(p.quantity, 100),
+            prices: [
+              { minQty: 100, price: p.price },
+              { minQty: 500, price: Math.round(p.price * 0.95) },
+              { minQty: 1000, price: Math.round(p.price * 0.90) }
+            ],
+            stock: p.quantity,
+            leadTime: '3-5 dias',
+            photo: p.photos?.[0]
+          }));
+          setProducts(portfolioProducts);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar perfil:', error);
+      toast.error('Erro ao carregar perfil da empresa');
+    } finally {
+      setLoading(false);
+    }
+  }, [id, user]);
 
    useEffect(() => {
      if (id) {
@@ -270,13 +258,17 @@
            {/* Overview Tab */}
            <TabsContent value="overview" className="space-y-6">
              <AboutCompany
-               description={companyData.description}
+               description={companyData.description || 'A empresa ainda não publicou uma descrição pública.'}
                foundedYear={companyData.foundedYear}
                employees={companyData.employees}
                annualRevenue={companyData.annualRevenue}
              />
-             
-             <TrustMetrics {...trustMetrics} />
+
+             {trustMetrics ? <TrustMetrics {...trustMetrics} /> : (
+               <div className="rounded-xl border border-dashed border-border bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+                 Ainda não existem métricas públicas publicadas para este perfil.
+               </div>
+             )}
            </TabsContent>
  
            {/* Commercial Tab */}

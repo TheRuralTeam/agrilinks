@@ -66,7 +66,7 @@ const PerfilComprador = () => {
   // Redirecionamento automático se não for comprador
   useEffect(() => {
     if (userProfile?.user_type === 'agricultor' || userProfile?.user_type === 'agente') {
-      navigate('/perfil-agricultor')
+      navigate('/perfil', { replace: true })
     }
   }, [userProfile, navigate])
 
@@ -109,7 +109,7 @@ const PerfilComprador = () => {
       fetchFichas()
       fetchOrders()
     }
-  }, [user?.id, fetchFichas, fetchOrders])
+  }, [user, fetchFichas, fetchOrders])
 
   const updateProfile = async () => {
     if (!user) return

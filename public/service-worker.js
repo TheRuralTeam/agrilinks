@@ -1,13 +1,66 @@
-// Service Worker para notificações push AgriLink
+const CACHE_NAME = 'agrilink-shell-v1';
+const APP_SHELL = [
+  '/',
+  '/index.html',
+  '/manifest.webmanifest',
+  '/favicon.ico',
+  '/placeholder.svg',
+  '/robots.txt'
+];
 
 self.addEventListener('install', (event) => {
-  console.log('[Service Worker] Instalando...');
+  console.log('[Service Worker] Instalando cache shell...');
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).catch(() => undefined)
+  );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[Service Worker] Ativando...');
+  console.log('[Service Worker] Ativando cache do AgriLink...');
+  event.waitUntil(
+    caches.keys().then((keys) => Promise.all(
+      keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+    ))
+  );
   self.clients.claim();
+});
+
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  if (request.method !== 'GET') return;
+
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          return response;
+        })
+        .catch(async () => {
+          const cachedResponse = await caches.match('/index.html');
+          return cachedResponse || caches.match('/');
+        })
+    );
+    return;
+  }
+
+  if (request.url.startsWith(self.location.origin)) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+
+        return fetch(request)
+          .then((response) => {
+            const cloned = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
+            return response;
+          })
+          .catch(() => caches.match('/index.html'));
+      })
+    );
+  }
 });
 
 self.addEventListener('message', (event) => {
@@ -23,8 +76,8 @@ self.addEventListener('push', (event) => {
   let notificationData = {
     title: 'Notificação AgriLink',
     body: 'Você tem uma nova notificação',
-    icon: '/agrilink-icon.png',
-    badge: '/agrilink-badge.png',
+    icon: '/placeholder.svg',
+    badge: '/placeholder.svg',
     tag: 'agrilink-notification',
     data: {},
     actions: [
@@ -40,7 +93,6 @@ self.addEventListener('push', (event) => {
     try {
       const data = event.data.json();
       notificationData = { ...notificationData, ...data };
-      console.log('[Service Worker] Dados da notificação:', notificationData);
     } catch (e) {
       console.error('[Service Worker] Erro ao parsear dados:', e);
       notificationData.body = event.data.text();
@@ -50,26 +102,23 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     Promise.all([
       self.registration.showNotification(notificationData.title, notificationData),
-      // Tocar som se disponível
       notificationData.sound ? playNotificationSound(notificationData.sound) : Promise.resolve()
     ])
   );
 });
 
-// Função para tocar som da notificação
 async function playNotificationSound(soundUrl) {
   try {
-    // Criar um audio context
     const audioContext = new AudioContext();
     const response = await fetch(soundUrl);
     const arrayBuffer = await response.arrayBuffer();
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    
+
     const source = audioContext.createBufferSource();
     source.buffer = audioBuffer;
     source.connect(audioContext.destination);
     source.start(0);
-    
+
     return new Promise((resolve) => {
       source.onended = resolve;
     });
@@ -85,9 +134,9 @@ self.addEventListener('notificationclick', (event) => {
   if (event.action === 'close') return;
 
   event.waitUntil(
-    self.clients.matchAll({ type: 'window' }).then((clientList) => {
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if (client.url === '/' && 'focus' in client) {
+        if (client.url === self.location.origin + '/' && 'focus' in client) {
           return client.focus();
         }
       }

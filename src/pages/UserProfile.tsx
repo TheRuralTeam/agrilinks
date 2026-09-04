@@ -187,7 +187,7 @@ const UserProfile = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, user?.id, navigate]);
+  }, [id, user?.id]);
 
   useEffect(() => {
     if (id) {

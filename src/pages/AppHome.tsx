@@ -44,7 +44,7 @@ const CATEGORIES = [
   { id: 'bebidas', label: 'Bebidas',    icon: faMugHot,        color: '#5C3317' },
 ]
 
-const MAPBOX_TOKEN = 'pk.eyJ1IjoibHVjYW1iYSIsImEiOiJjbWdqY293Z2QwaGRwMmlyNGlwNW4xYXhwIn0.qOjQNe8kbbfmdK5G0MHWDA'
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 import { T } from '@/lib/brand';
@@ -267,6 +267,11 @@ const AppHome = () => {
         ])
 
         if (cancelled || !mapContainerRef.current) return
+
+        if (!MAPBOX_TOKEN) {
+          toast.error('Mapa não configurado. Defina VITE_MAPBOX_TOKEN nas variáveis de ambiente.')
+          return
+        }
 
         mapboxgl.accessToken = MAPBOX_TOKEN
         mapRef.current = new mapboxgl.Map({

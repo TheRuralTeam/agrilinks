@@ -1,71 +1,5 @@
 import { supabase } from '@/integrations/supabase/client'
 
-const fallbackProducts = [
-  {
-    id: 'fallback-1',
-    user_id: 'system',
-    product_type: 'Manga',
-    quantity: 600,
-    price: 1750,
-    status: 'active',
-    harvest_date: new Date().toISOString(),
-    province_id: 'Luanda',
-    municipality_id: 'Viana',
-    location: 'Luanda, Viana',
-    farmer_name: 'Produtor Premium Luanda',
-    photos: ['https://images.unsplash.com/...'],
-    description: 'Manga de qualidade exportação, colheita recente e abastecimento estável para compradores institucionais.',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    likes_count: 18,
-    is_liked: false,
-    comments: [],
-    user_verified: true,
-  },
-  {
-    id: 'fallback-2',
-    user_id: 'system',
-    product_type: 'Batata',
-    quantity: 1200,
-    price: 960,
-    status: 'active',
-    harvest_date: new Date().toISOString(),
-    province_id: 'Benguela',
-    municipality_id: 'Benguela',
-    location: 'Benguela',
-    farmer_name: 'Cooperativa do Planalto',
-    photos: ['https://images.unsplash.com/...'],
-    description: 'Batata fresca com calibração uniforme e logística pronta para entregas regulares.',
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    updated_at: new Date(Date.now() - 86400000).toISOString(),
-    likes_count: 12,
-    is_liked: false,
-    comments: [],
-    user_verified: true,
-  },
-  {
-    id: 'fallback-3',
-    user_id: 'system',
-    product_type: 'Café',
-    quantity: 450,
-    price: 2450,
-    status: 'active',
-    harvest_date: new Date().toISOString(),
-    province_id: 'Huíla',
-    municipality_id: 'Lubango',
-    location: 'Lubango',
-    farmer_name: 'Selo Agrícola Huila',
-    photos: ['https://images.unsplash.com/...'],
-    description: 'Café arábica selecionado com lote traceável e condições de entrega para mercados B2B.',
-    created_at: new Date(Date.now() - 172800000).toISOString(),
-    updated_at: new Date(Date.now() - 172800000).toISOString(),
-    likes_count: 22,
-    is_liked: false,
-    comments: [],
-    user_verified: true,
-  },
-] as const
-
 export const fetchActiveProducts = async (userId?: string) => {
   try {
     const { data: productsData, error } = await supabase
@@ -77,12 +11,7 @@ export const fetchActiveProducts = async (userId?: string) => {
     if (error) throw error
 
     if (!productsData || productsData.length === 0) {
-      return [...fallbackProducts].map((product) => ({
-        ...product,
-        likes_count: product.likes_count ?? 0,
-        is_liked: false,
-        comments: [],
-      }))
+      return []
     }
 
     const productsWithData = await Promise.all(
@@ -197,12 +126,7 @@ export const fetchActiveProducts = async (userId?: string) => {
 
     return ranked.slice(0, 20)
   } catch (error) {
-    console.warn('[AgriLink] Falling back to curated public catalog because the products feed is unavailable.', error)
-    return [...fallbackProducts].map((product) => ({
-      ...product,
-      likes_count: product.likes_count ?? 0,
-      is_liked: false,
-      comments: [],
-    }))
+    console.warn('[AgriLink] Product feed unavailable; returning empty result set because no real data should be fabricated.', error)
+    return []
   }
 }

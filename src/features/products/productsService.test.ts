@@ -17,7 +17,7 @@ describe('productsService', () => {
     mockSupabaseFrom.mockReset()
   })
 
-  it('returns a professional public fallback when there are no active products in the database', async () => {
+  it('returns an empty public feed when there are no active products in the database', async () => {
     mockSupabaseFrom.mockImplementation((table: string) => {
       if (table === 'products') {
         return {
@@ -40,12 +40,6 @@ describe('productsService', () => {
 
     const products = await fetchActiveProducts()
 
-    expect(products.length).toBeGreaterThan(0)
-    expect(products[0]).toMatchObject({
-      product_type: expect.any(String),
-      price: expect.any(Number),
-      status: 'active',
-      farmer_name: expect.any(String),
-    })
+    expect(products).toEqual([])
   })
 })

@@ -350,16 +350,18 @@ const AppRoutes = () => {
 };
 
 const App = () => {
-useEffect(() => {
-  purgeExpiredGuestSession();
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.ready.then((registration) => {
-      console.log("SW já ativo:", registration);
-    });
-  }
-}, []);
-
-
+  useEffect(() => {
+    purgeExpiredGuestSession();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready
+        .then((registration) => {
+          console.log('SW já ativo:', registration);
+        })
+        .catch((error) => {
+          console.warn('Service worker not ready yet:', error);
+        });
+    }
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

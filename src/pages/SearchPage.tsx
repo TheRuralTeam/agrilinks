@@ -20,7 +20,7 @@ import { validatePreOrderSubmission } from '@/features/products/businessRules'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 
-const MAPBOX_TOKEN = 'pk.eyJ1IjoibHVjYW1iYSIsImEiOiJjbWdqY283Z2QwaGRwMmlyNGlwNW4xYXhwIn0.qOjQNe8kbbfmdK5G0MHWDA'
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
 
 /* 
   BRANDING THEME - AgriLinks 
@@ -359,6 +359,11 @@ const SearchPage = () => {
     if (!mapContainerRef.current) return
 
     try {
+      if (!MAPBOX_TOKEN) {
+        toast.error('Mapa não configurado. Defina VITE_MAPBOX_TOKEN nas variáveis de ambiente.')
+        return
+      }
+
       mapboxgl.accessToken = MAPBOX_TOKEN
       mapRef.current = new mapboxgl.Map({
         container: mapContainerRef.current,
@@ -557,7 +562,7 @@ const SearchPage = () => {
                   key={user.id}
                   className="rounded-2xl p-4 transition-shadow cursor-pointer group"
                   style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.05)' }}
-                  onClick={() => navigate(`/profile/${user.id}`)}
+                  onClick={() => navigate(`/perfil/${user.id}`)}
                 >
                   <div className="flex items-center gap-3">
                     <Avatar className="h-12 w-12 border-2 border-[#E8F5E9] group-hover:border-[#2c863b] transition-colors">
