@@ -13,7 +13,8 @@ const AuthCallback = () => {
 
   const query = new URLSearchParams(window.location.search)
   const hash = new URLSearchParams(window.location.hash.substring(1))
-  const next = query.get('next') || '/app'
+  const requestedNext = query.get('next') || '/app'
+  const next = requestedNext.startsWith('/') && !requestedNext.startsWith('//') ? requestedNext : '/app'
   const tokenHash = query.get('token_hash') || query.get('token')
   const otpType = (query.get('type') || 'magiclink') as
     | 'magiclink'
@@ -31,11 +32,8 @@ const AuthCallback = () => {
       setMessage('Não foi possível criar a sessão. Peça um novo link de confirmação.')
       return
     }
-    try {
-      await supabase.rpc('sync_user_email_verified', { p_user_id: userId })
-    } catch {
-      /* non blocking */
-    }
+    const { error: syncError } = await supabase.rpc('sync_user_email_verified', { p_user_id: userId })
+    if (syncError) console.warn('Não foi possível sincronizar o perfil:', syncError.message)
     navigate(next, { replace: true })
   }
 
@@ -107,7 +105,7 @@ const AuthCallback = () => {
       setPhase('error')
       setMessage(
         error.message?.includes('expired')
-          ? 'Este link expirou. Peça um novo link de confirmação.'
+          ? 'Este link expirou ou já foi utilizado. Peça um novo link de confirmação.'
           : error.message || 'Não foi possível confirmar o email.',
       )
       return

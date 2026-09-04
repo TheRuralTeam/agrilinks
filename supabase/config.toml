@@ -2,13 +2,3 @@ project_id = "oqcrfqtlfqwrxxmsjpaf"
 
 [functions.send-magic-link]
 verify_jwt = false
-
-
-[auth.email.smtp]
-host = "mail.agrilink.ao"
-port = 465
-user = "contacto@agrilink.ao"
-pass = "[fnN6K)5l4"
-admin_email = "contacto@agrilink.ao"
-sender_name = "AgriLink"
-enable_ssl = true
