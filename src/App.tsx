@@ -68,8 +68,8 @@ const ProtectedRoute = ({ children, allowIncomplete = false, allowUnverified = f
     return <Navigate to="/login" replace />;
   }
 
-  // Bloqueia ações da plataforma até a confirmação real por OTP AgriLink
-  const emailConfirmed = userProfile?.email_verified === true;
+  // Supabase Auth é a fonte de verdade; o perfil público pode estar alguns ms atrasado.
+  const emailConfirmed = Boolean(user.email_confirmed_at) || userProfile?.email_verified === true;
   if (!allowUnverified && !emailConfirmed) {
     return <Navigate to="/confirmar-email" replace />;
   }
@@ -100,7 +100,7 @@ const OpenRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (user) {
-    const emailConfirmed = userProfile?.email_verified === true;
+    const emailConfirmed = Boolean(user.email_confirmed_at) || userProfile?.email_verified === true;
     if (!emailConfirmed) return <Navigate to="/confirmar-email" replace />;
     if (userProfile && !isProfileComplete(userProfile)) return <Navigate to="/completar-perfil" replace />;
   }

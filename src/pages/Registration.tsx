@@ -269,9 +269,8 @@ const Registration = () => {
         return;
       }
 
-      const newUserId = data?.user?.id;
-      if (newUserId) {
-        // Enviar link mágico de confirmação por email (Resend · no-reply@agrilink.ao)
+      if (data?.user?.id) {
+        // O envio customizado usa uma página intermediária anti-scanner.
         const { error: linkErr } = await supabase.functions.invoke('send-magic-link', {
           body: {
             email: cleanEmail,

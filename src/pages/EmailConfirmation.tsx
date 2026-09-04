@@ -13,7 +13,7 @@ const RESEND_COOLDOWN = 60;
 
 const EmailConfirmation = () => {
   const navigate = useNavigate();
-  const { user, userProfile, logout } = useAuth();
+  const { user, userProfile, logout, refreshProfile } = useAuth();
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -21,10 +21,11 @@ const EmailConfirmation = () => {
 
   // Conta já libertada: não faz sentido ficar nesta etapa
   useEffect(() => {
-    if (user && userProfile?.email_verified === true) {
+    if (user && (Boolean(user.email_confirmed_at) || userProfile?.email_verified === true)) {
+      refreshProfile();
       navigate("/app", { replace: true });
     }
-  }, [user, userProfile, navigate]);
+  }, [user, userProfile, navigate, refreshProfile]);
 
   useEffect(() => {
     if (countdown > 0) {
@@ -87,11 +88,8 @@ const EmailConfirmation = () => {
       });
 
       if (error) {
-        console.error("[AgriLink] Erro da Edge Function:", error);
-
-        throw new Error(
-          error.message || "A Edge Function não conseguiu processar o pedido.",
-        );
+        const details = error.context ? await error.context.json().catch(() => null) : null;
+        throw new Error(details?.error || details?.details || error.message || "Não foi possível enviar o link.");
       }
 
       if (!data) {
@@ -132,6 +130,14 @@ const EmailConfirmation = () => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      navigate("/login", { replace: true });
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
       <Card className="w-full max-w-md">
@@ -154,8 +160,8 @@ const EmailConfirmation = () => {
         <CardContent className="space-y-4">
           {sent ? (
             <p className="text-sm text-muted-foreground text-center">
-              Enviámos um link de acesso para <strong>{email}</strong>.
-              Verifique a caixa de entrada e a pasta de spam.
+              Enviámos um link de confirmação para <strong>{email}</strong>.
+              Ele expira em 1 hora. Abra o email e confirme na página segura da AgriLink.
             </p>
           ) : (
             <>
@@ -178,19 +184,19 @@ const EmailConfirmation = () => {
                 ) : countdown > 0 ? (
                   `Aguarde ${countdown}s`
                 ) : (
-                  "Enviar link de acesso"
+                    "Enviar link de confirmação"
                 )}
               </Button>
             </>
           )}
 
-          {sent && countdown === 0 && (
-            <Button variant="outline" className="w-full" onClick={handleSend}>
-              Reenviar link
+          {sent && (
+            <Button variant="outline" className="w-full" onClick={handleSend} disabled={sending || countdown > 0}>
+              {countdown > 0 ? `Reenviar link em ${countdown}s` : "Reenviar link de confirmação"}
             </Button>
           )}
 
-          <Button variant="ghost" className="w-full" onClick={logout}>
+          <Button variant="ghost" className="w-full" onClick={handleLogout}>
             Sair
           </Button>
         </CardContent>

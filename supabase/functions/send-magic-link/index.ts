@@ -106,38 +106,15 @@ async function postResend(
   return { ok: response.ok, data };
 }
 
-/**
- * Envia através do Resend com fallback para o remetente partilhado
- * quando o domínio agrilink.ao ainda não está verificado.
- */
 async function sendEmail(to: string, subject: string, html: string) {
   if (!RESEND_API_KEY) {
     throw new Error("RESEND_API_KEY não está configurada.");
   }
 
-  let attempt = await postResend(RESEND_FROM, to, subject, html);
+  const attempt = await postResend(RESEND_FROM, to, subject, html);
 
   if (!attempt.ok) {
     console.error("Resend API error:", JSON.stringify(attempt.data));
-
-    const message = String(
-      attempt.data?.message || attempt.data?.error || "",
-    ).toLowerCase();
-
-    const domainIssue =
-      message.includes("domain is not verified") ||
-      message.includes("not verified") ||
-      message.includes("domain");
-
-    if (domainIssue) {
-      console.warn("A tentar fallback com onboarding@resend.dev");
-      attempt = await postResend(
-        "AgriLink <onboarding@resend.dev>",
-        to,
-        subject,
-        html,
-      );
-    }
   }
 
   if (!attempt.ok) {
@@ -355,19 +332,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
     /**
      * O Supabase retorna o link de autenticação.
      */
-    const actionLink =
-      linkData?.properties?.action_link;
+    const hashedToken = linkData?.properties?.hashed_token;
 
-    if (!actionLink) {
+    if (!hashedToken) {
       console.error(
-        "Supabase não retornou action_link.",
+        "Supabase não retornou hashed_token.",
         linkData,
       );
 
       return new Response(
         JSON.stringify({
           error:
-            "O Supabase não retornou o Magic Link.",
+            "O Supabase não retornou um token de confirmação.",
         }),
         {
           status: 500,
@@ -378,6 +354,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
         },
       );
     }
+
+    // O email aponta primeiro para a aplicação. Scanners de segurança podem abrir
+    // esta URL, mas o token só é consumido quando a pessoa clica no botão da página.
+    const callbackUrl = new URL(redirectTo);
+    callbackUrl.searchParams.set("token_hash", hashedToken);
+    callbackUrl.searchParams.set("type", "magiclink");
+    const actionLink = callbackUrl.toString();
 
     /**
      * Escapa nome para HTML.

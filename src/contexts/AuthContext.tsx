@@ -282,16 +282,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const logout = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
-    setUserProfile(null)
-    // Clear localStorage on logout
-    localStorage.removeItem('userProfile')
+    try {
+      await supabase.auth.signOut({ scope: 'local' })
+    } finally {
+      setSession(null)
+      setUser(null)
+      setUserProfile(null)
+      setIsAdmin(false)
+      setIsRootAdmin(false)
+      setIsSuperRoot(false)
+      setIsSupportAgent(false)
+      localStorage.removeItem('userProfile')
+    }
   }
 
-  const verifyEmail = async (token: string) => {
-    // For email confirmation, Supabase handles this automatically via the callback URL
-    // This function is deprecated - email confirmation happens in EmailConfirmation page
+  const verifyEmail = async (_token: string) => {
+    // A confirmação é concluída exclusivamente em /auth/callback.
     return { error: null }
   }
 
