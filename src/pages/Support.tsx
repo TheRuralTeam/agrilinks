@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { useAuth } from '@/contexts/AuthContext'
-import { supabase } from '@/integrations/supabase/client'
+import { sendSupportEmail } from '@/features/auth/email'
 import { toast } from '@/hooks/use-toast'
 
 const Support = () => {
@@ -53,11 +53,7 @@ const Support = () => {
 
     setLoading(true)
     try {
-      const { data, error } = await supabase.functions.invoke('notify-support', {
-        body: messageForm
-      })
-
-      if (error) throw error
+      await sendSupportEmail(messageForm)
 
       toast({
         title: "Mensagem enviada!",

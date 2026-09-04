@@ -246,6 +246,24 @@
   p, span, li { font-weight: 400; }
   button { font-weight: 700; }
 
+  input, textarea, select {
+    @apply bg-background text-foreground border-border;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: hsl(var(--muted-foreground));
+    opacity: 1;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus,
+  button:focus-visible {
+    @apply outline-none ring-2 ring-primary/20 ring-offset-2 ring-offset-background;
+  }
+
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;

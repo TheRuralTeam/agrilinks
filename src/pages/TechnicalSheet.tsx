@@ -5,6 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Download, Printer, Phone, MapPin, Calendar, Package, DollarSign, Truck, Loader2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { T } from "@/lib/brand";
 import jsPDF from "jspdf";
 
 interface Product {
@@ -82,25 +83,24 @@ const TechnicalSheet = () => {
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    
-    // Header
+
+    const brandGreen = [44, 134, 59] as const;
+
     doc.setFontSize(24);
-    doc.setTextColor(34, 139, 34);
-    doc.text("OrbisLink B2B", pageWidth / 2, 20, { align: "center" });
-    
+    doc.setTextColor(...brandGreen);
+    doc.text("AgriLink", pageWidth / 2, 20, { align: "center" });
+
     doc.setFontSize(12);
     doc.setTextColor(100, 100, 100);
     doc.text("Ficha Técnica do Produto", pageWidth / 2, 28, { align: "center" });
-    
-    // Line
+
     doc.setDrawColor(200, 200, 200);
     doc.line(20, 35, pageWidth - 20, 35);
-    
-    // Product Title
+
     doc.setFontSize(20);
     doc.setTextColor(0, 0, 0);
     doc.text(product.product_type, pageWidth / 2, 50, { align: "center" });
-    
+
     doc.setFontSize(12);
     doc.setTextColor(100, 100, 100);
     doc.text(`${product.province_id} – ${product.municipality_id}`, pageWidth / 2, 58, { align: "center" });
@@ -134,9 +134,9 @@ const TechnicalSheet = () => {
     yPos += 20;
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
-    doc.text("Esta ficha pode ser impressa ou enviada para compradores B2B", pageWidth / 2, yPos, { align: "center" });
+    doc.text("Esta ficha pode ser impressa ou enviada para compradores e parceiros da AgriLink", pageWidth / 2, yPos, { align: "center" });
     doc.text(`Data de geração: ${new Date().toLocaleDateString("pt-AO")}`, pageWidth / 2, yPos + 8, { align: "center" });
-    
+
     doc.save(`ficha-tecnica-${product.product_type.toLowerCase().replace(/\s+/g, "-")}.pdf`);
   };
 
@@ -174,23 +174,26 @@ const TechnicalSheet = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header - escondido na impressão */}
-      <div className="print:hidden p-4 border-b border-border">
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+      <div className="print:hidden border-b border-border bg-white/80 backdrop-blur-sm">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full hover:bg-muted">
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold">Ficha Técnica</h1>
+              <div className="inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#2c863b]">
+                AgriLink
+              </div>
+              <h1 className="mt-1 text-xl sm:text-2xl font-bold tracking-tight">Ficha Técnica</h1>
               <p className="text-sm text-muted-foreground">{product.product_type}</p>
             </div>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
-            <Button variant="outline" onClick={handlePrint} className="flex-1 sm:flex-none gap-2">
+            <Button variant="outline" onClick={handlePrint} className="flex-1 sm:flex-none gap-2 rounded-full border-border bg-white hover:bg-muted">
               <Printer className="h-4 w-4" />
               <span className="hidden sm:inline">Imprimir</span>
             </Button>
-            <Button onClick={handleExportPDF} className="flex-1 sm:flex-none gap-2">
+            <Button onClick={handleExportPDF} className="flex-1 sm:flex-none gap-2 rounded-full bg-[#2c863b] text-white hover:bg-[#246f32]">
               <Download className="h-4 w-4" />
               <span className="hidden sm:inline">Exportar PDF</span>
             </Button>
@@ -198,14 +201,16 @@ const TechnicalSheet = () => {
         </div>
       </div>
 
-      {/* Technical Sheet Content */}
       <div className="p-4 print:p-8">
         <div className="max-w-4xl mx-auto">
-          <Card className="print:shadow-none print:border-none">
-            <CardHeader className="text-center pb-6">
+          <Card className="print:shadow-none print:border-none overflow-hidden border-border/80 shadow-[0_10px_28px_rgba(17,23,20,0.06)]">
+            <CardHeader className="text-center pb-6 pt-8">
               <div className="mb-4">
-                <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-2">OrbisLink B2B</h1>
-                <p className="text-muted-foreground">Ficha Técnica do Produto</p>
+                <div className="mb-3 inline-flex rounded-full border border-[#cfe6d3] bg-[#f2faf3] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#2c863b]">
+                  AgriLink
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-[#2c863b] mb-2">Ficha Técnica do Produto</h1>
+                <p className="text-muted-foreground">Conectando produtores e compradores em cadeia</p>
               </div>
               <Separator />
             </CardHeader>
@@ -213,7 +218,10 @@ const TechnicalSheet = () => {
             <CardContent className="space-y-6 sm:space-y-8">
               {/* Product Title */}
               <div className="text-center">
-                <h2 className="text-2xl sm:text-4xl font-bold text-primary mb-2">
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#dfeee2] bg-[#f7fbf7] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#2c863b]">
+                  Produto disponível
+                </div>
+                <h2 className="text-2xl sm:text-4xl font-bold text-[#1e2b1f] mb-2">
                   {product.product_type}
                 </h2>
                 <p className="text-lg sm:text-xl text-muted-foreground">
@@ -320,9 +328,9 @@ const TechnicalSheet = () => {
               {/* Footer */}
               <Separator />
               <div className="text-center text-sm text-muted-foreground space-y-2">
-                <p>🔹 Esta ficha pode ser impressa ou enviada para compradores B2B</p>
+                <p>🔹 Esta ficha pode ser impressa ou enviada para compradores, distribuidores e parceiros da AgriLink</p>
                 <p>
-                  <strong>OrbisLink B2B</strong> - Conectando produtores a grandes compradores
+                  <strong className="text-[#2c863b]">AgriLink</strong> - Conectando produtores, compradores e cadeias de valor
                 </p>
                 <p>
                   Data de geração: {new Date().toLocaleDateString("pt-AO")}

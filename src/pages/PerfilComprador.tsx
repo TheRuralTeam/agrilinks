@@ -70,14 +70,7 @@ const PerfilComprador = () => {
     }
   }, [userProfile, navigate])
 
-  useEffect(() => { 
-    if (user) {
-      fetchFichas()
-      fetchOrders()
-    }
-  }, [user])
-
-  const fetchFichas = async () => {
+  const fetchFichas = React.useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('fichas_recebimento' as any)
@@ -85,15 +78,15 @@ const PerfilComprador = () => {
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
       if (error) throw error
-      setFichas(data as any || [])
+      setFichas((data as any) || [])
     } catch (error) {
       console.error('Erro ao buscar fichas:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id])
 
-  const fetchOrders = async () => {
+  const fetchOrders = React.useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('orders')
@@ -109,7 +102,14 @@ const PerfilComprador = () => {
     } catch (error) {
       console.error('Erro ao buscar pedidos:', error)
     }
-  }
+  }, [user?.id])
+
+  useEffect(() => { 
+    if (user) {
+      fetchFichas()
+      fetchOrders()
+    }
+  }, [user?.id, fetchFichas, fetchOrders])
 
   const updateProfile = async () => {
     if (!user) return

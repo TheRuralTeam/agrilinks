@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/integrations/supabase/client'
 import { User as UserProfile, RegisterData } from '@/types/database'
 import { toast } from '@/hooks/use-toast'
+import { buildAuthRedirectUrl, sendConfirmationEmail, sendPasswordResetEmail } from '@/features/auth/email'
 
 interface AuthContextType {
   user: User | null
@@ -234,7 +235,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/app`,
+          emailRedirectTo: buildAuthRedirectUrl('/app'),
           data: {
             full_name,
             user_type,
@@ -268,7 +269,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=/completar-perfil`,
+          redirectTo: buildAuthRedirectUrl('/completar-perfil'),
           queryParams: { access_type: 'offline', prompt: 'consent' },
         },
       })
@@ -307,23 +308,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { error: { message: 'Email do utilizador não está disponível no momento.' } }
     }
 
-    const { data, error } = await supabase.functions.invoke('send-magic-link', {
-      body: {
+    try {
+      await sendConfirmationEmail({
         email,
         full_name: userProfile?.full_name || email,
-        redirect_to: `${window.location.origin}/auth/callback?next=/app`,
-      },
-    })
-    if (error) return { error }
-    if (data?.error) return { error: { message: data.error } }
-    return { error: null }
+        next: '/app',
+      })
+      return { error: null }
+    } catch (error: any) {
+      return { error }
+    }
   }
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`
-    })
-    return { error }
+    try {
+      await sendPasswordResetEmail({ email, next: '/reset-password' })
+      return { error: null }
+    } catch (error: any) {
+      return { error }
+    }
   }
 
   const value = {

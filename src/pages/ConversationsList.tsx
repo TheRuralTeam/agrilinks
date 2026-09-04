@@ -45,9 +45,9 @@ const highlightText = (text: string, term: string) => {
   );
 };
 
-const debounce = (func: Function, delay = 300) => {
-  let timer: NodeJS.Timeout;
-  return (...args: any[]) => {
+const debounce = <T extends (...args: unknown[]) => void>(func: T, delay = 300) => {
+  let timer: ReturnType<typeof setTimeout>;
+  return (...args: Parameters<T>) => {
     clearTimeout(timer);
     timer = setTimeout(() => func(...args), delay);
   };
@@ -118,18 +118,19 @@ const ConversationsList = () => {
     };
   }, [user, loadConversations]);
 
-  const search = useCallback(
-    debounce(async (term: string) => {
-      if (!user || term.trim() === "") {
-        setUserResults([]);
-        return;
-      }
+  useEffect(() => {
+    if (!user || searchTerm.trim() === "") {
+      setUserResults([]);
+      return;
+    }
+
+    const timeout = setTimeout(async () => {
       setLoading(true);
       try {
         const { data: users, error: usersError } = await supabase
           .from("users")
           .select("id, full_name, avatar_url")
-          .ilike("full_name", `%${term}%`)
+          .ilike("full_name", `%${searchTerm}%`)
           .neq("id", user.id)
           .limit(10);
 
@@ -145,15 +146,13 @@ const ConversationsList = () => {
           description: t('messages.noResults'),
           variant: "destructive"
         });
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    }, 300),
-    [user, toast, t]
-  );
+    }, 300);
 
-  useEffect(() => {
-    search(searchTerm);
-  }, [searchTerm, search]);
+    return () => clearTimeout(timeout);
+  }, [user, searchTerm, toast, t]);
 
   const conversationResults = useMemo(() => {
     if (searchTerm.trim() === "") return allConversations;

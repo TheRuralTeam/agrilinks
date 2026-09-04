@@ -57,7 +57,7 @@ const FarmerFormWithAuth = () => {
     setLoading(true);
     try {
       // Upload photos to Supabase Storage if any
-      let photoUrls: string[] = [];
+      const photoUrls: string[] = [];
       if (photos && photos.length > 0) {
         for (let i = 0; i < Math.min(photos.length, 3); i++) {
           const file = photos[i];

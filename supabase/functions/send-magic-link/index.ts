@@ -7,10 +7,18 @@ const corsHeaders = {
 };
 import { z } from "npm:zod@3.23.8";
 
+const AuthTypeSchema = z.enum([
+  "magiclink",
+  "signup",
+  "email",
+  "recovery",
+]);
+
 const BodySchema = z.object({
   email: z.string().trim().email().max(255),
   full_name: z.string().trim().min(1).max(120).optional(),
   redirect_to: z.string().trim().url().max(500).optional(),
+  type: AuthTypeSchema.optional().default("magiclink"),
 });
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -238,6 +246,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const redirectTo = safeRedirect(
       parsed.data.redirect_to,
     );
+    const authType = parsed.data.type ?? "magiclink";
 
     /**
      * Cliente administrativo.
@@ -300,7 +309,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       data: linkData,
       error: linkError,
     } = await supabaseAdmin.auth.admin.generateLink({
-      type: "magiclink",
+      type: authType,
       email,
       options: {
         redirectTo,
@@ -359,7 +368,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // esta URL, mas o token só é consumido quando a pessoa clica no botão da página.
     const callbackUrl = new URL(redirectTo);
     callbackUrl.searchParams.set("token_hash", hashedToken);
-    callbackUrl.searchParams.set("type", "magiclink");
+    callbackUrl.searchParams.set("type", authType);
     const actionLink = callbackUrl.toString();
 
     /**
@@ -371,13 +380,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
     /**
      * HTML do email.
      */
+    const subject =
+      authType === "recovery"
+        ? "Recupere a sua palavra-passe — AgriLink"
+        : authType === "signup"
+          ? "Ative a sua conta — AgriLink"
+          : "Confirme o seu email — AgriLink";
+
     const html = `
 <!DOCTYPE html>
 <html lang="pt">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Confirme o seu email</title>
+  <title>${escapeHtml(subject)}</title>
 </head>
 
 <body
@@ -550,7 +566,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
      */
     const resendResult = await sendEmail(
       email,
-      "Confirme o seu email — AgriLink",
+      subject,
       html,
     );
 

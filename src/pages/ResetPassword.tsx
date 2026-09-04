@@ -49,7 +49,7 @@ const ResetPassword = () => {
       subscription.unsubscribe()
       clearTimeout(timer)
     }
-  }, [navigate])
+  }, [navigate, t])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -18,6 +18,7 @@ import orbisLinkLogo from '@/assets/orbislink-logo.png'
 import { PRODUCT_CATEGORIES } from '@/lib/productCategories'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import SimpleLeafletMap from '@/components/SimpleLeafletMap';
+import { validateProductSubmission } from '@/features/products/businessRules'
 
 const PublishProduct = () => {
   const navigate = useNavigate();
@@ -128,11 +129,20 @@ const PublishProduct = () => {
       return;
     }
 
-    const harvestDate = new Date(formData.harvest_date);
-    const minDate = new Date();
-    minDate.setDate(minDate.getDate() + 30);
-    if (harvestDate < minDate) {
-      toast({ title: "Erro de validação", description: "Só pode publicar produtos com previsão mínima de 30 dias antes da colheita", variant: "destructive" });
+    try {
+      validateProductSubmission({
+        product_type: formData.product_type,
+        quantity: Number(formData.quantity),
+        harvest_date: formData.harvest_date,
+        price: Number(formData.price),
+        province_id: formData.province_id,
+        municipality_id: formData.municipality_id,
+        logistics_access: formData.logistics_access as 'sim' | 'nao' | 'parcial',
+        photos: selectedImages.map((file) => file.name),
+        category: formData.category,
+      })
+    } catch (validationError: any) {
+      toast({ title: "Erro de validação", description: validationError?.message || "Dados do produto inválidos.", variant: "destructive" });
       return;
     }
 
@@ -192,31 +202,28 @@ const PublishProduct = () => {
   const availableMunicipalities = angolaProvinces.find(p => p.id === formData.province_id)?.municipalities || [];
 
   return (
-    <div className="min-h-screen bg-white p-4">
+    <div className="min-h-screen bg-[#F7F9F7] p-4">
       <div className="max-w-2xl mx-auto">
-       <div className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-md shadow-md z-50 p-4 flex justify-between items-center border-b border-[#B07D0A]/30">
+       <div className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-md shadow-sm z-50 p-4 flex justify-between items-center border-b border-[#C8E6CA]">
       <div className="flex items-center gap-2">
-          <img src={orbisLinkLogo} alt="OrbisLink" className="h-12" />
-
+          <img src={orbisLinkLogo} alt="OrbisLink" className="h-11 w-auto" />
           </div>
-        <h1 className="font-semibold text-lg text-[#111714]">📦 Publicar Produto</h1>
+        <h1 className="font-semibold text-lg text-[#111714]">Publicar Produto</h1>
         <Button
           variant="outline"
           size="sm"
-          className="border-[#B07D0A] text-[#B07D0A] hover:bg-[#B07D0A] hover:text-white"
+          className="border-[#2c863b] text-[#2c863b] hover:bg-[#2c863b] hover:text-white"
           onClick={() => navigate(-1)}
         >
           Voltar
         </Button>
 
       </div>
-         
-        
 
-<Card className="shadow-strong border border-[#B07D0A]/30 mt-20 bg-white">
-          <CardHeader className="bg-white">
+<Card className="shadow-md border border-[#E5EDE6] mt-20 bg-white rounded-2xl">
+          <CardHeader className="bg-white border-b border-[#E5EDE6]">
             <CardTitle className="text-xl text-[#111714] flex items-center gap-3">
-              <Package className="h-6 w-6" />
+              <Package className="h-6 w-6 text-[#2c863b]" />
               Informações do Produto
             </CardTitle>
           </CardHeader>
@@ -543,12 +550,13 @@ const PublishProduct = () => {
 
     {/* Botão de envio */}
     <Button
-      type="button" // evita submit automático
+      type="button"
       onClick={(e) => {
         e.preventDefault();
         handleSubmit(e);
       }}
-      className="w-full bg-[#B07D0A] hover:bg-[#B07D0A]/90 text-white font-bold"
+      variant="business"
+      className="w-full font-bold"
       size="lg"
       disabled={loading}
     >

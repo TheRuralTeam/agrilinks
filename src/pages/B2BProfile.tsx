@@ -6,6 +6,8 @@
  import { supabase } from '@/integrations/supabase/client';
  import { useAuth } from '@/contexts/AuthContext';
  import { toast } from 'sonner';
+ import { getProfileDisplayName, resolveAvatarUrl } from '@/lib/profileDisplay';
+ import { sanitizePublicProfile, isNeutralPublicView } from '@/lib/publicData';
  
  import { CompanyHeader, CompanyTier, UserType } from '@/components/b2b/CompanyHeader';
  import { TrustMetrics } from '@/components/b2b/TrustMetrics';
@@ -70,39 +72,32 @@
      logistics: ['Transporte próprio', 'Armazém refrigerado', 'Entrega nacional']
    };
  
-   useEffect(() => {
-     if (id) {
-       if (user?.id === id) {
-         navigate('/perfil', { replace: true });
-         return;
-       }
-       fetchCompanyData();
-     }
-   }, [id, user, navigate]);
- 
-   const fetchCompanyData = async () => {
+   const fetchCompanyData = React.useCallback(async () => {
      try {
        setLoading(true);
-       
+
        const { data: userData, error } = await supabase
          .from('users')
          .select('*')
          .eq('id', id)
          .single();
- 
+
        if (error) throw error;
- 
-       // Determine tier based on some criteria (simplified for demo)
+
        const determineTier = (): CompanyTier => {
          if (userData.is_root_admin) return 'enterprise';
          if (userData.verified) return 'gold';
          return 'bronze';
        };
- 
+
+       const publicUserData = isNeutralPublicView(user) ? sanitizePublicProfile(userData) : userData;
+       const profileName = getProfileDisplayName((publicUserData as any) || userData);
+       const safeLogo = resolveAvatarUrl((publicUserData as any)?.avatar_url || userData.avatar_url);
+
        setCompanyData({
          id: userData.id,
-         name: userData.full_name,
-         logo: userData.avatar_url,
+         name: profileName,
+         logo: safeLogo,
          sector: userData.user_type === 'comprador' ? 'Agroindústria' : 'Produção Agrícola',
          location: `${userData.municipality_id}, ${userData.province_id}`,
          memberSince: new Date(userData.created_at).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
@@ -115,8 +110,7 @@
          annualRevenue: '500M+ Kz',
          phone: userData.phone
        });
- 
-       // Fetch products if supplier
+
        if (userData.user_type !== 'comprador') {
          const { data: productsData } = await supabase
            .from('products')
@@ -125,7 +119,7 @@
            .eq('status', 'active')
            .order('created_at', { ascending: false })
            .limit(10);
- 
+
          if (productsData) {
            const portfolioProducts: PortfolioProduct[] = productsData.map((p, index) => ({
              id: p.id,
@@ -151,7 +145,17 @@
      } finally {
        setLoading(false);
      }
-   };
+   }, [id, user]);
+
+   useEffect(() => {
+     if (id) {
+       if (user?.id === id) {
+         navigate('/perfil', { replace: true });
+         return;
+       }
+       fetchCompanyData();
+     }
+   }, [id, user?.id, navigate, fetchCompanyData]);
  
    const handleStartChat = async () => {
      if (!user || !id) {

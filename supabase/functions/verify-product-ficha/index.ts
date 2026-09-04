@@ -9,7 +9,9 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { product_id, ficha_id } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { product_id, ficha_id } = body ?? {};
+
     if (!product_id && !ficha_id) {
       return new Response(JSON.stringify({ error: 'product_id or ficha_id required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -50,6 +52,7 @@ Deno.serve(async (req) => {
     }
 
     const results: any[] = [];
+    const summaryProductLabel = product_id ? 'Produto' : 'Ficha';
 
     for (const { product, ficha } of pairs) {
 
@@ -143,14 +146,19 @@ Responde APENAS com JSON válido.`;
     // Notify all admins once with summary
     const { data: admins } = await supabase.from('user_roles').select('user_id').eq('role', 'admin');
     if (admins) {
-      const summary = `Verificação IA concluída: ${results.length} ficha(s) analisada(s) para produto "${product.product_type}".`;
+      const productName = product_id ? (pairs[0]?.product?.product_type ?? 'produto') : (pairs[0]?.ficha?.produto ?? 'ficha');
+      const summary = `Verificação IA concluída: ${results.length} ficha(s) analisada(s) para ${summaryProductLabel.toLowerCase()} "${productName}".`;
       for (const a of admins) {
         await supabase.rpc('create_notification', {
           p_user_id: a.user_id,
           p_type: 'verification_admin',
           p_title: '🤖 Verificação IA Produto/Ficha',
           p_message: summary,
-          p_metadata: { product_id: product.id, results_count: results.length },
+          p_metadata: {
+            product_id: product_id ?? pairs[0]?.product?.id ?? null,
+            ficha_id: ficha_id ?? pairs[0]?.ficha?.id ?? null,
+            results_count: results.length,
+          },
         });
       }
     }

@@ -16,6 +16,8 @@ import { GUEST_PROFILE, getGuestData, getGuestProfile } from '@/lib/guestSession
 import { supabase } from '@/integrations/supabase/client'
 import { useNavigate } from 'react-router-dom'
 import { toast } from '@/hooks/use-toast'
+import { getProfileDisplayName, getProfileRoleLabel, resolveAvatarUrl } from '@/lib/profileDisplay'
+import { sanitizePublicProfile, isNeutralPublicView } from '@/lib/publicData'
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 import { T } from '@/lib/brand';
@@ -251,12 +253,17 @@ const Profile = () => {
     municipality_id: userProfile?.municipality_id || '',
   })
 
+  const publicProfile = isNeutralPublicView(user) ? sanitizePublicProfile(userProfile || profileData) : userProfile || profileData
+  const profileDisplayName = getProfileDisplayName((publicProfile as any) || profileData)
+  const profileRoleLabel = getProfileRoleLabel((publicProfile as any)?.user_type || userProfile?.user_type)
+  const profileAvatarUrl = resolveAvatarUrl((publicProfile as any)?.avatar_url || userProfile?.avatar_url)
+
   const [sourcingRequests, setSourcingRequests] = useState<SourcingRequest[]>([])
   const [showSourcingForm, setShowSourcingForm] = useState(false)
   const [sourcingForm, setSourcingForm] = useState({ product_name: '', quantity: '', delivery_date: '', description: '' })
   const [submittingSourcing, setSubmittingSourcing] = useState(false)
 
-  const fetchUserProducts = async () => {
+  const fetchUserProducts = React.useCallback(async () => {
     try {
       const { data, error } = await supabase.from('products').select('*').eq('user_id', user?.id).order('created_at', { ascending: false })
       if (error) throw error
@@ -269,17 +276,17 @@ const Profile = () => {
       setProductStats(statsMap)
       setUserProducts((data || []).map(p => ({ ...p, status: p.status as 'active' | 'inactive' | 'removed', views: statsMap[p.id]?.comments || 0, interests: statsMap[p.id]?.likes || 0 })))
     } catch (error) { console.error(error) }
-  }
+  }, [user?.id])
 
-  const fetchFichasRecebimento = async () => {
+  const fetchFichasRecebimento = React.useCallback(async () => {
     try {
       const { data, error } = await supabase.from('fichas_recebimento' as any).select('*').eq('user_id', user?.id).order('created_at', { ascending: false })
       if (error) throw error
       setFichasRecebimento((data || []) as any)
     } catch (error) { console.error(error) }
-  }
+  }, [user?.id])
 
-  const fetchAgentStats = async () => {
+  const fetchAgentStats = React.useCallback(async () => {
     try {
       const { data, error } = await supabase.rpc('get_agent_referral_stats', { agent_user_id: user?.id })
       if (error) throw error
@@ -288,9 +295,9 @@ const Profile = () => {
         setAgentStats({ totalReferrals: Number(s.total_referrals) || 0, totalPoints: Number(s.total_points) || 0, recentReferrals: Array.isArray(s.recent_referrals) ? s.recent_referrals : [] })
       }
     } catch (error) { console.error(error) }
-  }
+  }, [user?.id])
 
-  const fetchReceivedOrders = async () => {
+  const fetchReceivedOrders = React.useCallback(async () => {
     try {
       const { data: userProductIds, error: prodError } = await supabase.from('products').select('id').eq('user_id', user?.id)
       if (prodError) throw prodError
@@ -305,23 +312,23 @@ const Profile = () => {
       }))
       setReceivedOrders(ordersWithDetails)
     } catch (error) { console.error(error) }
-  }
+  }, [user?.id])
 
-  const fetchSourcingRequests = async () => {
+  const fetchSourcingRequests = React.useCallback(async () => {
     try {
       const { data, error } = await supabase.from('sourcing_requests').select('*').eq('user_id', user?.id).order('created_at', { ascending: false })
       if (error) throw error
       setSourcingRequests(data || [])
     } catch (error) { console.error(error) }
-  }
+  }, [user?.id])
 
-  const fetchBuyerStats = async () => {
+  const fetchBuyerStats = React.useCallback(async () => {
     try {
       const { count: completedCount } = await supabase.from('pre_orders').select('*', { count: 'exact', head: true }).eq('user_id', user?.id).in('status', ['completed', 'accepted'])
       const { count: likesCount } = await supabase.from('product_likes').select('*', { count: 'exact', head: true }).eq('user_id', user?.id)
       setBuyerStats({ completedOrders: completedCount || 0, favoriteProducts: likesCount || 0 })
     } catch (error) { console.error(error) }
-  }
+  }, [user?.id])
 
   const submitSourcingRequest = async () => {
     if (!user || !sourcingForm.product_name || !sourcingForm.quantity || !sourcingForm.delivery_date) {
@@ -366,7 +373,7 @@ const Profile = () => {
     else { fetchUserProducts(); fetchReceivedOrders() }
     if (userProfile?.user_type === 'agente') fetchAgentStats()
     setLoading(false)
-  }, [user, userProfile, isGuest])
+  }, [user, userProfile, isGuest, fetchAgentStats, fetchBuyerStats, fetchFichasRecebimento, fetchReceivedOrders, fetchSourcingRequests, fetchUserProducts])
 
   useEffect(() => {
     if (userProfile) {
@@ -528,9 +535,9 @@ const Profile = () => {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   overflow: 'hidden',
                 }}>
-                  {userProfile?.avatar_url
-                    ? <img src={userProfile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
-                    : <span style={{ fontFamily: FONT, fontSize: 28, fontWeight: 800, color: T.white }}>{profileData.full_name.charAt(0) || 'U'}</span>
+                  {profileAvatarUrl
+                    ? <img src={profileAvatarUrl} alt={profileDisplayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                    : <span style={{ fontFamily: FONT, fontSize: 28, fontWeight: 800, color: T.white }}>{profileDisplayName.charAt(0).toUpperCase() || 'U'}</span>
                   }
                 </div>
                 <label htmlFor="avatar-upload" className="ag-avatar-edit" style={{
@@ -548,7 +555,7 @@ const Profile = () => {
               <div style={{ marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
                   <h2 style={{ fontFamily: FONT, fontSize: 20, fontWeight: 800, color: T.ink, margin: 0, letterSpacing: '-0.02em' }}>
-                    {profileData.full_name || 'Utilizador'}
+                    {profileDisplayName}
                   </h2>
                   {(userProfile as any)?.verified && (
                     <div style={{ width: 18, height: 18, borderRadius: '50%', background: T.g50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -901,6 +908,18 @@ const Profile = () => {
         @keyframes ag-spin    { to { transform: rotate(360deg) } }
         @keyframes ag-fade-up { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: translateY(0) } }
 
+        .ag-layout {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 22px;
+        }
+
+        .ag-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+        }
+
         .ag-stat:hover { transform: translateY(-1px); box-shadow: 0 4px 10px ${T.shadow}; }
         .ag-btn:active { transform: scale(0.97); }
         .ag-icon-btn:hover { background: ${T.g100 || T.gBorder}; color: ${T.g600}; transform: translateY(-1px); }
@@ -941,13 +960,13 @@ const Profile = () => {
         /* ── Coluna de perfil no mobile: menos peso, menos aperto ── */
         @media (max-width: 480px) {
           .ag-layout { padding: 18px 14px !important; gap: 14px !important; }
-          .ag-stats-grid { gap: 7px !important; }
+          .ag-stats-grid { gap: 7px !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
           .ag-stat { padding: 14px 8px !important; border-radius: 15px !important; }
         }
 
         @media (min-width: 1024px) {
           .ag-layout { grid-template-columns: 320px 1fr !important; }
-          .ag-stats-grid { grid-template-columns: 1fr !important; }
+          .ag-stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
         }
         @media (min-width: 640px) {
           .sm\\:grid-cols-2 { grid-template-columns: 1fr 1fr !important; }

@@ -145,10 +145,8 @@ export const SatelliteMonitor: React.FC = () => {
       img.src = buildUrl(date) + `&_=${Date.now()}`;
     });
     const d = new Date();
-    // tenta a partir de hoje, recuando 1 dia por iteração (até 30 dias)
     for (let i = 0; i < 30; i++) {
       const iso = d.toISOString().slice(0, 10);
-      // eslint-disable-next-line no-await-in-loop
       if (await tryDate(iso)) return iso;
       d.setUTCDate(d.getUTCDate() - 1);
     }

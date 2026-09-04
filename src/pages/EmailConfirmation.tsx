@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { sendConfirmationEmail, buildAuthRedirectUrl } from '@/features/auth/email'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2, MailCheck } from "lucide-react";
@@ -65,47 +66,12 @@ const EmailConfirmation = () => {
     setSending(true);
 
     try {
-      const redirectTo = `${window.location.origin}/auth/callback?next=/app`;
-
-      console.log("[AgriLink] Enviando magic link:", {
+      console.log("[AgriLink] Enviando confirmação por email:", {
         email: cleanEmail,
-        redirect_to: redirectTo,
+        redirect_to: buildAuthRedirectUrl('/app'),
       });
 
-      const { data, error } = await supabase.functions.invoke(
-        "send-magic-link",
-        {
-          body: {
-            email: cleanEmail,
-            redirect_to: redirectTo,
-          },
-        },
-      );
-
-      console.log("[AgriLink] Resposta da Edge Function:", {
-        data,
-        error,
-      });
-
-      if (error) {
-        const details = error.context ? await error.context.json().catch(() => null) : null;
-        throw new Error(details?.error || details?.details || error.message || "Não foi possível enviar o link.");
-      }
-
-      if (!data) {
-        throw new Error("A Edge Function não retornou nenhuma resposta.");
-      }
-
-      if (data.error) {
-        console.error("[AgriLink] Erro retornado pela função:", data.error);
-        throw new Error(data.error);
-      }
-
-      if (data.success !== true) {
-        throw new Error(
-          "O servidor não confirmou o envio do email.",
-        );
-      }
+      await sendConfirmationEmail({ email: cleanEmail, next: '/app' });
 
       setSent(true);
       setCountdown(RESEND_COOLDOWN);

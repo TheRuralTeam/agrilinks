@@ -11,9 +11,17 @@ serve(async (req) => {
   }
 
   try {
-    const { products, language = 'pt' } = await req.json();
+    const payload = await req.json().catch(() => ({}));
+    const { products, language = 'pt' } = payload ?? {};
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
+
+    if (!Array.isArray(products) || products.length === 0) {
+      return new Response(JSON.stringify({ error: "products array is required and cannot be empty" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }

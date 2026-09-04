@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, Compass, X } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { supabase } from '@/integrations/supabase/client'
+import { buildAuthRedirectUrl, sendMagicLink, sendPasswordResetEmail } from '@/features/auth/email'
 import orbisLinkLogo from '@/assets/orbislink-logo.png'
 // Imagem partilhada com o ecrã de Cadastro para manter a mesma identidade visual.
 // Para trocar por vídeo: substituir o <img> do painel esquerdo por um <video autoPlay muted loop playsInline>.
@@ -75,7 +75,7 @@ const LoginPage = () => {
           error.message.includes('User not confirmed') ||
           error.message.includes('Email not confirmed')
         ) {
-          await sendMagicLink(email)
+          await sendMagicLink({ email, next: '/app' })
           setErrorMsg('A sua conta ainda não foi confirmada. Enviámos um novo link de confirmação para o seu email.')
         } else {
           setErrorMsg('Credenciais inválidas. Verifique e tente novamente.')
@@ -95,10 +95,7 @@ const LoginPage = () => {
     if (!email) { toast({ title: 'Atenção', description: 'Insira o seu email primeiro.' }); return }
     setResetLoading(true)
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      })
-      if (error) throw error
+      await sendPasswordResetEmail({ email, next: '/reset-password' })
       toast({ title: 'Email enviado', description: 'Verifique a sua caixa de entrada.' })
       setShowForgotPassword(false)
     } catch (err: any) {
@@ -108,23 +105,11 @@ const LoginPage = () => {
     }
   }
 
-  const sendMagicLink = async (targetEmail: string) => {
-    const { data, error } = await supabase.functions.invoke('send-magic-link', {
-      body: {
-        email: targetEmail.trim().toLowerCase(),
-        redirect_to: `${window.location.origin}/auth/callback?next=/app`,
-      },
-    })
-    if (error) throw new Error(error.message || 'Não foi possível enviar o link.')
-    if (data?.error) throw new Error(data.error)
-    return true
-  }
-
   const handleResendConfirmation = async () => {
     if (!email) { toast({ title: 'Atenção', description: 'Insira o seu email primeiro.' }); return }
     setResendLoading(true)
     try {
-      await sendMagicLink(email)
+      await sendMagicLink({ email, next: '/app' })
       toast({ title: 'Link enviado', description: 'Verifique a caixa de entrada (e o spam) do seu email.' })
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' })

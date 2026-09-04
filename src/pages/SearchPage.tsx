@@ -16,10 +16,9 @@ import {
 import { angolaProvinces } from '@/data/angola-locations'
 import { ProductCard, Product as ProductCardType } from '@/components/ProductCard'
 import { useAuth } from '@/contexts/AuthContext'
+import { validatePreOrderSubmission } from '@/features/products/businessRules'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import mapboxgl from 'mapbox-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoibHVjYW1iYSIsImEiOiJjbWdqY283Z2QwaGRwMmlyNGlwNW4xYXhwIn0.qOjQNe8kbbfmdK5G0MHWDA'
 
@@ -101,9 +100,9 @@ const SearchPage = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [orderData, setOrderData] = useState({ quantity: 1, location: '' })
   const mapContainerRef = React.useRef<HTMLDivElement>(null)
-  const mapRef = React.useRef<mapboxgl.Map | null>(null)
+  const mapRef = React.useRef<any>(null)
 
-  const searchData = async (term: string, province?: string, category?: string) => {
+  const searchData = React.useCallback(async (term: string, province?: string, category?: string) => {
     setLoading(true)
     try {
       // Buscar produtos
@@ -188,11 +187,11 @@ const SearchPage = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user, activeTab])
 
   useEffect(() => {
     searchData(searchTerm, selectedProvince, selectedCategory)
-  }, [searchTerm, selectedProvince, selectedCategory, activeTab])
+  }, [searchTerm, selectedProvince, selectedCategory, activeTab, searchData])
 
   // Ordenar produtos
   const sortedProducts = useMemo(() => {
@@ -219,6 +218,47 @@ const SearchPage = () => {
     setProductResults(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p))
   }
 
+  useEffect(() => {
+    if (!mapModalOpen || !selectedProduct?.location_lat || !selectedProduct?.location_lng || !mapContainerRef.current) return
+
+    let cancelled = false
+
+    const loadMap = async () => {
+      try {
+        const [{ default: mapboxgl }] = await Promise.all([
+          import('mapbox-gl'),
+          import('mapbox-gl/dist/mapbox-gl.css')
+        ])
+
+        if (cancelled || !mapContainerRef.current) return
+
+        mapboxgl.accessToken = MAPBOX_TOKEN
+        mapRef.current = new mapboxgl.Map({
+          container: mapContainerRef.current,
+          style: 'mapbox://styles/mapbox/streets-v11',
+          center: [selectedProduct.location_lng, selectedProduct.location_lat],
+          zoom: 9,
+          attributionControl: false,
+        })
+
+        mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right')
+        new mapboxgl.Marker({ color: 'green' })
+          .setLngLat([selectedProduct.location_lng, selectedProduct.location_lat])
+          .addTo(mapRef.current)
+      } catch (error) {
+        console.error('Erro ao carregar mapa da busca:', error)
+      }
+    }
+
+    loadMap()
+
+    return () => {
+      cancelled = true
+      mapRef.current?.remove()
+      mapRef.current = null
+    }
+  }, [mapModalOpen, selectedProduct])
+
   const handleOpenMap = (product: Product) => {
     setSelectedProduct(product)
     setMapModalOpen(true)
@@ -232,6 +272,24 @@ const SearchPage = () => {
 
   const handlePreOrderSubmit = async () => {
     if (!selectedProduct || !user) return toast.error('Erro ao processar pré-compra')
+
+    try {
+      validatePreOrderSubmission({
+        product: {
+          id: selectedProduct.id,
+          status: selectedProduct.status,
+          quantity: Number(selectedProduct.quantity || 0),
+          user_id: selectedProduct.user_id,
+          price: Number(selectedProduct.price || 0),
+        },
+        buyer_id: user.id,
+        quantity: Number(orderData.quantity || 0),
+        location: orderData.location,
+      })
+    } catch (validationError: any) {
+      toast.error(validationError?.message || 'Dados da pré-compra inválidos.')
+      return
+    }
 
     try {
       const { error } = await supabase.from('pre_orders').insert({

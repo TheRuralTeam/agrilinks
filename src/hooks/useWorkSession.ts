@@ -110,7 +110,7 @@ export const useWorkSession = (userId: string | null, isSupportAgent: boolean) =
         clearInterval(intervalRef.current);
       }
     };
-  }, [userId, isSupportAgent]);
+  }, [userId, isSupportAgent, startSession, fetchStats]);
 
   // End session on page unload
   useEffect(() => {

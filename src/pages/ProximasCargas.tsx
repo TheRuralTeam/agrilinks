@@ -60,7 +60,7 @@ const ProximasCargas = () => {
     }
   }
 
-  useEffect(() => { fetchLoads() /* eslint-disable-next-line */ }, [user?.id])
+  useEffect(() => { fetchLoads() }, [user?.id])
 
   const accept = async (load: FreightLoad) => {
     if (!requireAct('aceitar uma carga')) return

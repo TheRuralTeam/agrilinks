@@ -11,7 +11,7 @@ const buttonVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary-hover shadow-soft hover:shadow-medium",
         hero: "bg-gradient-primary text-primary-foreground hover:scale-105 shadow-strong hover:shadow-glow",
-        business: "bg-gradient-business text-business-foreground hover:bg-business-light shadow-soft hover:shadow-medium",
+        business: "bg-[#2c863b] text-white hover:bg-[#236a2d] shadow-soft hover:shadow-medium",
         accent: "bg-accent text-accent-foreground hover:bg-accent-hover shadow-soft hover:shadow-medium",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline: "border-2 border-border-strong bg-background hover:bg-muted text-foreground hover:border-primary",

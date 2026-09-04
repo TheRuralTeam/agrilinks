@@ -13,8 +13,16 @@ const AuthCallback = () => {
 
   const query = new URLSearchParams(window.location.search)
   const hash = new URLSearchParams(window.location.hash.substring(1))
-  const requestedNext = query.get('next') || '/app'
-  const next = requestedNext.startsWith('/') && !requestedNext.startsWith('//') ? requestedNext : '/app'
+  const rawNext = query.get('next') || '/app'
+  const requestedNext = (() => {
+    try {
+      const decoded = decodeURIComponent(rawNext)
+      return decoded.startsWith('/') && !decoded.startsWith('//') ? decoded : '/app'
+    } catch {
+      return rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/app'
+    }
+  })()
+  const next = requestedNext
   const tokenHash = query.get('token_hash') || query.get('token')
   const otpType = (query.get('type') || 'magiclink') as
     | 'magiclink'

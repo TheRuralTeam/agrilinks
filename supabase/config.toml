@@ -2,3 +2,15 @@ project_id = "oqcrfqtlfqwrxxmsjpaf"
 
 [functions.send-magic-link]
 verify_jwt = false
+
+[functions.send-confirmation-email]
+verify_jwt = false
+
+[functions.send-password-reset]
+verify_jwt = false
+
+[functions.send-support-email]
+verify_jwt = false
+
+[functions.send-order-update-email]
+verify_jwt = false

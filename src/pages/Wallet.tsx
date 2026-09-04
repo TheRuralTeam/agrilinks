@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { getWalletSummary } from '@/features/wallet/walletService'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,62 +28,13 @@ export default function Wallet() {
   const [commissions, setCommissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) loadWalletData();
-  }, [user]);
-
-  const loadWalletData = async () => {
+  const loadWalletData = useCallback(async () => {
     try {
       setLoading(true);
 
-      // Carregar ou criar carteira
-      let { data: walletData, error } = await supabase
-        .from("wallets")
-        .select("*")
-        .eq("user_id", user?.id)
-        .maybeSingle();
-      if (error) throw error;
+      const { wallet: walletRecord, transactions: txData, commissions: commData } = await getWalletSummary(user?.id);
 
-      if (!walletData) {
-        const { data: newWallet, error: createError } = await supabase
-          .from("wallets")
-          .insert({ user_id: user?.id })
-          .select()
-          .single();
-        if (createError) throw createError;
-        walletData = newWallet;
-      }
-
-      // Carregar transações
-      const { data: txData } = await supabase
-        .from("transactions")
-        .select("*")
-        .eq("wallet_id", walletData.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      // Carregar comissões
-      const { data: commData } = await supabase
-        .from("commissions")
-        .select("*")
-        .eq("user_id", user?.id)
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      // Atualizar saldo baseado nas transações
-      const totalEarned = txData?.filter(tx => tx.type === "deposit" && tx.status === "completed")
-        .reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
-      const totalSpent = txData?.filter(tx => tx.type === "internal_transfer" && tx.status === "completed")
-        .reduce((sum, tx) => sum + Number(tx.amount), 0) || 0;
-
-      setWallet({
-        ...walletData,
-        total_earned: totalEarned,
-        total_spent: totalSpent,
-        available_balance: totalEarned - totalSpent,
-        blocked_balance: walletData.blocked_balance || 0,
-      });
-
+      setWallet(walletRecord);
       setTransactions(txData || []);
       setCommissions(commData || []);
     } catch (err: any) {
@@ -90,7 +42,11 @@ export default function Wallet() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, user]);
+
+  useEffect(() => {
+    if (user) loadWalletData();
+  }, [user, loadWalletData]);
 
   if (loading) return (
     <div className="flex justify-center items-center min-h-screen">

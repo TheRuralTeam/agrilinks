@@ -33,12 +33,20 @@ export const GuestGateProvider = ({ children }: { children: React.ReactNode }) =
   const isGuest = !loading && !user
 
   React.useEffect(() => {
-    if (isGuest) ensureGuestSession()
+    if (!isGuest) return
+
+    try {
+      ensureGuestSession()
+    } catch {
+      // A sessão de visitante deve degradar em silêncio quando o armazenamento não está disponível.
+    }
   }, [isGuest])
 
   const requireAuth = useCallback((r?: string) => {
     if (user) return true
-    setReason(r || 'Precisas de uma conta AgriLink para continuar.')
+
+    const nextReason = r || 'Precisas de uma conta AgriLink para continuar.'
+    setReason(nextReason)
     return false
   }, [user])
 

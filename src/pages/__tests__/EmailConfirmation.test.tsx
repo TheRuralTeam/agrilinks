@@ -31,7 +31,7 @@ const renderPage = () => {
   );
 };
 
-describe("Fluxo de confirmação por magic link", () => {
+describe("Fluxo de confirmação por email", () => {
   beforeEach(() => {
     invoke.mockReset();
     toastSpy.mockReset();
@@ -39,7 +39,7 @@ describe("Fluxo de confirmação por magic link", () => {
   });
   afterEach(() => vi.useRealTimers());
 
-  it("envia o magic link com o email e o redirect de callback", async () => {
+  it("envia o link de confirmação com o email e o redirect de callback", async () => {
     const user = userEvent.setup();
     renderPage();
 
@@ -48,7 +48,7 @@ describe("Fluxo de confirmação por magic link", () => {
 
     await waitFor(() => expect(invoke).toHaveBeenCalledTimes(1));
     const [fnName, options] = invoke.mock.calls[0];
-    expect(fnName).toBe("send-magic-link");
+    expect(fnName).toBe("send-confirmation-email");
     expect(options.body.email).toBe("teste@agrilink.ao");
     expect(options.body.redirect_to).toContain("/auth/callback?next=/app");
   });

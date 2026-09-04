@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -15,11 +15,12 @@ import {
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCanAct } from '@/hooks/useCanAct'
-import mapboxgl from 'mapbox-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
 import { useNavigate } from 'react-router-dom'
 import { ProductCard, Product } from '@/components/ProductCard'
 import orbisLinkLogo from '@/assets/orbislink-logo.png'
+import { fetchActiveProducts } from '@/features/products/productsService'
+import { validatePreOrderSubmission } from '@/features/products/businessRules'
+import { isNeutralPublicView, sanitizePublicProduct } from '@/lib/publicData'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faAppleWhole, faCarrot, faSeedling, faWheatAwn, faLemon,
@@ -141,7 +142,7 @@ const AppHome = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [orderData, setOrderData] = useState({ quantity: 1, location: '' })
   const mapContainerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<mapboxgl.Map | null>(null)
+  const mapRef = useRef<any>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0])
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -185,60 +186,25 @@ const AppHome = () => {
 
   /* Fetch products — corre sempre, mesmo sem sessão (modo convidado),
      para o spinner nunca ficar preso à espera de um `user` que pode nunca existir. */
-  useEffect(() => {
-    fetchProducts()
-  }, [user])
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setLoading(true)
     try {
-      const { data: productsData, error } = await supabase
-        .from('products').select('*').eq('status', 'active').limit(100)
-      if (error) throw error
-
-      const productsWithData = await Promise.all(
-        (productsData || []).map(async (product) => {
-          const { data: productUser } = await supabase.from('users').select('verified').eq('id', product.user_id).maybeSingle()
-          const { count: likesCount } = await supabase.from('product_likes').select('*', { count:'exact', head:true }).eq('product_id', product.id)
-          const { data: userLike } = user
-            ? await supabase.from('product_likes').select('id').eq('product_id', product.id).eq('user_id', user.id).maybeSingle()
-            : { data: null }
-          const { data: comments } = await supabase.from('product_comments').select('id, user_id, comment_text, created_at').eq('product_id', product.id).order('created_at', { ascending: false })
-
-          const commentsWithUserInfo = await Promise.all(
-            (comments || []).map(async (c) => {
-              const { data: userData } = await supabase.from('users').select('full_name, user_type, avatar_url').eq('id', c.user_id).maybeSingle()
-              const { count: cLikes } = await supabase.from('comment_likes').select('*', { count:'exact', head:true }).eq('comment_id', c.id)
-              const { data: userCLike } = user
-                ? await supabase.from('comment_likes').select('id').eq('comment_id', c.id).eq('user_id', user.id).maybeSingle()
-                : { data: null }
-              const { data: replies } = await supabase.from('comment_replies').select('id, user_id, reply_text, created_at').eq('comment_id', c.id).order('created_at', { ascending: true })
-              const repliesWithUser = await Promise.all(
-                (replies || []).map(async (r) => {
-                  const { data: ru } = await supabase.from('users').select('full_name, user_type').eq('id', r.user_id).maybeSingle()
-                  return { ...r, user_name: ru?.full_name || 'Utilizador', user_type: ru?.user_type || 'agricultor' }
-                })
-              )
-              return { ...c, user_name: userData?.full_name || 'Utilizador', user_type: userData?.user_type || 'agricultor', user_avatar: userData?.avatar_url, likes_count: cLikes||0, is_liked: !!userCLike, replies: repliesWithUser }
-            })
-          )
-          return { ...product, likes_count: likesCount||0, is_liked: !!userLike, comments: commentsWithUserInfo, user_verified: productUser?.verified||false } as Product
-        })
-      )
-
-      const ranked = productsWithData.sort((a, b) => {
-        const now = Date.now(), day = 864e5
-        const sA = Math.max(0, 7 - (now - new Date(a.created_at).getTime()) / day) * 0.4 + (a.likes_count||0) * 0.3 + (a.comments?.length||0) * 0.3
-        const sB = Math.max(0, 7 - (now - new Date(b.created_at).getTime()) / day) * 0.4 + (b.likes_count||0) * 0.3 + (b.comments?.length||0) * 0.3
-        return sB - sA
-      })
-      setProducts(ranked.slice(0, 20))
+      const fetchedProducts = await fetchActiveProducts(user?.id)
+      const safeFeed = isNeutralPublicView(user)
+        ? (fetchedProducts || []).map((product) => sanitizePublicProduct(product) as Product)
+        : fetchedProducts as Product[]
+      setProducts(safeFeed)
     } catch (err) {
       console.error('Erro ao carregar produtos:', err)
       setProducts([])
+    } finally {
+      setLoading(false)
     }
-    finally { setLoading(false) }
-  }
+  }, [user])
+
+  useEffect(() => {
+    fetchProducts()
+  }, [fetchProducts])
 
   const handleProductUpdate = (p: Product) => setProducts(prev => prev.map(x => x.id === p.id ? p : x))
   const handleOpenMap = (p: Product) => { setSelectedProduct(p); setMapModalOpen(true) }
@@ -249,6 +215,25 @@ const AppHome = () => {
 
   const handlePreOrderSubmit = async () => {
     if (!selectedProduct || !user) return toast.error('Erro ao processar pré-compra')
+
+    try {
+      validatePreOrderSubmission({
+        product: {
+          id: selectedProduct.id,
+          status: selectedProduct.status,
+          quantity: Number(selectedProduct.quantity || 0),
+          user_id: selectedProduct.user_id,
+          price: Number(selectedProduct.price || 0),
+        },
+        buyer_id: user.id,
+        quantity: Number(orderData.quantity || 0),
+        location: orderData.location,
+      })
+    } catch (validationError: any) {
+      toast.error(validationError?.message || 'Dados da pré-compra inválidos.')
+      return
+    }
+
     setIsSubmitting(true)
     try {
       const { error } = await supabase.from('pre_orders').insert({
@@ -271,20 +256,43 @@ const AppHome = () => {
   /* Map modal */
   useEffect(() => {
     if (!mapModalOpen || !selectedProduct?.location_lat || !selectedProduct?.location_lng || !mapContainerRef.current) return
-    try {
-      mapboxgl.accessToken = MAPBOX_TOKEN
-      mapRef.current = new mapboxgl.Map({
-        container: mapContainerRef.current,
-        style: 'mapbox://styles/mapbox/light-v11',
-        center: [selectedProduct.location_lng, selectedProduct.location_lat],
-        zoom: 9, attributionControl: false,
-      })
-      mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right')
-      new mapboxgl.Marker({ color: T.g600 })
-        .setLngLat([selectedProduct.location_lng, selectedProduct.location_lat])
-        .addTo(mapRef.current)
-      return () => { mapRef.current?.remove(); mapRef.current = null }
-    } catch {}
+
+    let cancelled = false
+
+    const loadMap = async () => {
+      try {
+        const [{ default: mapboxgl }] = await Promise.all([
+          import('mapbox-gl'),
+          import('mapbox-gl/dist/mapbox-gl.css')
+        ])
+
+        if (cancelled || !mapContainerRef.current) return
+
+        mapboxgl.accessToken = MAPBOX_TOKEN
+        mapRef.current = new mapboxgl.Map({
+          container: mapContainerRef.current,
+          style: 'mapbox://styles/mapbox/light-v11',
+          center: [selectedProduct.location_lng, selectedProduct.location_lat],
+          zoom: 9,
+          attributionControl: false,
+        })
+
+        mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right')
+        new mapboxgl.Marker({ color: T.g600 })
+          .setLngLat([selectedProduct.location_lng, selectedProduct.location_lat])
+          .addTo(mapRef.current)
+      } catch (error) {
+        console.error('Erro ao carregar mapa do produto:', error)
+      }
+    }
+
+    loadMap()
+
+    return () => {
+      cancelled = true
+      mapRef.current?.remove()
+      mapRef.current = null
+    }
   }, [mapModalOpen, selectedProduct])
 
   const TAX = 0.078

@@ -8,6 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ProductCard, Product } from '@/components/ProductCard';
+import { getProfileDisplayName, getProfileRoleLabel, resolveAvatarUrl } from '@/lib/profileDisplay';
+import { sanitizePublicProfile, isNeutralPublicView } from '@/lib/publicData';
 
 /* ─── Design tokens — mesma linguagem visual do Perfil e do Mapa ────────────── */
 import { T } from '@/lib/brand';
@@ -108,17 +110,7 @@ const UserProfile = () => {
   const [stats, setStats] = useState<UserStats>({ totalProducts: 0, totalSales: 0, totalReferrals: 0, rating: 4.5 });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (id) {
-      if (user?.id === id) {
-        navigate('/perfil', { replace: true });
-        return;
-      }
-      fetchUserData();
-    }
-  }, [id, user]);
-
-  const fetchUserData = async () => {
+  const fetchUserData = React.useCallback(async () => {
     try {
       setLoading(true);
 
@@ -195,7 +187,22 @@ const UserProfile = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, user?.id, navigate]);
+
+  useEffect(() => {
+    if (id) {
+      if (user?.id === id) {
+        navigate('/perfil', { replace: true });
+        return;
+      }
+      fetchUserData();
+    }
+  }, [id, user?.id, navigate, fetchUserData]);
+
+  const publicUserData = isNeutralPublicView(user) && userData ? sanitizePublicProfile(userData) : userData
+  const profileDisplayName = publicUserData ? getProfileDisplayName(publicUserData as any) : 'Utilizador';
+  const profileRoleLabel = getProfileRoleLabel((publicUserData as any)?.user_type || userData?.user_type);
+  const profileAvatarUrl = publicUserData ? resolveAvatarUrl((publicUserData as any)?.avatar_url || userData?.avatar_url) : null;
 
   const handleProductUpdate = (updatedProduct: Product) => {
     setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
@@ -302,14 +309,14 @@ const UserProfile = () => {
               background: `linear-gradient(135deg, ${T.g600}, ${T.g400})`,
               display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0,
             }}>
-              {userData.avatar_url
-                ? <img src={userData.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
-                : <span style={{ fontFamily: FONT, fontSize: 36, fontWeight: 800, color: T.white }}>{userData.full_name?.charAt(0)?.toUpperCase() || 'U'}</span>
+              {profileAvatarUrl
+                ? <img src={profileAvatarUrl} alt={profileDisplayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                : <span style={{ fontFamily: FONT, fontSize: 36, fontWeight: 800, color: T.white }}>{profileDisplayName.charAt(0).toUpperCase() || 'U'}</span>
               }
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 14 }}>
-              <h2 style={{ fontFamily: FONT, fontSize: 23, fontWeight: 800, color: T.ink, margin: 0, letterSpacing: '-0.02em' }}>{userData.full_name}</h2>
+              <h2 style={{ fontFamily: FONT, fontSize: 23, fontWeight: 800, color: T.ink, margin: 0, letterSpacing: '-0.02em' }}>{profileDisplayName}</h2>
               {userData.verified && (
                 <div style={{ width: 21, height: 21, borderRadius: '50%', background: T.g50, border: `1.5px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <BadgeCheck size={12} color={T.g600}/>
@@ -318,7 +325,7 @@ const UserProfile = () => {
             </div>
 
             <div style={{ marginTop: 10 }}>
-              <TypeBadge type={userData.user_type}/>
+              <TypeBadge type={profileRoleLabel.toLowerCase() === 'utilizador' ? null : userData.user_type}/>
             </div>
 
             {/* Action buttons */}

@@ -424,7 +424,7 @@ const AdminDashboard = () => {
     }
   }, [targetUser, notificationMessage, notificationTitle, notificationType]);
 
-  const handleDelete = useCallback(async (table: string, id: string, setter: Function) => {
+  const handleDelete = useCallback(async (table: string, id: string, setter: React.Dispatch<React.SetStateAction<any[]>>) => {
     if (!confirm("Deseja realmente apagar? Esta ação não pode ser desfeita.")) return;
     try {
       if (table === "users") {
@@ -462,7 +462,7 @@ const AdminDashboard = () => {
     }
   }, []);
 
-  const handleBulkDelete = useCallback(async (table: string, ids: Set<string>, setter: Function, clearSelection: () => void) => {
+  const handleBulkDelete = useCallback(async (table: string, ids: Set<string>, setter: React.Dispatch<React.SetStateAction<any[]>>, clearSelection: () => void) => {
     if (ids.size === 0) { toast.error("Nenhum item selecionado"); return; }
     if (!confirm(`Deseja realmente apagar ${ids.size} item(s)? Esta ação não pode ser desfeita.`)) return;
     try {

@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { supabase } from "../_shared/supabase.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,37 +19,52 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { name, email, phone, message }: SupportMessage = await req.json();
+    const rawBody = await req.json().catch(() => ({}));
+    const { name, email, phone, message }: SupportMessage = rawBody ?? {};
 
-    // Salvar mensagem no banco
+    if (!name || !email || !message) {
+      return new Response(
+        JSON.stringify({ error: "name, email e message são obrigatórios." }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      },
+    );
+
     const { data: authData } = await supabase.auth.getUser();
-    const userId = authData.user?.id;
+    const userId = authData.user?.id ?? null;
 
     const { error: insertError } = await supabase
-      .from('support_messages')
+      .from("support_messages")
       .insert({
         user_id: userId,
-        name,
-        email,
-        phone,
-        message,
-        status: 'pendente'
+        name: String(name).trim(),
+        email: String(email).trim().toLowerCase(),
+        phone: phone ? String(phone).trim() : null,
+        message: String(message).trim(),
+        status: "pendente",
       });
 
     if (insertError) throw insertError;
 
-    // Enviar notificação por WhatsApp (simulado)
-    const whatsappNumber = "922757574"; // Número fornecido pelo usuário
-    const whatsappMessage = `🚨 *Nova mensagem de suporte - AgriLink*\n\n*Nome:* ${name}\n*Email:* ${email}\n*Telefone:* ${phone || 'Não informado'}\n\n*Mensagem:*\n${message}\n\n_Mensagem recebida em ${new Date().toLocaleString('pt-AO')}_`;
-    
-    // Aqui você integraria com uma API de WhatsApp Business
-    // Por exemplo, usando a API oficial do WhatsApp ou serviços como Twilio
+    const whatsappNumber = "922757574";
+    const whatsappMessage = `🚨 *Nova mensagem de suporte - AgriLink*\n\n*Nome:* ${String(name).trim()}\n*Email:* ${String(email).trim().toLowerCase()}\n*Telefone:* ${phone ? String(phone).trim() : "Não informado"}\n\n*Mensagem:*\n${String(message).trim()}\n\n_Mensagem recebida em ${new Date().toLocaleString("pt-AO")}_`;
+
     console.log(`Notificação WhatsApp para ${whatsappNumber}:`, whatsappMessage);
 
-    return new Response(JSON.stringify({ 
-      success: true, 
+    return new Response(JSON.stringify({
+      success: true,
       message: "Mensagem enviada com sucesso! Nossa equipe entrará em contato em breve.",
-      whatsapp_notified: true
+      whatsapp_notified: true,
     }), {
       status: 200,
       headers: {
@@ -61,7 +76,7 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error in notify-support function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error?.message || "Erro interno ao processar o pedido." }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

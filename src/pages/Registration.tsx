@@ -10,6 +10,7 @@ import { faTractor, faUserTie, faBuildingColumns, faTruck } from "@fortawesome/f
 import { getProvincesForCountry, getProvinceLabel, getMunicipalityLabel } from "@/data/country-locations";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { sendConfirmationEmail } from '@/features/auth/email'
 import orbisLinkLogo from "@/assets/orbislink-logo.png";
 import autenticar from '@/assets/auth1.jpg'
 
@@ -271,25 +272,21 @@ const Registration = () => {
 
       if (data?.user?.id) {
         // O envio customizado usa uma página intermediária anti-scanner.
-        const { error: linkErr } = await supabase.functions.invoke('send-magic-link', {
-          body: {
-            email: cleanEmail,
-            full_name: cleanName,
-            redirect_to: `${window.location.origin}/auth/callback?next=/app`,
-          },
-        });
-        if (linkErr) {
+        try {
+          await sendConfirmationEmail({ email: cleanEmail, full_name: cleanName, next: '/app' });
+          toast({
+            title: "Link de confirmação enviado!",
+            description: `Enviámos um link para ${cleanEmail}. Clica nele para confirmares a conta.`,
+          });
+        } catch (linkErr: any) {
           toast({
             title: "Conta criada",
             description: "Não conseguimos enviar o link agora. Podes reenviá-lo no próximo passo.",
             variant: "destructive",
           });
-        } else {
-          toast({
-            title: "Link de confirmação enviado!",
-            description: `Enviámos um link para ${cleanEmail}. Clica nele para confirmares a conta.`,
-          });
+          console.error('Erro ao enviar magic link:', linkErr)
         }
+
         navigate(`/confirmar-email?email=${encodeURIComponent(cleanEmail)}`, { replace: true });
       } else {
         toast({ title: "Conta criada com sucesso!", description: "Faz login para continuar." });
