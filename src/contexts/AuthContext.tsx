@@ -3,7 +3,7 @@ import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/integrations/supabase/client'
 import { User as UserProfile, RegisterData } from '@/types/database'
 import { toast } from '@/hooks/use-toast'
-import { buildAuthRedirectUrl, sendConfirmationEmail, sendPasswordResetEmail } from '@/features/auth/email'
+import { buildAuthRedirectUrl, getSupabaseAuthCallbackUrl, sendConfirmationEmail, sendPasswordResetEmail } from '@/features/auth/email'
 
 interface AuthContextType {
   user: User | null
@@ -266,11 +266,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signInWithGoogle = async () => {
     try {
+      const callbackUrl = getSupabaseAuthCallbackUrl()
+      const appRedirectUrl = buildAuthRedirectUrl('/completar-perfil')
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: buildAuthRedirectUrl('/completar-perfil'),
-          queryParams: { access_type: 'offline', prompt: 'consent' },
+          redirectTo: callbackUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+            next: encodeURIComponent(appRedirectUrl),
+          },
         },
       })
       if (error) {

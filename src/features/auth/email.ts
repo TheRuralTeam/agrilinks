@@ -1,5 +1,15 @@
 const ALLOWED_REDIRECT_HOSTS = ['agrilink.ao', 'www.agrilink.ao', 'agrilinks.lovable.app', 'localhost']
 
+export const getAppRedirectBase = () => {
+  const configured = (import.meta.env.VITE_APP_URL || import.meta.env.VITE_SITE_URL || window.location.origin || 'https://agrilink.ao').replace(/\/$/, '')
+  return configured
+}
+
+export const getSupabaseAuthCallbackUrl = () => {
+  const configured = (import.meta.env.VITE_SUPABASE_URL || 'https://oqcrfqtlfqwrxxmsjpaf.supabase.co').replace(/\/$/, '')
+  return `${configured}/auth/v1/callback`
+}
+
 export const normalizeEmailAddress = (email: string) => {
   const normalized = String(email ?? '').trim().toLowerCase()
   if (!normalized || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
@@ -40,7 +50,7 @@ const sanitizeNextPath = (next: string = '/app') => {
 
 export const buildAuthRedirectUrl = (next: string = '/app') => {
   const safeNext = sanitizeNextPath(next)
-  return `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext)}`
+  return `${getAppRedirectBase()}/auth/callback?next=${encodeURIComponent(safeNext)}`
 }
 
 const invokeEmailFunction = async (functionName: string, body: Record<string, unknown>) => {
