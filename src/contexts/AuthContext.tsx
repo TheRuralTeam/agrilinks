@@ -3,7 +3,7 @@ import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/integrations/supabase/client'
 import { User as UserProfile, RegisterData } from '@/types/database'
 import { toast } from '@/hooks/use-toast'
-import { buildAuthRedirectUrl, getSupabaseAuthCallbackUrl, sendConfirmationEmail, sendPasswordResetEmail } from '@/features/auth/email'
+import { buildAuthRedirectUrl, sendConfirmationEmail, sendPasswordResetEmail } from '@/features/auth/email'
 
 interface AuthContextType {
   user: User | null
