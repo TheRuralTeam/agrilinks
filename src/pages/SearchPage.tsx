@@ -357,37 +357,50 @@ const SearchPage = () => {
   React.useEffect(() => {
     if (!mapModalOpen || !selectedProduct?.location_lat || !selectedProduct?.location_lng) return
     if (!mapContainerRef.current) return
+    if (!MAPBOX_TOKEN) {
+      toast.error('Mapa não configurado. Defina VITE_MAPBOX_TOKEN nas variáveis de ambiente.')
+      return
+    }
 
-    try {
-      if (!MAPBOX_TOKEN) {
-        toast.error('Mapa não configurado. Defina VITE_MAPBOX_TOKEN nas variáveis de ambiente.')
-        return
+    let cancelled = false
+
+    const init = async () => {
+      try {
+        const [{ default: mapboxgl }] = await Promise.all([
+          import('mapbox-gl'),
+          import('mapbox-gl/dist/mapbox-gl.css')
+        ])
+        if (cancelled || !mapContainerRef.current) return
+
+        mapboxgl.accessToken = MAPBOX_TOKEN
+        mapRef.current = new mapboxgl.Map({
+          container: mapContainerRef.current,
+          style: 'mapbox://styles/mapbox/streets-v11',
+          center: [selectedProduct.location_lng, selectedProduct.location_lat],
+          zoom: 9,
+          attributionControl: false
+        })
+
+        mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right')
+        new mapboxgl.Marker({ color: 'green' })
+          .setLngLat([selectedProduct.location_lng, selectedProduct.location_lat])
+          .addTo(mapRef.current)
+      } catch (error) {
+        console.error('Error initializing map:', error)
       }
+    }
 
-      mapboxgl.accessToken = MAPBOX_TOKEN
-      mapRef.current = new mapboxgl.Map({
-        container: mapContainerRef.current,
-        style: 'mapbox://styles/mapbox/streets-v11',
-        center: [selectedProduct.location_lng, selectedProduct.location_lat],
-        zoom: 9,
-        attributionControl: false
-      })
+    init()
 
-      mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right')
-      new mapboxgl.Marker({ color: 'green' })
-        .setLngLat([selectedProduct.location_lng, selectedProduct.location_lat])
-        .addTo(mapRef.current)
-
-      return () => {
-        if (mapRef.current) {
-          mapRef.current.remove()
-          mapRef.current = null
-        }
+    return () => {
+      cancelled = true
+      if (mapRef.current) {
+        mapRef.current.remove()
+        mapRef.current = null
       }
-    } catch (error) {
-      console.error('Error initializing map:', error)
     }
   }, [mapModalOpen, selectedProduct])
+
 
   const TAX_RATE = 0.10
   const totalPrice = selectedProduct ? orderData.quantity * selectedProduct.price * (1 + TAX_RATE) : 0

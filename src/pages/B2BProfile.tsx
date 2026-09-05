@@ -92,10 +92,10 @@
         isVerified: !!userData.verified,
         tier: determineTier(),
         userType: userData.user_type || 'comprador',
-        description: userData.bio || userData.description || '',
-        foundedYear: userData.company_founded_year || undefined,
-        employees: userData.company_employees || undefined,
-        annualRevenue: userData.company_annual_revenue || undefined,
+        description: (userData as any).bio || (userData as any).description || '',
+        foundedYear: (userData as any).company_founded_year || undefined,
+        employees: (userData as any).company_employees || undefined,
+        annualRevenue: (userData as any).company_annual_revenue || undefined,
         phone: userData.phone
       });
 
