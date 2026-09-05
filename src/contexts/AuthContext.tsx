@@ -266,17 +266,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signInWithGoogle = async () => {
     try {
-      const callbackUrl = getSupabaseAuthCallbackUrl()
+      // O Supabase trata o callback OAuth internamente e depois devolve o utilizador
+      // para este URL da aplicação. Não devemos apontar redirectTo para o endpoint
+      // /auth/v1/callback do Supabase, nem enviar parâmetros extra para o Google
+      // (isso provoca erro 400 "invalid_request" no ecrã de consentimento).
       const appRedirectUrl = buildAuthRedirectUrl('/completar-perfil')
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: callbackUrl,
+          redirectTo: appRedirectUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
-            next: encodeURIComponent(appRedirectUrl),
           },
         },
       })
@@ -288,6 +290,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { error: err }
     }
   }
+
 
   const logout = async () => {
     try {
