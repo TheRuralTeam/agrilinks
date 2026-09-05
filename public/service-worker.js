@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agrilink-shell-v1';
+const CACHE_NAME = 'agrilink-shell-v3';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -9,7 +9,6 @@ const APP_SHELL = [
 ];
 
 self.addEventListener('install', (event) => {
-  console.log('[Service Worker] Instalando cache shell...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).catch(() => undefined)
   );
@@ -17,7 +16,6 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[Service Worker] Ativando cache do AgriLink...');
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(
       keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
@@ -29,39 +27,51 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
+  if (!request.url.startsWith(self.location.origin)) return;
 
+  // Navegação: sempre rede primeiro (evita servir HTML antigo com scripts inexistentes)
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((response) => {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy));
           return response;
         })
-        .catch(async () => {
-          const cachedResponse = await caches.match('/index.html');
-          return cachedResponse || caches.match('/');
-        })
+        .catch(async () => (await caches.match('/index.html')) || caches.match('/'))
     );
     return;
   }
 
-  if (request.url.startsWith(self.location.origin)) {
+  // Scripts/estilos: rede primeiro, cache apenas como fallback offline.
+  // Nunca devolver HTML para pedidos de assets (causava ecrã branco).
+  if (request.destination === 'script' || request.destination === 'style' || request.destination === 'document') {
     event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-
-        return fetch(request)
-          .then((response) => {
-            const cloned = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
-            return response;
-          })
-          .catch(() => caches.match('/index.html'));
-      })
+      fetch(request)
+        .then((response) => {
+          const cloned = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
+          return response;
+        })
+        .catch(() => caches.match(request))
     );
+    return;
   }
+
+  event.respondWith(
+    caches.match(request).then((cached) => {
+      if (cached) return cached;
+      return fetch(request)
+        .then((response) => {
+          const cloned = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
+          return response;
+        })
+        .catch(() => cached);
+    })
+  );
 });
+
 
 self.addEventListener('message', (event) => {
   console.log('[Service Worker] Mensagem recebida:', event.data);
