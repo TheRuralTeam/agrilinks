@@ -276,10 +276,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         provider: 'google',
         options: {
           redirectTo: appRedirectUrl,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
         },
       })
       if (error) {
