@@ -973,6 +973,8 @@ const MapView = () => {
         .leaflet-control-zoom { margin-top: 60px !important; border: none !important; box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important; }
         .leaflet-control-zoom a { border-radius: 10px !important; }
         .leaflet-container { font-family: ${FONT} !important; }
+        /* Hide on-map attribution; keep a discreet attribution element elsewhere to satisfy provider requirements */
+        .leaflet-control-attribution { display: none !important; }
         .al-route-tip { background:${T.ink} !important; color:#fff !important; border:none !important; font-weight:700 !important; font-size:11px !important; padding:5px 9px !important; border-radius:8px !important; box-shadow:0 4px 12px rgba(0,0,0,0.2) !important; }
         .al-route-tip::before { border-top-color:${T.ink} !important; }
 
@@ -996,6 +998,9 @@ const MapView = () => {
           .al-search { top: 64px !important; }
         }
       `}</style>
+      <div className="text-center mt-2" style={{ fontSize: 11, color: T.faint, marginTop: 8 }}>
+        Map data © OpenStreetMap contributors · Tiles © CARTO
+      </div>
       <SatelliteMonitor />
     </div>
   )
