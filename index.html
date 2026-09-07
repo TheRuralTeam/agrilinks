@@ -14,6 +14,34 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/placeholder.svg" />
 
+    <!-- Inline critical theme script: apply preferred theme (or light) before app loads to prevent FOUC -->
+    <script>
+      (function(){
+        try {
+          var key = 'orbislink-theme';
+          var saved = localStorage.getItem(key);
+          var theme = (saved === 'dark') ? 'dark' : 'light';
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.colorScheme = 'dark';
+            document.documentElement.style.background = '';
+            document.body && (document.body.style.background = '');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.style.colorScheme = 'light';
+            // set a safe light background immediately to avoid flash
+            document.documentElement.style.background = '#ffffff';
+            document.body && (document.body.style.background = '#ffffff');
+          }
+        } catch (e) { /* ignore */ }
+      })();
+    </script>
+
+    <style>
+      /* Hide app root until React mounts to avoid showing stale markup/styles */
+      .initial-hidden { opacity: 0 !important; visibility: hidden !important; }
+    </style>
+
     <meta property="og:title" content="AgriLink - Marketplace Agroalimentar B2B" />
     <meta property="og:description" content="Produtores, fornecedores e compradores conectados por contratos digitais e rastreabilidade." />
     <meta property="og:type" content="website" />
