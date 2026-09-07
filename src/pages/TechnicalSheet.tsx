@@ -6,7 +6,7 @@ import { ArrowLeft, Download, Printer, Phone, MapPin, Calendar, Package, DollarS
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { T } from "@/lib/brand";
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 
 interface Product {
   id: string;
