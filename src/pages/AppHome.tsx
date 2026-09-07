@@ -62,12 +62,9 @@ const COUNTRIES = [
 
 /* ─── Skeleton ──────────────────────────────────────────────────────────────── */
 const ProductSkeleton = () => (
-  <div style={{
-    background: T.white, borderRadius: 20, border: `1px solid rgba(0,0,0,0.05)`,
-    overflow: 'hidden'
-  }}>
+  <div className="overflow-hidden rounded-[20px] border" style={{ borderColor: 'rgba(0,0,0,0.05)', background: T.white }}>
     <div style={{ aspectRatio:'4/3', background: `linear-gradient(135deg, ${T.g50}, ${T.g100})`, animation:'shimmer 1.8s ease-in-out infinite' }}/>
-    <div style={{ padding: 18, display:'flex', flexDirection:'column', gap: 10 }}>
+    <div className="p-4 flex flex-col gap-2.5">
       <div style={{ height: 13, background: T.g50, borderRadius: 6, width:'65%', animation:'shimmer 1.8s ease-in-out infinite' }}/>
       <div style={{ height: 10, background: '#f0f4f0', borderRadius: 6, width:'40%', animation:'shimmer 1.8s ease-in-out infinite' }}/>
       <div style={{ height: 40, background: T.g50, borderRadius: 12, animation:'shimmer 1.8s ease-in-out infinite' }}/>
@@ -306,11 +303,8 @@ const AppHome = () => {
 
   /* ── Loading ── */
   if (loading) return (
-    <div style={{
-      display:'flex', alignItems:'center', justifyContent:'center',
-      minHeight:'100vh', background: T.canvas,
-    }}>
-      <div style={{ position:'relative', width: 64, height: 64 }}>
+    <div className="flex items-center justify-center min-h-screen" style={{ background: T.canvas }}>
+      <div className="relative w-16 h-16">
         {/* Spinning ring */}
         <div style={{
           position:'absolute', inset: 0,
@@ -320,14 +314,11 @@ const AppHome = () => {
           animation:'spin 1s linear infinite',
         }}/>
         {/* Logo centred */}
-        <div style={{
-          position:'absolute', inset: 0,
-          display:'flex', alignItems:'center', justifyContent:'center',
-        }}>
+        <div className="absolute inset-0 flex items-center justify-center">
           <img
             src={orbisLinkLogo}
             alt="OrbisLink"
-            style={{ width: 32, height: 32, objectFit: 'contain' }}
+            className="w-8 h-8 object-contain"
           />
         </div>
       </div>
@@ -336,7 +327,7 @@ const AppHome = () => {
 
   /* ── Main render ── */
   return (
-    <div style={{ minHeight:'100vh', background: T.canvas, fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif" }}>
+    <div className="min-h-screen" style={{ background: T.canvas, fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif" }}>
 
       {/* ═══ HEADER ════════════════════════════════════════════════════════ */}
       <header style={{
