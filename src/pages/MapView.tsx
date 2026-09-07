@@ -649,18 +649,14 @@ const MapView = () => {
 
   /* ── Render ─────────────────────────────────────────────────────────────── */
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100vh', background: T.white, overflow: 'hidden', fontFamily: FONT }}>
-      <div ref={mapContainer} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', zIndex: 0 }}/>
+    <div className="relative w-full h-screen overflow-hidden" style={{ background: T.white, fontFamily: FONT }}>
+      <div ref={mapContainer} className="absolute inset-0 w-full h-full z-0" />
 
       {/* ══ HEADER — leve, translúcido, estilo Apple ══════════════════════════ */}
-      <header className="al-header" style={{
-        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30,
-        background: 'rgba(255,255,255,0.8)',
-        backdropFilter: 'saturate(180%) blur(20px)', WebkitBackdropFilter: 'saturate(180%) blur(20px)',
-        borderBottom: `1px solid ${T.rule}`,
-      }}>
-        <div style={{ maxWidth: 1320, margin: '0 auto', padding: '0 16px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+      <header className="al-header absolute top-0 left-0 right-0 z-30" style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'saturate(180%) blur(20px)', WebkitBackdropFilter: 'saturate(180%) blur(20px)', borderBottom: `1px solid ${T.rule}` }}>
+        <div className="mx-auto px-4" style={{ maxWidth: 1320, height: 56 }}>
+          <div className="h-full flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => window.history.back()}
               style={{ width: 32, height: 32, borderRadius: '50%', background: T.soft, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.15s', color: T.mid, flexShrink: 0 }}
@@ -675,18 +671,12 @@ const MapView = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <div className="flex items-center gap-2 flex-shrink-0">
             {[
               { icon: showProductsList ? <EyeOff size={15}/> : <Eye size={15}/>, onClick: () => setShowProductsList(!showProductsList), title: showProductsList ? 'Ocultar lista' : 'Mostrar lista', active: false },
               { icon: <Sliders size={15}/>, onClick: () => setShowFilters(!showFilters), title: 'Filtros', active: showFilters },
             ].map((btn, i) => (
-              <button key={i} title={btn.title} onClick={btn.onClick} style={{
-                width: 32, height: 32, borderRadius: '50%',
-                background: btn.active ? T.g700 : T.soft,
-                border: 'none',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: btn.active ? T.white : T.mid, transition: 'background 0.15s',
-              }}>
+              <button key={i} title={btn.title} onClick={btn.onClick} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: btn.active ? T.g700 : T.soft, color: btn.active ? T.white : T.mid }}>
                 {btn.icon}
               </button>
             ))}
@@ -695,45 +685,39 @@ const MapView = () => {
       </header>
 
       {/* ══ SEARCH BAR — pílula leve ═══════════════════════════════════════════ */}
-      <div className="al-search" style={{ position: 'absolute', top: 68, left: '50%', transform: 'translateX(-50%)', zIndex: 30, width: '92%', maxWidth: 560 }}>
-        <div style={{ background: T.white, borderRadius: 20, boxShadow: `0 10px 32px ${T.shadowMd}`, overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 6px 4px 14px' }}>
-            <Search size={15} color={T.faint} style={{ flexShrink: 0 }}/>
+      <div className="al-search absolute left-1/2 transform -translate-x-1/2 z-30 w-[92%] max-w-[560px] top-16">
+        <div className="bg-white rounded-[20px] shadow-md overflow-hidden" style={{ boxShadow: `0 10px 32px ${T.shadowMd}` }}>
+          <div className="flex items-center gap-2.5 px-3 py-1.5">
+            <Search size={15} color={T.faint} className="flex-shrink-0" />
             <input
               type="text" value={searchText}
               onChange={e => handleSearch(e.target.value)}
               placeholder="Pesquisar localização em Angola..."
-              style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: T.ink, fontFamily: FONT, fontWeight: 500, padding: '10px 0' }}
+              className="flex-1 bg-transparent border-none outline-none text-sm" 
+              style={{ color: T.ink, fontFamily: FONT, fontWeight: 500, padding: '10px 0' }}
             />
             {searchLoading && (
-              <div style={{ width: 15, height: 15, borderRadius: '50%', border: `2px solid ${T.g100}`, borderTopColor: T.g600, animation: 'spin 0.8s linear infinite', flexShrink: 0 }}/>
+              <div style={{ width: 15, height: 15, borderRadius: '50%', border: `2px solid ${T.g100}`, borderTopColor: T.g600, animation: 'spin 0.8s linear infinite' }} className="flex-shrink-0" />
             )}
             {searchText && (
-              <button onClick={() => { setSearchText(''); setSearchResults([]) }} style={{ width: 26, height: 26, borderRadius: '50%', background: T.soft, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+              <button onClick={() => { setSearchText(''); setSearchResults([]) }} className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: T.soft }}>
                 <X size={12} color={T.muted}/>
               </button>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px 10px', overflowX: 'auto' }} className="hide-scrollbar">
+          <div className="flex items-center gap-2.5 px-3 pb-2 overflow-x-auto hide-scrollbar">
             {['Milho', 'Feijão', 'Banana', 'Mandioca'].map(item => (
               <button
                 key={item}
                 onClick={() => setFilters({ ...filters, productType: filters.productType === item ? '' : item })}
-                style={{
-                  padding: '6px 13px', borderRadius: 980, border: 'none', cursor: 'pointer', flexShrink: 0,
-                  background: filters.productType === item ? T.g700 : T.soft,
-                  color: filters.productType === item ? T.white : T.mid,
-                  fontSize: 12, fontWeight: 600, fontFamily: FONT, whiteSpace: 'nowrap', transition: 'all 0.15s',
-                }}
+                className="px-3 py-1.5 rounded-full whitespace-nowrap font-semibold text-sm"
+                style={{ background: filters.productType === item ? T.g700 : T.soft, color: filters.productType === item ? T.white : T.mid }}
               >
                 {item}
               </button>
             ))}
             {filters.productType && !['Milho', 'Feijão', 'Banana', 'Mandioca'].includes(filters.productType) && (
-              <button
-                onClick={() => setFilters({ ...filters, productType: '' })}
-                style={{ padding: '6px 12px', borderRadius: 980, border: 'none', cursor: 'pointer', background: T.dangerBg, color: T.danger, fontSize: 12, fontWeight: 700, fontFamily: FONT, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}
-              >
+              <button onClick={() => setFilters({ ...filters, productType: '' })} className="px-3 py-1.5 rounded-full flex items-center gap-1 font-bold text-sm" style={{ background: T.dangerBg, color: T.danger }}>
                 <X size={10}/> Limpar
               </button>
             )}
@@ -763,8 +747,8 @@ const MapView = () => {
 
       {/* ══ FILTERS PANEL — simplificado: só o essencial ═══════════════════════ */}
       {showFilters && (
-        <div className="al-filters-panel" style={{ position: 'absolute', top: 68, left: 16, zIndex: 40, background: T.white, borderRadius: 22, boxShadow: `0 20px 48px ${T.shadowLg}`, width: 320, overflow: 'hidden', animation: 'slideInLeft 0.2s cubic-bezier(0.22,1,0.36,1)' }}>
-          <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="al-filters-panel absolute z-40" style={{ top: 68, left: 16, background: T.white, borderRadius: 22, boxShadow: `0 20px 48px ${T.shadowLg}`, width: 320, overflow: 'hidden', animation: 'slideInLeft 0.2s cubic-bezier(0.22,1,0.36,1)' }}>
+          <div className="px-4 py-3 flex items-center justify-between">
             <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
               <Filter size={15} color={T.g600}/>
               <span style={{ fontSize: 14, fontWeight: 700, color: T.ink, fontFamily: FONT }}>Filtros</span>
@@ -773,13 +757,13 @@ const MapView = () => {
               <X size={12} color={T.mid}/>
             </button>
           </div>
-          <div style={{ padding: '4px 18px 18px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="px-4 pb-4 flex flex-col gap-4">
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                 <Leaf size={12} color={T.g600}/><Label>Tipo de produto</Label>
               </div>
               <input type="text" placeholder="Ex: Milho, Feijão..." value={filters.productType} onChange={e => setFilters({ ...filters, productType: e.target.value })}
-                style={{ width: '100%', height: 42, borderRadius: 980, border: 'none', padding: '0 16px', fontSize: 13, outline: 'none', background: T.soft, color: T.ink, fontFamily: FONT, boxSizing: 'border-box' }}
+                className="w-full h-10 rounded-full px-4 text-sm outline-none" style={{ background: T.soft, color: T.ink, fontFamily: FONT }}
               />
             </div>
             <div>
@@ -791,7 +775,7 @@ const MapView = () => {
                   <span style={{ fontSize: 11, color: T.faint, fontFamily: FONT, fontWeight: 600 }}>5 km</span>
                   <span style={{ fontSize: 14, fontWeight: 700, color: T.g700, fontFamily: FONT }}>{filters.radius} km</span>
                 </div>
-                <input type="range" min="5" max="500" step="5" value={filters.radius} onChange={e => setFilters({ ...filters, radius: parseInt(e.target.value) })} style={{ width: '100%', accentColor: T.g600 }}/>
+                <input type="range" min="5" max="500" step="5" value={filters.radius} onChange={e => setFilters({ ...filters, radius: parseInt(e.target.value) })} style={{ width: '100%', accentColor: T.g600 }} />
                 {!userLocation && (
                   <p style={{ fontSize: 10, color: T.faint, fontFamily: FONT, marginTop: 8 }}>Ativa a localização para usar o raio.</p>
                 )}
@@ -806,8 +790,8 @@ const MapView = () => {
 
       {/* ══ PRODUCTS LIST ════════════════════════════════════════════════════ */}
       {showProductsList && (
-        <div className="al-products-list" style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 30, width: 320, maxHeight: 400, animation: 'slideInBottom 0.25s cubic-bezier(0.22,1,0.36,1)' }}>
-          <div style={{ background: T.white, borderRadius: 22, boxShadow: `0 20px 48px ${T.shadowLg}`, overflow: 'hidden' }}>
+        <div className="al-products-list absolute bottom-4 left-4 z-30 w-[320px] max-h-[400px]" style={{ animation: 'slideInBottom 0.25s cubic-bezier(0.22,1,0.36,1)' }}>
+          <div className="bg-white rounded-[22px] overflow-hidden" style={{ boxShadow: `0 20px 48px ${T.shadowLg}` }}>
             <div style={{ padding: '14px 18px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                 <Package size={15} color={T.g600}/>
@@ -937,8 +921,8 @@ const MapView = () => {
       )}
 
       {/* ══ FOOTER STATS — pílula flutuante leve ════════════════════════════ */}
-      <div className="al-footer-stats" style={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 25, width: '92%', maxWidth: 620 }}>
-        <div style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(16px)', borderRadius: 20, padding: '12px 14px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, boxShadow: `0 10px 32px ${T.shadowMd}` }}>
+      <div className="al-footer-stats absolute left-1/2 transform -translate-x-1/2 bottom-4 z-25 w-[92%] max-w-[620px]">
+        <div className="rounded-[20px] p-3 grid grid-cols-4 gap-2.5" style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(16px)', boxShadow: `0 10px 32px ${T.shadowMd}` }}>
           {[
             { label: 'Produtores',   value: new Set(filteredProducts.map(p => p.farmer_id || p.farmer_name)).size, color: T.g700,  icon: <Leaf size={12}/> },
             { label: 'Produtos',     value: filteredProducts.length,                                                color: T.blue, icon: <Package size={12}/> },
@@ -963,10 +947,10 @@ const MapView = () => {
 
       {/* Loading overlay */}
       {loading && (
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(8px)', zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: T.white, padding: '28px 36px', borderRadius: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, boxShadow: `0 24px 60px ${T.shadowLg}` }}>
-            <div style={{ width: 36, height: 36, borderRadius: '50%', border: `3px solid ${T.g100}`, borderTopColor: T.g600, animation: 'spin 0.8s linear infinite' }}/>
-            <div style={{ textAlign: 'center' }}>
+        <div className="absolute inset-0 z-40 flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(8px)' }}>
+          <div className="bg-white rounded-[22px] flex flex-col items-center gap-3 p-7" style={{ boxShadow: `0 24px 60px ${T.shadowLg}` }}>
+            <div style={{ width: 36, height: 36, borderRadius: '50%', border: `3px solid ${T.g100}`, borderTopColor: T.g600, animation: 'spin 0.8s linear infinite' }} />
+            <div className="text-center">
               <p style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: T.ink, margin: 0 }}>A carregar mapa</p>
               <p style={{ fontSize: 11, color: T.faint, marginTop: 4, fontFamily: FONT }}>Aguarde um momento...</p>
             </div>
