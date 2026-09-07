@@ -2,11 +2,11 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, FileSignature, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { supabase } from '@/integrations/supabase/client'
-import { useAuth } from '@/contexts/AuthContext'
-import { useCanAct } from '@/hooks/useCanAct'
-import { T, FONT } from '@/lib/brand'
-import { PRODUCT_CATEGORIES } from '@/lib/productCategories'
+import { supabase } from '../integrations/supabase/client'
+import { useAuth } from '../contexts/AuthContext'
+import { useCanAct } from '../hooks/useCanAct'
+import { T, FONT } from '../lib/brand'
+import { PRODUCT_CATEGORIES } from '../lib/productCategories'
 
 const label: React.CSSProperties = {
   fontSize: 12, fontWeight: 700, color: T.mid, marginBottom: 6, display: 'block',

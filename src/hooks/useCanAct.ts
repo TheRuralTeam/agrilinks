@@ -1,5 +1,5 @@
-import { useAuth } from '@/contexts/AuthContext'
-import { useGuestGate } from '@/contexts/GuestGateContext'
+import { useAuth } from '../contexts/AuthContext'
+import { useGuestGate } from '../contexts/GuestGateContext'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
 

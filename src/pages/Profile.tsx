@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react"
 import { useTranslation } from 'react-i18next'
-import i18n from '@/i18n'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import i18n from '../i18n/index'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import {
   User, Edit, Package, MapPin, Phone, Mail, Calendar, BarChart3,
   Settings, LogOut, Trash2, Camera, CheckCircle, Share2, Star, Users,
@@ -10,17 +10,17 @@ import {
   TrendingUp, MessageCircle, Heart, Sparkles
 } from 'lucide-react'
 import { FileSignature } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
-import { useGuestGate } from '@/contexts/GuestGateContext'
-import { GUEST_PROFILE, getGuestData, getGuestProfile } from '@/lib/guestSession'
-import { supabase } from '@/integrations/supabase/client'
+import { useAuth } from '../contexts/AuthContext'
+import { useGuestGate } from '../contexts/GuestGateContext'
+import { GUEST_PROFILE, getGuestData, getGuestProfile } from '../lib/guestSession'
+import { supabase } from '../integrations/supabase/client'
 import { useNavigate } from 'react-router-dom'
-import { toast } from '@/hooks/use-toast'
-import { getProfileDisplayName, getProfileRoleLabel, resolveAvatarUrl } from '@/lib/profileDisplay'
-import { sanitizePublicProfile, isNeutralPublicView } from '@/lib/publicData'
+import { toast } from '../hooks/use-toast'
+import { getProfileDisplayName, getProfileRoleLabel, resolveAvatarUrl } from '../lib/profileDisplay'
+import { sanitizePublicProfile, isNeutralPublicView } from '../lib/publicData'
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
-import { T } from '@/lib/brand';
+import { T } from '../lib/brand';
 
 const FONT = "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
 const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)' // Apple-style "ease-out-expo"

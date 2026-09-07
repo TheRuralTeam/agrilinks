@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
+import { Button } from './ui/button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGlobe, faCheck, faChevronRight, faSeedling, faHandshake, faChartColumn } from '@fortawesome/free-solid-svg-icons';
-import orbisLinkLogo from '@/assets/orbislink-logo.png';
+import orbisLinkLogo from '../assets/orbislink-logo.png';
 
 // --- Branding Tokens ---
 const T = {

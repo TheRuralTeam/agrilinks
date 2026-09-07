@@ -7,21 +7,21 @@ import {
 } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTractor, faUserTie, faBuildingColumns, faTruck } from "@fortawesome/free-solid-svg-icons";
-import { getProvincesForCountry, getProvinceLabel, getMunicipalityLabel } from "@/data/country-locations";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { sendConfirmationEmail } from '@/features/auth/email'
-import orbisLinkLogo from "@/assets/orbislink-logo.png";
-import autenticar from '@/assets/auth1.jpg'
+import { getProvincesForCountry, getProvinceLabel, getMunicipalityLabel } from "../data/country-locations";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../integrations/supabase/client";
+import { sendConfirmationEmail } from '../features/auth/email'
+import orbisLinkLogo from "../assets/orbislink-logo.png";
+import autenticar from '../assets/auth1.jpg'
 
 // Imagem partilhada com o ecrã de Login para manter a mesma identidade visual.
 // Para trocar por vídeo: substituir o <img> do painel esquerdo por um <video autoPlay muted loop playsInline>.
-import { toast } from "@/hooks/use-toast";
-import { CountryPhoneInput, countries, Country } from "@/components/CountryPhoneInput";
-import { changeLanguage, getSavedCountry } from "@/i18n";
+import { toast } from "../hooks/use-toast";
+import { CountryPhoneInput, countries, Country } from "../components/CountryPhoneInput";
+import { changeLanguage, getSavedCountry } from "../i18n/index";
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
-import { T } from '@/lib/brand';
+import { T } from '../lib/brand';
 
 // NIF/documento de identidade é opcional — se o utilizador não preencher,
 // enviamos este valor por omissão e ele pode ser actualizado mais tarde no perfil.

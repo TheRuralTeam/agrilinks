@@ -1,26 +1,26 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
+import { Button } from '../components/ui/button'
 import { toast } from 'sonner'
 import {
   Search, LayoutDashboard, ShoppingCart, Bell,
   ChevronDown, CheckCircle2, Package, Activity,
   MapPin, TrendingUp, Globe2, Zap, Menu, X
 } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
+import { Input } from '../components/ui/input'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { supabase } from '@/integrations/supabase/client'
-import { useAuth } from '@/contexts/AuthContext'
-import { useCanAct } from '@/hooks/useCanAct'
+} from '../components/ui/dropdown-menu'
+import { supabase } from '../integrations/supabase/client'
+import { useAuth } from '../contexts/AuthContext'
+import { useCanAct } from '../hooks/useCanAct'
 import { useNavigate } from 'react-router-dom'
-import { ProductCard, Product } from '@/components/ProductCard'
-import orbisLinkLogo from '@/assets/orbislink-logo.png'
-import { fetchActiveProducts } from '@/features/products/productsService'
-import { validatePreOrderSubmission } from '@/features/products/businessRules'
-import { isNeutralPublicView, sanitizePublicProduct } from '@/lib/publicData'
+import { ProductCard, Product } from '../components/ProductCard'
+import orbisLinkLogo from '../assets/orbislink-logo.png'
+import { fetchActiveProducts } from '../features/products/productsService'
+import { validatePreOrderSubmission } from '../features/products/businessRules'
+import { isNeutralPublicView, sanitizePublicProduct } from '../lib/publicData'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faAppleWhole, faCarrot, faSeedling, faWheatAwn, faLemon,
@@ -47,7 +47,7 @@ const CATEGORIES = [
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
-import { T } from '@/lib/brand';
+import { T } from '../lib/brand';
 
 /* ─── Countries ─────────────────────────────────────────────────────────────── */
 const COUNTRIES = [

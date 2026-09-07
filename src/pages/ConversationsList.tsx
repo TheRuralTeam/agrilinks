@@ -1,18 +1,18 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Button } from "../components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 import { Search, Plus, MessageSquare, UserPlus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
+import { supabase } from "../integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { useToast } from "../hooks/use-toast";
 
 // --- Branding Tokens ---
-import { T } from '@/lib/brand';
+import { T } from '../lib/brand';
 
 // --- Tipos ---
 

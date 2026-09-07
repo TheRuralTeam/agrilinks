@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import usePushNotifications from '@/components/usePushNotifications';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import usePushNotifications from '../components/usePushNotifications';
+import { Badge } from '../components/ui/badge';
 import {
   Bell,
   Heart,
@@ -18,10 +18,10 @@ import {
   Zap,
   ArrowLeft,
 } from 'lucide-react';
-import orbisLinkLogo from '@/assets/orbislink-logo.png';
+import orbisLinkLogo from '../assets/orbislink-logo.png';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /* ─── AgriLink Design System (Branding T) ─────────────────────── */

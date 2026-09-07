@@ -1,22 +1,22 @@
  import React, { useState, useEffect } from 'react';
  import { useParams, useNavigate } from 'react-router-dom';
- import { Button } from '@/components/ui/button';
- import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+ import { Button } from '../components/ui/button';
+ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
  import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react';
- import { supabase } from '@/integrations/supabase/client';
- import { useAuth } from '@/contexts/AuthContext';
+ import { supabase } from '../integrations/supabase/client';
+ import { useAuth } from '../contexts/AuthContext';
  import { toast } from 'sonner';
- import { getProfileDisplayName, resolveAvatarUrl } from '@/lib/profileDisplay';
- import { sanitizePublicProfile, isNeutralPublicView } from '@/lib/publicData';
+ import { getProfileDisplayName, resolveAvatarUrl } from '../lib/profileDisplay';
+ import { sanitizePublicProfile, isNeutralPublicView } from '../lib/publicData';
  
- import { CompanyHeader, CompanyTier, UserType } from '@/components/b2b/CompanyHeader';
- import { TrustMetrics } from '@/components/b2b/TrustMetrics';
- import { BuyerProfile } from '@/components/b2b/BuyerProfile';
- import { SupplierPortfolio, PortfolioProduct } from '@/components/b2b/SupplierPortfolio';
- import { AboutCompany } from '@/components/b2b/AboutCompany';
- import { ActionButtons } from '@/components/b2b/ActionButtons';
+ import { CompanyHeader, CompanyTier, UserType } from '../components/b2b/CompanyHeader';
+ import { TrustMetrics } from '../components/b2b/TrustMetrics';
+ import { BuyerProfile } from '../components/b2b/BuyerProfile';
+ import { SupplierPortfolio, PortfolioProduct } from '../components/b2b/SupplierPortfolio';
+ import { AboutCompany } from '../components/b2b/AboutCompany';
+ import { ActionButtons } from '../components/b2b/ActionButtons';
  
- import orbisLinkLogo from '@/assets/orbislink-logo.png';
+ import orbisLinkLogo from '../assets/orbislink-logo.png';
  
  interface CompanyData {
    id: string;

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
 import { TrendingUp, TrendingDown, ShoppingCart, DollarSign, Loader2, RefreshCw, AlertCircle, ArrowLeft, BarChart3 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "../components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "../integrations/supabase/client";
 import { toast } from "sonner";
 
 /* ─── AgriLink Design System (Branding T) ─────────────────────── */

@@ -5,17 +5,17 @@ import {
   Heart, MessageCircle, Calendar, MapPin, Send, ChevronLeft, ChevronRight,
   ShoppingCart, Reply, ThumbsUp, BadgeCheck, TrendingUp, Clock, Share2, Leaf
 } from 'lucide-react'
-import { supabase } from '@/integrations/supabase/client'
-import { useAuth } from '@/contexts/AuthContext'
-import { useCanAct } from '@/hooks/useCanAct'
+import { supabase } from '../integrations/supabase/client'
+import { useAuth } from '../contexts/AuthContext'
+import { useCanAct } from '../hooks/useCanAct'
 import { useNavigate } from 'react-router-dom'
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import SimpleLeafletMap from '@/components/SimpleLeafletMap'
+import { Dialog, DialogContent, DialogTitle } from './ui/dialog'
+import SimpleLeafletMap from './SimpleLeafletMap'
 import "slick-carousel/slick/slick.css"
 import "slick-carousel/slick/slick-theme.css"
 
 /* ─── Design tokens — same source as AppHome, single accent colour ─────────── */
-import { T } from '@/lib/brand'
+import { T } from '../lib/brand'
 
 /* ─── Inline styles ──────────────────────────────────────────────────────────
    Apple-style rules borrowed from AppHome:

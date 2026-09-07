@@ -1,9 +1,9 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '@/contexts/AuthContext'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { T, FONT } from '@/lib/brand'
-import { ensureGuestSession, guestMinutesLeft } from '@/lib/guestSession'
+import { useAuth } from './AuthContext'
+import { Dialog, DialogContent } from '../components/ui/dialog'
+import { T, FONT } from '../lib/brand'
+import { ensureGuestSession, guestMinutesLeft } from '../lib/guestSession'
 import { UserPlus, LogIn, ShieldCheck } from 'lucide-react'
 
 interface GuestGateValue {

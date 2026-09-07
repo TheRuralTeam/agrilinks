@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Download, FileSignature, Clock, CheckCircle2, XCircle } from 'lucide-react'
-import { supabase } from '@/integrations/supabase/client'
-import { useAuth } from '@/contexts/AuthContext'
-import { useGuestGate } from '@/contexts/GuestGateContext'
-import { generateContractPdf } from '@/lib/contractPdf'
-import { T, FONT } from '@/lib/brand'
+import { supabase } from '../integrations/supabase/client'
+import { useAuth } from '../contexts/AuthContext'
+import { useGuestGate } from '../contexts/GuestGateContext'
+import { generateContractPdf } from '../lib/contractPdf'
+import { T, FONT } from '../lib/brand'
 
 interface Contract {
   id: string

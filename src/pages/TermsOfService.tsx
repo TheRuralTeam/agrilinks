@@ -1,8 +1,8 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Button } from '../components/ui/button'
+import { Separator } from '../components/ui/separator'
 import { ArrowLeft, Shield, AlertTriangle, Calendar, MapPin, Scale, Truck, Percent } from 'lucide-react'
 
 const TermsOfService = () => {

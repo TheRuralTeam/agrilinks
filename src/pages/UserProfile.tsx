@@ -4,15 +4,15 @@ import {
   ArrowLeft, MapPin, Calendar, Package, MessageCircle, Phone,
   Star, ShoppingCart, Users, Verified, BadgeCheck, Sparkles
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '../integrations/supabase/client';
+import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
-import { ProductCard, Product } from '@/components/ProductCard';
-import { getProfileDisplayName, getProfileRoleLabel, resolveAvatarUrl } from '@/lib/profileDisplay';
-import { sanitizePublicProfile, isNeutralPublicView } from '@/lib/publicData';
+import { ProductCard, Product } from '../components/ProductCard';
+import { getProfileDisplayName, getProfileRoleLabel, resolveAvatarUrl } from '../lib/profileDisplay';
+import { sanitizePublicProfile, isNeutralPublicView } from '../lib/publicData';
 
 /* ─── Design tokens — mesma linguagem visual do Perfil e do Mapa ────────────── */
-import { T } from '@/lib/brand';
+import { T } from '../lib/brand';
 
 const FONT = "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
 

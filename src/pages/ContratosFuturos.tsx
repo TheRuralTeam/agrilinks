@@ -2,13 +2,13 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, FileSignature, ShieldCheck, Plus, Loader2, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { supabase } from '@/integrations/supabase/client'
-import { useAuth } from '@/contexts/AuthContext'
-import { useCanAct } from '@/hooks/useCanAct'
-import { T, FONT } from '@/lib/brand'
+import { supabase } from '../integrations/supabase/client'
+import { useAuth } from '../contexts/AuthContext'
+import { useCanAct } from '../hooks/useCanAct'
+import { T, FONT } from '../lib/brand'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog'
+} from '../components/ui/dialog'
 
 type Contract = any
 

@@ -1,16 +1,16 @@
 import React, { Suspense, lazy, useEffect } from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "./components/ui/toaster";
+import { Toaster as Sonner } from "./components/ui/sonner";
+import { TooltipProvider } from "./components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { ThemeProvider } from "@/contexts/ThemeContext";
-import { LanguageWelcomeBanner } from "@/components/LanguageWelcomeBanner";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { LanguageWelcomeBanner } from "./components/LanguageWelcomeBanner";
 import AppLayout from "./layouts/AppLayout";
-import { GuestGateProvider } from "@/contexts/GuestGateContext";
-import GuestCTABar from "@/components/GuestCTABar";
-import { purgeExpiredGuestSession } from "@/lib/guestSession";
+import { GuestGateProvider } from "./contexts/GuestGateContext";
+import GuestCTABar from "./components/GuestCTABar";
+import { purgeExpiredGuestSession } from "./lib/guestSession";
 
 const Index = lazy(() => import("./pages/Index"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));

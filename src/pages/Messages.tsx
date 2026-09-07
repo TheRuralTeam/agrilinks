@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "../components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { 
   Send, 
   Paperclip, 
@@ -17,12 +17,12 @@ import {
   Video,
   User
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../integrations/supabase/client";
+import { useToast } from "../hooks/use-toast";
 
 // --- Branding Tokens ---
-import { T } from '@/lib/brand';
+import { T } from '../lib/brand';
 
 // --- Tipos ---
 

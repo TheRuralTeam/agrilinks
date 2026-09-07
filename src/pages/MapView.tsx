@@ -5,9 +5,9 @@ import {
   ArrowRight, ArrowLeft, Navigation, ChevronDown, CheckCircle,
   AlertCircle, User, MessageSquare, Map, Eye, EyeOff, Sliders,
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import SatelliteMonitor from '@/components/SatelliteMonitor';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '../contexts/AuthContext';
+import SatelliteMonitor from '../components/SatelliteMonitor';
+import { supabase } from '../integrations/supabase/client';
 import axios from 'axios';
 
 /* ─── Design tokens — modo claro único, estilo Apple ────────────────────────── */

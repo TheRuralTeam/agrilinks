@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "../../integrations/supabase/client";
+import { Button } from "../ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import { Badge } from "../ui/badge";
+import { Textarea } from "../ui/textarea";
 import { toast } from "sonner";
 import {
   Table,
@@ -12,7 +12,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "../ui/table";
 import {
   Dialog,
   DialogContent,
@@ -20,14 +20,14 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from "../ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "../ui/select";
 import {
   Truck,
   Package,
@@ -46,7 +46,7 @@ import {
   ShoppingCart,
   Headphones,
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 interface Order {
   id: string;

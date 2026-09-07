@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "../integrations/supabase/client";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { Badge } from "../components/ui/badge";
+import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import { Checkbox } from "../components/ui/checkbox";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -50,21 +50,21 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from "../components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "../components/ui/dropdown-menu";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import OrbisLinkLogo from "@/assets/orbislink-logo.png";
-import AdminManagement from "@/components/admin/AdminManagement";
-import DeliveryTracking from "@/components/admin/DeliveryTracking";
-import WorkSessionTimer from "@/components/admin/WorkSessionTimer";
-import MarketPricesManager from "@/components/admin/MarketPricesManager";
+import OrbisLinkLogo from "../assets/orbislink-logo.png";
+import AdminManagement from "../components/admin/AdminManagement";
+import DeliveryTracking from "../components/admin/DeliveryTracking";
+import WorkSessionTimer from "../components/admin/WorkSessionTimer";
+import MarketPricesManager from "../components/admin/MarketPricesManager";
 
-import { useWorkSession } from "@/hooks/useWorkSession";
+import { useWorkSession } from "../hooks/useWorkSession";
 
 type AdminPermission = "manage_users" | "manage_products" | "manage_orders" | "manage_support" | "manage_sourcing" | "view_analytics" | "manage_admins";
 

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { X, UserPlus } from 'lucide-react'
-import { T, FONT } from '@/lib/brand'
-import { useGuestGate } from '@/contexts/GuestGateContext'
-import { guestMinutesLeft } from '@/lib/guestSession'
+import { T, FONT } from '../lib/brand'
+import { useGuestGate } from '../contexts/GuestGateContext'
+import { guestMinutesLeft } from '../lib/guestSession'
 
 const MESSAGES: { match: (p: string) => boolean; text: string }[] = [
   { match: p => p.startsWith('/perfil'), text: 'Faz cadastro para guardar o teu perfil de verdade' },

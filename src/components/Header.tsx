@@ -3,7 +3,7 @@ import { Button } from "./ui/button";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faXmark, faCartShopping, faPhone, faChartLine } from "@fortawesome/free-solid-svg-icons";
-import OrbisLinkLogo from "@/assets/orbislink-logo.png";
+import OrbisLinkLogo from "../assets/orbislink-logo.png";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

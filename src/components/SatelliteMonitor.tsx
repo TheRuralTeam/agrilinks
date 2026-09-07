@@ -3,7 +3,7 @@ import { Satellite, X, Cloud, Leaf, Sprout, AlertTriangle, Thermometer, RefreshC
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '../integrations/supabase/client';
 
 /* Theme-aware (resolved at runtime via CSS variables on :root / .dark) */
 const GREEN = 'var(--map-g700)';

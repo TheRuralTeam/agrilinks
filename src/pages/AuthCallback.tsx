@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '@/integrations/supabase/client'
-import orbisLinkLogo from '@/assets/orbislink-logo.png'
-import { T, FONT } from '@/lib/brand'
+import { supabase } from '../integrations/supabase/client'
+import orbisLinkLogo from '../assets/orbislink-logo.png'
+import { T, FONT } from '../lib/brand'
 
 type Phase = 'checking' | 'needs-click' | 'working' | 'error'
 

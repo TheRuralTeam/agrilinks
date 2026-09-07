@@ -1,8 +1,8 @@
 import { Card } from "./ui/card";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUsers, faBullseye, faAward, faHandshake } from "@fortawesome/free-solid-svg-icons";
-import businessImage from "@/assets/business-partnership.jpg";
-import warehouseImage from "@/assets/warehouse-products.jpg";
+import businessImage from "../assets/business-partnership.jpg";
+import warehouseImage from "../assets/supply-chain-hero.jpg";
 
 const AboutUs = () => {
   const values = [

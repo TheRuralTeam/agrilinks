@@ -1,24 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { ArrowLeft, Package, Calendar, DollarSign, Hash, MapPin, User, Upload, X } from 'lucide-react';
-import { angolaProvinces } from '@/data/angola-locations';
-import { useAuth } from '@/contexts/AuthContext';
-import { useGuestGate } from '@/contexts/GuestGateContext';
-import { pushGuestItem } from '@/lib/guestSession';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
-import agrilinkLogo from '@/assets/agrilink-logo.png'
-import orbisLinkLogo from '@/assets/orbislink-logo.png'
-import { PRODUCT_CATEGORIES } from '@/lib/productCategories'
+import { angolaProvinces } from '../data/angola-locations';
+import { useAuth } from '../contexts/AuthContext';
+import { useGuestGate } from '../contexts/GuestGateContext';
+import { pushGuestItem } from '../lib/guestSession';
+import { supabase } from '../integrations/supabase/client';
+import { toast } from '../hooks/use-toast';
+import agrilinkLogo from '../assets/agrilink-logo.png'
+import orbisLinkLogo from '../assets/orbislink-logo.png'
+import { PRODUCT_CATEGORIES } from '../lib/productCategories'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import SimpleLeafletMap from '@/components/SimpleLeafletMap';
-import { validateProductSubmission } from '@/features/products/businessRules'
+import SimpleLeafletMap from '../components/SimpleLeafletMap';
+import { validateProductSubmission } from '../features/products/businessRules'
 
 const PublishProduct = () => {
   const navigate = useNavigate();

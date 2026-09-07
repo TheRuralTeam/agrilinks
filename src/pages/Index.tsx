@@ -1,13 +1,13 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Check, FileCheck2, Globe2, Menu, ShieldCheck, Sprout, Users, X } from "lucide-react";
-import orbisLinkLogo from "@/assets/orbislink-logo.png";
-import ttgiLogo from "@/assets/ttgi.jpg";
-import fotoFeliciano from "@/assets/FELICIANO.jpeg";
-import fotoMoises from "@/assets/MOISES.jpeg";
-import fotoLizeth from "@/assets/LIZETH.jpeg";
-import fotoClaudio from "@/assets/CLAUDIO.jpeg";
-import heroImage from "@/assets/agrilink-community-conference.jpg";
+import orbisLinkLogo from "../assets/orbislink-logo.png";
+import ttgiLogo from "../assets/ttgi.jpg";
+import fotoFeliciano from "../assets/FELICIANO.jpeg";
+import fotoMoises from "../assets/MOISES.jpeg";
+import fotoLizeth from "../assets/LIZETH.jpeg";
+import fotoClaudio from "../assets/CLAUDIO.jpeg";
+import heroImage from "../assets/agrilink-community-conference.jpg";
 
 const team = [
   { name: "Feliciano Cassoma", role: "Diretor-geral e fundador", image: fotoFeliciano },

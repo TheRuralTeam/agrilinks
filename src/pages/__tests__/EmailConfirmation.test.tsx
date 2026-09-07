@@ -20,7 +20,7 @@ vi.mock("@/contexts/AuthContext", () => ({
 vi.mock("@/hooks/use-toast", () => ({ toast: (...args: any[]) => toastSpy(...args) }));
 vi.mock("@/assets/orbislink-logo.png", () => ({ default: "logo.png" }));
 
-import EmailConfirmation from "@/pages/EmailConfirmation";
+import EmailConfirmation from "../EmailConfirmation";
 
 const renderPage = () => {
   window.history.replaceState({}, "", "/confirmar-email?email=teste@agrilink.ao");

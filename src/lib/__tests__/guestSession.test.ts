@@ -5,7 +5,7 @@ import {
   getGuestData,
   guestMinutesLeft,
   setGuestData,
-} from '@/lib/guestSession'
+} from '../guestSession'
 
 describe('Guest session business rules', () => {
   beforeEach(() => {

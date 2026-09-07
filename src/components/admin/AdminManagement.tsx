@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
+import { supabase } from "../../integrations/supabase/client";
+import { Button } from "../ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import { Badge } from "../ui/badge";
+import { Switch } from "../ui/switch";
 import { toast } from "sonner";
 import {
   Crown,
@@ -25,7 +25,7 @@ import {
   Sparkles,
   Headphones,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Input } from "../ui/input";
 import {
   Dialog,
   DialogContent,
@@ -33,13 +33,13 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from "../ui/dialog";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion";
+} from "../ui/accordion";
 
 // Permission definitions with metadata
 const PERMISSIONS = [

@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { sendConfirmationEmail, buildAuthRedirectUrl } from '@/features/auth/email'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { supabase } from "../integrations/supabase/client";
+import { sendConfirmationEmail, buildAuthRedirectUrl } from '../features/auth/email'
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Button } from "../components/ui/button";
 import { CheckCircle2, Loader2, MailCheck } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import orbisLinkLogo from "@/assets/orbislink-logo.png";
-import { toast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { Input } from "../components/ui/input";
+import orbisLinkLogo from "../assets/orbislink-logo.png";
+import { toast } from "../hooks/use-toast";
+import { useAuth } from "../contexts/AuthContext";
 
 const RESEND_COOLDOWN = 60;
 

@@ -4,7 +4,7 @@ import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCartShopping, faFilter, faSpinner, faBox } from "@fortawesome/free-solid-svg-icons";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "../integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
 interface Product {

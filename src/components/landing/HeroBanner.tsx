@@ -1,8 +1,8 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "../ui/button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowRight, faPlay } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
-import supplyChainHero from "@/assets/supply-chain-hero.jpg";
+import supplyChainHero from "../../assets/supply-chain-hero.jpg";
 
 const HeroBanner = () => {
   const navigate = useNavigate();

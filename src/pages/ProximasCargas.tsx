@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, PackageCheck, MapPin, CalendarDays, Weight, Loader2 } from 'lucide-react'
-import { supabase } from '@/integrations/supabase/client'
-import { useAuth } from '@/contexts/AuthContext'
-import { useCanAct } from '@/hooks/useCanAct'
-import { T, FONT } from '@/lib/brand'
+import { supabase } from '../integrations/supabase/client'
+import { useAuth } from '../contexts/AuthContext'
+import { useCanAct } from '../hooks/useCanAct'
+import { T, FONT } from '../lib/brand'
 import { toast } from 'sonner'
 
 interface FreightLoad {

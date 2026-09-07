@@ -1,17 +1,17 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, Compass, X } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
-import { buildAuthRedirectUrl, sendMagicLink, sendPasswordResetEmail } from '@/features/auth/email'
-import orbisLinkLogo from '@/assets/orbislink-logo.png'
+import { useAuth } from '../contexts/AuthContext'
+import { buildAuthRedirectUrl, sendMagicLink, sendPasswordResetEmail } from '../features/auth/email'
+import orbisLinkLogo from '../assets/orbislink-logo.png'
 // Imagem partilhada com o ecrã de Cadastro para manter a mesma identidade visual.
 // Para trocar por vídeo: substituir o <img> do painel esquerdo por um <video autoPlay muted loop playsInline>.
 
-import autenticar from '@/assets/auth1.jpg'
-import { toast } from '@/hooks/use-toast'
+import autenticar from '../assets/auth1.jpg'
+import { toast } from '../hooks/use-toast'
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
-import { T } from '@/lib/brand';
+import { T } from '../lib/brand';
 
 // ─── Input style (leve, com um toque dourado apenas no foco) ────────────────
 const inputStyle: React.CSSProperties = {

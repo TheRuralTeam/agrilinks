@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, User as UserIcon, CreditCard, ArrowRight } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
-import { CountryPhoneInput, countries, Country } from "@/components/CountryPhoneInput";
-import { getProvincesForCountry, getProvinceLabel, getMunicipalityLabel } from "@/data/country-locations";
-import { getSavedCountry } from "@/i18n";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../integrations/supabase/client";
+import { toast } from "../hooks/use-toast";
+import { CountryPhoneInput, countries, Country } from "../components/CountryPhoneInput";
+import { getProvincesForCountry, getProvinceLabel, getMunicipalityLabel } from "../data/country-locations";
+import { getSavedCountry } from "../i18n/index";
 
 const T = {
   g700: "#1A5C24", g600: "#2D7D3A", g500: "#3D9A48",

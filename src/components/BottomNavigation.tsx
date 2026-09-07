@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Home, Map, Bell, MessageSquare, User, Plus, LayoutDashboard, BarChart3, Truck } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
-import { supabase } from '@/integrations/supabase/client'
+import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../integrations/supabase/client'
 
 /* ─── Manus AI x AgriLink Design System (Light Mode) ─────────────────────── */
 const B = {

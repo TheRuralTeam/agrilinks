@@ -1,7 +1,7 @@
 import React from 'react'
 import { useLocation } from 'react-router-dom'
-import BottomNavigation from '@/components/BottomNavigation'
-import FloatingActionButton from '@/components/FloatingActionButton'
+import BottomNavigation from '../components/BottomNavigation'
+import FloatingActionButton from '../components/FloatingActionButton'
 
 interface AppLayoutProps {
   children: React.ReactNode

@@ -1,23 +1,23 @@
 import React, { useEffect, useState } from 'react'
 import {
   Card, CardContent, CardHeader, CardTitle
-} from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
+} from '../components/ui/card'
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog'
+import { Badge } from '../components/ui/badge'
 import { 
   Settings, LogOut, Mail, Phone, MapPin, ClipboardList, BarChart3, Camera, 
   ShoppingCart, Clock, XCircle, CheckCircle, ArrowLeft, AlertTriangle,
   FileText, FileSignature, ShieldCheck,
 } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
-import { supabase } from '@/integrations/supabase/client'
+import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../integrations/supabase/client'
 import { useNavigate } from 'react-router-dom'
-import { toast } from '@/hooks/use-toast'
+import { toast } from '../hooks/use-toast'
 
 interface FichaRecebimento {
   id: string
