@@ -105,16 +105,21 @@ const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-white/10 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+          <div className="border-t border-white/10 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-white/40 text-sm">
             © {currentYear} OrbisLink. Todos os direitos reservados.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
-            {["Política de Privacidade", "Termos de Uso", "Cookies"].map((link) => (
+            {[
+              "Política de Privacidade",
+              "Termos de Uso",
+              "Cookies",
+            ].map((link) => (
               <a key={link} href="#" className="text-white/40 hover:text-accent text-sm transition-colors">
                 {link}
               </a>
             ))}
+            <a href="/credits" className="text-white/40 hover:text-accent text-sm transition-colors">Créditos</a>
           </div>
         </div>
       </div>
