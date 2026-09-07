@@ -61,12 +61,7 @@ if (!rootElement) {
   throw new Error('Elemento raiz da aplicação não encontrado')
 }
 
-// Reveal root (was hidden by inline critical CSS to prevent FOUC)
-try {
-  rootElement.classList.remove('initial-hidden')
-} catch (e) {
-  // ignore
-}
+// No hiding of content — theme applied early via inline script in index.html
 
 createRoot(rootElement).render(
   <AppErrorBoundary>
