@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageWelcomeBanner } from "./components/LanguageWelcomeBanner";
+import Loader from "./components/ui/Loader";
 import AppLayout from "./layouts/AppLayout";
 import { GuestGateProvider } from "./contexts/GuestGateContext";
 import GuestCTABar from "./components/GuestCTABar";
@@ -54,14 +55,7 @@ const ProtectedRoute = ({ children, allowIncomplete = false, allowUnverified = f
   const { user, userProfile, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="text-sm text-muted-foreground">Carregando...</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (!user) {
@@ -89,14 +83,7 @@ const OpenRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, userProfile, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="text-sm text-muted-foreground">Carregando...</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (user) {
@@ -113,14 +100,7 @@ const AppRoutes = () => {
 
 
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="text-sm text-muted-foreground">Carregando app...</p>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<Loader />}>
       <Routes>
         <Route path="/" element={<Navigate to="/app" replace />} />
         <Route path="/index" element={<Navigate to="/app" replace />} />
