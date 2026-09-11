@@ -1,5 +1,16 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Polyline,
+  Tooltip,
+  useMap,
+  useMapEvents,
+} from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import {
   MapPin,
   Filter,
   Calendar,
@@ -20,7 +31,6 @@ import {
   AlertCircle,
   User,
   MessageSquare,
-  Map,
   Eye,
   EyeOff,
   Sliders,
@@ -30,26 +40,31 @@ import SatelliteMonitor from '../components/SatelliteMonitor';
 import { supabase } from '../integrations/supabase/client';
 import axios from 'axios';
 
-/* ─── Design tokens — modo claro único, estilo Apple ────────────────────────── */
+// Mesma fonte de verdade de cor usada na Landing e no Cadastro — o mapa deixa
+// de ter a sua própria paleta paralela. Os tokens abaixo que NÃO existem em
+// ../lib/brand (mid, faint, soft, blue, danger, shadows, escala g50-g700)
+// são um complemento local; idealmente migre-os para lib/brand.ts para
+// ficarem partilhados também pelas outras páginas que precisem deles.
+import { T as Brand } from '../lib/brand';
+
 const T = {
-  g700: '#2c863b',
-  g600: '#2c863b',
-  g500: '#3D9A48',
-  g400: '#81C784',
-  g100: '#E8F5E9',
-  g50: '#F2FAF3',
-  ink: '#111714',
-  mid: '#3D4D40',
-  muted: '#758A79',
-  faint: '#A8BAA9',
-  canvas: '#F7F9F7',
-  white: '#FFFFFF',
-  rule: 'rgba(0,0,0,0.06)',
+  ...Brand,
+  g700: Brand.g600,
+  g500: Brand.g600,
+  g100: 'rgba(45,125,58,0.12)',
+  g50: 'rgba(45,125,58,0.06)',
+  ink: Brand.ink,
+  mid: Brand.muted,
+  muted: Brand.muted,
+  faint: 'rgba(17,23,20,0.38)',
+  canvas: Brand.canvas,
+  white: Brand.white,
+  rule: Brand.rule,
   soft: 'rgba(118,118,128,0.08)',
   softHv: 'rgba(118,118,128,0.13)',
-  gold: '#B07D0A',
-  goldL: '#E5A020',
-  goldBg: 'rgba(229,160,32,0.10)',
+  gold: Brand.gold,
+  goldL: Brand.goldL,
+  goldBg: Brand.goldBg,
   danger: '#DC2626',
   dangerBg: 'rgba(220,38,38,0.08)',
   blue: '#2563EB',
@@ -60,6 +75,18 @@ const T = {
 };
 
 const FONT = "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif";
+
+// Fix defensivo do bug clássico de bundlers com os ícones default do Leaflet
+// (não usamos ícones default em lado nenhum — todos os markers abaixo levam
+// divIcon próprio — mas isto evita o quadrado-partido caso algum marker
+// futuro seja adicionado sem icon próprio).
+// @ts-ignore
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
 
 /* ─── Types ─────────────────────────────────────────────────────────────────── */
 interface Product {
@@ -97,15 +124,9 @@ interface FilterOptions {
   radius: number;
 }
 
-/* ─── OSRM helper — rota real pelas estradas ────────────────────────────────── */
-async function fetchRoadRoute(
-  from: [number, number],
-  to: [number, number]
-): Promise<[number, number][]> {
-  const r = await fetchRoadRouteFull(from, to);
-  return r.coords;
-}
+type RouteInfo = { coords: [number, number][]; km: number; mins: number | null };
 
+/* ─── OSRM helper — rota real pelas estradas ────────────────────────────────── */
 async function fetchRoadRouteFull(
   from: [number, number],
   to: [number, number]
@@ -137,6 +158,60 @@ function formatDuration(seconds: number | null | undefined): string {
   return m ? `${h}h ${m}min` : `${h}h`;
 }
 
+function distanceKm(a: [number, number], b: [number, number]) {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b[1] - a[1]);
+  const dLng = toRad(b[0] - a[0]);
+  const lat1 = toRad(a[1]);
+  const lat2 = toRad(b[1]);
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x)));
+}
+
+/* ─── Ícones (divIcon) ──────────────────────────────────────────────────────── */
+const productIcon = L.divIcon({
+  html: `<div style="
+    width:36px;height:36px;cursor:pointer;
+    background:${T.g600};
+    border:2.5px solid white;border-radius:50% 50% 50% 0;
+    transform:rotate(-45deg);display:flex;align-items:center;
+    justify-content:center;box-shadow:0 4px 12px rgba(44,134,59,0.35);
+  "><div style="transform:rotate(45deg);font-size:16px;line-height:1;">🌿</div></div>`,
+  className: '',
+  iconSize: [36, 36],
+  iconAnchor: [18, 36],
+});
+
+const userIcon = L.divIcon({
+  html: `<div style="width:18px;height:18px;background:${T.blue};border:3px solid white;border-radius:50%;box-shadow:0 0 0 8px rgba(37,99,235,0.16);"></div>`,
+  className: '',
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+});
+
+const destIcon = L.divIcon({
+  html: `<div style="width:14px;height:14px;background:${T.blue};border:2.5px solid white;border-radius:50%;box-shadow:0 0 0 5px rgba(37,99,235,0.18);"></div>`,
+  className: '',
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
+});
+
+const trackDestIcon = L.divIcon({
+  html: `<div style="width:16px;height:16px;background:${T.blue};border:3px solid white;border-radius:50%;box-shadow:0 0 0 6px rgba(37,99,235,0.18);"></div>`,
+  className: '',
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
+});
+
+const movingDotIcon = (color: string) =>
+  L.divIcon({
+    html: `<div style="width:16px;height:16px;background:${color};border:3px solid white;border-radius:50%;"></div>`,
+    className: '',
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+  });
+
 /* ─── Micro components ──────────────────────────────────────────────────────── */
 const Label = ({ children }: { children: React.ReactNode }) => (
   <span
@@ -152,6 +227,23 @@ const Label = ({ children }: { children: React.ReactNode }) => (
     {children}
   </span>
 );
+
+/* ─── Controlador do mapa (acede à instância do Leaflet via useMap) ────────── */
+const MapController: React.FC<{
+  flyToTarget: { lat: number; lng: number; zoom: number } | null;
+  onReady: (map: L.Map) => void;
+}> = ({ flyToTarget, onReady }) => {
+  const map = useMap();
+  useEffect(() => {
+    onReady(map);
+  }, [map, onReady]);
+  useEffect(() => {
+    if (flyToTarget) {
+      map.flyTo([flyToTarget.lat, flyToTarget.lng], flyToTarget.zoom, { duration: 1 });
+    }
+  }, [flyToTarget, map]);
+  return null;
+};
 
 /* ─── Product Card (popup) ──────────────────────────────────────────────────── */
 interface ProductCardProps {
@@ -195,7 +287,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
           overflow: 'hidden',
         }}
       >
-        {/* Header */}
         <div style={{ position: 'relative', padding: '16px 16px 0' }}>
           <button
             onClick={onClose}
@@ -212,13 +303,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              transition: 'background 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = T.softHv;
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = T.soft;
             }}
           >
             <X size={13} color={T.mid} />
@@ -260,9 +344,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 {product.farmer_rating && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 4 }}>
                     <Star size={10} color={T.goldL} fill={T.goldL} />
-                    <span
-                      style={{ fontSize: 10, color: T.muted, fontFamily: FONT, fontWeight: 700 }}
-                    >
+                    <span style={{ fontSize: 10, color: T.muted, fontFamily: FONT, fontWeight: 700 }}>
                       {product.farmer_rating.toFixed(1)}
                     </span>
                   </span>
@@ -273,12 +355,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </div>
 
         <div style={{ padding: '12px 16px 16px' }}>
-          <div
-            style={{ padding: '12px 14px', borderRadius: 14, background: T.g50, marginBottom: 10 }}
-          >
-            <div
-              style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}
-            >
+          <div style={{ padding: '12px 14px', borderRadius: 14, background: T.g50, marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
               <div>
                 <Label>Preço Total</Label>
                 <div
@@ -312,16 +390,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 >
                   {product.quantity}
                 </div>
-                <div style={{ fontSize: 10, color: T.muted, fontFamily: FONT, marginTop: 2 }}>
-                  kg
-                </div>
+                <div style={{ fontSize: 10, color: T.muted, fontFamily: FONT, marginTop: 2 }}>kg</div>
               </div>
             </div>
           </div>
 
-          <div
-            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}
-          >
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
             {[
               { icon: <MapPin size={12} />, label: 'Localização', value: product.municipality_id },
               {
@@ -333,10 +407,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 }),
               },
             ].map((item) => (
-              <div
-                key={item.label}
-                style={{ padding: '9px 11px', borderRadius: 12, background: T.canvas }}
-              >
+              <div key={item.label} style={{ padding: '9px 11px', borderRadius: 12, background: T.canvas }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
                   {React.cloneElement(item.icon, { color: T.g600 })}
                   <Label>{item.label}</Label>
@@ -359,14 +430,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </div>
 
           {(product.farmer_phone || product.farmer_email) && (
-            <div
-              style={{
-                padding: '10px 12px',
-                borderRadius: 12,
-                background: T.canvas,
-                marginBottom: 10,
-              }}
-            >
+            <div style={{ padding: '10px 12px', borderRadius: 12, background: T.canvas, marginBottom: 10 }}>
               <Label>Contacto</Label>
               <div style={{ marginTop: 7, display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {product.farmer_phone && (
@@ -470,13 +534,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 7,
-                transition: 'opacity 0.15s',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.opacity = '0.9';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.opacity = '1';
               }}
             >
               <MessageSquare size={14} /> Contactar
@@ -496,14 +553,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                transition: 'all 0.15s',
               }}
             >
-              <Heart
-                size={15}
-                color={isFavorited ? T.danger : T.mid}
-                fill={isFavorited ? T.danger : 'none'}
-              />
+              <Heart size={15} color={isFavorited ? T.danger : T.mid} fill={isFavorited ? T.danger : 'none'} />
             </button>
           </div>
         </div>
@@ -524,10 +576,7 @@ const StatsPanel: React.FC<{ count: number; avgPrice: number; totalQuantity: num
       { label: 'Preço Médio', value: `${avgPrice.toLocaleString()}`, color: T.blue },
       { label: 'Total (kg)', value: totalQuantity.toLocaleString(), color: T.gold },
     ].map((s) => (
-      <div
-        key={s.label}
-        style={{ padding: '10px 9px', borderRadius: 12, background: T.canvas, textAlign: 'center' }}
-      >
+      <div key={s.label} style={{ padding: '10px 9px', borderRadius: 12, background: T.canvas, textAlign: 'center' }}>
         <div
           style={{
             fontSize: 9,
@@ -561,21 +610,24 @@ const StatsPanel: React.FC<{ count: number; avgPrice: number; totalQuantity: num
 /* ════════════════════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ════════════════════════════════════════════════════════════════════════════ */
+// A CARTO passou a exigir API key para o serviço de basemaps raster
+// ({s}.basemaps.cartocdn.com) — antes era de acesso livre, deixou de ser,
+// e é o que causava o watermark "API KEY REQUIRED" sobre o mapa todo.
+// Usamos o mesmo provedor que já funciona na landing (tile.openstreetmap.org),
+// gratuito e sem key. Se mais tarde quiser voltar ao visual CARTO Voyager,
+// terá de criar uma conta em carto.com e passar &api_key=... na URL.
+const STREET_TILE = {
+  url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+};
+
 const MapView = () => {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
-  const userMarkerRef = useRef<any>(null);
-  const routePolylineRef = useRef<any>(null);
-  const routeAnimFrameRef = useRef<number | null>(null);
-  const productRouteLayers = useRef<any[]>([]); // linha produto→utilizador (seleccionado)
-  const allProductRoutesRef = useRef<any[]>([]); // linhas user→todos os produtos
-  const leafletLoadedRef = useRef(false);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const animRef = useRef<number | null>(null);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
-  const [leafletReady, setLeafletReady] = useState(false);
 
   const [searchText, setSearchText] = useState('');
   const [searchResults, setSearchResults] = useState<NominatimResult[]>([]);
@@ -591,32 +643,18 @@ const MapView = () => {
 
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null); // [lng, lat]
   const [trackedProduct, setTrackedProduct] = useState<Product | null>(null);
-  const [routeMetrics, setRouteMetrics] = useState<Record<string, { km: number; mins: number }>>(
-    {}
-  );
+
+  // Rotas calculadas (substituem os refs imperativos de polyline)
+  const [allRoutes, setAllRoutes] = useState<Record<string, RouteInfo>>({});
+  const [selectedRoute, setSelectedRoute] = useState<[number, number][] | null>(null);
+  const [trackRoute, setTrackRoute] = useState<[number, number][] | null>(null);
+  const [movingDotPos, setMovingDotPos] = useState<[number, number] | null>(null);
+
+  const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; zoom: number } | null>(null);
 
   const { user } = useAuth();
-
-  // Mapa "normal" estilo Google Maps/OSM — CartoDB Voyager: ruas, estradas e
-  // rótulos bem legíveis, mantendo uma paleta suave e consistente com o resto da UI
-  const STREET_TILE = {
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    attribution:
-      '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
-  };
-
-  const distanceKm = useCallback((a: [number, number], b: [number, number]) => {
-    const R = 6371;
-    const toRad = (d: number) => (d * Math.PI) / 180;
-    const dLat = toRad(b[1] - a[1]);
-    const dLng = toRad(b[0] - a[0]);
-    const lat1 = toRad(a[1]);
-    const lat2 = toRad(b[1]);
-    const x = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
-    return Math.round(R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x)));
-  }, []);
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -631,13 +669,24 @@ const MapView = () => {
     }
   }, []);
 
-  // Raio de busca agora é funcional: filtra por distância real quando há localização do utilizador
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Geolocalização do utilizador
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setUserLocation([pos.coords.longitude, pos.coords.latitude]),
+      () => {}
+    );
+  }, []);
+
   const filteredProducts = useMemo(
     () =>
       products.filter((p) => {
         const matchesType =
-          !filters.productType ||
-          p.product_type.toLowerCase().includes(filters.productType.toLowerCase());
+          !filters.productType || p.product_type.toLowerCase().includes(filters.productType.toLowerCase());
         const matchesPrice = p.price >= filters.priceRange[0] && p.price <= filters.priceRange[1];
         const matchesRadius =
           !userLocation || !p.location_lat || !p.location_lng
@@ -645,21 +694,19 @@ const MapView = () => {
             : distanceKm(userLocation, [p.location_lng, p.location_lat]) <= filters.radius;
         return matchesType && matchesPrice && matchesRadius;
       }),
-    [products, filters, userLocation, distanceKm]
+    [products, filters, userLocation]
   );
 
   const statsData = useMemo(() => {
     if (!filteredProducts.length) return { count: 0, avgPrice: 0, totalQuantity: 0 };
     return {
       count: filteredProducts.length,
-      avgPrice: Math.round(
-        filteredProducts.reduce((s, p) => s + p.price, 0) / filteredProducts.length
-      ),
+      avgPrice: Math.round(filteredProducts.reduce((s, p) => s + p.price, 0) / filteredProducts.length),
       totalQuantity: filteredProducts.reduce((s, p) => s + p.quantity, 0),
     };
   }, [filteredProducts]);
 
-  /* ── Geocoding ──────────────────────────────────────────────────────────── */
+  /* ── Geocoding (Nominatim) ──────────────────────────────────────────────── */
   const handleSearch = useCallback(async (value: string) => {
     setSearchText(value);
     if (!value.trim()) {
@@ -680,9 +727,7 @@ const MapView = () => {
   }, []);
 
   const selectSearchResult = useCallback((result: NominatimResult) => {
-    if (mapRef.current) {
-      mapRef.current.flyTo([parseFloat(result.lat), parseFloat(result.lon)], 12, { duration: 1.2 });
-    }
+    setFlyTarget({ lat: parseFloat(result.lat), lng: parseFloat(result.lon), zoom: 12 });
     setSearchText('');
     setSearchResults([]);
   }, []);
@@ -699,144 +744,22 @@ const MapView = () => {
     console.log('Contactar:', product.farmer_name);
   }, []);
 
+  /* ── Rotas: utilizador → todos os produtos filtrados (até 8 mais próximos) ── */
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
-
-  /* ── Carregar Leaflet ───────────────────────────────────────────────────── */
-  useEffect(() => {
-    if ((window as any).L) {
-      setLeafletReady(true);
+    if (!userLocation) {
+      setAllRoutes({});
       return;
     }
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    document.head.appendChild(link);
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.async = true;
-    script.onload = () => setLeafletReady(true);
-    script.onerror = () => setMapError('Erro ao carregar biblioteca de mapa');
-    document.head.appendChild(script);
-    return () => {
-      document.head.removeChild(link);
-      document.head.removeChild(script);
-    };
-  }, []);
-
-  /* ── Inicializar mapa ───────────────────────────────────────────────────── */
-  useEffect(() => {
-    if (!leafletReady || !mapContainer.current || mapRef.current) return;
-    const L = (window as any).L;
-    try {
-      const m = L.map(mapContainer.current, { center: [-10.5, 15.0], zoom: 5, zoomControl: false });
-      L.control.zoom({ position: 'topright' }).addTo(m);
-      L.tileLayer(STREET_TILE.url, {
-        attribution: STREET_TILE.attribution,
-        maxZoom: 20,
-        subdomains: 'abcd',
-      }).addTo(m);
-      mapRef.current = m;
-      leafletLoadedRef.current = true;
-
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            const { latitude: lat, longitude: lng } = pos.coords;
-            setUserLocation([lng, lat]);
-            const el = document.createElement('div');
-            el.style.cssText = `width:18px;height:18px;background:${T.blue};border:3px solid white;border-radius:50%;box-shadow:0 0 0 8px rgba(37,99,235,0.16);`;
-            const icon = L.divIcon({
-              html: el.outerHTML,
-              className: '',
-              iconSize: [18, 18],
-              iconAnchor: [9, 9],
-            });
-            userMarkerRef.current = L.marker([lat, lng], { icon }).addTo(m);
-          },
-          () => {}
-        );
-      }
-    } catch {
-      setMapError('Erro ao inicializar mapa');
-    }
-
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-        leafletLoadedRef.current = false;
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leafletReady]);
-
-  /* ── Marcadores de produtos ─────────────────────────────────────────────── */
-  useEffect(() => {
-    if (!mapRef.current || !(window as any).L || !leafletLoadedRef.current) return;
-    const L = (window as any).L;
-    const m = mapRef.current;
-    markersRef.current.forEach((mk) => m.removeLayer(mk));
-    markersRef.current = [];
-
-    filteredProducts.forEach((product) => {
-      if (product.location_lat && product.location_lng) {
-        const el = document.createElement('div');
-        el.style.cssText = `
-          width:36px;height:36px;cursor:pointer;
-          background:${T.g600};
-          border:2.5px solid white;border-radius:50% 50% 50% 0;
-          transform:rotate(-45deg);display:flex;align-items:center;
-          justify-content:center;box-shadow:0 4px 12px rgba(44,134,59,0.35);
-          transition:transform 0.18s;
-        `;
-        el.innerHTML = `<div style="transform:rotate(45deg);font-size:16px;line-height:1;">🌿</div>`;
-        const icon = L.divIcon({
-          html: el.outerHTML,
-          className: '',
-          iconSize: [36, 36],
-          iconAnchor: [18, 36],
-        });
-        const marker = L.marker([product.location_lat, product.location_lng], { icon })
-          .addTo(m)
-          .on('click', () => setSelectedProduct(product));
-        markersRef.current.push(marker);
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredProducts, leafletLoadedRef.current]);
-
-  /* ══ LINHAS USER → TODOS OS PRODUTOS (rotas reais) ══════════════════════ */
-  useEffect(() => {
-    if (!mapRef.current || !(window as any).L || !leafletLoadedRef.current) return;
-    const L = (window as any).L;
-    const m = mapRef.current;
-
-    const clearAll = () => {
-      allProductRoutesRef.current.forEach((l) => {
-        try {
-          m.removeLayer(l);
-        } catch {}
-      });
-      allProductRoutesRef.current = [];
-    };
-    clearAll();
-    if (!userLocation) return;
-
     const userLatLng: [number, number] = [userLocation[1], userLocation[0]];
     const targets = filteredProducts
       .filter((p) => p.location_lat && p.location_lng)
-      .map((p) => ({
-        p,
-        d: distanceKm(userLocation, [p.location_lng!, p.location_lat!]),
-      }))
+      .map((p) => ({ p, d: distanceKm(userLocation, [p.location_lng!, p.location_lat!]) }))
       .sort((a, b) => a.d - b.d)
-      .slice(0, 8); // limitar para não saturar OSRM
+      .slice(0, 8);
 
     let cancelled = false;
     (async () => {
-      const acc: Record<string, { km: number; mins: number }> = {};
+      const acc: Record<string, RouteInfo> = {};
       for (const { p } of targets) {
         if (cancelled) return;
         const { coords, distance, duration } = await fetchRoadRouteFull(userLatLng, [
@@ -844,190 +767,93 @@ const MapView = () => {
           p.location_lng!,
         ]);
         if (cancelled) return;
-        const km =
-          distance != null
-            ? distance / 1000
-            : distanceKm(userLocation, [p.location_lng!, p.location_lat!]);
-        const mins = duration != null ? Math.max(1, Math.round(duration / 60)) : 0;
-        if (p.id) acc[p.id] = { km: Math.round(km * 10) / 10, mins };
-
-        const line = L.polyline(coords, {
-          color: T.g600,
-          weight: 2,
-          opacity: 0.45,
-          dashArray: '4 6',
-        }).addTo(m);
-
-        const kmTxt = `${(Math.round(km * 10) / 10).toFixed(1)} km`;
-        const timeTxt = mins ? formatDuration(mins * 60) : '—';
-        line.bindTooltip(`${kmTxt} · ${timeTxt}`, {
-          sticky: true,
-          direction: 'top',
-          className: 'al-route-tip',
-        });
-        line.on('click', () => setSelectedProduct(p));
-        allProductRoutesRef.current.push(line);
+        const km = distance != null ? distance / 1000 : distanceKm(userLocation, [p.location_lng!, p.location_lat!]);
+        const mins = duration != null ? Math.max(1, Math.round(duration / 60)) : null;
+        acc[p.id] = { coords, km: Math.round(km * 10) / 10, mins };
+        setAllRoutes({ ...acc });
       }
-      if (!cancelled) setRouteMetrics(acc);
     })();
 
     return () => {
       cancelled = true;
-      clearAll();
-      setRouteMetrics({});
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredProducts, userLocation, leafletLoadedRef.current]);
+  }, [filteredProducts, userLocation]);
 
-  /* ══ LINHA PRODUTO → LOCALIZAÇÃO ATUAL (rota real pelas estradas) ═══════ */
+  /* ── Rota: produto seleccionado → utilizador ─────────────────────────────── */
   useEffect(() => {
-    if (!mapRef.current || !(window as any).L || !leafletLoadedRef.current) return;
-    const L = (window as any).L;
-    const m = mapRef.current;
-
-    const clearProductRoute = () => {
-      productRouteLayers.current.forEach((l) => {
-        try {
-          m.removeLayer(l);
-        } catch {}
-      });
-      productRouteLayers.current = [];
-    };
-
-    clearProductRoute();
-
-    if (
-      !selectedProduct ||
-      !selectedProduct.location_lat ||
-      !selectedProduct.location_lng ||
-      !userLocation
-    )
-      return;
-
-    const userLatLng: [number, number] = [userLocation[1], userLocation[0]];
-    const productLatLng: [number, number] = [
-      selectedProduct.location_lat,
-      selectedProduct.location_lng,
-    ];
-
-    (async () => {
-      const coords = await fetchRoadRoute(userLatLng, productLatLng);
-
-      const glow = L.polyline(coords, { color: T.blue, weight: 8, opacity: 0.1 }).addTo(m);
-      const line = L.polyline(coords, {
-        color: T.blue,
-        weight: 2.5,
-        opacity: 0.75,
-        dashArray: '7 5',
-      }).addTo(m);
-
-      const destIcon = L.divIcon({
-        html: `<div style="width:14px;height:14px;background:${T.blue};border:2.5px solid white;border-radius:50%;box-shadow:0 0 0 5px rgba(37,99,235,0.18);"></div>`,
-        className: '',
-        iconSize: [14, 14],
-        iconAnchor: [7, 7],
-      });
-      const destMarker = L.marker(productLatLng, { icon: destIcon }).addTo(m);
-
-      productRouteLayers.current = [glow, line, destMarker];
-    })();
-
-    return clearProductRoute;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProduct, userLocation, leafletLoadedRef.current]);
-
-  /* ══ RASTREABILIDADE — rota animada pelas estradas reais ════════════════ */
-  useEffect(() => {
-    if (!mapRef.current || !(window as any).L || !leafletLoadedRef.current) return;
-    const L = (window as any).L;
-    const m = mapRef.current;
-    const extraLayers: any[] = [];
-
-    const cleanup = () => {
-      extraLayers.forEach((l) => {
-        try {
-          m.removeLayer(l);
-        } catch {}
-      });
-      if (routePolylineRef.current) {
-        try {
-          m.removeLayer(routePolylineRef.current);
-        } catch {}
-        routePolylineRef.current = null;
-      }
-      if (routeAnimFrameRef.current) {
-        cancelAnimationFrame(routeAnimFrameRef.current);
-        routeAnimFrameRef.current = null;
-      }
-    };
-
-    if (!trackedProduct || !trackedProduct.location_lat || !trackedProduct.location_lng) {
-      cleanup();
+    if (!selectedProduct || !selectedProduct.location_lat || !selectedProduct.location_lng || !userLocation) {
+      setSelectedRoute(null);
       return;
     }
-
-    const origin: [number, number] = [trackedProduct.location_lat, trackedProduct.location_lng];
-    const destination: [number, number] = userLocation
-      ? [userLocation[1], userLocation[0]]
-      : [-8.838333, 13.234444];
-
+    let cancelled = false;
     (async () => {
-      cleanup();
-      const coords = await fetchRoadRoute(origin, destination);
+      const { coords } = await fetchRoadRouteFull(
+        [userLocation[1], userLocation[0]],
+        [selectedProduct.location_lat!, selectedProduct.location_lng!]
+      );
+      if (!cancelled) setSelectedRoute(coords);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedProduct, userLocation]);
 
-      const glow = L.polyline(coords, { color: T.g400, weight: 8, opacity: 0.18 }).addTo(m);
-      extraLayers.push(glow);
+  /* ── Rastreabilidade: produto rastreado → utilizador (com ponto animado) ── */
+  useEffect(() => {
+    if (animRef.current) {
+      cancelAnimationFrame(animRef.current);
+      animRef.current = null;
+    }
+    if (!trackedProduct || !trackedProduct.location_lat || !trackedProduct.location_lng) {
+      setTrackRoute(null);
+      setMovingDotPos(null);
+      return;
+    }
+    const origin: [number, number] = [trackedProduct.location_lat, trackedProduct.location_lng];
+    const destination: [number, number] = userLocation ? [userLocation[1], userLocation[0]] : [-8.838333, 13.234444];
 
-      routePolylineRef.current = L.polyline(coords, {
-        color: T.g700,
-        weight: 3,
-        opacity: 0.85,
-        dashArray: '10 6',
-      }).addTo(m);
-
-      const movingDot = L.circleMarker(coords[0], {
-        radius: 8,
-        fillColor: T.goldL,
-        fillOpacity: 1,
-        color: T.white,
-        weight: 3,
-      }).addTo(m);
-      extraLayers.push(movingDot);
-
-      const destIcon = L.divIcon({
-        html: `<div style="width:16px;height:16px;background:${T.blue};border:3px solid white;border-radius:50%;box-shadow:0 0 0 6px rgba(37,99,235,0.18);"></div>`,
-        className: '',
-        iconSize: [16, 16],
-        iconAnchor: [8, 8],
-      });
-      const destMarker = L.marker(destination, { icon: destIcon }).addTo(m);
-      extraLayers.push(destMarker);
-
-      const bounds = L.latLngBounds(coords);
-      m.fitBounds(bounds, { padding: [80, 80], duration: 1.2 });
+    let cancelled = false;
+    (async () => {
+      const { coords } = await fetchRoadRouteFull(origin, destination);
+      if (cancelled) return;
+      setTrackRoute(coords);
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.fitBounds(L.latLngBounds(coords), { padding: [80, 80] });
+      }
 
       let segIdx = 0;
       let t = 0;
       const animate = () => {
+        if (cancelled) return;
         if (segIdx >= coords.length - 1) segIdx = 0;
         const from = coords[segIdx];
         const to = coords[segIdx + 1];
         if (from && to) {
-          t += 0.015;
+          t += 0.008;
           if (t >= 1) {
             t = 0;
             segIdx++;
           }
-          movingDot.setLatLng([from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t]);
+          setMovingDotPos([from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t]);
         }
-        routeAnimFrameRef.current = requestAnimationFrame(animate);
+        animRef.current = requestAnimationFrame(animate);
       };
       animate();
     })();
 
-    return cleanup;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trackedProduct, userLocation, leafletLoadedRef.current]);
+    return () => {
+      cancelled = true;
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
+  }, [trackedProduct, userLocation]);
+
+  const clickProductInList = useCallback((p: Product) => {
+    setSelectedProduct(p);
+    if (p.location_lat && p.location_lng) {
+      setFlyTarget({ lat: p.location_lat, lng: p.location_lng, zoom: 14 });
+    }
+  }, []);
 
   /* ── Error screen ───────────────────────────────────────────────────────── */
   if (mapError)
@@ -1067,20 +893,10 @@ const MapView = () => {
           >
             <AlertCircle size={24} color={T.danger} />
           </div>
-          <h3
-            style={{
-              fontFamily: FONT,
-              fontSize: 16,
-              fontWeight: 700,
-              color: T.ink,
-              margin: '0 0 8px',
-            }}
-          >
+          <h3 style={{ fontFamily: FONT, fontSize: 16, fontWeight: 700, color: T.ink, margin: '0 0 8px' }}>
             Erro ao Carregar Mapa
           </h3>
-          <p style={{ fontSize: 13, color: T.muted, marginBottom: 20, fontFamily: FONT }}>
-            {mapError}
-          </p>
+          <p style={{ fontSize: 13, color: T.muted, marginBottom: 20, fontFamily: FONT }}>{mapError}</p>
           <button
             onClick={() => window.location.reload()}
             style={{
@@ -1104,13 +920,89 @@ const MapView = () => {
 
   /* ── Render ─────────────────────────────────────────────────────────────── */
   return (
-    <div
-      className="relative w-full h-screen overflow-hidden"
-      style={{ background: T.white, fontFamily: FONT }}
-    >
-      <div ref={mapContainer} className="absolute inset-0 w-full h-full z-0" />
+    <div className="relative w-full h-screen overflow-hidden" style={{ background: T.white, fontFamily: FONT }}>
+      <div className="absolute inset-0 w-full h-full z-0">
+        <MapContainer
+          center={[-10.5, 15.0]}
+          zoom={5}
+          zoomControl={false}
+          attributionControl={false}
+          style={{ width: '100%', height: '100%' }}
+        >
+          <MapController
+            flyToTarget={flyTarget}
+            onReady={(map) => {
+              mapInstanceRef.current = map;
+              L.control.zoom({ position: 'topright' }).addTo(map);
+            }}
+          />
+          <TileLayer url={STREET_TILE.url} attribution={STREET_TILE.attribution} maxZoom={19} subdomains="abc" />
 
-      {/* ══ HEADER — leve, translúcido, estilo Apple ══════════════════════════ */}
+          {/* Utilizador */}
+          {userLocation && <Marker position={[userLocation[1], userLocation[0]]} icon={userIcon} />}
+
+          {/* Produtos */}
+          {filteredProducts.map(
+            (p) =>
+              p.location_lat &&
+              p.location_lng && (
+                <Marker
+                  key={p.id}
+                  position={[p.location_lat, p.location_lng]}
+                  icon={productIcon}
+                  eventHandlers={{ click: () => setSelectedProduct(p) }}
+                />
+              )
+          )}
+
+          {/* Linhas utilizador → todos os produtos próximos */}
+          {Object.entries(allRoutes).map(([id, route]) => {
+            const product = filteredProducts.find((p) => p.id === id);
+            return (
+              <Polyline
+                key={id}
+                positions={route.coords}
+                pathOptions={{ color: T.g600, weight: 2, opacity: 0.45, dashArray: '4 6' }}
+                eventHandlers={{ click: () => product && setSelectedProduct(product) }}
+              >
+                <Tooltip sticky direction="top" className="al-route-tip">
+                  {route.km.toFixed(1)} km · {route.mins ? formatDuration(route.mins * 60) : '—'}
+                </Tooltip>
+              </Polyline>
+            );
+          })}
+
+          {/* Rota destacada: produto seleccionado */}
+          {selectedRoute && selectedProduct?.location_lat && selectedProduct?.location_lng && (
+            <>
+              <Polyline positions={selectedRoute} pathOptions={{ color: T.blue, weight: 8, opacity: 0.1 }} />
+              <Polyline
+                positions={selectedRoute}
+                pathOptions={{ color: T.blue, weight: 2.5, opacity: 0.75, dashArray: '7 5' }}
+              />
+              <Marker position={[selectedProduct.location_lat, selectedProduct.location_lng]} icon={destIcon} />
+            </>
+          )}
+
+          {/* Rastreabilidade */}
+          {trackRoute && (
+            <>
+              <Polyline positions={trackRoute} pathOptions={{ color: T.g400, weight: 8, opacity: 0.18 }} />
+              <Polyline
+                positions={trackRoute}
+                pathOptions={{ color: T.g700, weight: 3, opacity: 0.85, dashArray: '10 6' }}
+              />
+              <Marker
+                position={userLocation ? [userLocation[1], userLocation[0]] : [-8.838333, 13.234444]}
+                icon={trackDestIcon}
+              />
+              {movingDotPos && <Marker position={movingDotPos} icon={movingDotIcon(T.goldL)} />}
+            </>
+          )}
+        </MapContainer>
+      </div>
+
+      {/* ══ HEADER ══════════════════════════════════════════════════════════ */}
       <header
         className="al-header absolute top-0 left-0 right-0 z-30"
         style={{
@@ -1135,15 +1027,8 @@ const MapView = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  transition: 'background 0.15s',
                   color: T.mid,
                   flexShrink: 0,
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = T.softHv;
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = T.soft;
                 }}
               >
                 <ArrowLeft size={15} />
@@ -1164,15 +1049,7 @@ const MapView = () => {
                 >
                   Mapa de Produtos
                 </p>
-                <p
-                  style={{
-                    fontSize: 10,
-                    color: T.faint,
-                    margin: 0,
-                    fontWeight: 600,
-                    fontFamily: FONT,
-                  }}
-                >
+                <p style={{ fontSize: 10, color: T.faint, margin: 0, fontWeight: 600, fontFamily: FONT }}>
                   AgriLink
                 </p>
               </div>
@@ -1198,10 +1075,7 @@ const MapView = () => {
                   title={btn.title}
                   onClick={btn.onClick}
                   className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{
-                    background: btn.active ? T.g700 : T.soft,
-                    color: btn.active ? T.white : T.mid,
-                  }}
+                  style={{ background: btn.active ? T.g700 : T.soft, color: btn.active ? T.white : T.mid }}
                 >
                   {btn.icon}
                 </button>
@@ -1211,12 +1085,9 @@ const MapView = () => {
         </div>
       </header>
 
-      {/* ══ SEARCH BAR — pílula leve ═══════════════════════════════════════════ */}
+      {/* ══ SEARCH BAR ═══════════════════════════════════════════════════════ */}
       <div className="al-search absolute left-1/2 transform -translate-x-1/2 z-30 w-[92%] max-w-[560px] top-16">
-        <div
-          className="bg-white rounded-[20px] shadow-md overflow-hidden"
-          style={{ boxShadow: `0 10px 32px ${T.shadowMd}` }}
-        >
+        <div className="bg-white rounded-[20px] shadow-md overflow-hidden" style={{ boxShadow: `0 10px 32px ${T.shadowMd}` }}>
           <div className="flex items-center gap-2.5 px-3 py-1.5">
             <Search size={15} color={T.faint} className="flex-shrink-0" />
             <input
@@ -1257,28 +1128,22 @@ const MapView = () => {
             {['Milho', 'Feijão', 'Banana', 'Mandioca'].map((item) => (
               <button
                 key={item}
-                onClick={() =>
-                  setFilters({ ...filters, productType: filters.productType === item ? '' : item })
-                }
+                onClick={() => setFilters({ ...filters, productType: filters.productType === item ? '' : item })}
                 className="px-3 py-1.5 rounded-full whitespace-nowrap font-semibold text-sm"
-                style={{
-                  background: filters.productType === item ? T.g700 : T.soft,
-                  color: filters.productType === item ? T.white : T.mid,
-                }}
+                style={{ background: filters.productType === item ? T.g700 : T.soft, color: filters.productType === item ? T.white : T.mid }}
               >
                 {item}
               </button>
             ))}
-            {filters.productType &&
-              !['Milho', 'Feijão', 'Banana', 'Mandioca'].includes(filters.productType) && (
-                <button
-                  onClick={() => setFilters({ ...filters, productType: '' })}
-                  className="px-3 py-1.5 rounded-full flex items-center gap-1 font-bold text-sm"
-                  style={{ background: T.dangerBg, color: T.danger }}
-                >
-                  <X size={10} /> Limpar
-                </button>
-              )}
+            {filters.productType && !['Milho', 'Feijão', 'Banana', 'Mandioca'].includes(filters.productType) && (
+              <button
+                onClick={() => setFilters({ ...filters, productType: '' })}
+                className="px-3 py-1.5 rounded-full flex items-center gap-1 font-bold text-sm"
+                style={{ background: T.dangerBg, color: T.danger }}
+              >
+                <X size={10} /> Limpar
+              </button>
+            )}
           </div>
         </div>
         {searchResults.length > 0 && (
@@ -1311,13 +1176,6 @@ const MapView = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 10,
-                  transition: 'background 0.13s',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = T.g50;
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = 'transparent';
                 }}
               >
                 <div
@@ -1368,7 +1226,7 @@ const MapView = () => {
         )}
       </div>
 
-      {/* ══ FILTERS PANEL — simplificado: só o essencial ═══════════════════════ */}
+      {/* ══ FILTERS PANEL ════════════════════════════════════════════════════ */}
       {showFilters && (
         <div
           className="al-filters-panel absolute z-40"
@@ -1386,9 +1244,7 @@ const MapView = () => {
           <div className="px-4 py-3 flex items-center justify-between">
             <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
               <Filter size={15} color={T.g600} />
-              <span style={{ fontSize: 14, fontWeight: 700, color: T.ink, fontFamily: FONT }}>
-                Filtros
-              </span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: T.ink, fontFamily: FONT }}>Filtros</span>
             </div>
             <button
               onClick={() => setShowFilters(false)}
@@ -1429,9 +1285,7 @@ const MapView = () => {
               </div>
               <div style={{ padding: '12px 14px', borderRadius: 14, background: T.canvas }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 11, color: T.faint, fontFamily: FONT, fontWeight: 600 }}>
-                    5 km
-                  </span>
+                  <span style={{ fontSize: 11, color: T.faint, fontFamily: FONT, fontWeight: 600 }}>5 km</span>
                   <span style={{ fontSize: 14, fontWeight: 700, color: T.g700, fontFamily: FONT }}>
                     {filters.radius} km
                   </span>
@@ -1483,89 +1337,44 @@ const MapView = () => {
           className="al-products-list absolute bottom-4 left-4 z-30 w-[320px] max-h-[400px]"
           style={{ animation: 'slideInBottom 0.25s cubic-bezier(0.22,1,0.36,1)' }}
         >
-          <div
-            className="bg-white rounded-[22px] overflow-hidden"
-            style={{ boxShadow: `0 20px 48px ${T.shadowLg}` }}
-          >
-            <div
-              style={{
-                padding: '14px 18px 10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
+          <div className="bg-white rounded-[22px] overflow-hidden" style={{ boxShadow: `0 20px 48px ${T.shadowLg}` }}>
+            <div style={{ padding: '14px 18px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                 <Package size={15} color={T.g600} />
-                <span style={{ fontSize: 14, fontWeight: 700, color: T.ink, fontFamily: FONT }}>
-                  Produtos
-                </span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: T.ink, fontFamily: FONT }}>Produtos</span>
               </div>
               <span style={{ fontSize: 13, fontWeight: 700, color: T.g700, fontFamily: FONT }}>
                 {filteredProducts.length}
               </span>
             </div>
             <div style={{ padding: '0 14px 12px' }}>
-              <StatsPanel
-                count={statsData.count}
-                avgPrice={statsData.avgPrice}
-                totalQuantity={statsData.totalQuantity}
-              />
+              <StatsPanel count={statsData.count} avgPrice={statsData.avgPrice} totalQuantity={statsData.totalQuantity} />
             </div>
             <div style={{ maxHeight: 220, overflowY: 'auto', borderTop: `1px solid ${T.rule}` }}>
               {filteredProducts.length === 0 ? (
                 <div style={{ padding: '36px 20px', textAlign: 'center' }}>
-                  <Package
-                    size={26}
-                    color={T.faint}
-                    style={{ display: 'block', margin: '0 auto 10px' }}
-                  />
-                  <p
-                    style={{
-                      fontFamily: FONT,
-                      fontSize: 13,
-                      fontWeight: 700,
-                      color: T.ink,
-                      margin: '0 0 4px',
-                    }}
-                  >
+                  <Package size={26} color={T.faint} style={{ display: 'block', margin: '0 auto 10px' }} />
+                  <p style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: T.ink, margin: '0 0 4px' }}>
                     Sem resultados
                   </p>
-                  <p style={{ fontSize: 11, color: T.faint, fontFamily: FONT }}>
-                    Ajuste os filtros e tente novamente
-                  </p>
+                  <p style={{ fontSize: 11, color: T.faint, fontFamily: FONT }}>Ajuste os filtros e tente novamente</p>
                 </div>
               ) : (
                 filteredProducts.slice(0, 8).map((p, i) => (
                   <button
                     key={p.id}
-                    onClick={() => {
-                      setSelectedProduct(p);
-                      if (p.location_lat && p.location_lng && mapRef.current) {
-                        mapRef.current.flyTo([p.location_lat, p.location_lng], 14, { duration: 1 });
-                      }
-                    }}
+                    onClick={() => clickProductInList(p)}
                     style={{
                       width: '100%',
                       textAlign: 'left',
                       padding: '11px 14px',
-                      borderBottom:
-                        i < Math.min(filteredProducts.length, 8) - 1
-                          ? `1px solid ${T.rule}`
-                          : 'none',
+                      borderBottom: i < Math.min(filteredProducts.length, 8) - 1 ? `1px solid ${T.rule}` : 'none',
                       background: 'transparent',
                       border: 'none',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       gap: 11,
-                      transition: 'background 0.13s',
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.background = T.g50;
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.background = 'transparent';
                     }}
                   >
                     <div
@@ -1582,11 +1391,7 @@ const MapView = () => {
                       }}
                     >
                       {p.image_url ? (
-                        <img
-                          src={p.image_url}
-                          alt={p.product_type}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
+                        <img src={p.image_url} alt={p.product_type} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
                         <span style={{ fontSize: 20 }}>🌾</span>
                       )}
@@ -1608,15 +1413,11 @@ const MapView = () => {
                         {p.product_type}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span
-                          style={{ fontSize: 12, fontWeight: 700, color: T.g700, fontFamily: FONT }}
-                        >
+                        <span style={{ fontSize: 12, fontWeight: 700, color: T.g700, fontFamily: FONT }}>
                           {p.price.toLocaleString()} Kz
                         </span>
                         <span style={{ color: T.rule }}>·</span>
-                        <span style={{ fontSize: 11, color: T.faint, fontFamily: FONT }}>
-                          {p.quantity} kg
-                        </span>
+                        <span style={{ fontSize: 11, color: T.faint, fontFamily: FONT }}>{p.quantity} kg</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
                         <User size={9} color={T.faint} />
@@ -1634,11 +1435,7 @@ const MapView = () => {
                         </span>
                       </div>
                     </div>
-                    <ChevronDown
-                      size={13}
-                      color={T.faint}
-                      style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}
-                    />
+                    <ChevronDown size={13} color={T.faint} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }} />
                   </button>
                 ))
               )}
@@ -1663,16 +1460,10 @@ const MapView = () => {
           onFavorite={handleFavorite}
           onTrack={(p) => setTrackedProduct(p)}
           distanceLabel={(() => {
-            if (!userLocation || !selectedProduct.location_lat || !selectedProduct.location_lng)
-              return undefined;
-            const m = selectedProduct.id ? routeMetrics[selectedProduct.id] : undefined;
-            const km =
-              m?.km ??
-              distanceKm(userLocation, [
-                selectedProduct.location_lng,
-                selectedProduct.location_lat,
-              ]);
-            const timeTxt = m?.mins ? ` · ${formatDuration(m.mins * 60)}` : '';
+            if (!userLocation || !selectedProduct.location_lat || !selectedProduct.location_lng) return undefined;
+            const r = allRoutes[selectedProduct.id];
+            const km = r?.km ?? distanceKm(userLocation, [selectedProduct.location_lng, selectedProduct.location_lat]);
+            const timeTxt = r?.mins ? ` · ${formatDuration(r.mins * 60)}` : '';
             return `A ${km} km de si${timeTxt}`;
           })()}
         />
@@ -1696,20 +1487,11 @@ const MapView = () => {
             animation: 'slideInRight 0.25s cubic-bezier(0.22,1,0.36,1)',
           }}
         >
-          <div
-            style={{
-              padding: '16px 18px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
+          <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
               <Navigation size={15} color={T.g600} />
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: T.ink, fontFamily: FONT }}>
-                  Rastreabilidade
-                </div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: T.ink, fontFamily: FONT }}>Rastreabilidade</div>
                 <div style={{ fontSize: 10, color: T.faint, fontFamily: FONT, fontWeight: 600 }}>
                   {trackedProduct.product_type}
                 </div>
@@ -1772,15 +1554,7 @@ const MapView = () => {
                 },
               ];
               return steps.map((s, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: 'flex',
-                    gap: 12,
-                    position: 'relative',
-                    paddingBottom: i < steps.length - 1 ? 18 : 0,
-                  }}
-                >
+                <div key={i} style={{ display: 'flex', gap: 12, position: 'relative', paddingBottom: i < steps.length - 1 ? 18 : 0 }}>
                   {i < steps.length - 1 && (
                     <div
                       style={{
@@ -1798,8 +1572,7 @@ const MapView = () => {
                       width: 28,
                       height: 28,
                       borderRadius: '50%',
-                      background:
-                        s.state === 'done' ? T.g50 : s.state === 'active' ? T.goldBg : T.canvas,
+                      background: s.state === 'done' ? T.g50 : s.state === 'active' ? T.goldBg : T.canvas,
                       border: `2px solid ${s.color}`,
                       display: 'flex',
                       alignItems: 'center',
@@ -1811,15 +1584,9 @@ const MapView = () => {
                     {s.icon}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: T.ink, fontFamily: FONT }}>
-                      {s.title}
-                    </div>
-                    <div style={{ fontSize: 11, color: T.muted, fontFamily: FONT, marginTop: 3 }}>
-                      {s.date}
-                    </div>
-                    <div style={{ fontSize: 10, color: T.faint, fontFamily: FONT, marginTop: 2 }}>
-                      {s.sub}
-                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: T.ink, fontFamily: FONT }}>{s.title}</div>
+                    <div style={{ fontSize: 11, color: T.muted, fontFamily: FONT, marginTop: 3 }}>{s.date}</div>
+                    <div style={{ fontSize: 10, color: T.faint, fontFamily: FONT, marginTop: 2 }}>{s.sub}</div>
                   </div>
                 </div>
               ));
@@ -1827,23 +1594,12 @@ const MapView = () => {
 
             {userLocation && trackedProduct.location_lat && trackedProduct.location_lng && (
               <div style={{ marginTop: 14, padding: 12, borderRadius: 14, background: T.g50 }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: 6,
-                  }}
-                >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <Label>Progresso da rota</Label>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: T.g700, fontFamily: FONT }}>
-                    60%
-                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: T.g700, fontFamily: FONT }}>60%</span>
                 </div>
                 <div style={{ height: 6, borderRadius: 4, background: T.g100, overflow: 'hidden' }}>
-                  <div
-                    style={{ width: '60%', height: '100%', background: T.g600, borderRadius: 4 }}
-                  />
+                  <div style={{ width: '60%', height: '100%', background: T.g600, borderRadius: 4 }} />
                 </div>
               </div>
             )}
@@ -1851,15 +1607,11 @@ const MapView = () => {
         </aside>
       )}
 
-      {/* ══ FOOTER STATS — pílula flutuante leve ════════════════════════════ */}
+      {/* ══ FOOTER STATS ═════════════════════════════════════════════════════ */}
       <div className="al-footer-stats absolute left-1/2 transform -translate-x-1/2 bottom-4 z-25 w-[92%] max-w-[620px]">
         <div
           className="rounded-[20px] p-3 grid grid-cols-4 gap-2.5"
-          style={{
-            background: 'rgba(255,255,255,0.9)',
-            backdropFilter: 'blur(16px)',
-            boxShadow: `0 10px 32px ${T.shadowMd}`,
-          }}
+          style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(16px)', boxShadow: `0 10px 32px ${T.shadowMd}` }}
         >
           {[
             {
@@ -1868,12 +1620,7 @@ const MapView = () => {
               color: T.g700,
               icon: <Leaf size={12} />,
             },
-            {
-              label: 'Produtos',
-              value: filteredProducts.length,
-              color: T.blue,
-              icon: <Package size={12} />,
-            },
+            { label: 'Produtos', value: filteredProducts.length, color: T.blue, icon: <Package size={12} /> },
             {
               label: 'Em Trânsito',
               value: Math.max(1, Math.floor(filteredProducts.length * 0.2)),
@@ -1894,9 +1641,7 @@ const MapView = () => {
             },
           ].map((s) => (
             <div key={s.label} style={{ textAlign: 'center' }}>
-              <div
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 2 }}
-              >
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
                 <span style={{ color: s.color }}>{s.icon}</span>
                 <span
                   style={{
@@ -1930,14 +1675,8 @@ const MapView = () => {
 
       {/* Loading overlay */}
       {loading && (
-        <div
-          className="absolute inset-0 z-40 flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(8px)' }}
-        >
-          <div
-            className="bg-white rounded-[22px] flex flex-col items-center gap-3 p-7"
-            style={{ boxShadow: `0 24px 60px ${T.shadowLg}` }}
-          >
+        <div className="absolute inset-0 z-40 flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(8px)' }}>
+          <div className="bg-white rounded-[22px] flex flex-col items-center gap-3 p-7" style={{ boxShadow: `0 24px 60px ${T.shadowLg}` }}>
             <div
               style={{
                 width: 36,
@@ -1949,14 +1688,8 @@ const MapView = () => {
               }}
             />
             <div className="text-center">
-              <p
-                style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: T.ink, margin: 0 }}
-              >
-                A carregar mapa
-              </p>
-              <p style={{ fontSize: 11, color: T.faint, marginTop: 4, fontFamily: FONT }}>
-                Aguarde um momento...
-              </p>
+              <p style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: T.ink, margin: 0 }}>A carregar mapa</p>
+              <p style={{ fontSize: 11, color: T.faint, marginTop: 4, fontFamily: FONT }}>Aguarde um momento...</p>
             </div>
           </div>
         </div>
@@ -1977,27 +1710,14 @@ const MapView = () => {
         .leaflet-control-zoom { margin-top: 60px !important; border: none !important; box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important; }
         .leaflet-control-zoom a { border-radius: 10px !important; }
         .leaflet-container { font-family: ${FONT} !important; }
-        /* Hide on-map attribution; keep a discreet attribution element elsewhere to satisfy provider requirements */
-        .leaflet-control-attribution { display: none !important; }
         .al-route-tip { background:${T.ink} !important; color:#fff !important; border:none !important; font-weight:700 !important; font-size:11px !important; padding:5px 9px !important; border-radius:8px !important; box-shadow:0 4px 12px rgba(0,0,0,0.2) !important; }
         .al-route-tip::before { border-top-color:${T.ink} !important; }
 
-        /* ── Responsivo: painéis flutuantes viram folhas de largura total em mobile ── */
         @media (max-width: 680px) {
-          .al-filters-panel {
-            left: 12px !important; right: 12px !important; width: auto !important; top: auto !important; bottom: 90px !important;
-            max-height: 60vh !important;
-          }
-          .al-products-list {
-            left: 12px !important; right: 12px !important; width: auto !important; bottom: 12px !important;
-          }
-          .al-product-card {
-            left: 12px !important; right: 12px !important; width: auto !important; bottom: 12px !important;
-          }
-          .al-sidebar-track {
-            left: 12px !important; right: 12px !important; width: auto !important; top: auto !important; bottom: 12px !important;
-            max-height: 65vh !important;
-          }
+          .al-filters-panel { left: 12px !important; right: 12px !important; width: auto !important; top: auto !important; bottom: 90px !important; max-height: 60vh !important; }
+          .al-products-list { left: 12px !important; right: 12px !important; width: auto !important; bottom: 12px !important; }
+          .al-product-card { left: 12px !important; right: 12px !important; width: auto !important; bottom: 12px !important; }
+          .al-sidebar-track { left: 12px !important; right: 12px !important; width: auto !important; top: auto !important; bottom: 12px !important; max-height: 65vh !important; }
           .al-footer-stats { display: none; }
           .al-search { top: 64px !important; }
         }

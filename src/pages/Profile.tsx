@@ -19,11 +19,36 @@ import { toast } from '../hooks/use-toast'
 import { getProfileDisplayName, getProfileRoleLabel, resolveAvatarUrl } from '../lib/profileDisplay'
 import { sanitizePublicProfile, isNeutralPublicView } from '../lib/publicData'
 
-/* ─── Design tokens ─────────────────────────────────────────────────────────── */
-import { T } from '../lib/brand';
+/* ─── Design tokens ──────────────────────────────────────────────────────────
+   Mesma fonte de verdade da landing (../lib/brand). Os campos abaixo com
+   fallback (??) são tokens que este ficheiro usa mas que não confirmei
+   existirem em lib/brand.ts — se não existirem lá, o React estava a receber
+   `undefined` nesses estilos e a cair no default do browser, o que é a causa
+   mais provável do visual "apagado". Ideal: migrar estes fallbacks para
+   lib/brand.ts para ficarem partilhados por toda a app. */
+import { T as Brand } from '../lib/brand';
+const T: any = {
+  ...Brand,
+  mid: (Brand as any).mid ?? Brand.ink,
+  faint: (Brand as any).faint ?? Brand.muted,
+  g50: (Brand as any).g50 ?? 'rgba(45,125,58,0.06)',
+  g100: (Brand as any).g100 ?? 'rgba(45,125,58,0.12)',
+  gBorder: (Brand as any).gBorder ?? Brand.rule,
+  shadow: (Brand as any).shadow ?? 'rgba(17,23,20,0.05)',
+};
+
+// Cores por papel — as mesmas já usadas nos cartões de papéis da landing.
+// Reaproveitadas aqui para dar identidade visual a cada tipo de conta em
+// vez de tratar agricultor/agente/comprador/motorista todos da mesma cor.
+const ROLE_ACCENT: Record<string, string> = {
+  agricultor: '#2D7D3A',
+  agente: '#C6871E',
+  comprador: '#2563EB',
+  motorista: '#DB6B1F',
+}
 
 const FONT = "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
-const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)' // Apple-style "ease-out-expo"
+const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)'
 
 /* ─── Interfaces ─────────────────────────────────────────────────────────────── */
 interface UserProduct {
@@ -50,39 +75,45 @@ interface SourcingRequest {
 /* ════════════════════════════════════════════════════════════════════════════
    MICRO COMPONENTS
    ════════════════════════════════════════════════════════════════════════════ */
-const StatCard = ({ icon, value, label, color = T.g600 }: { icon: React.ReactNode; value: number | string; label: string; color?: string }) => (
-  <div className="ag-stat" style={{
-    background: T.white, borderRadius: 18, padding: '18px 12px',
-    border: `1px solid ${T.rule}`, boxShadow: `0 1px 2px ${T.shadow}`,
-    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9,
-    transition: `transform 0.3s ${EASE}, box-shadow 0.3s ${EASE}`, cursor: 'default',
+
+/* Tira de estatísticas — números grandes lado a lado com divisórias finas,
+   em vez de três caixas idênticas com sombra igual (o "kit SaaS" genérico). */
+const StatsStrip = ({ items }: { items: { value: number | string; label: string; color: string }[] }) => (
+  <div style={{
+    background: T.white, borderRadius: 20, border: `1px solid ${T.rule}`,
+    display: 'flex', overflow: 'hidden',
   }}>
-    <div style={{ width: 34, height: 34, borderRadius: 11, background: T.g50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {icon}
-    </div>
-    <div style={{ fontSize: 22, fontWeight: 800, color, letterSpacing: '-0.03em', fontFamily: FONT, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{value}</div>
-    <div style={{ fontSize: 9.5, color: T.faint, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center', lineHeight: 1.3 }}>{label}</div>
+    {items.map((it, i) => (
+      <div key={it.label} style={{
+        flex: 1, padding: '18px 14px', textAlign: 'center',
+        borderLeft: i > 0 ? `1px solid ${T.rule}` : 'none',
+      }}>
+        <div style={{ fontFamily: FONT, fontSize: 24, fontWeight: 800, color: it.color, letterSpacing: '-0.03em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+          {it.value}
+        </div>
+        <div style={{ fontSize: 11, color: T.faint, fontWeight: 500, marginTop: 6 }}>{it.label}</div>
+      </div>
+    ))}
   </div>
 )
 
 const InfoRow = ({ icon, value }: { icon: React.ReactNode; value: string }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0', borderBottom: `1px solid ${T.rule}` }}>
-    <div style={{ width: 28, height: 28, borderRadius: 9, background: T.g50, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{icon}</div>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 0', borderBottom: `1px solid ${T.rule}` }}>
+    <span style={{ color: T.faint, flexShrink: 0, display: 'flex' }}>{icon}</span>
     <span style={{ fontSize: 13.5, color: T.mid, fontWeight: 500, fontFamily: FONT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || '—'}</span>
   </div>
 )
 
-/* Apple-style segmented control: light track, white active pill */
-const TabBtn = ({ active, onClick, icon, label, badge }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; badge?: number }) => (
+/* Tabs por sublinhado na cor do papel, em vez de pílula neutra genérica */
+const TabBtn = ({ active, onClick, icon, label, badge, accent }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; badge?: number; accent: string }) => (
   <button onClick={onClick} className="ag-tab" style={{
-    display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px',
-    borderRadius: 11, border: 'none', cursor: 'pointer',
-    background: active ? T.white : 'transparent',
-    color: active ? T.g700 : T.muted,
+    display: 'flex', alignItems: 'center', gap: 7, padding: '11px 3px',
+    border: 'none', borderBottom: `2px solid ${active ? accent : 'transparent'}`,
+    background: 'transparent', cursor: 'pointer',
+    color: active ? T.ink : T.muted,
     fontWeight: active ? 700 : 600,
-    fontSize: 13, fontFamily: FONT, transition: `all 0.3s ${EASE}`,
+    fontSize: 13.5, fontFamily: FONT, transition: `all 0.25s ${EASE}`,
     position: 'relative', flexShrink: 0, whiteSpace: 'nowrap',
-    boxShadow: active ? `0 1px 2px ${T.shadow}` : 'none',
   }}>
     {icon}
     <span className="hidden sm:inline">{label}</span>
@@ -103,7 +134,7 @@ const Btn = ({ children, onClick, variant = 'primary', disabled = false, size = 
     ...extraStyle,
   }
   const variants: Record<string, React.CSSProperties> = {
-    primary:   { background: `linear-gradient(135deg, ${T.g500}, ${T.g700})`, color: T.white, boxShadow: `0 1px 4px rgba(45,125,58,0.18)` },
+    primary:   { background: `linear-gradient(135deg, ${T.g500 ?? T.g600}, ${T.g700 ?? T.g900})`, color: T.white, boxShadow: `0 1px 4px rgba(45,125,58,0.18)` },
     secondary: { background: T.g50, color: T.g600 },
     outline:   { background: T.white, color: T.mid, border: `1px solid ${T.rule}` },
     danger:    { background: '#FEF2F2', color: '#DC2626' },
@@ -117,8 +148,8 @@ const Btn = ({ children, onClick, variant = 'primary', disabled = false, size = 
 const Input = ({ label, value, onChange, type = 'text', placeholder = '', required = false }: any) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
     {label && (
-      <label style={{ fontSize: 11, fontWeight: 700, color: T.ink, textTransform: 'uppercase', letterSpacing: '0.07em', display: 'flex', gap: 6, alignItems: 'center', fontFamily: FONT }}>
-        {label}{required && <span style={{ color: T.g500, fontSize: 10, textTransform: 'none', fontWeight: 500 }}>obrigatório</span>}
+      <label style={{ fontSize: 12, fontWeight: 700, color: T.ink, display: 'flex', gap: 6, alignItems: 'center', fontFamily: FONT }}>
+        {label}{required && <span style={{ color: T.g500 ?? T.g600, fontSize: 11, fontWeight: 500 }}>obrigatório</span>}
       </label>
     )}
     <input type={type} value={value} onChange={onChange} placeholder={placeholder} className="ag-input" style={{
@@ -132,7 +163,7 @@ const Input = ({ label, value, onChange, type = 'text', placeholder = '', requir
 
 const Textarea = ({ label, value, onChange, placeholder = '', rows = 4 }: any) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-    {label && <label style={{ fontSize: 11, fontWeight: 700, color: T.ink, textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: FONT }}>{label}</label>}
+    {label && <label style={{ fontSize: 12, fontWeight: 700, color: T.ink, fontFamily: FONT }}>{label}</label>}
     <textarea value={value} onChange={onChange} placeholder={placeholder} rows={rows} className="ag-input" style={{
       borderRadius: 12, border: `1px solid ${T.rule}`, padding: '11px 14px',
       fontSize: 13.5, outline: 'none', background: T.canvas, color: T.ink,
@@ -155,7 +186,7 @@ const StatusPill = ({ status }: { status: string }) => {
   }
   const s = map[status] || { bg: T.canvas, color: T.muted, label: status }
   return (
-    <span style={{ padding: '3px 10px', borderRadius: 20, background: s.bg, color: s.color, fontSize: 10, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', fontFamily: FONT, whiteSpace: 'nowrap' }}>
+    <span style={{ padding: '3px 10px', borderRadius: 20, background: s.bg, color: s.color, fontSize: 11, fontWeight: 700, fontFamily: FONT, whiteSpace: 'nowrap' }}>
       {s.label}
     </span>
   )
@@ -185,10 +216,11 @@ function RTable<T>({ columns, rows, keyField, actions, empty, accent }: {
 }) {
   if (!rows.length) return <>{empty}</>
   return (
-    <div className="ag-table-wrap" style={{ background: T.white, borderRadius: 20, border: `1px solid ${T.rule}`, boxShadow: `0 1px 2px ${T.shadow}`, overflow: 'hidden' }}>
+    <div className="ag-table-wrap" style={{ background: T.white, borderRadius: 20, border: `1px solid ${T.rule}`, overflow: 'hidden' }}>
       <table className="ag-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
+            <th style={{ width: 4, padding: 0 }} />
             {columns.map(c => (
               <th key={c.key} style={{ textAlign: c.align || 'left', width: c.width }}>{c.label}</th>
             ))}
@@ -197,8 +229,8 @@ function RTable<T>({ columns, rows, keyField, actions, empty, accent }: {
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={keyField(row, i)} style={{ animationDelay: `${i * 0.03}s`, position: 'relative' }}>
-              {accent?.(row) && <td className="ag-accent-cell" data-accent={accent(row)} />}
+            <tr key={keyField(row, i)} style={{ animationDelay: `${i * 0.03}s` }}>
+              <td className="ag-accent-cell" style={{ background: accent?.(row) || 'transparent' }} />
               {columns.map(c => (
                 <td key={c.key} data-label={c.label} style={{ textAlign: c.align || 'left' }}>{c.render(row)}</td>
               ))}
@@ -257,6 +289,8 @@ const Profile = () => {
   const profileDisplayName = getProfileDisplayName((publicProfile as any) || profileData)
   const profileRoleLabel = getProfileRoleLabel((publicProfile as any)?.user_type || userProfile?.user_type)
   const profileAvatarUrl = resolveAvatarUrl((publicProfile as any)?.avatar_url || userProfile?.avatar_url)
+  const roleAccent = ROLE_ACCENT[userProfile?.user_type as string] || T.g600
+  const memberCode = (userProfile as any)?.agent_code || (user?.id ? user.id.slice(0, 8).toUpperCase() : '—')
 
   const [sourcingRequests, setSourcingRequests] = useState<SourcingRequest[]>([])
   const [showSourcingForm, setShowSourcingForm] = useState(false)
@@ -453,7 +487,7 @@ const Profile = () => {
   if (loading) return (
     <div style={{ minHeight: '100vh', background: T.canvas, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-        <div style={{ width: 40, height: 40, borderRadius: '50%', border: `2.5px solid ${T.gBorder}`, borderTopColor: T.g500, animation: 'ag-spin 0.8s linear infinite' }}/>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', border: `2.5px solid ${T.gBorder}`, borderTopColor: T.g500 ?? T.g600, animation: 'ag-spin 0.8s linear infinite' }}/>
         <p style={{ fontSize: 13, color: T.faint, fontWeight: 500, fontFamily: FONT }}>{t('profile.loadingProfile')}</p>
       </div>
     </div>
@@ -472,6 +506,23 @@ const Profile = () => {
     { id: 'statistics', label: t('profile.statistics'), icon: <BarChart3 size={15}/> },
   ]
 
+  const statItems = isAgente
+    ? [
+        { value: agentStats?.totalReferrals || 0, label: t('profile.usersReferred'), color: T.g600 },
+        { value: agentStats?.totalPoints || 0, label: t('profile.pointsEarned'), color: T.gold },
+      ]
+    : isComprador
+    ? [
+        { value: fichasRecebimento.length, label: t('profile.fichasCreated'), color: T.g600 },
+        { value: buyerStats.completedOrders, label: t('profile.purchasesCompleted'), color: T.g600 },
+        { value: buyerStats.favoriteProducts, label: t('profile.favoriteProducts'), color: T.gold },
+      ]
+    : [
+        { value: activeProducts, label: t('profile.activeProducts'), color: T.g600 },
+        { value: totalComments, label: t('profile.comments'), color: T.g600 },
+        { value: totalLikes, label: t('profile.likes'), color: T.gold },
+      ]
+
   return (
     <div style={{ minHeight: '100vh', background: T.canvas, fontFamily: FONT, paddingBottom: 80, WebkitFontSmoothing: 'antialiased' }}>
 
@@ -482,14 +533,9 @@ const Profile = () => {
         borderBottom: `1px solid ${T.rule}`,
       }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <h1 style={{ fontFamily: FONT, fontSize: 19, fontWeight: 800, color: T.ink, margin: 0, letterSpacing: '-0.02em' }}>
-              {t('profile.title')}
-            </h1>
-            <p style={{ fontSize: 11, color: T.faint, margin: 0, marginTop: 1, fontWeight: 600, textTransform: 'capitalize' }}>
-              {userProfile?.user_type}
-            </p>
-          </div>
+          <h1 style={{ fontFamily: FONT, fontSize: 17, fontWeight: 700, color: T.ink, margin: 0, letterSpacing: '-0.01em' }}>
+            {t('profile.title')}
+          </h1>
           <div style={{ display: 'flex', gap: 8 }}>
             <Btn variant="outline" size="sm" onClick={() => navigate('/contratos')}>
               <FileSignature size={14}/> <span className="hidden sm:inline">Contratos</span>
@@ -509,80 +555,58 @@ const Profile = () => {
         {/* ══ LEFT COLUMN ══════════════════════════════════════════════════════ */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-          {/* Profile Card — sombra e traços mais leves */}
+          {/* ── Cartão de membro: friso lateral na cor do papel + código no
+               rodapé, como um crachá real da rede AgriLink. Substitui o
+               banner fino + avatar flutuante genérico. ── */}
           <div style={{
-            background: T.white, borderRadius: 22, border: `1px solid ${T.rule}`,
-            boxShadow: `0 1px 2px ${T.shadow}`,
-            overflow: 'hidden',
-            animation: `ag-fade-up 0.5s ${EASE} both`,
+            display: 'flex', background: T.white, borderRadius: 22, border: `1px solid ${T.rule}`,
+            overflow: 'hidden', animation: `ag-fade-up 0.5s ${EASE} both`,
           }}>
-            {/* Faixa superior — mais baixa e mais suave */}
-            <div style={{ height: 64, background: `linear-gradient(135deg, ${T.g900}, ${T.g600} 65%, ${T.g400})`, position: 'relative' }}>
-              <div style={{ position: 'absolute', inset: 0, opacity: 0.04, backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)', backgroundSize: '28px 28px' }}/>
-              <div style={{ position: 'absolute', top: 10, right: 12, display: 'flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 20, background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(6px)' }}>
-                <Sparkles size={9} color="#fff" strokeWidth={1.75}/>
-                <span style={{ fontSize: 9, fontWeight: 600, color: '#fff', letterSpacing: '0.04em' }}>AgriLink</span>
-              </div>
-            </div>
-
-            <div style={{ padding: '0 22px 22px' }}>
-              {/* Avatar — sombra e borda mais discretas */}
-              <div style={{ position: 'relative', display: 'inline-block', marginTop: -34, marginBottom: 12 }}>
-                <div style={{
-                  width: 76, height: 76, borderRadius: '50%',
-                  border: `3px solid ${T.white}`, boxShadow: `0 3px 8px ${T.shadow}`,
-                  background: `linear-gradient(135deg, ${T.g600}, ${T.g400})`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  overflow: 'hidden',
-                }}>
-                  {profileAvatarUrl
-                    ? <img src={profileAvatarUrl} alt={profileDisplayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
-                    : <span style={{ fontFamily: FONT, fontSize: 28, fontWeight: 800, color: T.white }}>{profileDisplayName.charAt(0).toUpperCase() || 'U'}</span>
-                  }
+            <div style={{ width: 6, background: roleAccent, flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ padding: '22px 22px 18px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <div style={{
+                    width: 64, height: 64, borderRadius: '50%',
+                    border: `2px solid ${roleAccent}33`,
+                    background: `linear-gradient(135deg, ${roleAccent}, ${T.g400})`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                  }}>
+                    {profileAvatarUrl
+                      ? <img src={profileAvatarUrl} alt={profileDisplayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                      : <span style={{ fontFamily: FONT, fontSize: 24, fontWeight: 800, color: T.white }}>{profileDisplayName.charAt(0).toUpperCase() || 'U'}</span>
+                    }
+                  </div>
+                  <label htmlFor="avatar-upload" className="ag-avatar-edit" style={{
+                    position: 'absolute', bottom: -2, right: -2, width: 22, height: 22,
+                    borderRadius: '50%', background: T.white, border: `1px solid ${T.rule}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                    transition: `transform 0.2s ${EASE}`,
+                  }}>
+                    {avatarLoading ? <div style={{ width: 10, height: 10, borderRadius: '50%', border: `1.5px solid ${roleAccent}`, borderTopColor: 'transparent', animation: 'ag-spin 0.8s linear infinite' }}/> : <Camera size={10} color={roleAccent} strokeWidth={1.75}/>}
+                  </label>
+                  <input id="avatar-upload" type="file" accept="image/*" onChange={uploadAvatar} style={{ display: 'none' }}/>
                 </div>
-                <label htmlFor="avatar-upload" className="ag-avatar-edit" style={{
-                  position: 'absolute', bottom: 0, right: 0, width: 24, height: 24,
-                  borderRadius: '50%', background: T.white, border: `1px solid ${T.rule}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                  boxShadow: `0 1px 4px ${T.shadow}`, transition: `transform 0.2s ${EASE}`,
-                }}>
-                  {avatarLoading ? <div style={{ width: 11, height: 11, borderRadius: '50%', border: `1.5px solid ${T.g500}`, borderTopColor: 'transparent', animation: 'ag-spin 0.8s linear infinite' }}/> : <Camera size={11} color={T.g600} strokeWidth={1.75}/>}
-                </label>
-                <input id="avatar-upload" type="file" accept="image/*" onChange={uploadAvatar} style={{ display: 'none' }}/>
-              </div>
 
-              {/* Nome + tipo */}
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
-                  <h2 style={{ fontFamily: FONT, fontSize: 20, fontWeight: 800, color: T.ink, margin: 0, letterSpacing: '-0.02em' }}>
-                    {profileDisplayName}
-                  </h2>
-                  {(userProfile as any)?.verified && (
-                    <div style={{ width: 18, height: 18, borderRadius: '50%', background: T.g50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <BadgeCheck size={11} color={T.g600} strokeWidth={1.75}/>
-                    </div>
-                  )}
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <h2 style={{ fontFamily: FONT, fontSize: 22, fontWeight: 800, color: T.ink, margin: 0, letterSpacing: '-0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {profileDisplayName}
+                    </h2>
+                    {(userProfile as any)?.verified && <BadgeCheck size={16} color={roleAccent} strokeWidth={2}/>}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: roleAccent, flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, color: T.muted, fontWeight: 600 }}>{userProfile?.user_type}</span>
+                  </div>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 11px', borderRadius: 20, background: T.g50, color: T.g600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  {userProfile?.user_type}
-                </span>
               </div>
 
-              {/* Info de contacto / Formulário de edição */}
               {!editMode ? (
-                <>
-                  <InfoRow icon={<Mail size={13} color={T.g500} strokeWidth={1.6}/>} value={profileData.email} />
-                  <InfoRow icon={<Phone size={13} color={T.g500} strokeWidth={1.6}/>} value={profileData.phone} />
-                  <InfoRow icon={<MapPin size={13} color={T.g500} strokeWidth={1.6}/>} value={`${provinceName}${municipalityName ? ', ' + municipalityName : ''}`} />
-
-                  {/* Código de agente */}
-                  {isAgente && (userProfile as any)?.agent_code && (
-                    <div style={{ marginTop: 14, padding: '13px 15px', borderRadius: 14, background: T.g50 }}>
-                      <p style={{ fontSize: 10, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{t('profile.agentCode')}</p>
-                      <p style={{ fontFamily: FONT, fontSize: 22, fontWeight: 800, color: T.g600, letterSpacing: '0.06em', margin: 0 }}>{(userProfile as any).agent_code}</p>
-                    </div>
-                  )}
-
+                <div style={{ padding: '0 22px 18px' }}>
+                  <InfoRow icon={<Mail size={14} strokeWidth={1.6}/>} value={profileData.email} />
+                  <InfoRow icon={<Phone size={14} strokeWidth={1.6}/>} value={profileData.phone} />
+                  <InfoRow icon={<MapPin size={14} strokeWidth={1.6}/>} value={`${provinceName}${municipalityName ? ', ' + municipalityName : ''}`} />
                   <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
                     <Btn variant="secondary" onClick={() => setEditMode(true)} style={{ flex: 1 }}>
                       <Edit size={13} strokeWidth={1.75}/> {t('profile.editProfile')}
@@ -593,9 +617,9 @@ const Profile = () => {
                       </Btn>
                     )}
                   </div>
-                </>
+                </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}>
+                <div style={{ padding: '0 22px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <Input label={t('profile.fullName')} value={profileData.full_name} onChange={(e: any) => setProfileData(p => ({ ...p, full_name: e.target.value }))} />
                   <Input label={t('profile.phone')} value={profileData.phone} onChange={(e: any) => setProfileData(p => ({ ...p, phone: e.target.value }))} />
                   <Input label={t('profile.email')} type="email" value={profileData.email} onChange={(e: any) => setProfileData(p => ({ ...p, email: e.target.value }))} />
@@ -605,42 +629,37 @@ const Profile = () => {
                   </div>
                 </div>
               )}
+
+              {/* Talão do cartão — código de membro, separado por borda tracejada */}
+              <div style={{
+                borderTop: `1px dashed ${T.rule}`, padding: '11px 22px',
+                background: T.canvas, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}>
+                <span style={{ fontSize: 10.5, color: T.faint, fontWeight: 600 }}>Rede AgriLink</span>
+                <span style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 11.5, color: T.mid, fontWeight: 700, letterSpacing: '0.04em' }}>
+                  #{memberCode}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, animation: `ag-fade-up 0.5s ${EASE} 0.06s both` }}
-            className="ag-stats-grid"
-          >
-            {isAgente ? (
-              <>
-                <StatCard icon={<Users size={15} color={T.g500} strokeWidth={1.75}/>} value={agentStats?.totalReferrals || 0} label={t('profile.usersReferred')} color={T.g600} />
-                <StatCard icon={<Star size={15} color={T.goldL} strokeWidth={1.75}/>} value={agentStats?.totalPoints || 0} label={t('profile.pointsEarned')} color={T.gold} />
-              </>
-            ) : isComprador ? (
-              <>
-                <StatCard icon={<ClipboardList size={15} color={T.g500} strokeWidth={1.75}/>} value={fichasRecebimento.length} label={t('profile.fichasCreated')} color={T.g600} />
-                <StatCard icon={<ShoppingCart size={15} color={T.g500} strokeWidth={1.75}/>} value={buyerStats.completedOrders} label={t('profile.purchasesCompleted')} color={T.g600} />
-                <StatCard icon={<Heart size={15} color={T.goldL} strokeWidth={1.75}/>} value={buyerStats.favoriteProducts} label={t('profile.favoriteProducts')} color={T.gold} />
-              </>
-            ) : (
-              <>
-                <StatCard icon={<Package size={15} color={T.g500} strokeWidth={1.75}/>} value={activeProducts} label={t('profile.activeProducts')} color={T.g600} />
-                <StatCard icon={<MessageCircle size={15} color={T.g500} strokeWidth={1.75}/>} value={totalComments} label={t('profile.comments')} color={T.g600} />
-                <StatCard icon={<Heart size={15} color={T.goldL} strokeWidth={1.75}/>} value={totalLikes} label={t('profile.likes')} color={T.gold} />
-              </>
-            )}
+          <div style={{ animation: `ag-fade-up 0.5s ${EASE} 0.06s both` }}>
+            <StatsStrip items={statItems} />
           </div>
+
+          {isAgente && (userProfile as any)?.agent_code && (
+            <div style={{ padding: '14px 16px', borderRadius: 16, background: `${roleAccent}14`, animation: `ag-fade-up 0.5s ${EASE} 0.1s both` }}>
+              <p style={{ fontSize: 11.5, color: T.muted, fontWeight: 600, margin: 0 }}>{t('profile.agentCode')}</p>
+              <p style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 20, fontWeight: 800, color: roleAccent, letterSpacing: '0.05em', margin: '2px 0 0' }}>{(userProfile as any).agent_code}</p>
+            </div>
+          )}
         </div>
 
         {/* ══ RIGHT COLUMN ═════════════════════════════════════════════════════ */}
         <div style={{ animation: `ag-fade-up 0.5s ${EASE} 0.1s both`, minWidth: 0 }}>
 
-          {/* Segmented tab bar */}
-          <div style={{
-            display: 'flex', gap: 3, padding: '5px', borderRadius: 14,
-            background: T.g50, marginBottom: 20, overflowX: 'auto',
-          }}>
+          {/* Tabs por sublinhado */}
+          <div style={{ display: 'flex', gap: 22, borderBottom: `1px solid ${T.rule}`, marginBottom: 20, overflowX: 'auto' }}>
             {tabs.map(tab => (
               <TabBtn
                 key={tab.id}
@@ -649,11 +668,11 @@ const Profile = () => {
                 icon={tab.icon}
                 label={tab.label}
                 badge={(tab as any).badge}
+                accent={roleAccent}
               />
             ))}
           </div>
 
-          {/* Tab content — fades/slides in on change */}
           <div key={activeTab} style={{ animation: `ag-fade-up 0.35s ${EASE} both` }}>
 
           {/* ── Products / Fichas ── */}
@@ -699,7 +718,7 @@ const Profile = () => {
                 ]}
                 rows={userProducts}
                 keyField={r => r.id}
-                accent={r => r.status === 'active' ? T.g500 : r.status === 'inactive' ? T.goldL : '#EF4444'}
+                accent={r => r.status === 'active' ? T.g500 ?? T.g600 : r.status === 'inactive' ? T.goldL : '#EF4444'}
                 actions={r => (
                   <>
                     <IconBtn icon={<Edit size={13} strokeWidth={1.75}/>} title={t('profile.editProduct')} />
@@ -726,7 +745,7 @@ const Profile = () => {
               </div>
 
               {showSourcingForm && (
-                <div style={{ background: T.white, borderRadius: 20, border: `1px solid ${T.rule}`, padding: 20, boxShadow: `0 1px 2px ${T.shadow}`, display: 'flex', flexDirection: 'column', gap: 14, animation: `ag-fade-up 0.3s ${EASE} both` }}>
+                <div style={{ background: T.white, borderRadius: 20, border: `1px solid ${T.rule}`, padding: 20, display: 'flex', flexDirection: 'column', gap: 14, animation: `ag-fade-up 0.3s ${EASE} both` }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }} className="sm:grid-cols-2">
                     <Input label={t('sourcing.productName')} value={sourcingForm.product_name} onChange={(e: any) => setSourcingForm(p => ({ ...p, product_name: e.target.value }))} placeholder={t('sourcing.productNamePlaceholder')} required />
                     <Input label={t('sourcing.quantity')} type="number" value={sourcingForm.quantity} onChange={(e: any) => setSourcingForm(p => ({ ...p, quantity: e.target.value }))} placeholder={t('sourcing.quantityPlaceholder')} required />
@@ -793,23 +812,16 @@ const Profile = () => {
           {/* ── Referrals ── */}
           {activeTab === 'referrals' && isAgente && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* Summary row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                <div style={{ background: T.g900, borderRadius: 20, padding: '22px', textAlign: 'center' }}>
-                  <div style={{ fontFamily: FONT, fontSize: 34, fontWeight: 800, color: T.white }}>{agentStats?.totalReferrals || 0}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 4 }}>{t('profile.usersReferred')}</div>
-                </div>
-                <div style={{ background: `linear-gradient(135deg, ${T.gold}, ${T.goldL})`, borderRadius: 20, padding: '22px', textAlign: 'center' }}>
-                  <div style={{ fontFamily: FONT, fontSize: 34, fontWeight: 800, color: T.white }}>{agentStats?.totalPoints || 0}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.85)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 4 }}>{t('profile.pointsEarned')}</div>
-                </div>
-              </div>
+              <StatsStrip items={[
+                { value: agentStats?.totalReferrals || 0, label: t('profile.usersReferred'), color: roleAccent },
+                { value: agentStats?.totalPoints || 0, label: t('profile.pointsEarned'), color: T.gold },
+              ]} />
 
               <ReferralsTable
                 columns={[
                   { key: 'user', label: 'Utilizador', render: r => (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 30, height: 30, borderRadius: '50%', background: T.g50, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: T.g50, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <User size={13} color={T.g600} strokeWidth={1.75}/>
                       </div>
                       <span style={{ fontWeight: 700, color: T.ink }}>{r.user_name}</span>
@@ -832,9 +844,9 @@ const Profile = () => {
 
           {/* ── Statistics ── */}
           {activeTab === 'statistics' && (
-            <div style={{ background: T.white, borderRadius: 22, border: `1px solid ${T.rule}`, padding: 24, boxShadow: `0 1px 2px ${T.shadow}` }}>
+            <div style={{ background: T.white, borderRadius: 22, border: `1px solid ${T.rule}`, padding: 24 }}>
               <h3 style={{ fontFamily: FONT, fontSize: 18, fontWeight: 700, color: T.ink, margin: '0 0 18px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <TrendingUp size={17} color={T.g500} strokeWidth={1.75}/> {t('profile.performanceSummary')}
+                <TrendingUp size={17} color={roleAccent} strokeWidth={1.75}/> {t('profile.performanceSummary')}
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                 {(isAgente ? [
@@ -869,7 +881,7 @@ const Profile = () => {
 
       {/* ═══ SETTINGS MODAL ═══════════════════════════════════════════════════ */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent style={{ maxWidth: 420, borderRadius: 22, border: `1px solid ${T.rule}`, boxShadow: `0 24px 60px ${T.shadow}` }}>
+        <DialogContent style={{ maxWidth: 420, borderRadius: 22, border: `1px solid ${T.rule}` }}>
           <DialogHeader>
             <DialogTitle style={{ fontFamily: FONT, fontSize: 19, fontWeight: 700, color: T.ink, display: 'flex', alignItems: 'center', gap: 8 }}>
               <Settings size={17} color={T.g600}/> {t('profile.settings')}
@@ -877,14 +889,14 @@ const Profile = () => {
           </DialogHeader>
           <div style={{ padding: '8px 0 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: T.ink, textTransform: 'uppercase', letterSpacing: '0.07em', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                <Globe size={13} color={T.g500}/> {t('common.language') || 'Idioma'}
+              <label style={{ fontSize: 12, fontWeight: 700, color: T.ink, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <Globe size={13} color={T.g500 ?? T.g600}/> {t('common.language') || 'Idioma'}
               </label>
               <Select value={i18n.language} onValueChange={(value) => { i18n.changeLanguage(value); localStorage.setItem('orbislink_language', value); toast({ title: t('common.success'), description: t('common.languageChanged') || 'Idioma alterado.' }) }}>
                 <SelectTrigger style={{ borderRadius: 12, border: `1px solid ${T.rule}`, height: 42, fontSize: 13, fontFamily: 'inherit' }}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent style={{ borderRadius: 16, border: `1px solid ${T.rule}`, boxShadow: `0 12px 32px ${T.shadow}` }}>
+                <SelectContent style={{ borderRadius: 16, border: `1px solid ${T.rule}` }}>
                   {[{ val: 'pt', flag: '🇦🇴', label: 'Português' }, { val: 'en', flag: '🇬🇧', label: 'English' }, { val: 'fr', flag: '🇫🇷', label: 'Français' }].map(l => (
                     <SelectItem key={l.val} value={l.val} style={{ fontSize: 13 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -908,65 +920,47 @@ const Profile = () => {
         @keyframes ag-spin    { to { transform: rotate(360deg) } }
         @keyframes ag-fade-up { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: translateY(0) } }
 
-        .ag-layout {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 22px;
-        }
+        .ag-layout { display: grid; grid-template-columns: 1fr; gap: 22px; }
 
-        .ag-stats-grid {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 10px;
-        }
-
-        .ag-stat:hover { transform: translateY(-1px); box-shadow: 0 4px 10px ${T.shadow}; }
         .ag-btn:active { transform: scale(0.97); }
-        .ag-icon-btn:hover { background: ${T.g100 || T.gBorder}; color: ${T.g600}; transform: translateY(-1px); }
-        .ag-avatar-edit:hover { transform: scale(1.06); }
-        .ag-input:focus { border-color: ${T.g500} !important; background: ${T.white} !important; box-shadow: 0 0 0 4px rgba(61,154,72,0.1); }
+        .ag-icon-btn:hover { background: ${T.g100}; color: ${T.g600}; }
+        .ag-avatar-edit:hover { transform: scale(1.08); }
+        .ag-input:focus { border-color: ${T.g500 ?? T.g600} !important; background: ${T.white} !important; box-shadow: 0 0 0 4px rgba(61,154,72,0.1); }
+        .ag-tab:hover { color: ${T.ink}; }
 
         /* ── Table ───────────────────────────────────────────────────────── */
         .ag-table { border-collapse: collapse; }
         .ag-table thead th {
-          text-align: left; font-size: 10.5px; font-weight: 700; text-transform: uppercase;
-          letter-spacing: 0.06em; color: ${T.faint}; padding: 14px 18px; border-bottom: 1px solid ${T.rule};
-          background: ${T.canvas};
+          text-align: left; font-size: 11px; font-weight: 700; color: ${T.faint}; padding: 14px 18px 14px 0;
+          border-bottom: 1px solid ${T.rule}; background: ${T.canvas};
         }
-        .ag-table tbody tr {
-          animation: ag-fade-up 0.4s ${EASE} both;
-          transition: background 0.2s ${EASE};
-        }
+        .ag-table tbody tr { animation: ag-fade-up 0.4s ${EASE} both; transition: background 0.2s ${EASE}; }
         .ag-table tbody tr:hover { background: ${T.g50}; }
         .ag-table tbody tr:hover .ag-row-actions { opacity: 1; }
-        .ag-table tbody td { padding: 14px 18px; font-size: 13px; color: ${T.mid}; border-bottom: 1px solid ${T.rule}; vertical-align: middle; }
+        .ag-table tbody td { padding: 14px 18px 14px 0; font-size: 13px; color: ${T.mid}; border-bottom: 1px solid ${T.rule}; vertical-align: middle; }
         .ag-table tbody tr:last-child td { border-bottom: none; }
         .ag-row-actions { display: inline-flex; gap: 5px; justify-content: flex-end; opacity: 0.55; transition: opacity 0.2s ${EASE}; }
-        .ag-accent-cell { display: none; }
+        .ag-accent-cell { width: 4px; padding: 0 !important; border-bottom: none !important; }
 
         @media (max-width: 720px) {
           .ag-table thead { display: none; }
           .ag-table, .ag-table tbody, .ag-table tr, .ag-table td { display: block; width: 100%; }
-          .ag-table tbody tr { padding: 14px 16px; border-bottom: 1px solid ${T.rule}; }
+          .ag-table tbody tr { padding: 14px 16px; border-bottom: 1px solid ${T.rule}; position: relative; }
           .ag-table tbody tr:last-child { border-bottom: none; }
           .ag-table td { padding: 5px 0; border: none !important; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: right !important; }
+          .ag-table td.ag-accent-cell { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; height: auto; }
           .ag-table td[data-label]::before {
-            content: attr(data-label); font-size: 10px; font-weight: 700; text-transform: uppercase;
-            letter-spacing: 0.05em; color: ${T.faint}; text-align: left; flex-shrink: 0;
+            content: attr(data-label); font-size: 10.5px; font-weight: 700; color: ${T.faint}; text-align: left; flex-shrink: 0;
           }
           .ag-row-actions { opacity: 1; }
         }
 
-        /* ── Coluna de perfil no mobile: menos peso, menos aperto ── */
         @media (max-width: 480px) {
           .ag-layout { padding: 18px 14px !important; gap: 14px !important; }
-          .ag-stats-grid { gap: 7px !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-          .ag-stat { padding: 14px 8px !important; border-radius: 15px !important; }
         }
 
         @media (min-width: 1024px) {
           .ag-layout { grid-template-columns: 320px 1fr !important; }
-          .ag-stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
         }
         @media (min-width: 640px) {
           .sm\\:grid-cols-2 { grid-template-columns: 1fr 1fr !important; }

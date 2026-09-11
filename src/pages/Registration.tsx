@@ -3,10 +3,10 @@ import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   User, CreditCard, Mail, Lock, Eye, EyeOff,
-  ArrowRight, Check, X, ChevronDown, ArrowLeft, Sparkles, Truck
+  ArrowRight, Check, X, ChevronDown, ArrowLeft, Truck
 } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTractor, faUserTie, faBuildingColumns, faTruck } from "@fortawesome/free-solid-svg-icons";
+import { faTractor, faUserTie, faCartShopping, faTruck } from "@fortawesome/free-solid-svg-icons";
 import { getProvincesForCountry, getProvinceLabel, getMunicipalityLabel } from "../data/country-locations";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../integrations/supabase/client";
@@ -27,7 +27,14 @@ import { T } from '../lib/brand';
 // enviamos este valor por omissão e ele pode ser actualizado mais tarde no perfil.
 const DEFAULT_NIF = "0000000000000";
 const GOLD_BORDER = 'rgba(229,160,32,0.28)';
-const GOLD_SOFT = 'rgba(229,160,32,0.16)';
+
+// ─── Tipos de conta: cada um com o seu ícone e cor de destaque próprios ──────
+const USER_TYPES = [
+  { id: 'agricultor', label: 'Fornecedor', desc: 'Vende a sua produção diretamente na rede', icon: faTractor, color: '#2D7D3A' },
+  { id: 'agente', label: 'Agente', desc: 'Liga fornecedores e compradores', icon: faUserTie, color: '#C6871E' },
+  { id: 'comprador', label: 'Comprador', desc: 'Compra produtos agrícolas na plataforma', icon: faCartShopping, color: '#2563EB' },
+  { id: 'motorista', label: 'Motorista', desc: 'Transporta cargas entre origem e destino', icon: faTruck, color: '#DB6B1F' },
+] as const;
 
 // ─── Native Select (fixes mobile scroll-to-top bug) ──────────────────────────
 const NativeSelect = ({
@@ -85,7 +92,7 @@ const NativeSelect = ({
   </div>
 );
 
-// ─── Shared input style (mais leve: menos borda, menos sombra) ───────────────
+// ─── Shared input style ───────────────────────────────────────────────────────
 const inputStyle: React.CSSProperties = {
   height: '50px',
   borderRadius: '14px',
@@ -117,20 +124,15 @@ const FieldLabel = ({ children }: { children: React.ReactNode }) => (
   </label>
 );
 
-// Rótulo de campo com uma badge dourada "Opcional" alinhada à direita.
+// Rótulo de campo com indicação discreta de "(opcional)", sem badge nem ícone.
 const FieldLabelRow = ({ children, optional }: { children: React.ReactNode; optional?: boolean }) => (
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, marginLeft: 2, marginRight: 2 }}>
+  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6, marginLeft: 2 }}>
     <label style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.muted }}>
       {children}
     </label>
     {optional && (
-      <span style={{
-        display: 'inline-flex', alignItems: 'center', gap: 4,
-        fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
-        color: T.gold, background: T.goldBg, border: `1px solid ${GOLD_BORDER}`,
-        padding: '2px 9px', borderRadius: 20,
-      }}>
-        <Sparkles style={{ width: 9, height: 9 }} /> Opcional
+      <span style={{ fontSize: 10, fontWeight: 600, color: T.faint, textTransform: 'none', letterSpacing: 'normal' }}>
+        (opcional)
       </span>
     )}
   </div>
@@ -299,14 +301,8 @@ const Registration = () => {
     }
   };
 
-  const userTypeOptions = [
-    { id: 'agricultor', label: 'Fornecedor', icon: faTractor },
-    { id: 'agente', label: t('registration.agent'), icon: faUserTie },
-    { id: 'comprador', label: t('registration.buyer'), icon: faBuildingColumns },
-    { id: 'motorista', label: 'Motorista', icon: faTruck },
-  ];
-
   const progressPercent = ((currentStep + 1) / steps.length) * 100;
+  const selectedType = USER_TYPES.find(u => u.id === userType);
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row" style={{ backgroundColor: T.canvas, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
@@ -318,9 +314,9 @@ const Registration = () => {
           to   { opacity: 1; transform: translateY(0); }
         }
         input:focus { border-color: ${T.g600} !important; box-shadow: 0 0 0 4px rgba(45,125,58,0.10) !important; }
-        .field-group { animation: fadeUp 0.45s ease both; }
-        .user-type-btn { transition: transform 0.18s ease, border-color 0.18s ease, background-color 0.18s ease; cursor: pointer; }
-        .user-type-btn:hover { transform: translateY(-2px); }
+        .field-group { animation: fadeUp 0.4s ease both; }
+        .user-type-btn { transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease; cursor: pointer; }
+        .user-type-btn:hover { transform: translateY(-1px); }
         .submit-btn { transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease; }
         .submit-btn:hover:not(:disabled) { transform: translateY(-1px); }
         .submit-btn:active:not(:disabled) { transform: scale(0.98); }
@@ -355,12 +351,11 @@ const Registration = () => {
         </div>
       </div>
 
-      {/* ── Painel direito: formulário, mais leve e espaçoso ── */}
+      {/* ── Painel direito: formulário ── */}
       <div className="flex-1 flex items-center justify-center px-6 py-10 lg:px-16 lg:py-16 relative overflow-hidden">
         <div className="absolute top-[-10%] right-[-10%] w-72 h-72 rounded-full blur-3xl opacity-[0.07] pointer-events-none" style={{ backgroundColor: T.g400 }} />
         <div className="absolute bottom-[-8%] left-[-6%] w-64 h-64 rounded-full blur-3xl opacity-[0.06] pointer-events-none" style={{ backgroundColor: T.goldL }} />
 
-        {/* Overlay de loading, discreto */}
         {loading && (
           <div style={{
             position: 'fixed', inset: 0,
@@ -384,7 +379,6 @@ const Registration = () => {
 
         <div className="w-full max-w-md relative z-10" style={{ animation: 'fadeUp 0.5s ease both' }}>
 
-          {/* Logo, maior, sem legenda */}
           <div className="mb-10 flex justify-center lg:justify-start">
             <img
               src={orbisLinkLogo}
@@ -420,7 +414,7 @@ const Registration = () => {
               </div>
             )}
 
-            {/* Progresso: barra verde→dourado + rótulo do passo atual, sem caixas pesadas */}
+            {/* Progresso */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span style={{ fontSize: 12, fontWeight: 800, color: T.ink }}>
@@ -440,87 +434,104 @@ const Registration = () => {
               <p style={{ fontSize: 12, color: T.muted, marginTop: 8 }}>{steps[currentStep].hint}</p>
             </div>
 
+            {/* ── Passo 1: tipo de conta + dados pessoais ── */}
             {currentStep === 0 && (
               <div className="field-group flex flex-col gap-5">
                 <div>
                   <FieldLabel>{t('registration.userType') || 'Tipo de Conta'}</FieldLabel>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-                    {userTypeOptions.map(opt => (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        className={`user-type-btn${userType === opt.id ? ' selected' : ''}`}
-                        onClick={() => setUserType(opt.id)}
-                        style={{
-                          padding: '14px 6px',
-                          borderRadius: 14,
-                          border: `1px solid ${userType === opt.id ? T.g600 : T.rule}`,
-                          backgroundColor: userType === opt.id ? T.g50 : T.white,
-                          cursor: 'pointer',
-                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                        }}
-                      >
-                        <FontAwesomeIcon icon={opt.icon} style={{ color: userType === opt.id ? T.g700 : T.muted, fontSize: 18 }} />
-                        <span style={{ fontSize: 11, fontWeight: 700, color: userType === opt.id ? T.g700 : T.mid }}>{opt.label}</span>
-                      </button>
-                    ))}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {USER_TYPES.map(opt => {
+                      const selected = userType === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          className="user-type-btn"
+                          onClick={() => setUserType(opt.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 14,
+                            padding: '14px 16px',
+                            borderRadius: 16,
+                            border: `1.5px solid ${selected ? opt.color : T.rule}`,
+                            backgroundColor: selected ? `${opt.color}12` : T.white,
+                            textAlign: 'left',
+                            width: '100%',
+                          }}
+                        >
+                          <div style={{
+                            width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            backgroundColor: `${opt.color}1E`,
+                          }}>
+                            <FontAwesomeIcon icon={opt.icon} style={{ color: opt.color, fontSize: 19 }} />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: selected ? opt.color : T.ink }}>
+                              {opt.id === 'agente' ? (t('registration.agent') || opt.label)
+                                : opt.id === 'comprador' ? (t('registration.buyer') || opt.label)
+                                : opt.label}
+                            </p>
+                            <p style={{ margin: '2px 0 0', fontSize: 11.5, color: T.muted, fontWeight: 500 }}>
+                              {opt.desc}
+                            </p>
+                          </div>
+                          {selected && <Check style={{ width: 18, height: 18, color: opt.color, flexShrink: 0 }} />}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                <div>
-                  <FieldLabel>{t('registration.fullName') || 'Nome Completo'}</FieldLabel>
-                  <div style={{ position: 'relative' }}>
-                    <User style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.muted, width: 17, height: 17, pointerEvents: 'none' }} />
-                    <input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('registration.fullNamePlaceholder') || 'Nome completo'} style={inputStyle} required />
-                  </div>
-                </div>
-
-                <div>
-                  <FieldLabelRow optional>
-                    {t('registration.identityDocument') || 'Documento de Identidade (NIF)'}
-                  </FieldLabelRow>
-                  <div style={{ position: 'relative' }}>
-                    <CreditCard style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.muted, width: 17, height: 17, pointerEvents: 'none' }} />
-                    <input value={identityDocument} onChange={e => setIdentityDocument(e.target.value)} placeholder="000000000AA000 (opcional)" style={inputStyle} />
-                  </div>
-
-                  {/* Aviso dourado: explica o preenchimento automático quando fica em branco */}
-                  <div style={{
-                    marginTop: 10, padding: '11px 13px', borderRadius: 14,
-                    border: `1px solid ${GOLD_BORDER}`, backgroundColor: T.goldBg,
-                    display: 'flex', alignItems: 'flex-start', gap: 10,
-                  }}>
-                    <div style={{ width: 26, height: 26, borderRadius: '50%', background: GOLD_SOFT, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-                      <Sparkles style={{ width: 13, height: 13, color: T.gold }} />
+                {selectedType && (
+                  <div className="field-group flex flex-col gap-5">
+                    <div>
+                      <FieldLabel>{t('registration.fullName') || 'Nome Completo'}</FieldLabel>
+                      <div style={{ position: 'relative' }}>
+                        <User style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.muted, width: 17, height: 17, pointerEvents: 'none' }} />
+                        <input value={fullName} onChange={e => setFullName(e.target.value)} placeholder={t('registration.fullNamePlaceholder') || 'Nome completo'} style={inputStyle} required />
+                      </div>
                     </div>
-                    <p style={{ fontSize: 11.5, color: T.mid, margin: 0, lineHeight: 1.55 }}>
-                      Não tens o número à mão? Sem problema — deixa em branco e preenchemos automaticamente. Podes atualizá-lo mais tarde no teu perfil.
-                    </p>
-                  </div>
-                </div>
 
-                {userType === 'motorista' && (
-                  <div className="field-group">
-                    <FieldLabel>Capacidade de carga (kg)</FieldLabel>
-                    <div style={{ position: 'relative' }}>
-                      <Truck style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.muted, width: 17, height: 17, pointerEvents: 'none' }} />
-                      <input
-                        type="number"
-                        min={1}
-                        value={loadCapacity}
-                        onChange={e => setLoadCapacity(e.target.value)}
-                        placeholder="Ex.: 8000"
-                        style={inputStyle}
-                      />
+                    <div>
+                      <FieldLabelRow optional>
+                        {t('registration.identityDocument') || 'Documento de Identidade (NIF)'}
+                      </FieldLabelRow>
+                      <div style={{ position: 'relative' }}>
+                        <CreditCard style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.muted, width: 17, height: 17, pointerEvents: 'none' }} />
+                        <input value={identityDocument} onChange={e => setIdentityDocument(e.target.value)} placeholder="000000000AA000" style={inputStyle} />
+                      </div>
+                      <p style={{ fontSize: 11.5, color: T.muted, margin: '8px 2px 0', lineHeight: 1.55 }}>
+                        Não tens o número à mão? Deixa em branco — preenchemos automaticamente e podes atualizá-lo mais tarde no teu perfil.
+                      </p>
                     </div>
-                    <p style={{ fontSize: 11.5, color: T.muted, margin: '8px 2px 0', lineHeight: 1.55 }}>
-                      Usamos esta capacidade para lhe mostrar apenas cargas compatíveis com o seu veículo.
-                    </p>
+
+                    {userType === 'motorista' && (
+                      <div>
+                        <FieldLabel>Capacidade de carga (kg)</FieldLabel>
+                        <div style={{ position: 'relative' }}>
+                          <Truck style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.muted, width: 17, height: 17, pointerEvents: 'none' }} />
+                          <input
+                            type="number"
+                            min={1}
+                            value={loadCapacity}
+                            onChange={e => setLoadCapacity(e.target.value)}
+                            placeholder="Ex.: 8000"
+                            style={inputStyle}
+                          />
+                        </div>
+                        <p style={{ fontSize: 11.5, color: T.muted, margin: '8px 2px 0', lineHeight: 1.55 }}>
+                          Usamos esta capacidade para mostrar apenas cargas compatíveis com o seu veículo.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             )}
 
+            {/* ── Passo 2: contacto ── */}
             {currentStep === 1 && (
               <div className="field-group flex flex-col gap-5">
                 <div>
@@ -547,6 +558,7 @@ const Registration = () => {
               </div>
             )}
 
+            {/* ── Passo 3: segurança ── */}
             {currentStep === 2 && (
               <div className="field-group flex flex-col gap-5">
                 <div>

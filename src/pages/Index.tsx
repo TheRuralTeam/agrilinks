@@ -1,6 +1,19 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Check, FileCheck2, Globe2, Menu, ShieldCheck, Sprout, Users, X } from "lucide-react";
+import {
+  ArrowRight, Check, FileCheck2, Globe2, Home, Menu,
+  ShieldCheck, Sprout, Truck as TruckIcon, Users, Warehouse, X,
+} from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTractor, faUserTie, faCartShopping, faTruck } from "@fortawesome/free-solid-svg-icons";
+import { MapContainer, TileLayer, Marker, Polyline, Tooltip } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Mesma fonte de verdade de cor usada no ecrã de Cadastro — garante que
+// a Landing e o Cadastro nunca desalinham de branding.
+import { T } from "../lib/brand";
+
 import orbisLinkLogo from "../assets/orbislink-logo.png";
 import ttgiLogo from "../assets/ttgi.jpg";
 import fotoFeliciano from "../assets/FELICIANO.jpeg";
@@ -9,12 +22,80 @@ import fotoLizeth from "../assets/LIZETH.jpeg";
 import fotoClaudio from "../assets/CLAUDIO.jpeg";
 import heroImage from "../assets/agrilink-community-conference.jpg";
 
+// ─── Equipa ───────────────────────────────────────────────────────────────
 const team = [
   { name: "Feliciano Cassoma", role: "Diretor-geral e fundador", image: fotoFeliciano },
   { name: "Moises Lucamba", role: "Diretor financeiro e fundador", image: fotoMoises },
   { name: "Claudio Henriques", role: "Diretor operacional e fundador", image: fotoClaudio },
   { name: "Lizeth Caieie", role: "Gestora da Comunidade AgriLink", image: fotoLizeth },
 ];
+
+// ─── Papéis na plataforma — mesmas cores do ecrã de Cadastro ───────────────
+const ROLES = [
+  { id: "agricultor", label: "Fornecedor", desc: "Regista a colheita e vende directamente na rede, sem intermediários a mais.", icon: faTractor, color: "#2D7D3A" },
+  { id: "agente", label: "Agente", desc: "Liga fornecedores a compradores e acompanha cada negociação até à entrega.", icon: faUserTie, color: "#C6871E" },
+  { id: "comprador", label: "Comprador", desc: "Compra directo da fonte — em grande volume ou num ponto de agregação.", icon: faCartShopping, color: "#2563EB" },
+  { id: "motorista", label: "Motorista", desc: "Transporta cargas entre o campo, os pontos de agregação e o destino final.", icon: faTruck, color: "#DB6B1F" },
+];
+
+// ─── Pontos de agregação ────────────────────────────────────────────────────
+// NOTA: coordenadas aproximadas em Luanda, a confirmar com a equipa antes
+// de publicar — os nomes ditados para "Estalagem/Golfe" e "Mangueirinhas"
+// ficam marcados para revisão; "Congolenses" (Rangel) está confirmado.
+type AggregationPoint = {
+  id: string;
+  name: string;
+  area: string;
+  lat: number;
+  lng: number;
+  note: string;
+};
+
+const AGGREGATION_POINTS: AggregationPoint[] = [
+  {
+    id: "congolenses",
+    name: "Mercado dos Congolenses",
+    area: "Rangel",
+    lat: -8.8241,
+    lng: 13.2645,
+    note: "Um dos maiores mercados populares de Luanda, no coração do Rangel.",
+  },
+  {
+    id: "golfe",
+    name: "Estalagem — Golfe",
+    area: "Kilamba Kiaxi",
+    lat: -8.8967,
+    lng: 13.2456,
+    note: "Ponto de recolha junto à zona do Golfe, no Kilamba Kiaxi.",
+  },
+  {
+    id: "mangueirinhas",
+    name: "Mangueirinhas",
+    area: "Kilamba Kiaxi",
+    lat: -8.8814,
+    lng: 13.2308,
+    note: "Ponto de recolha para compradores da zona das Mangueirinhas.",
+  },
+];
+
+const mapCenter: [number, number] = [
+  AGGREGATION_POINTS.reduce((s, p) => s + p.lat, 0) / AGGREGATION_POINTS.length,
+  AGGREGATION_POINTS.reduce((s, p) => s + p.lng, 0) / AGGREGATION_POINTS.length,
+];
+
+const networkLines: [number, number][][] = [
+  [[AGGREGATION_POINTS[0].lat, AGGREGATION_POINTS[0].lng], [AGGREGATION_POINTS[1].lat, AGGREGATION_POINTS[1].lng]],
+  [[AGGREGATION_POINTS[1].lat, AGGREGATION_POINTS[1].lng], [AGGREGATION_POINTS[2].lat, AGGREGATION_POINTS[2].lng]],
+  [[AGGREGATION_POINTS[2].lat, AGGREGATION_POINTS[2].lng], [AGGREGATION_POINTS[0].lat, AGGREGATION_POINTS[0].lng]],
+];
+
+const pinIcon = (color: string) =>
+  L.divIcon({
+    className: "agrilink-pin-wrap",
+    html: `<span class="agrilink-pin" style="--pin-color:${color}"></span>`,
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
+  });
 
 const productFeatures = [
   {
@@ -30,14 +111,14 @@ const productFeatures = [
   {
     icon: Globe2,
     title: "Mercado B2B",
-    description: "Conecte produtores, empresas, fábricas e compradores institucionais.",
+    description: "Conecte produtores, agentes, compradores e transportadores num só sítio.",
   },
 ];
 
 const steps = [
-  "Registe a sua necessidade ou oferta.",
-  "Encontre o parceiro certo para a operação.",
-  "Formalize o acordo e acompanhe a entrega.",
+  "Regista a tua oferta ou a tua necessidade na rede.",
+  "A AgriLink liga-te ao parceiro certo — fornecedor, agente ou comprador.",
+  "Escolhe como recebes: entrega directa ou levantamento num ponto de agregação.",
 ];
 
 export default function AgriLinkLanding() {
@@ -47,145 +128,170 @@ export default function AgriLinkLanding() {
   const goToRegister = () => navigate("/cadastro");
 
   return (
-    <main className="agrilink-page">
+    <main
+      className="agrilink-page"
+      style={
+        {
+          "--ink": T.ink,
+          "--muted": T.muted,
+          "--line": T.rule,
+          "--soft": T.canvas,
+          "--white": T.white,
+          "--green": T.g600,
+          "--green-dark": T.g900,
+          "--green-light": T.g400,
+          "--gold": T.gold,
+          "--gold-light": T.goldL,
+          "--gold-bg": T.goldBg,
+        } as React.CSSProperties
+      }
+    >
       <style>{`
-        :root {
-          --ink: #10231a;
-          --muted: #637168;
-          --line: #dfe8df;
-          --soft: #f4f8f2;
-          --green: #317a48;
-          --green-dark: #205d36;
-          --lime: #b7d96b;
-          --white: #ffffff;
-          --serif: Georgia, 'Times New Roman', serif;
-          --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        }
-
         * { box-sizing: border-box; }
         html { scroll-behavior: smooth; }
-        body { margin: 0; font-family: var(--sans); color: var(--ink); background: var(--white); }
-        button, a { font: inherit; }
-        button { cursor: pointer; }
-        a { color: inherit; text-decoration: none; }
+        .agrilink-page { margin: 0; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; color: var(--ink); background: var(--white); overflow: hidden; }
+        .agrilink-page button, .agrilink-page a { font: inherit; }
+        .agrilink-page button { cursor: pointer; }
+        .agrilink-page a { color: inherit; text-decoration: none; }
 
-        .agrilink-page { overflow: hidden; }
         .container { width: min(1160px, calc(100% - 48px)); margin: 0 auto; }
 
-        .nav {
-          position: absolute; z-index: 20; inset: 0 0 auto;
-          border-bottom: 1px solid rgba(255,255,255,.16);
-          color: white;
-        }
+        .nav { position: absolute; z-index: 20; inset: 0 0 auto; border-bottom: 1px solid rgba(255,255,255,.16); color: white; }
         .nav-inner { height: 78px; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
         .brand img { width: 142px; display: block; filter: brightness(0) invert(1); }
-        .nav-links { display: flex; align-items: center; gap: 28px; font-size: 13px; color: rgba(255,255,255,.78); }
+        .nav-links { display: flex; align-items: center; gap: 28px; font-size: 13px; color: rgba(255,255,255,.8); }
         .nav-links a:hover { color: white; }
         .nav-actions { display: flex; align-items: center; gap: 10px; }
-        .lang { border: 0; background: transparent; color: rgba(255,255,255,.7); font-size: 12px; }
-        .login { color: white; border: 1px solid rgba(255,255,255,.35); background: transparent; border-radius: 999px; padding: 10px 17px; font-size: 13px; }
-        .register { color: var(--ink); border: 0; background: var(--lime); border-radius: 999px; padding: 11px 18px; font-weight: 700; font-size: 13px; }
+        .login-btn { color: white; border: 1px solid rgba(255,255,255,.35); background: transparent; border-radius: 999px; padding: 10px 18px; font-size: 13px; font-weight: 600; }
+        .register-btn { color: var(--green-dark); border: 0; background: var(--gold-light); border-radius: 999px; padding: 11px 19px; font-weight: 800; font-size: 13px; }
         .menu-button { display: none; border: 0; background: transparent; color: white; }
 
-        .hero { min-height: 720px; position: relative; display: flex; align-items: center; color: white; background: linear-gradient(90deg, rgba(8,30,19,.92) 0%, rgba(8,30,19,.72) 44%, rgba(8,30,19,.18) 100%), url(${heroImage}) center/cover; }
-        .hero::after { content: ''; position: absolute; inset: auto 0 0; height: 150px; background: linear-gradient(transparent, rgba(8,30,19,.42)); pointer-events: none; }
-        .hero-content { position: relative; z-index: 1; padding: 130px 0 90px; max-width: 720px; }
-        .eyebrow { display: inline-flex; align-items: center; gap: 9px; color: var(--lime); text-transform: uppercase; letter-spacing: .16em; font-size: 11px; font-weight: 800; }
-        .eyebrow::before { content: ''; width: 28px; height: 2px; background: var(--lime); }
-        .hero h1 { margin: 22px 0 22px; max-width: 720px; font: 500 clamp(48px, 7vw, 86px)/.97 var(--serif); letter-spacing: -.055em; }
-        .hero h1 em { color: var(--lime); font-style: italic; }
-        .hero-copy { max-width: 555px; color: rgba(255,255,255,.76); font-size: 17px; line-height: 1.75; }
+        .hero { min-height: 720px; position: relative; display: flex; align-items: center; color: white; background: linear-gradient(100deg, ${T.g900} 0%, rgba(16,35,26,.74) 46%, rgba(16,35,26,.18) 100%), url(${heroImage}) center/cover; }
+        .hero-content { position: relative; z-index: 1; padding: 132px 0 92px; max-width: 700px; }
+        .eyebrow { display: inline-flex; align-items: center; gap: 9px; color: var(--gold-light); font-size: 13px; font-weight: 700; }
+        .eyebrow::before { content: ''; width: 26px; height: 2px; background: var(--gold-light); }
+        .hero h1 { margin: 20px 0 22px; font-weight: 800; font-size: clamp(36px, 5.4vw, 58px); line-height: 1.08; letter-spacing: -0.02em; }
+        .hero-copy { max-width: 540px; color: rgba(255,255,255,.8); font-size: 17px; line-height: 1.75; font-weight: 500; }
         .hero-actions { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 12px; }
-        .button-primary, .button-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 10px; border-radius: 999px; padding: 15px 22px; font-size: 14px; font-weight: 750; transition: transform .18s ease, background .18s ease; }
-        .button-primary { border: 0; background: var(--lime); color: var(--ink); }
-        .button-ghost { border: 1px solid rgba(255,255,255,.35); color: white; background: rgba(255,255,255,.04); }
-        .button-primary:hover, .button-ghost:hover { transform: translateY(-2px); }
-        .button-ghost:hover { background: rgba(255,255,255,.12); }
+        .btn-primary, .btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 9px; border-radius: 999px; padding: 15px 23px; font-size: 14px; font-weight: 700; transition: transform .18s ease, background .18s ease, box-shadow .18s ease; }
+        .btn-primary { border: 0; background: var(--gold-light); color: var(--green-dark); }
+        .btn-ghost { border: 1px solid rgba(255,255,255,.35); color: white; background: rgba(255,255,255,.05); }
+        .btn-primary:hover, .btn-ghost:hover { transform: translateY(-2px); }
+        .btn-ghost:hover { background: rgba(255,255,255,.12); }
 
-        .intro { padding: 120px 0 105px; }
-        .intro-grid { display: grid; grid-template-columns: .82fr 1.18fr; gap: 90px; align-items: start; }
-        .section-title { margin: 16px 0 18px; font: 500 clamp(34px, 4.5vw, 58px)/1.02 var(--serif); letter-spacing: -.045em; }
-        .section-copy { color: var(--muted); font-size: 16px; line-height: 1.8; max-width: 520px; }
+        .intro { padding: 108px 0 96px; }
+        .intro-grid { display: grid; grid-template-columns: .82fr 1.18fr; gap: 80px; align-items: start; }
+        .section-title { margin: 14px 0 16px; font-weight: 800; font-size: clamp(28px, 3.4vw, 42px); line-height: 1.12; letter-spacing: -0.02em; }
+        .section-copy { color: var(--muted); font-size: 15.5px; line-height: 1.8; max-width: 520px; font-weight: 500; }
         .feature-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-        .feature { border-top: 1px solid var(--line); padding-top: 21px; }
-        .feature-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: #eaf4e6; color: var(--green); margin-bottom: 28px; }
-        .feature h3 { margin: 0 0 10px; font-size: 16px; }
-        .feature p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.65; }
+        .feature { border-top: 1px solid var(--line); padding-top: 20px; }
+        .feature-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: var(--gold-bg); color: var(--green); margin-bottom: 24px; }
+        .feature h3 { margin: 0 0 9px; font-size: 15.5px; font-weight: 800; }
+        .feature p { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.65; font-weight: 500; }
 
-        .product { background: var(--soft); padding: 120px 0; }
-        .product-head { display: flex; justify-content: space-between; align-items: end; gap: 40px; margin-bottom: 52px; }
-        .product-head .section-copy { max-width: 390px; }
-        .product-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 22px; }
-        .product-card { background: white; border: 1px solid var(--line); border-radius: 24px; padding: 35px; }
-        .product-card.dark { background: var(--ink); color: white; border: 0; min-height: 390px; display: flex; flex-direction: column; justify-content: space-between; }
-        .product-card h3 { margin: 0 0 16px; font: 500 32px/1.1 var(--serif); }
-        .product-card p { color: var(--muted); line-height: 1.7; font-size: 15px; }
-        .product-card.dark p { color: rgba(255,255,255,.65); }
-        .product-mark { display: flex; justify-content: space-between; align-items: center; margin-bottom: 65px; }
-        .product-mark span { display: inline-flex; align-items: center; gap: 8px; color: var(--lime); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; }
-        .product-mark svg { color: var(--lime); }
-        .check-list { display: grid; gap: 17px; margin: 30px 0 0; padding: 0; list-style: none; }
-        .check-list li { display: flex; gap: 11px; align-items: start; color: #44534a; font-size: 14px; }
-        .check-list svg { flex: 0 0 auto; margin-top: 2px; color: var(--green); }
-        .steps { display: grid; gap: 18px; }
-        .step { display: flex; gap: 18px; align-items: start; border-top: 1px solid var(--line); padding-top: 18px; }
-        .step-number { color: var(--green); font: 500 27px var(--serif); }
-        .step p { margin: 3px 0 0; color: var(--muted); line-height: 1.55; font-size: 14px; }
+        /* ── Papéis (mesmo vocabulário visual do Cadastro) ───────────────── */
+        .roles { background: var(--soft); padding: 100px 0; }
+        .roles-head { max-width: 600px; margin-bottom: 44px; }
+        .roles-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        .role-card { background: var(--white); border: 1.5px solid var(--line); border-radius: 20px; padding: 26px 22px; transition: transform .18s ease, border-color .18s ease; }
+        .role-card:hover { transform: translateY(-3px); }
+        .role-icon { width: 46px; height: 46px; border-radius: 13px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+        .role-card h3 { margin: 0 0 8px; font-size: 16px; font-weight: 800; }
+        .role-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; font-weight: 500; }
 
-        .team { padding: 120px 0; }
-        .team-head { max-width: 550px; margin-bottom: 50px; }
+        /* ── Pontos de agregação ──────────────────────────────────────────── */
+        .aggregation { padding: 112px 0 100px; position: relative; }
+        .aggregation-head { max-width: 640px; margin: 0 auto 20px; text-align: center; }
+        .aggregation-head .eyebrow { color: var(--gold); }
+        .aggregation-head .eyebrow::before { background: var(--gold); }
+        .aggregation-explainer { max-width: 760px; margin: 0 auto 56px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .explain-card { border: 1.5px solid var(--line); border-radius: 18px; padding: 22px 24px; background: var(--white); }
+        .explain-card .row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .explain-card .row-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .explain-card h4 { margin: 0; font-size: 14.5px; font-weight: 800; }
+        .explain-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; font-weight: 500; }
+
+        .map-block { position: relative; border-radius: 28px; padding: 3px; background: linear-gradient(135deg, var(--green), var(--gold)); }
+        .map-block::before { content: ''; position: absolute; inset: -60px; background: radial-gradient(closest-side, rgba(45,125,58,.12), transparent 72%); z-index: -1; }
+        .map-inner { border-radius: 25px; overflow: hidden; background: var(--white); display: grid; grid-template-columns: 1.5fr 1fr; min-height: 460px; }
+        .map-canvas { position: relative; }
+        .map-canvas .leaflet-container { height: 100%; width: 100%; min-height: 460px; background: #eef3ea; }
+        .map-legend { padding: 30px 26px; display: flex; flex-direction: column; gap: 0; border-left: 1px solid var(--line); }
+        .map-legend-head { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--gold); margin-bottom: 4px; }
+        .map-legend h3 { margin: 2px 0 18px; font-size: 19px; font-weight: 800; line-height: 1.25; }
+        .point-row { display: flex; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); }
+        .point-row:first-of-type { border-top: 1px solid var(--line); }
+        .point-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); margin-top: 6px; flex-shrink: 0; box-shadow: 0 0 0 4px rgba(45,125,58,.14); }
+        .point-row strong { display: block; font-size: 13.5px; font-weight: 800; }
+        .point-row span { display: block; font-size: 12px; color: var(--muted); font-weight: 500; margin-top: 2px; line-height: 1.5; }
+
+        .agrilink-pin { position: relative; display: block; width: 28px; height: 28px; }
+        .agrilink-pin::before { content: ''; position: absolute; inset: 0; background: var(--pin-color); border: 3px solid white; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 3px 10px rgba(0,0,0,.28); }
+        .agrilink-flow-line { stroke-dasharray: 8 7; animation: flow 2.6s linear infinite; }
+        @keyframes flow { to { stroke-dashoffset: -60; } }
+        @media (prefers-reduced-motion: reduce) { .agrilink-flow-line { animation: none; } }
+
+        .steps-strip { padding: 0 0 112px; }
+        .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+        .step-card { border-top: 2px solid var(--green); padding-top: 20px; }
+        .step-num { color: var(--green); font-weight: 800; font-size: 26px; }
+        .step-card p { margin: 6px 0 0; color: var(--muted); font-size: 14px; line-height: 1.6; font-weight: 500; }
+
+        .team { padding: 108px 0; }
+        .team-head { max-width: 550px; margin-bottom: 46px; }
         .team-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
         .team-card { border-top: 1px solid var(--line); padding-top: 14px; }
-        .team-card img { width: 100%; aspect-ratio: 1 / 1.12; object-fit: cover; border-radius: 18px; filter: saturate(.82); display: block; margin-bottom: 17px; }
-        .team-name { font-size: 16px; font-weight: 800; }
-        .team-role { margin-top: 5px; color: var(--muted); font-size: 13px; }
+        .team-card img { width: 100%; aspect-ratio: 1 / 1.12; object-fit: cover; border-radius: 18px; filter: saturate(.85); display: block; margin-bottom: 16px; }
+        .team-name { font-size: 15.5px; font-weight: 800; }
+        .team-role { margin-top: 4px; color: var(--muted); font-size: 12.5px; font-weight: 500; }
 
-        .cta { padding: 30px 0 100px; }
-        .cta-box { position: relative; overflow: hidden; border-radius: 25px; padding: 68px; background: var(--green); color: white; display: flex; align-items: end; justify-content: space-between; gap: 40px; }
-        .cta-box::after { content: ''; position: absolute; width: 350px; height: 350px; right: -110px; top: -170px; border-radius: 50%; border: 1px solid rgba(255,255,255,.18); box-shadow: 0 0 0 38px rgba(255,255,255,.04), 0 0 0 78px rgba(255,255,255,.04); }
+        .cta { padding: 20px 0 100px; }
+        .cta-box { position: relative; overflow: hidden; border-radius: 26px; padding: 64px; background: var(--green); color: white; display: flex; align-items: end; justify-content: space-between; gap: 40px; }
+        .cta-box::after { content: ''; position: absolute; width: 340px; height: 340px; right: -110px; top: -160px; border-radius: 50%; border: 1px solid rgba(255,255,255,.18); box-shadow: 0 0 0 36px rgba(255,255,255,.04), 0 0 0 74px rgba(255,255,255,.04); }
         .cta-box > * { position: relative; z-index: 1; }
-        .cta-box h2 { margin: 17px 0 15px; max-width: 630px; font: 500 clamp(35px, 5vw, 61px)/1 var(--serif); letter-spacing: -.045em; }
-        .cta-box p { margin: 0; max-width: 500px; color: rgba(255,255,255,.75); line-height: 1.7; }
-        .cta-box .button-primary { background: white; white-space: nowrap; }
+        .cta-box h2 { margin: 14px 0 14px; max-width: 600px; font: 800 clamp(30px, 4.2vw, 46px)/1.08 inherit; letter-spacing: -0.02em; }
+        .cta-box p { margin: 0; max-width: 480px; color: rgba(255,255,255,.78); line-height: 1.7; font-weight: 500; }
+        .cta-box .btn-primary { white-space: nowrap; }
 
-        footer { background: var(--ink); color: white; padding: 42px 0 28px; }
+        footer { background: var(--green-dark); color: white; padding: 42px 0 28px; }
         .footer-inner { display: grid; grid-template-columns: 1.1fr 1fr 1fr; align-items: start; gap: 36px; }
         .footer-brand img { width: 124px; filter: brightness(0) invert(1); }
         .footer-copy { color: rgba(255,255,255,.5); font-size: 12px; line-height: 1.6; }
         .footer-company { margin-top: 16px; color: rgba(255,255,255,.68); font-size: 12px; line-height: 1.7; }
         .footer-company strong { display: block; color: white; font-size: 13px; margin-bottom: 4px; }
         .footer-contact { color: rgba(255,255,255,.65); font-size: 12px; line-height: 1.9; }
-        .footer-contact a { color: var(--lime); }
+        .footer-contact a { color: var(--gold-light); }
         .footer-ttgi { display: flex; align-items: center; justify-content: flex-end; gap: 12px; color: rgba(255,255,255,.5); font-size: 11px; text-align: right; }
         .footer-ttgi img { width: 86px; max-height: 52px; object-fit: contain; border-radius: 8px; background: white; padding: 5px; }
-        @media (max-width: 900px) { .footer-inner { grid-template-columns: 1fr; gap: 22px; } .footer-ttgi { justify-content: flex-start; text-align: left; } }
 
         @media (max-width: 900px) {
+          .footer-inner { grid-template-columns: 1fr; gap: 22px; }
+          .footer-ttgi { justify-content: flex-start; text-align: left; }
           .nav-links, .nav-actions { display: none; }
           .menu-button { display: block; }
-          .nav.mobile-open { background: var(--ink); }
-          .nav.mobile-open .nav-links, .nav.mobile-open .nav-actions { display: flex; }
+          .nav.mobile-open { background: var(--green-dark); }
           .nav.mobile-open .nav-inner { height: auto; padding: 20px 0; align-items: flex-start; flex-wrap: wrap; }
+          .nav.mobile-open .nav-links, .nav.mobile-open .nav-actions { display: flex; }
           .nav.mobile-open .nav-links { order: 3; width: 100%; flex-direction: column; align-items: flex-start; padding: 20px 0 5px; }
           .nav.mobile-open .nav-actions { order: 4; width: 100%; justify-content: flex-start; }
-          .intro-grid, .product-grid { grid-template-columns: 1fr; gap: 48px; }
-          .product-head { display: block; }
+          .intro-grid { grid-template-columns: 1fr; gap: 44px; }
+          .roles-grid { grid-template-columns: repeat(2, 1fr); }
+          .aggregation-explainer { grid-template-columns: 1fr; }
+          .map-inner { grid-template-columns: 1fr; }
+          .map-canvas .leaflet-container, .map-canvas { min-height: 320px; }
+          .steps-grid { grid-template-columns: 1fr; }
           .team-grid { grid-template-columns: repeat(2, 1fr); }
-          .cta-box { padding: 48px 35px; display: block; }
-          .cta-box .button-primary { margin-top: 30px; }
+          .cta-box { padding: 44px 30px; display: block; }
+          .cta-box .btn-primary { margin-top: 26px; }
         }
         @media (max-width: 580px) {
           .container { width: min(100% - 32px, 1160px); }
-          .hero { min-height: 650px; }
-          .hero-content { padding-top: 135px; }
-          .hero h1 { font-size: 52px; }
-          .feature-list, .team-grid { grid-template-columns: 1fr; }
-          .intro, .product, .team { padding: 78px 0; }
-          .product-card { padding: 26px; }
+          .hero { min-height: 640px; }
+          .hero-content { padding-top: 132px; }
+          .feature-list, .roles-grid, .team-grid { grid-template-columns: 1fr; }
+          .intro, .roles, .team { padding: 72px 0; }
+          .aggregation { padding: 76px 0 72px; }
           .footer-inner { align-items: flex-start; flex-direction: column; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
         }
       `}</style>
 
@@ -196,15 +302,14 @@ export default function AgriLinkLanding() {
           </a>
           <div className="nav-links">
             <a href="#produto">Produto</a>
-            <a href="#como-funciona">Como funciona</a>
+            <a href="#agregacao">Pontos de agregação</a>
             <a href="#equipa">Equipa</a>
           </div>
           <div className="nav-actions">
-            <button className="lang">PT</button>
-            <button className="login" onClick={() => navigate("/login")}>Entrar</button>
-            <button className="register" onClick={goToRegister}>Começar</button>
+            <button className="login-btn" onClick={() => navigate("/login")}>Entrar</button>
+            <button className="register-btn" onClick={goToRegister}>Começar</button>
           </div>
-          <button className="menu-button" onClick={() => setMenuOpen((value) => !value)} aria-label="Abrir menu">
+          <button className="menu-button" onClick={() => setMenuOpen((v) => !v)} aria-label="Abrir menu">
             {menuOpen ? <X size={23} /> : <Menu size={23} />}
           </button>
         </div>
@@ -212,12 +317,16 @@ export default function AgriLinkLanding() {
 
       <section className="hero" id="top">
         <div className="container hero-content">
-          <div className="eyebrow">Mercado agroalimentar B2B</div>
-          <h1>A cadeia alimentar de Angola, <em>mais simples.</em></h1>
-          <p className="hero-copy">A AgriLink conecta produtores, empresas e compradores institucionais através de uma plataforma digital para negociar, contratar e acompanhar operações agroalimentares.</p>
+          <div className="eyebrow">Mercado agrícola digital de Angola</div>
+          <h1>A tua produção, o teu negócio, numa rede que se encontra.</h1>
+          <p className="hero-copy">
+            A AgriLink liga fornecedores, agentes, compradores e motoristas num só sítio —
+            e leva o produto até quem compra em grande volume ou até ao ponto de agregação
+            mais próximo de quem compra menos.
+          </p>
           <div className="hero-actions">
-            <button className="button-primary" onClick={goToRegister}>Aceder à plataforma <ArrowRight size={16} /></button>
-            <a className="button-ghost" href="#produto">Conhecer o produto</a>
+            <button className="btn-primary" onClick={goToRegister}>Aceder à plataforma <ArrowRight size={16} /></button>
+            <a className="btn-ghost" href="#agregacao">Ver pontos de agregação</a>
           </div>
         </div>
       </section>
@@ -225,9 +334,15 @@ export default function AgriLinkLanding() {
       <section className="intro" id="produto">
         <div className="container intro-grid">
           <div>
-            <div className="eyebrow">Uma plataforma para o mercado real</div>
+            <div className="eyebrow" style={{ color: T.g600 }}>
+              <span style={{ display: "inline-block", width: 26, height: 2, background: T.g600 }} />
+            </div>
             <h2 className="section-title">Menos incerteza. Mais negócio.</h2>
-            <p className="section-copy">A AgriLink transforma relações dispersas em operações claras: aproxima quem produz de quem compra e dá estrutura a cada etapa da cadeia.</p>
+            <p className="section-copy">
+              A AgriLink transforma relações dispersas em operações claras: aproxima quem
+              produz de quem compra, formaliza o acordo e acompanha a carga até chegar
+              ao destino certo — seja uma casa, um armazém ou um ponto de agregação.
+            </p>
           </div>
           <div className="feature-list">
             {productFeatures.map(({ icon: Icon, title, description }) => (
@@ -241,32 +356,121 @@ export default function AgriLinkLanding() {
         </div>
       </section>
 
-      <section className="product" id="como-funciona">
+      {/* ── Papéis na plataforma ──────────────────────────────────────────── */}
+      <section className="roles">
         <div className="container">
-          <div className="product-head">
-            <div>
-              <div className="eyebrow">O produto</div>
-              <h2 className="section-title">Da oportunidade ao acordo.</h2>
+          <div className="roles-head">
+            <div className="eyebrow" style={{ color: T.gold }}>
+              <span style={{ display: "inline-block", width: 26, height: 2, background: T.gold }} />
             </div>
-            <p className="section-copy">Tudo o que precisa para criar relações comerciais mais rápidas, transparentes e preparadas para crescer.</p>
+            <h2 className="section-title">Uma rede, quatro papéis.</h2>
+            <p className="section-copy">Cada conta AgriLink tem o seu lugar próprio na cadeia — do campo até à mesa.</p>
           </div>
-          <div className="product-grid">
-            <article className="product-card dark">
-              <div>
-                <div className="product-mark"><span><Sprout size={16} /> AgriLink Platform</span><Users size={22} /></div>
-                <h3>Um novo ponto de encontro para o agronegócio.</h3>
-                <p>Uma experiência B2B feita para aproximar oferta e procura, com confiança desde o primeiro contacto até à entrega.</p>
+          <div className="roles-grid">
+            {ROLES.map((role) => (
+              <article className="role-card" key={role.id} style={{ borderColor: `${role.color}33` }}>
+                <div className="role-icon" style={{ background: `${role.color}1E` }}>
+                  <FontAwesomeIcon icon={role.icon} style={{ color: role.color, fontSize: 18 }} />
+                </div>
+                <h3 style={{ color: role.color }}>{role.label}</h3>
+                <p>{role.desc}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Pontos de agregação ───────────────────────────────────────────── */}
+      <section className="aggregation" id="agregacao">
+        <div className="container">
+          <div className="aggregation-head">
+            <div className="eyebrow" style={{ justifyContent: "center" }}>Pontos de agregação</div>
+            <h2 className="section-title">A entrega certa para cada tipo de compra.</h2>
+            <p className="section-copy" style={{ margin: "0 auto" }}>
+              Nem todo o comprador consegue levar um camião de tomate para casa —
+              e é por isso que a AgriLink tem pontos de agregação: locais próximos
+              onde compradores informais e de pequena escala levantam os seus produtos
+              ao preço de quem produz.
+            </p>
+          </div>
+
+          <div className="aggregation-explainer">
+            <div className="explain-card">
+              <div className="row">
+                <div className="row-icon" style={{ background: `${T.g600}1E` }}>
+                  <Home size={17} color={T.g600} />
+                </div>
+                <h4>Grande volume</h4>
               </div>
-              <button className="button-primary" onClick={goToRegister}>Começar agora <ArrowRight size={16} /></button>
-            </article>
-            <article className="product-card">
-              <h3>Como funciona</h3>
-              <ul className="check-list">
-                {steps.map((step, index) => (
-                  <li key={step}><Check size={17} /><span><strong>0{index + 1}</strong> — {step}</span></li>
+              <p>Quem compra em grande quantidade recebe entrega directa em casa ou no armazém — sem paragens intermédias.</p>
+            </div>
+            <div className="explain-card">
+              <div className="row">
+                <div className="row-icon" style={{ background: `${T.gold}1E` }}>
+                  <Warehouse size={17} color={T.gold} />
+                </div>
+                <h4>Pequeno volume</h4>
+              </div>
+              <p>Quem compra menos levanta no ponto de agregação mais próximo — mais barato para todos, sem perder acesso ao preço de produtor.</p>
+            </div>
+          </div>
+
+          <div className="map-block">
+            <div className="map-inner">
+              <div className="map-canvas">
+                <MapContainer
+                  center={mapCenter}
+                  zoom={12}
+                  scrollWheelZoom={false}
+                  attributionControl={true}
+                >
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  />
+                  {networkLines.map((line, i) => (
+                    <Polyline
+                      key={i}
+                      positions={line}
+                      pathOptions={{ color: T.g600, weight: 2.5, opacity: 0.55, className: "agrilink-flow-line" }}
+                    />
+                  ))}
+                  {AGGREGATION_POINTS.map((point) => (
+                    <Marker key={point.id} position={[point.lat, point.lng]} icon={pinIcon(T.g600)}>
+                      <Tooltip direction="top" offset={[0, -26]}>
+                        <strong>{point.name}</strong><br />{point.area}
+                      </Tooltip>
+                    </Marker>
+                  ))}
+                </MapContainer>
+              </div>
+              <div className="map-legend">
+                <span className="map-legend-head">Rede activa</span>
+                <h3>Os nossos 3 pontos de agregação em Luanda</h3>
+                {AGGREGATION_POINTS.map((point) => (
+                  <div className="point-row" key={point.id}>
+                    <span className="point-dot" />
+                    <div>
+                      <strong>{point.name} — {point.area}</strong>
+                      <span>{point.note}</span>
+                    </div>
+                  </div>
                 ))}
-              </ul>
-            </article>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="steps-strip">
+        <div className="container">
+          <div className="steps-grid">
+            {steps.map((step, i) => (
+              <div className="step-card" key={step}>
+                <div className="step-num">0{i + 1}</div>
+                <p>{step}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -276,7 +480,10 @@ export default function AgriLinkLanding() {
           <div className="team-head">
             <div className="eyebrow">Quem está a construir</div>
             <h2 className="section-title">Uma equipa próxima do terreno.</h2>
-            <p className="section-copy">Tecnologia só cria impacto quando entende as pessoas que a utilizam. É por isso que a nossa equipa combina produto, operações, comunidade e visão estratégica.</p>
+            <p className="section-copy">
+              Tecnologia só cria impacto quando entende as pessoas que a utilizam. É por
+              isso que a nossa equipa combina produto, operações, comunidade e visão estratégica.
+            </p>
           </div>
           <div className="team-grid">
             {team.map((member) => (
@@ -294,11 +501,14 @@ export default function AgriLinkLanding() {
         <div className="container">
           <div className="cta-box">
             <div>
-              <div className="eyebrow">Próximo passo</div>
-              <h2>Faça parte da próxima fase do agronegócio.</h2>
-              <p>Se produz, compra ou transforma produtos agroalimentares, a AgriLink foi criada para si.</p>
+              <div className="eyebrow" style={{ color: "rgba(255,255,255,.85)" }}>
+                <span style={{ display: "inline-block", width: 26, height: 2, background: "rgba(255,255,255,.85)" }} />
+                Próximo passo
+              </div>
+              <h2>Faça parte da próxima fase do agronegócio angolano.</h2>
+              <p>Se produz, compra, transporta ou liga negócios agroalimentares, a AgriLink foi criada para si.</p>
             </div>
-            <button className="button-primary" onClick={goToRegister}>Criar conta <ArrowRight size={16} /></button>
+            <button className="btn-primary" onClick={goToRegister}>Criar conta <ArrowRight size={16} /></button>
           </div>
         </div>
       </section>
@@ -329,4 +539,3 @@ export default function AgriLinkLanding() {
     </main>
   );
 }
-
