@@ -1,8 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowRight, Check, FileCheck2, Globe2, Home, Menu,
-  ShieldCheck, Sprout, Truck as TruckIcon, Users, Warehouse, X,
+  ArrowRight, Check, ChevronDown, Clock3, FileCheck2, Globe2, Home, Menu,
+  Quote, Route, ShieldCheck, Sprout, Truck as TruckIcon, Users, Wallet, Warehouse, X,
 } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTractor, faUserTie, faCartShopping, faTruck } from "@fortawesome/free-solid-svg-icons";
@@ -121,9 +121,88 @@ const steps = [
   "Escolhe como recebes: entrega directa ou levantamento num ponto de agregação.",
 ];
 
+// TODO(TIO): substituir pelos números reais da plataforma antes de publicar.
+const stats = [
+  { value: "3", label: "pontos de agregação activos em Luanda" },
+  { value: "4", label: "papéis na rede — de quem produz a quem entrega" },
+  { value: "100%", label: "pagamentos retidos em garantia até à entrega" },
+  { value: "24h", label: "tempo médio para ligar oferta a comprador" },
+];
+
+// ─── O motor do produto — mecânica real da plataforma ──────────────────────
+const engineFeatures = [
+  {
+    icon: Route,
+    tag: "Frete",
+    title: "Preço de transporte calculado pela rota real",
+    description: "Cada frete é orçamentado a partir da distância e das estradas efectivas entre origem e destino, não de uma estimativa em linha recta — o motorista e o comprador sabem o custo antes de aceitar.",
+  },
+  {
+    icon: Users,
+    tag: "Match",
+    title: "Ligação automática entre oferta e procura",
+    description: "Compradores definem o que precisam de forma recorrente — produto, quantidade, zona — e a AgriLink liga essa necessidade a novos lotes assim que eles entram na rede.",
+  },
+  {
+    icon: Wallet,
+    tag: "Pagamento",
+    title: "Dinheiro retido em garantia até à entrega",
+    description: "O comprador deposita na plataforma, o valor fica retido, e só é libertado ao fornecedor e ao motorista quando a entrega é confirmada por ambas as partes.",
+  },
+  {
+    icon: TruckIcon,
+    tag: "Logística",
+    title: "O motorista escolhe a carga que transporta",
+    description: "Cada motorista vê as cargas disponíveis na sua zona e aceita as que lhe convêm — sem despacho central a impor rotas.",
+  },
+];
+
+// TODO(TIO): substituir por testemunhos reais de fornecedores, agentes e
+// compradores assim que existirem — mantidos como placeholder por agora.
+const testimonials = [
+  {
+    quote: "Antes vendia a quem aparecesse no mercado. Agora sei com quem estou a negociar antes de carregar o camião.",
+    name: "[Nome do fornecedor]",
+    role: "Fornecedor — Huambo",
+    color: T.g600,
+  },
+  {
+    quote: "Deixei de perder dias à procura de comprador para cada lote — a rede liga-me a quem já está à procura.",
+    name: "[Nome do agente]",
+    role: "Agente — Luanda",
+    color: T.gold,
+  },
+  {
+    quote: "Sei o preço do frete antes de aceitar a carga, e o pagamento chega assim que confirmo a entrega.",
+    name: "[Nome do motorista]",
+    role: "Motorista — Kilamba Kiaxi",
+    color: "#2563EB",
+  },
+];
+
+const faqs = [
+  {
+    q: "Como é que o pagamento fica protegido?",
+    a: "O valor do comprador fica retido em garantia dentro da plataforma assim que o contrato é aceite, e só é libertado ao fornecedor e ao motorista depois da entrega confirmada por ambas as partes.",
+  },
+  {
+    q: "Preciso de camião próprio para vender na AgriLink?",
+    a: "Não. Podes registar a colheita e escolher entre entrega por um motorista da rede ou levantamento por um comprador num ponto de agregação.",
+  },
+  {
+    q: "Como é calculado o preço do transporte?",
+    a: "O frete é calculado com base na rota real entre a origem e o destino, para que o custo apresentado reflicta a distância e as estradas que o motorista vai percorrer.",
+  },
+  {
+    q: "O que acontece se eu comprar um volume pequeno?",
+    a: "És ligado ao ponto de agregação mais próximo, onde levantas o produto ao preço de produtor, sem precisares de receber uma entrega directa em grande escala.",
+  },
+];
+
 export default function AgriLinkLanding() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const [openFaq, setOpenFaq] = React.useState<number | null>(0);
 
   const goToRegister = () => navigate("/cadastro");
 
@@ -179,6 +258,12 @@ export default function AgriLinkLanding() {
         .btn-primary:hover, .btn-ghost:hover { transform: translateY(-2px); }
         .btn-ghost:hover { background: rgba(255,255,255,.12); }
 
+        .stats-bar { position: relative; z-index: 2; margin-top: -56px; background: var(--white); border-radius: 22px; box-shadow: 0 18px 44px rgba(16,35,26,.14); display: grid; grid-template-columns: repeat(4, 1fr); }
+        .stat { padding: 26px 22px; border-left: 1px solid var(--line); }
+        .stat:first-child { border-left: 0; }
+        .stat-value { font-size: 30px; font-weight: 800; color: var(--green); letter-spacing: -0.02em; }
+        .stat-label { margin-top: 4px; color: var(--muted); font-size: 12.5px; line-height: 1.5; font-weight: 500; max-width: 20ch; }
+
         .intro { padding: 108px 0 96px; }
         .intro-grid { display: grid; grid-template-columns: .82fr 1.18fr; gap: 80px; align-items: start; }
         .section-title { margin: 14px 0 16px; font-weight: 800; font-size: clamp(28px, 3.4vw, 42px); line-height: 1.12; letter-spacing: -0.02em; }
@@ -198,6 +283,40 @@ export default function AgriLinkLanding() {
         .role-icon { width: 46px; height: 46px; border-radius: 13px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
         .role-card h3 { margin: 0 0 8px; font-size: 16px; font-weight: 800; }
         .role-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; font-weight: 500; }
+
+        /* ── O motor do produto ───────────────────────────────────────────── */
+        .engine { padding: 108px 0; }
+        .engine-head { max-width: 600px; margin-bottom: 44px; }
+        .engine-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+        .engine-card { border: 1.5px solid var(--line); border-radius: 20px; padding: 26px 26px 24px; }
+        .engine-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+        .engine-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: var(--gold-bg); color: var(--green); }
+        .engine-tag { font-size: 11.5px; font-weight: 800; color: var(--gold); background: var(--gold-bg); border-radius: 999px; padding: 5px 12px; }
+        .engine-card h3 { margin: 0 0 10px; font-size: 16.5px; font-weight: 800; line-height: 1.35; }
+        .engine-card p { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.65; font-weight: 500; }
+
+        /* ── Testemunhos ───────────────────────────────────────────────────── */
+        .testimonials { background: var(--soft); padding: 100px 0; }
+        .testimonials-head { max-width: 560px; margin-bottom: 40px; }
+        .testimonials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+        .testimonial-card { background: var(--white); border: 1.5px solid var(--line); border-radius: 20px; padding: 28px 24px; display: flex; flex-direction: column; }
+        .testimonial-quote { margin: 0 0 22px; font-size: 14.5px; line-height: 1.7; font-weight: 600; color: var(--ink); flex: 1; }
+        .testimonial-who { display: flex; align-items: center; gap: 11px; }
+        .testimonial-avatar { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 14px; flex-shrink: 0; }
+        .testimonial-name { font-size: 13px; font-weight: 800; }
+        .testimonial-role { font-size: 12px; color: var(--muted); font-weight: 500; margin-top: 1px; }
+
+        /* ── FAQ ──────────────────────────────────────────────────────────── */
+        .faq { padding: 108px 0; }
+        .faq-inner { display: grid; grid-template-columns: .8fr 1.2fr; gap: 64px; align-items: start; }
+        .faq-head { max-width: 380px; }
+        .faq-list { display: flex; flex-direction: column; }
+        .faq-item { border-top: 1px solid var(--line); }
+        .faq-item:last-child { border-bottom: 1px solid var(--line); }
+        .faq-question { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: transparent; border: 0; padding: 22px 2px; text-align: left; font-size: 15px; font-weight: 700; color: var(--ink); }
+        .faq-chevron { flex-shrink: 0; color: var(--green); transition: transform .2s ease; }
+        .faq-item.open .faq-chevron { transform: rotate(180deg); }
+        .faq-answer { margin: -6px 2px 22px; color: var(--muted); font-size: 13.5px; line-height: 1.7; font-weight: 500; max-width: 56ch; }
 
         /* ── Pontos de agregação ──────────────────────────────────────────── */
         .aggregation { padding: 112px 0 100px; position: relative; }
@@ -276,6 +395,11 @@ export default function AgriLinkLanding() {
           .nav.mobile-open .nav-actions { order: 4; width: 100%; justify-content: flex-start; }
           .intro-grid { grid-template-columns: 1fr; gap: 44px; }
           .roles-grid { grid-template-columns: repeat(2, 1fr); }
+          .stats-bar { grid-template-columns: repeat(2, 1fr); }
+          .stat:nth-child(3) { border-left: 0; }
+          .engine-grid { grid-template-columns: 1fr; }
+          .testimonials-grid { grid-template-columns: 1fr; }
+          .faq-inner { grid-template-columns: 1fr; gap: 28px; }
           .aggregation-explainer { grid-template-columns: 1fr; }
           .map-inner { grid-template-columns: 1fr; }
           .map-canvas .leaflet-container, .map-canvas { min-height: 320px; }
@@ -289,8 +413,11 @@ export default function AgriLinkLanding() {
           .hero { min-height: 640px; }
           .hero-content { padding-top: 132px; }
           .feature-list, .roles-grid, .team-grid { grid-template-columns: 1fr; }
-          .intro, .roles, .team { padding: 72px 0; }
+          .intro, .roles, .team, .engine, .testimonials, .faq { padding: 72px 0; }
           .aggregation { padding: 76px 0 72px; }
+          .stats-bar { grid-template-columns: 1fr; margin-top: -32px; border-radius: 18px; }
+          .stat { border-left: 0; border-top: 1px solid var(--line); }
+          .stat:first-child { border-top: 0; }
           .footer-inner { align-items: flex-start; flex-direction: column; }
         }
       `}</style>
@@ -302,7 +429,9 @@ export default function AgriLinkLanding() {
           </a>
           <div className="nav-links">
             <a href="#produto">Produto</a>
+            <a href="#tecnologia">Como funciona</a>
             <a href="#agregacao">Pontos de agregação</a>
+            <a href="#faq">FAQ</a>
             <a href="#equipa">Equipa</a>
           </div>
           <div className="nav-actions">
@@ -330,6 +459,17 @@ export default function AgriLinkLanding() {
           </div>
         </div>
       </section>
+
+      <div className="container">
+        <div className="stats-bar">
+          {stats.map((s) => (
+            <div className="stat" key={s.label}>
+              <div className="stat-value">{s.value}</div>
+              <div className="stat-label">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <section className="intro" id="produto">
         <div className="container intro-grid">
@@ -374,6 +514,35 @@ export default function AgriLinkLanding() {
                 </div>
                 <h3 style={{ color: role.color }}>{role.label}</h3>
                 <p>{role.desc}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── O motor do produto ────────────────────────────────────────────── */}
+      <section className="engine" id="tecnologia">
+        <div className="container">
+          <div className="engine-head">
+            <div className="eyebrow" style={{ color: T.g600 }}>
+              <span style={{ display: "inline-block", width: 26, height: 2, background: T.g600 }} />
+              Como funciona por dentro
+            </div>
+            <h2 className="section-title">Não é só um catálogo. É a operação toda.</h2>
+            <p className="section-copy">
+              Por trás de cada negócio fechado na AgriLink há regras concretas a proteger
+              as duas partes — do preço do frete ao momento exacto em que o dinheiro muda de mãos.
+            </p>
+          </div>
+          <div className="engine-grid">
+            {engineFeatures.map(({ icon: Icon, tag, title, description }) => (
+              <article className="engine-card" key={title}>
+                <div className="engine-card-top">
+                  <div className="engine-icon"><Icon size={19} /></div>
+                  <span className="engine-tag">{tag}</span>
+                </div>
+                <h3>{title}</h3>
+                <p>{description}</p>
               </article>
             ))}
           </div>
@@ -471,6 +640,64 @@ export default function AgriLinkLanding() {
                 <p>{step}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Testemunhos ──────────────────────────────────────────────────── */}
+      <section className="testimonials">
+        <div className="container">
+          <div className="testimonials-head">
+            <div className="eyebrow" style={{ color: T.gold }}>
+              <span style={{ display: "inline-block", width: 26, height: 2, background: T.gold }} />
+              Quem já está na rede
+            </div>
+            <h2 className="section-title">Contado por quem usa, não por nós.</h2>
+          </div>
+          <div className="testimonials-grid">
+            {testimonials.map((t) => (
+              <article className="testimonial-card" key={t.name}>
+                <Quote size={22} color={t.color} style={{ marginBottom: 16 }} />
+                <p className="testimonial-quote">{t.quote}</p>
+                <div className="testimonial-who">
+                  <span className="testimonial-avatar" style={{ background: `${t.color}1E`, color: t.color }}>
+                    {t.name.replace(/[\[\]]/g, "").charAt(0)}
+                  </span>
+                  <div>
+                    <div className="testimonial-name">{t.name}</div>
+                    <div className="testimonial-role">{t.role}</div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ──────────────────────────────────────────────────────────── */}
+      <section className="faq" id="faq">
+        <div className="container faq-inner">
+          <div className="faq-head">
+            <div className="eyebrow" style={{ color: T.g600 }}>
+              <span style={{ display: "inline-block", width: 26, height: 2, background: T.g600 }} />
+              Perguntas frequentes
+            </div>
+            <h2 className="section-title">Antes de começar.</h2>
+            <p className="section-copy">Se tiver outra dúvida, fale connosco pelos contactos no fundo da página.</p>
+          </div>
+          <div className="faq-list">
+            {faqs.map((item, i) => {
+              const isOpen = openFaq === i;
+              return (
+                <div className={`faq-item ${isOpen ? "open" : ""}`} key={item.q}>
+                  <button className="faq-question" onClick={() => setOpenFaq(isOpen ? null : i)} aria-expanded={isOpen}>
+                    {item.q}
+                    <ChevronDown size={18} className="faq-chevron" />
+                  </button>
+                  {isOpen && <p className="faq-answer">{item.a}</p>}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
