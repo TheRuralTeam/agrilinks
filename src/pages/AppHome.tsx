@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import {
   Search, LayoutDashboard, ShoppingCart, Bell,
   ChevronDown, CheckCircle2, Package, Activity,
-  MapPin, TrendingUp, Globe2, Zap, Menu, X
+  MapPin, TrendingUp, Globe2, Zap, Menu, X, WifiOff
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
 import { Input } from '../components/ui/input'
@@ -71,6 +71,34 @@ const ProductSkeleton = () => (
     </div>
   </div>
 )
+
+/* ─── Jumping fruit mascot (empty / offline states) ─────────────────────────── */
+const JumpingMascot = ({ offline = false }: { offline?: boolean }) => {
+  const fruits = [faAppleWhole, faCarrot, faLemon]
+  const fruitColors = ['#E63946', '#E07A12', '#F4A100']
+  return (
+    <div style={{ position:'relative', width:120, height:90, marginBottom:8 }}>
+      {fruits.map((icon, i) => (
+        <div key={i} style={{
+          position:'absolute',
+          left: `${i * 40}px`,
+          bottom: 0,
+          animation: `fruitJump 1.1s ease-in-out infinite`,
+          animationDelay: `${i * 0.15}s`,
+        }}>
+          <div style={{
+            width:40, height:40, borderRadius:'50%',
+            background: offline ? T.g50 : `${fruitColors[i]}18`,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            boxShadow: '0 6px 14px rgba(0,0,0,0.08)',
+          }}>
+            <FontAwesomeIcon icon={icon} style={{ fontSize:18, color: offline ? T.g400 : fruitColors[i] }}/>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 /* ─── Country selector ──────────────────────────────────────────────────────── */
 const CountrySelector = ({
@@ -144,6 +172,7 @@ const AppHome = () => {
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0])
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string>('all')
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
 
   const filteredProducts = useMemo(() => {
     if (activeCategory === 'all') return products
@@ -167,6 +196,18 @@ const AppHome = () => {
       return (map[activeCategory] || []).some(k => t.includes(k))
     })
   }, [products, activeCategory])
+
+  /* Network status */
+  useEffect(() => {
+    const goOnline = () => setIsOnline(true)
+    const goOffline = () => setIsOnline(false)
+    window.addEventListener('online', goOnline)
+    window.addEventListener('offline', goOffline)
+    return () => {
+      window.removeEventListener('online', goOnline)
+      window.removeEventListener('offline', goOffline)
+    }
+  }, [])
 
   /* Country auto-detect */
   useEffect(() => {
@@ -532,18 +573,23 @@ const AppHome = () => {
           }
         </div>
 
-        {/* Empty state */}
+        {/* Empty / offline state */}
         {!loading && filteredProducts.length === 0 && (
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'100px 20px', textAlign:'center' }}>
-            <div style={{ width:56, height:56, borderRadius:'50%', background: T.g50, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:20 }}>
-              <Package size={24} color={T.g500}/>
-            </div>
+            <JumpingMascot offline={!isOnline} />
             <h3 style={{ fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif", fontSize:22, color: T.ink, margin:'0 0 10px', fontWeight:700 }}>
-              Sem produtos disponíveis
+              {isOnline ? 'Sem produtos disponíveis' : 'Sem ligação à internet'}
             </h3>
             <p style={{ fontSize:13, color: T.faint, maxWidth:320, lineHeight:1.65 }}>
-              Os primeiros fornecedores estão a ser integrados. Volte em breve.
+              {isOnline
+                ? 'Os primeiros fornecedores estão a ser integrados. Volte em breve.'
+                : 'Verifique a sua ligação. Os produtos aparecem assim que a rede voltar.'}
             </p>
+            {!isOnline && (
+              <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:14, padding:'6px 12px', borderRadius:980, background: T.g50, color: T.g600, fontSize:12, fontWeight:700 }}>
+                <WifiOff size={13}/> Offline
+              </div>
+            )}
           </div>
         )}
       </main>
@@ -753,6 +799,7 @@ const AppHome = () => {
         @keyframes cardEnter   { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
         @keyframes progressBar { 0% { width:0%; margin-left:0 } 60% { width:100%; margin-left:0 } 100% { width:0%; margin-left:100% } }
         @keyframes tickerScroll { 0% { transform:translateX(0) } 100% { transform:translateX(-50%) } }
+        @keyframes fruitJump   { 0%,100% { transform: translateY(0) scale(1) } 50% { transform: translateY(-22px) scale(1.05) } }
 
         * { box-sizing: border-box; }
 
