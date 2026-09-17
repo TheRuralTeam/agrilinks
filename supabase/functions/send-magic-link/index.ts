@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 import { corsHeaders } from "../_shared/http.ts";
+import { sendResendEmail } from "../_shared/email.ts";
 import { z } from "npm:zod@3.23.8";
 
 const AuthTypeSchema = z.enum([
@@ -20,12 +21,6 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get(
   "SUPABASE_SERVICE_ROLE_KEY",
 );
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-
-const RESEND_FROM =
-  Deno.env.get("RESEND_FROM") ||
-  "AgriLink <no-reply@agrilink.ao>";
-
 const ALLOWED_HOSTS = [
   "agrilink.ao",
   "www.agrilink.ao",
@@ -78,56 +73,6 @@ function safeRedirect(candidate?: string): string {
   } catch {
     return DEFAULT_REDIRECT;
   }
-}
-
-/**
- * Envia email através do Resend.
- */
-async function postResend(
-  from: string,
-  to: string,
-  subject: string,
-  html: string,
-) {
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      reply_to: "contacto@agrilink.ao",
-      subject,
-      html,
-    }),
-  });
-
-  const data = await response.json();
-  return { ok: response.ok, data };
-}
-
-async function sendEmail(to: string, subject: string, html: string) {
-  if (!RESEND_API_KEY) {
-    throw new Error("RESEND_API_KEY não está configurada.");
-  }
-
-  const attempt = await postResend(RESEND_FROM, to, subject, html);
-
-  if (!attempt.ok) {
-    console.error("Resend API error:", JSON.stringify(attempt.data));
-  }
-
-  if (!attempt.ok) {
-    throw new Error(
-      attempt.data?.message ||
-        attempt.data?.error ||
-        "O Resend recusou o envio do email.",
-    );
-  }
-
-  return attempt.data;
 }
 
 Deno.serve(async (req: Request): Promise<Response> => {
@@ -558,11 +503,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     /**
      * Envia pelo Resend.
      */
-    const resendResult = await sendEmail(
-      email,
+    const resendResult = await sendResendEmail({
+      to: email,
       subject,
       html,
-    );
+    });
 
     console.log(
       "Magic Link enviado:",

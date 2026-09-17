@@ -153,27 +153,48 @@ export async function sendResendEmail({
   replyTo?: string;
 }) {
   const apiKey = getRequiredEnv("RESEND_API_KEY");
-
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      reply_to: replyTo,
-      subject,
-      html,
-    }),
+  const sender = Deno.env.get("RESEND_FROM") || from;
+  const payload = JSON.stringify({
+    from: sender,
+    to: [to],
+    reply_to: replyTo,
+    subject,
+    html,
   });
+  let lastError = "O Resend recusou o envio do email.";
 
-  const data = await response.json();
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
 
-  if (!response.ok) {
-    throw new Error(data?.message || data?.error || "O Resend recusou o envio do email.");
+    try {
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: payload,
+        signal: controller.signal,
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok) return data;
+
+      lastError = data?.message || data?.error || lastError;
+      if (![408, 429, 500, 502, 503, 504].includes(response.status)) break;
+    } catch (error) {
+      lastError = error instanceof DOMException && error.name === "AbortError"
+        ? "O Resend demorou demasiado tempo a responder."
+        : error instanceof Error
+          ? error.message
+          : lastError;
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt));
   }
 
-  return data;
+  throw new Error(lastError);
 }
