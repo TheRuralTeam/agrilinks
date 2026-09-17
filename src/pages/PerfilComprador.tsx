@@ -18,6 +18,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../integrations/supabase/client'
 import { useNavigate } from 'react-router-dom'
 import { toast } from '../hooks/use-toast'
+import Loader from '../components/ui/Loader'
 
 interface FichaRecebimento {
   id: string
@@ -201,11 +202,7 @@ const PerfilComprador = () => {
     }
   }
 
-  if (loading) return (
-    <div className="flex justify-center items-center min-h-screen bg-background">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-    </div>
-  )
+  if (loading) return <Loader />
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -275,7 +272,7 @@ const PerfilComprador = () => {
                 </Avatar>
                 <div className="absolute -bottom-1 -right-1">
                   <Button size="sm" variant="outline" className="h-8 w-8 p-0" disabled={avatarLoading} onClick={() => document.getElementById('avatar-upload')?.click()}>
-                    {avatarLoading ? <div className="animate-spin h-3 w-3 border-b-2 border-primary rounded-full"></div> : <Camera className="h-3 w-3" />}
+                    {avatarLoading ? <Loader compact label="" /> : <Camera className="h-3 w-3" />}
                   </Button>
                   <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={uploadAvatar}/>
                 </div>

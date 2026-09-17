@@ -1,4 +1,4 @@
-const ALLOWED_REDIRECT_HOSTS = ['agrilink.ao', 'www.agrilink.ao', 'agrilinks.lovable.app', 'localhost']
+const ALLOWED_REDIRECT_HOSTS = ['agrilink.ao', 'www.agrilink.ao', 'localhost']
 
 export const getAppRedirectBase = () => {
   const configured = (import.meta.env.VITE_APP_URL || import.meta.env.VITE_SITE_URL || window.location.origin || 'https://agrilink.ao').replace(/\/$/, '')
@@ -18,7 +18,7 @@ export const normalizeEmailAddress = (email: string) => {
   return normalized
 }
 
-const sanitizeNextPath = (next: string = '/app') => {
+export const sanitizeNextPath = (next: string = '/app') => {
   let candidate = typeof next === 'string' ? next.trim() : '/app'
 
   try {
@@ -176,6 +176,6 @@ export const sendOrderUpdateEmail = async ({
     order_id: order_id.trim(),
     status: status.trim(),
     message: message.trim(),
-    redirect_to: buildAuthRedirectUrl(next),
+    redirect_to: `${getAppRedirectBase()}${sanitizeNextPath(next)}`,
   })
 }

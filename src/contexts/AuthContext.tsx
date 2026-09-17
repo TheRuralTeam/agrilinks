@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../integrations/supabase/client'
 import { User as UserProfile, RegisterData } from '../types/database'
@@ -51,43 +51,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isRootAdmin, setIsRootAdmin] = useState(false)
   const [isSuperRoot, setIsSuperRoot] = useState(false)
   const [isSupportAgent, setIsSupportAgent] = useState(false)
+  const appliedSessionRef = useRef<string | null>(null)
 
   const checkAdminRole = async (userId: string) => {
     try {
-      // Check if user has admin role
-      const { data: hasAdminRole, error: roleError } = await supabase.rpc('has_role', { 
-        _user_id: userId, 
-        _role: 'admin' 
-      })
-      
-      // Check if user is root admin
-      const { data: rootAdminData, error: rootError } = await supabase.rpc('is_root_admin', { 
-        _user_id: userId 
-      })
+      const [admin, root, superRoot, support] = await Promise.all([
+        supabase.rpc('has_role', { _user_id: userId, _role: 'admin' }),
+        supabase.rpc('is_root_admin', { _user_id: userId }),
+        supabase.rpc('is_super_root', { _user_id: userId }),
+        supabase.rpc('is_support_agent', { _user_id: userId }),
+      ])
 
-      // Check if user is super root
-      const { data: superRootData, error: superRootError } = await supabase.rpc('is_super_root', { 
-        _user_id: userId 
-      })
-
-      // Check if user is support agent
-      const { data: isSupportAgentData, error: supportError } = await supabase.rpc('is_support_agent', { 
-        _user_id: userId 
-      })
+      const hasAdminRole = admin.data
+      const rootAdminData = root.data
+      const superRootData = superRoot.data
+      const isSupportAgentData = support.data
       
-      if (!roleError) {
+      if (!admin.error) {
         setIsAdmin(hasAdminRole === true || rootAdminData === true)
       }
       
-      if (!rootError) {
+      if (!root.error) {
         setIsRootAdmin(rootAdminData === true)
       }
 
-      if (!superRootError) {
+      if (!superRoot.error) {
         setIsSuperRoot(superRootData === true)
       }
 
-      if (!supportError) {
+      if (!support.error) {
         setIsSupportAgent(isSupportAgentData === true)
       }
     } catch (error) {
@@ -131,39 +123,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   useEffect(() => {
-    // Listen for auth changes FIRST
+    let mounted = true
+
+    const applySession = async (nextSession: Session | null) => {
+      const sessionKey = nextSession
+        ? `${nextSession.user.id}:${nextSession.expires_at ?? ''}`
+        : 'signed-out'
+
+      if (appliedSessionRef.current === sessionKey) return
+      appliedSessionRef.current = sessionKey
+
+      setSession(nextSession)
+      setUser(nextSession?.user ?? null)
+
+      if (nextSession?.user) {
+        await Promise.allSettled([
+          fetchUserProfile(nextSession.user.id),
+          checkAdminRole(nextSession.user.id),
+        ])
+      } else {
+        setUserProfile(null)
+        setIsAdmin(false)
+        setIsRootAdmin(false)
+        setIsSuperRoot(false)
+        setIsSupportAgent(false)
+        localStorage.removeItem('userProfile')
+      }
+
+      if (mounted) setLoading(false)
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        setSession(session)
-        setUser(session?.user ?? null)
-        if (session?.user) {
-          setTimeout(() => {
-            fetchUserProfile(session.user.id)
-            checkAdminRole(session.user.id)
-          }, 0)
-        } else {
-          setUserProfile(null)
-          setIsAdmin(false)
-          setIsRootAdmin(false)
-          setIsSuperRoot(false)
-          setIsSupportAgent(false)
-        }
-        setLoading(false)
+        void applySession(session)
       }
     )
 
-    // THEN get existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchUserProfile(session.user.id)
-        checkAdminRole(session.user.id)
-      }
-      setLoading(false)
+      void applySession(session)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const login = async (email: string, password: string) => {

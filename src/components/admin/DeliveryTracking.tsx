@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../integrations/supabase/client";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import Loader from "../ui/Loader";
 import { Badge } from "../ui/badge";
 import { Textarea } from "../ui/textarea";
 import { toast } from "sonner";
@@ -395,7 +396,7 @@ const DeliveryTracking: React.FC<DeliveryTrackingProps> = ({ currentUserId }) =>
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+              <Loader compact label="A carregar entregas" />
             </div>
           ) : deliveries.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">

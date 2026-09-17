@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { useNavigate } from "react-router-dom";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faXmark, faCartShopping, faPhone, faChartLine } from "@fortawesome/free-solid-svg-icons";
+import { BarChart3, Menu, Phone, ShoppingCart, X } from "lucide-react";
 import OrbisLinkLogo from "../assets/orbislink-logo.png";
 
 const Header = () => {
@@ -18,7 +17,7 @@ const Header = () => {
   ];
 
   return (
-    <header className="bg-card border-b border-border sticky top-0 z-50 shadow-xs">
+    <header className="sticky top-0 z-50 border-b border-border/70 bg-card/90 shadow-xs backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <img src={OrbisLinkLogo} alt="OrbisLink Logo" className="h-9 sm:h-10 drop-shadow-sm" />
@@ -43,22 +42,22 @@ const Header = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="h-9 rounded-lg text-sm"
+              className="h-10 rounded-xl text-sm"
               onClick={() => navigate("/mercado")}
             >
-              <FontAwesomeIcon icon={faChartLine} className="h-4 w-4" />
+              <BarChart3 aria-hidden="true" />
               Dados de Mercado
             </Button>
-            <Button variant="outline" size="sm" className="h-9 rounded-lg text-sm">
-              <FontAwesomeIcon icon={faPhone} className="h-4 w-4" />
+            <Button variant="outline" size="sm" className="h-10 rounded-xl text-sm">
+              <Phone aria-hidden="true" />
               Contato
             </Button>
             <Button
               size="sm"
-              className="h-9 rounded-lg text-sm shadow-soft"
+              className="h-10 rounded-xl text-sm"
               onClick={() => navigate("/login")}
             >
-              <FontAwesomeIcon icon={faCartShopping} className="h-4 w-4" />
+              <ShoppingCart aria-hidden="true" />
               Entrar
             </Button>
           </div>
@@ -71,7 +70,7 @@ const Header = () => {
               className="h-10 w-10 rounded-xl"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
-              {isMenuOpen ? <FontAwesomeIcon icon={faXmark} className="h-5 w-5" /> : <FontAwesomeIcon icon={faBars} className="h-5 w-5" />}
+              {isMenuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
             </Button>
           </div>
         </div>
@@ -79,12 +78,12 @@ const Header = () => {
         {/* Mobile Navigation */}
         {isMenuOpen && (
           <div className="lg:hidden animate-fade-in">
-            <div className="px-3 pt-3 pb-4 space-y-1 bg-card rounded-2xl mt-2 shadow-medium border border-border/50">
+            <div className="mt-2 space-y-1 rounded-2xl border border-border/70 bg-card px-3 pb-4 pt-3 shadow-medium">
               {navigation.map((item) => (
                 <a
                   key={item.name}
                   href={item.href}
-                  className="block px-4 py-3 text-base font-semibold text-foreground hover:bg-muted rounded-xl transition-colors duration-200"
+                  className="block rounded-xl px-4 py-3 text-base font-semibold text-foreground transition-colors duration-200 hover:bg-muted"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {item.name}
@@ -94,24 +93,24 @@ const Header = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full h-11 rounded-xl justify-start"
+                  className="h-11 w-full justify-start rounded-xl"
                   onClick={() => {
                     navigate("/mercado");
                     setIsMenuOpen(false);
                   }}
                 >
-                  <FontAwesomeIcon icon={faChartLine} className="h-4 w-4" />
+                  <BarChart3 aria-hidden="true" />
                   Dados de Mercado
                 </Button>
                 <Button
                   size="sm"
-                  className="w-full h-11 rounded-xl justify-start shadow-soft"
+                  className="h-11 w-full justify-start rounded-xl"
                   onClick={() => {
                     navigate("/login");
                     setIsMenuOpen(false);
                   }}
                 >
-                  <FontAwesomeIcon icon={faCartShopping} className="h-4 w-4" />
+                  <ShoppingCart aria-hidden="true" />
                   Entrar
                 </Button>
               </div>

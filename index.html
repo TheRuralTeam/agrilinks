@@ -29,9 +29,9 @@
           } else {
             document.documentElement.classList.remove('dark');
             document.documentElement.style.colorScheme = 'light';
-            // set a safe light background immediately to avoid flash
-            document.documentElement.style.background = '#ffffff';
-            document.body && (document.body.style.background = '#ffffff');
+            // Match the application canvas before React mounts.
+            document.documentElement.style.background = '#f7f9f7';
+            document.body && (document.body.style.background = '#f7f9f7');
           }
         } catch (e) { /* ignore */ }
       })();

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../integrations/supabase/client'
 import orbisLinkLogo from '../assets/orbislink-logo.png'
 import { T, FONT } from '../lib/brand'
+import { sanitizeNextPath } from '../features/auth/email'
 
 type Phase = 'checking' | 'needs-click' | 'working' | 'error'
 
@@ -14,15 +15,13 @@ const AuthCallback = () => {
   const query = new URLSearchParams(window.location.search)
   const hash = new URLSearchParams(window.location.hash.substring(1))
   const rawNext = query.get('next') || '/app'
-  const requestedNext = (() => {
+  const next = (() => {
     try {
-      const decoded = decodeURIComponent(rawNext)
-      return decoded.startsWith('/') && !decoded.startsWith('//') ? decoded : '/app'
+      return sanitizeNextPath(rawNext)
     } catch {
-      return rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/app'
+      return '/app'
     }
   })()
-  const next = requestedNext
   const tokenHash = query.get('token_hash') || query.get('token')
   const otpType = (query.get('type') || 'magiclink') as
     | 'magiclink'
@@ -203,7 +202,6 @@ const AuthCallback = () => {
           </button>
         )}
 
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </section>
     </main>
   )

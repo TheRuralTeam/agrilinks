@@ -27,6 +27,7 @@ import { sanitizePublicProfile, isNeutralPublicView } from '../lib/publicData'
    mais provável do visual "apagado". Ideal: migrar estes fallbacks para
    lib/brand.ts para ficarem partilhados por toda a app. */
 import { T as Brand } from '../lib/brand';
+import { sendOrderUpdateEmail } from '../features/auth/email'
 const T: any = {
   ...Brand,
   mid: (Brand as any).mid ?? Brand.ink,
@@ -65,7 +66,7 @@ interface ReceivedOrder {
   id: string; product_id: string; user_id: string; quantity: number
   location: string; status: string; created_at: string
   product?: { product_type: string; price: number }
-  buyer?: { full_name: string; phone: string }
+  buyer?: { full_name: string; phone: string; email?: string }
 }
 interface SourcingRequest {
   id: string; product_name: string; quantity: number; delivery_date: string
@@ -341,7 +342,7 @@ const Profile = () => {
       if (ordersError) throw ordersError
       const ordersWithDetails = await Promise.all((orders || []).map(async (order) => {
         const { data: product } = await supabase.from('products').select('product_type, price').eq('id', order.product_id).single()
-        const { data: buyer } = await supabase.from('users').select('full_name, phone').eq('id', order.user_id).single()
+        const { data: buyer } = await supabase.from('users').select('full_name, phone, email').eq('id', order.user_id).single()
         return { ...order, product: product || undefined, buyer: buyer || undefined } as ReceivedOrder
       }))
       setReceivedOrders(ordersWithDetails)
@@ -454,6 +455,16 @@ const Profile = () => {
     try {
       const { error } = await supabase.from('pre_orders').update({ status: 'accepted' }).eq('id', orderId)
       if (error) throw error
+      const order = receivedOrders.find((item) => item.id === orderId)
+      if (order?.buyer?.email) {
+        void sendOrderUpdateEmail({
+          email: order.buyer.email,
+          customer_name: order.buyer.full_name,
+          order_id: order.id,
+          status: 'accepted',
+          message: 'O fornecedor aceitou a sua pré-compra.',
+        }).catch((emailError) => console.warn('Email de aceitação não enviado:', emailError))
+      }
       setReceivedOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'accepted' } : o))
       toast({ title: 'Pedido aceite.' })
     } catch { toast({ title: 'Erro ao aceitar pedido', variant: 'destructive' } as any) }
@@ -464,6 +475,16 @@ const Profile = () => {
     try {
       const { error } = await supabase.from('pre_orders').update({ status: 'rejected' }).eq('id', orderId)
       if (error) throw error
+      const order = receivedOrders.find((item) => item.id === orderId)
+      if (order?.buyer?.email) {
+        void sendOrderUpdateEmail({
+          email: order.buyer.email,
+          customer_name: order.buyer.full_name,
+          order_id: order.id,
+          status: 'rejected',
+          message: 'O fornecedor rejeitou a sua pré-compra.',
+        }).catch((emailError) => console.warn('Email de rejeição não enviado:', emailError))
+      }
       setReceivedOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'rejected' } : o))
     } catch { console.error('Erro ao rejeitar') }
   }

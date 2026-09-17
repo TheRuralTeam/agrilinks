@@ -8,6 +8,7 @@
  import { toast } from 'sonner';
  import { getProfileDisplayName, resolveAvatarUrl } from '../lib/profileDisplay';
  import { sanitizePublicProfile, isNeutralPublicView } from '../lib/publicData';
+ import Loader from '../components/ui/Loader';
  
  import { CompanyHeader, CompanyTier, UserType } from '../components/b2b/CompanyHeader';
  import { TrustMetrics } from '../components/b2b/TrustMetrics';
@@ -192,11 +193,7 @@
    };
  
    if (loading) {
-     return (
-       <div className="min-h-screen bg-white flex items-center justify-center">
-         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0a1628]"></div>
-       </div>
-     );
+     return <Loader />;
    }
  
    if (!companyData) {

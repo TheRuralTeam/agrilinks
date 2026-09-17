@@ -21,6 +21,8 @@ import orbisLinkLogo from '../assets/orbislink-logo.png'
 import { fetchActiveProducts } from '../features/products/productsService'
 import { validatePreOrderSubmission } from '../features/products/businessRules'
 import { isNeutralPublicView, sanitizePublicProduct } from '../lib/publicData'
+import { sendOrderUpdateEmail } from '../features/auth/email'
+import Loader from '../components/ui/Loader'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faAppleWhole, faCarrot, faSeedling, faWheatAwn, faLemon,
@@ -170,15 +172,40 @@ const AppHome = () => {
 
   /* Country auto-detect */
   useEffect(() => {
+    const cached = sessionStorage.getItem('agrilinks-country')
+    if (cached) {
+      try {
+        const { country, expiresAt } = JSON.parse(cached)
+        if (expiresAt > Date.now()) {
+          const found = COUNTRIES.find(c => c.code === country)
+          if (found) {
+            setSelectedCountry(found)
+            return
+          }
+        }
+      } catch {
+        sessionStorage.removeItem('agrilinks-country')
+      }
+    }
+
+    const controller = new AbortController()
     const detect = async () => {
       try {
-        const r = await fetch('https://ipapi.co/json/')
+        const r = await fetch('https://ipapi.co/json/', { signal: controller.signal })
         const d = await r.json()
         const found = COUNTRIES.find(c => c.code === d.country_code)
-        if (found) { setSelectedCountry(found); toast.success(`Região: ${found.name}`, { duration: 2000 }) }
+        if (found) {
+          setSelectedCountry(found)
+          sessionStorage.setItem('agrilinks-country', JSON.stringify({
+            country: found.code,
+            expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+          }))
+          toast.success(`Região: ${found.name}`, { duration: 2000 })
+        }
       } catch {}
     }
     detect()
+    return () => controller.abort()
   }, [])
 
   /* Fetch products — corre sempre, mesmo sem sessão (modo convidado),
@@ -238,6 +265,16 @@ const AppHome = () => {
         quantity: orderData.quantity, location: orderData.location, status: 'pending',
       })
       if (error) throw error
+      const { data: seller } = await supabase.from('users').select('email, full_name').eq('id', selectedProduct.user_id).maybeSingle()
+      if (seller?.email) {
+        void sendOrderUpdateEmail({
+          email: seller.email,
+          customer_name: seller.full_name || selectedProduct.farmer_name,
+          order_id: selectedProduct.id,
+          status: 'pending',
+          message: `Recebeu uma nova pré-compra de ${orderData.quantity} kg de ${selectedProduct.product_type}.`,
+        }).catch((emailError) => console.warn('Email de nova pré-compra não enviado:', emailError))
+      }
       await supabase.rpc('create_notification', {
         p_user_id: selectedProduct.user_id, p_type: 'pre_order', p_title: 'Nova Pré-Compra',
         p_message: `${user.email} quer comprar ${orderData.quantity}kg do seu ${selectedProduct.product_type}`,
@@ -302,28 +339,7 @@ const AppHome = () => {
   const fmt = (p: number) => `${p.toLocaleString('pt-AO')} ${selectedCountry.currency}`
 
   /* ── Loading ── */
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-screen" style={{ background: T.canvas }}>
-      <div className="relative w-16 h-16">
-        {/* Spinning ring */}
-        <div style={{
-          position:'absolute', inset: 0,
-          borderRadius:'50%',
-          border: `2px solid ${T.rule}`,
-          borderTopColor: T.g500,
-          animation:'spin 1s linear infinite',
-        }}/>
-        {/* Logo centred */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <img
-            src={orbisLinkLogo}
-            alt="OrbisLink"
-            className="w-8 h-8 object-contain"
-          />
-        </div>
-      </div>
-    </div>
-  )
+  if (loading) return <Loader />
 
   /* ── Main render ── */
   return (
@@ -706,19 +722,7 @@ const AppHome = () => {
       {isSubmitting && (
         <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(13,43,18,0.75)', backdropFilter:'blur(10px)', display:'flex', alignItems:'center', justifyContent:'center' }}>
           <div style={{ background: T.white, padding:'36px 44px', borderRadius:20, display:'flex', flexDirection:'column', alignItems:'center', gap:18, border:`1px solid ${T.rule}`, boxShadow:`0 24px 80px rgba(0,0,0,0.2)` }}>
-            <div style={{ position:'relative', width:52, height:52 }}>
-              <div style={{ position:'absolute', inset:0, borderRadius:'50%', border:`2px solid ${T.gBorder}`, borderTopColor: T.g500, animation:'spin 0.9s linear infinite' }}/>
-              <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <img src={orbisLinkLogo} alt="" style={{ width:24, height:24, objectFit:'contain' }}/>
-              </div>
-            </div>
-            <div style={{ textAlign:'center' }}>
-              <p style={{ fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif", fontSize:16, fontWeight:700, color: T.ink }}>A processar</p>
-              <p style={{ fontSize:12, color: T.faint, marginTop:4 }}>Registando encomenda...</p>
-            </div>
-            <div style={{ width:200, height:2, borderRadius:99, background: T.g50, overflow:'hidden' }}>
-              <div style={{ height:'100%', background:`linear-gradient(90deg, ${T.g500}, ${T.g400})`, animation:'progressBar 2s ease-in-out infinite', borderRadius:99 }}/>
-            </div>
+            <Loader compact label="A registar encomenda..." />
           </div>
         </div>
       )}
@@ -747,11 +751,9 @@ const AppHome = () => {
       <style>{`
         
 
-        @keyframes spin        { to { transform: rotate(360deg) } }
         @keyframes shimmer     { 0%,100% { opacity:1 } 50% { opacity:0.4 } }
         @keyframes breathe     { 0%,100% { opacity:1; transform:scale(1) } 50% { opacity:0.4; transform:scale(0.7) } }
         @keyframes cardEnter   { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
-        @keyframes progressBar { 0% { width:0%; margin-left:0 } 60% { width:100%; margin-left:0 } 100% { width:0%; margin-left:100% } }
         @keyframes tickerScroll { 0% { transform:translateX(0) } 100% { transform:translateX(-50%) } }
 
         * { box-sizing: border-box; }

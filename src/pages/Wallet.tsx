@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { useToast } from "../hooks/use-toast";
 import { Plus, Send } from "lucide-react";
 import { formatCurrency } from "../lib/utils";
+import Loader from "../components/ui/Loader";
 
 const paymentMethods = [
   { value: "multicaixa", label: "Multicaixa Express" },
@@ -48,11 +49,7 @@ export default function Wallet() {
     if (user) loadWalletData();
   }, [user, loadWalletData]);
 
-  if (loading) return (
-    <div className="flex justify-center items-center min-h-screen">
-      <div className="animate-spin h-10 w-10 border-b-2 border-green-600 rounded-full"></div>
-    </div>
-  );
+  if (loading) return <Loader label="A carregar carteira" />;
 
   return (
     <div className="min-h-screen p-4 bg-background">

@@ -9,6 +9,7 @@ import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Checkbox } from "../components/ui/checkbox";
+import Loader from "../components/ui/Loader";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -652,14 +653,7 @@ const AdminDashboard = () => {
   };
 
   if (loading && products.length === 0) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
-          <p className="text-muted-foreground">Carregando dashboard...</p>
-        </div>
-      </div>
-    );
+    return <Loader />;
   }
 
   return (
@@ -1642,7 +1636,7 @@ const AdminDashboard = () => {
                   <Button onClick={generateMarketAnalysis} disabled={analyzingMarket} className="gap-2">
                     {analyzingMarket ? (
                       <>
-                        <RefreshCw className="h-4 w-4 animate-spin" /> Analisando...
+                        <Loader compact label="Analisando..." className="[&_svg]:text-primary-foreground" />
                       </>
                     ) : (
                       <>

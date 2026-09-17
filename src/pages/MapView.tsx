@@ -10,6 +10,7 @@ import {
 } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import Loader from '../components/ui/Loader';
 import {
   MapPin,
   Filter,
@@ -1677,26 +1678,12 @@ const MapView = () => {
       {loading && (
         <div className="absolute inset-0 z-40 flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(8px)' }}>
           <div className="bg-white rounded-[22px] flex flex-col items-center gap-3 p-7" style={{ boxShadow: `0 24px 60px ${T.shadowLg}` }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                border: `3px solid ${T.g100}`,
-                borderTopColor: T.g600,
-                animation: 'spin 0.8s linear infinite',
-              }}
-            />
-            <div className="text-center">
-              <p style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: T.ink, margin: 0 }}>A carregar mapa</p>
-              <p style={{ fontSize: 11, color: T.faint, marginTop: 4, fontFamily: FONT }}>Aguarde um momento...</p>
-            </div>
+            <Loader compact label="A carregar mapa" />
           </div>
         </div>
       )}
 
       <style>{`
-        @keyframes spin          { to { transform: rotate(360deg) } }
         @keyframes slideInRight  { from { opacity:0; transform:translateX(24px) } to { opacity:1; transform:translateX(0) } }
         @keyframes slideInLeft   { from { opacity:0; transform:translateX(-24px) } to { opacity:1; transform:translateX(0) } }
         @keyframes slideInBottom { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }

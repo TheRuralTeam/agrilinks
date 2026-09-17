@@ -5,24 +5,6 @@ import { Home, Map, Bell, MessageSquare, User, Plus, LayoutDashboard, BarChart3,
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../integrations/supabase/client'
 
-/* ─── Manus AI x AgriLink Design System (Light Mode) ─────────────────────── */
-const B = {
-  // AgriLink Core
-  brand:      '#1B8A3D', // Verde principal
-  brandLight: '#72B344', // Verde alface
-  
-  // Manus AI Neutrals (Light)
-  ink:        '#0A0C0B', // Quase preto profundo
-  slate:      '#4A4F4C', // Cinza ardósia
-  silver:     '#E2E4E2', // Prata para bordas
-  white:      '#FFFFFF',
-  snow:       '#F9FAFA', // Branco neve para fundos
-  
-  // Transparencies
-  glass:      'rgba(255, 255, 255, 0.9)', // Vidro branco
-  shadow:     'rgba(10, 12, 11, 0.08)',
-}
-
 const BottomNavigation = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -87,25 +69,10 @@ const BottomNavigation = () => {
 
   return (
     <>
-      {/* Spacer */}
-      <div style={{ height: 80 }}/>
+      <div className="h-24" aria-hidden="true" />
 
-      <nav style={{
-        position:'fixed', bottom: 15, left: 8, right: 8, zIndex: 50,
-        background: B.glass,
-        backdropFilter: 'blur(20px)',
-        border: `1px solid ${B.silver}`,
-        borderRadius: 24,
-        padding: '6px 4px',
-        boxShadow: `0 12px 32px ${B.shadow}`,
-        maxWidth: 650,
-        margin: '0 auto'
-      }}>
-        <div style={{
-          display:'flex',
-          justifyContent: 'space-around',
-          alignItems: 'center',
-        }}>
+      <nav className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-2xl rounded-2xl border border-border/70 bg-card/90 p-1.5 shadow-medium backdrop-blur-xl supports-[padding:max(0px)]:pb-[max(0.375rem,env(safe-area-inset-bottom))]" aria-label="Navegação principal">
+        <div className="flex items-center justify-around gap-0.5">
           {navItems.map((item) => {
             const active = isActive(item.path)
             const isAction = (item as any).isAction
@@ -114,65 +81,29 @@ const BottomNavigation = () => {
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                style={{
-                  display:'flex', flexDirection:'column', alignItems:'center',
-                  gap: 2, padding: '6px 2px', border:'none', cursor:'pointer',
-                  borderRadius: 12, background: isAction ? B.brand : 'transparent',
-                  transition:'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  position:'relative',
-                  flex: 1,
-                  minWidth: 0,
-                  ...(isAction ? {
-                    boxShadow: `0 6px 12px rgba(27, 138, 61, 0.25)`,
-                    transform: active ? 'scale(1.05)' : 'scale(1)',
-                    padding: '8px 4px',
-                  } : {}),
-                }}
+                className={`relative flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 text-foreground transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                  isAction
+                    ? 'bg-primary text-primary-foreground shadow-soft active:scale-[0.97]'
+                    : active
+                      ? 'bg-primary/10 text-primary'
+                      : 'hover:bg-muted active:bg-muted/80'
+                }`}
+                aria-current={active ? 'page' : undefined}
               >
-                {/* Active Indicator Dot */}
-                {active && !isAction && (
-                  <div style={{
-                    position:'absolute', top: -2, width: 3, height: 3, 
-                    borderRadius: '50%', background: B.brand,
-                  }}/>
-                )}
-
-                <div style={{ position:'relative' }}>
+                <div className="relative">
                   <item.icon
-                    size={isAction ? 18 : 20}
+                    size={isAction ? 19 : 20}
                     strokeWidth={active ? 2.5 : 2}
-                    color={
-                      isAction ? B.white :
-                      active ? B.brand :
-                      'rgba(10, 12, 11, 0.4)'
-                    }
-                    style={{ transition:'all 0.2s' }}
+                    aria-hidden="true"
                   />
                   {(item as any).badge > 0 && (
-                    <span style={{
-                      position:'absolute', top: -4, right: -6,
-                      minWidth: 14, height: 14, borderRadius: '50%',
-                      background: B.brandLight,
-                      border: `1px solid ${B.white}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 8, fontWeight: 800, color: B.white,
-                    }}>
+                    <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full border border-card bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
                       {(item as any).badge > 99 ? '99+' : (item as any).badge}
                     </span>
                   )}
                 </div>
 
-                <span style={{
-                  fontSize: 8, fontWeight: active ? 700 : 500,
-                  color: isAction ? B.white : active ? B.brand : 'rgba(10, 12, 11, 0.4)',
-                  letterSpacing: '-0.02em',
-                  transition: 'all 0.2s',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  width: '100%',
-                  textAlign: 'center'
-                }}>
+                <span className="w-full truncate text-center text-[10px] font-medium leading-4">
                   {item.label}
                 </span>
               </button>

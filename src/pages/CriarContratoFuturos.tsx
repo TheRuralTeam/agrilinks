@@ -1,12 +1,13 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, FileSignature, Loader2 } from 'lucide-react'
+import { ArrowLeft, FileSignature } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '../integrations/supabase/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useCanAct } from '../hooks/useCanAct'
 import { T, FONT } from '../lib/brand'
 import { PRODUCT_CATEGORIES } from '../lib/productCategories'
+import Loader from '../components/ui/Loader'
 
 const label: React.CSSProperties = {
   fontSize: 12, fontWeight: 700, color: T.mid, marginBottom: 6, display: 'block',
@@ -175,7 +176,7 @@ const CriarContratoFuturos = () => {
           fontWeight: 800, fontSize: 14, fontFamily: FONT, cursor: loading ? 'default' : 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: loading ? 0.7 : 1,
         }}>
-          {loading ? <Loader2 size={18} className="animate-spin" /> : <FileSignature size={18} />}
+          {loading ? <Loader compact label="" className="[&_svg]:text-primary-foreground" /> : <FileSignature size={18} />}
           Submeter pedido de contrato
         </button>
         <p style={{ fontSize: 11, color: T.muted, textAlign: 'center', lineHeight: 1.6 }}>

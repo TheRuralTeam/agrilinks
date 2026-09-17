@@ -15,8 +15,8 @@ const FloatingActionButton = () => {
     agricultor: {
       icon: (
         <Feather
-          strokeWidth={3}
-          className="h-7 w-7 text-green-500 drop-shadow-[0_0_10px_rgba(34,197,94,0.8)] animate-pulse"
+            strokeWidth={2.25}
+            className="h-6 w-6"
         />
       ),
       path: '/publicar-produto',
@@ -25,8 +25,8 @@ const FloatingActionButton = () => {
     comprador: {
       icon: (
         <FileText
-          strokeWidth={3}
-          className="h-7 w-7 text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)] animate-pulse"
+          strokeWidth={2.25}
+          className="h-6 w-6"
         />
       ),
       path: '/ficharecebimento',
@@ -35,8 +35,8 @@ const FloatingActionButton = () => {
     agente: {
       icon: (
         <ClipboardCheck
-          strokeWidth={3}
-          className="h-7 w-7 text-[#2c863b] drop-shadow-[0_0_10px_rgba(44,134,59,0.7)] animate-pulse"
+          strokeWidth={2.25}
+          className="h-6 w-6"
         />
       ),
       path: '/publicar-produto',
@@ -45,8 +45,8 @@ const FloatingActionButton = () => {
     motorista: {
       icon: (
         <Truck
-          strokeWidth={3}
-          className="h-7 w-7 text-[#B07D0A] drop-shadow-[0_0_10px_rgba(176,125,10,0.7)] animate-pulse"
+          strokeWidth={2.25}
+          className="h-6 w-6"
         />
       ),
       path: '/cargas',
@@ -62,12 +62,13 @@ const FloatingActionButton = () => {
       size="lg"
       className={`
         fixed bottom-24 right-4 z-40 
-        h-16 w-16 rounded-full 
-        bg-white/35 backdrop-blur-md 
-        hover:bg-white/45 active:scale-95
-        ${actionConfig.shadowColor}
-        transition-all duration-300
+        h-14 w-14 rounded-full border border-primary-foreground/20
+        bg-primary text-primary-foreground shadow-strong
+        hover:bg-primary-hover active:scale-95
+        ${actionConfig.shadowColor.replace(/shadow-\[[^\]]+\]/, '')}
+        transition-[transform,background-color,box-shadow] duration-200
       `}
+      aria-label="Criar nova ação"
     >
       <div className="animate-float">{actionConfig.icon}</div>
     </Button>

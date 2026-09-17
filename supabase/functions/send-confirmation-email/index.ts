@@ -1,7 +1,8 @@
 import { z } from "npm:zod@3.23.8";
+import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { jsonResponse } from "../_shared/http.ts";
 import {
   buildBrandEmailTemplate,
-  jsonResponse,
   normalizeEmail,
   safeRedirect,
   sendResendEmail,
@@ -32,7 +33,23 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const email = normalizeEmail(parsed.data.email);
     const fullName = parsed.data.full_name?.trim() || "Agricultor";
-    const redirectTo = safeRedirect(parsed.data.redirect_to, "https://agrilink.ao/auth/callback?next=/app");
+    const redirectTo = safeRedirect(parsed.data.redirect_to, "https://agrilink.ao/auth/callback?next=%2Fapp");
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: "signup",
+      email,
+      options: { redirectTo },
+    });
+    if (linkError) throw linkError;
+    const hashedToken = linkData.properties?.hashed_token;
+    if (!hashedToken) throw new Error("O Supabase não retornou o token de confirmação.");
+    const actionUrl = new URL(redirectTo);
+    actionUrl.searchParams.set("token_hash", hashedToken);
+    actionUrl.searchParams.set("type", "signup");
 
     const html = buildBrandEmailTemplate({
       title: "Confirme a sua conta — AgriLink",
@@ -44,7 +61,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         <p style="margin:0 0 12px;">Para ativar a sua conta e começar a aproveitar a plataforma, confirme o seu endereço de e-mail.</p>
       `,
       ctaText: "Confirmar a minha conta",
-      ctaHref: redirectTo,
+      ctaHref: actionUrl.toString(),
       secondaryText: "Se você não criou esta conta, pode ignorar este e-mail.",
     });
 

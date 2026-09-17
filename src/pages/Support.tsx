@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
+import Loader from '../components/ui/Loader'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
@@ -323,7 +324,7 @@ const Support = () => {
               <div className="flex gap-2">
                 <Button onClick={sendSupportMessage} className="flex-1" disabled={loading}>
                   {loading ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    <Loader compact label="" className="mr-2 [&_svg]:text-primary-foreground" />
                   ) : (
                     <Send className="h-4 w-4 mr-2" />
                   )}

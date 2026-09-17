@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
-import { TrendingUp, TrendingDown, ShoppingCart, DollarSign, Loader2, RefreshCw, AlertCircle, ArrowLeft, BarChart3 } from "lucide-react";
+import { TrendingUp, TrendingDown, ShoppingCart, DollarSign, RefreshCw, AlertCircle, ArrowLeft, BarChart3 } from "lucide-react";
+import Loader from "../components/ui/Loader";
 import { Button } from "../components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../integrations/supabase/client";
@@ -200,8 +201,7 @@ const MarketData = () => {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: T.canvas }}>
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin" style={{ color: T.g900 }} />
-          <span className="text-sm" style={{ color: T.muted }}>Carregando dados de mercado...</span>
+          <Loader compact label="A carregar dados de mercado" />
         </div>
       </div>
     );
@@ -239,7 +239,7 @@ const MarketData = () => {
               style={{ background: T.g900, color: T.white }}
             >
               {analyzing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader compact label="" className="[&_svg]:text-primary-foreground" />
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}

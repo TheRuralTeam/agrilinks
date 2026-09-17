@@ -10,8 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Badge } from "./ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCalendarDays, faPlus, faMinus, faCircleExclamation, faCircleCheck } from "@fortawesome/free-solid-svg-icons";
+import { CalendarDays, CheckCircle2, CircleAlert, Minus, Plus } from "lucide-react";
 import { cn } from "../lib/utils";
 
 const OrderSystem = () => {
@@ -122,7 +121,7 @@ const OrderSystem = () => {
                       size="sm"
                       onClick={() => addToOrder(product)}
                     >
-                      <FontAwesomeIcon icon={faPlus} className="h-4 w-4" />
+                      <Plus className="h-4 w-4" aria-hidden="true" />
                       Adicionar
                     </Button>
                   </div>
@@ -158,7 +157,7 @@ const OrderSystem = () => {
                           onClick={() => updateQuantity(item.id, item.quantity - item.minQty)}
                           disabled={item.quantity <= item.minQty}
                         >
-                          <FontAwesomeIcon icon={faMinus} className="h-3 w-3" />
+                          <Minus className="h-3 w-3" aria-hidden="true" />
                         </Button>
                         <span className="w-12 text-center text-sm">{item.quantity}</span>
                         <Button
@@ -167,7 +166,7 @@ const OrderSystem = () => {
                           className="h-8 w-8"
                           onClick={() => updateQuantity(item.id, item.quantity + item.minQty)}
                         >
-                          <FontAwesomeIcon icon={faPlus} className="h-3 w-3" />
+                          <Plus className="h-3 w-3" aria-hidden="true" />
                         </Button>
                         <Button
                           variant="outline"
@@ -192,14 +191,14 @@ const OrderSystem = () => {
                     <div className="flex items-center gap-2">
                       {isMinimumMet ? (
                         <>
-                          <FontAwesomeIcon icon={faCircleCheck} className="h-4 w-4 text-success" />
+                          <CheckCircle2 className="h-4 w-4 text-success" aria-hidden="true" />
                           <Badge variant="default" className="bg-success text-success-foreground">
                             Valor mínimo atingido
                           </Badge>
                         </>
                       ) : (
                         <>
-                          <FontAwesomeIcon icon={faCircleExclamation} className="h-4 w-4 text-warning" />
+                          <CircleAlert className="h-4 w-4 text-warning" aria-hidden="true" />
                           <Badge variant="outline" className="border-warning text-warning">
                             Faltam {formatPrice(1000000 - calculateTotal())}
                           </Badge>
@@ -287,7 +286,7 @@ const OrderSystem = () => {
                           !selectedDate && "text-muted-foreground"
                         )}
                       >
-                        <FontAwesomeIcon icon={faCalendarDays} className="mr-2 h-4 w-4" />
+                        <CalendarDays className="mr-2 h-4 w-4" aria-hidden="true" />
                         {selectedDate ? format(selectedDate, "PPP", { locale: ptBR }) : "Selecione a data"}
                       </Button>
                     </PopoverTrigger>

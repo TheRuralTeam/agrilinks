@@ -1,10 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { corsHeaders } from "../_shared/http.ts";
 import { z } from "npm:zod@3.23.8";
 
 const AuthTypeSchema = z.enum([
@@ -34,7 +29,6 @@ const RESEND_FROM =
 const ALLOWED_HOSTS = [
   "agrilink.ao",
   "www.agrilink.ao",
-  "agrilinks.lovable.app",
   "localhost",
 ];
 

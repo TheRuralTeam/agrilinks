@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Separator } from "../components/ui/separator";
-import { ArrowLeft, Download, Printer, Phone, MapPin, Calendar, Package, DollarSign, Truck, Loader2 } from "lucide-react";
+import { ArrowLeft, Download, Printer, Phone, MapPin, Calendar, Package, DollarSign, Truck } from "lucide-react";
+import Loader from "../components/ui/Loader";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../integrations/supabase/client";
 import { T } from "../lib/brand";
@@ -144,7 +145,7 @@ const TechnicalSheet = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader />
           <span className="text-sm text-muted-foreground">Carregando ficha técnica...</span>
         </div>
       </div>

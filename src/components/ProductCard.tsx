@@ -405,7 +405,6 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
   const [mapModalOpen, setMapModalOpen] = useState(false)
-  const [isHovered, setIsHovered] = useState(false)
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
@@ -529,8 +528,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
     speed: 600,
     slidesToShow: 1,
     slidesToScroll: 1,
-    autoplay: true,
-    autoplaySpeed: 4500,
+    autoplay: false,
     arrows: product.photos && product.photos.length > 1,
     nextArrow: <CustomNextArrow />,
     prevArrow: <CustomPrevArrow />,
@@ -540,9 +538,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   return (
     <>
       <div
-        style={{ ...styles.card, ...(isHovered ? styles.cardHover : {}) }}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        style={styles.card}
       >
         {/* ── Image badges ── */}
         <div style={styles.imageBadge}>
@@ -581,7 +577,6 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                       aspectRatio: '4/3',
                       objectFit: 'cover',
                       transition: 'transform 0.7s ease',
-                      transform: isHovered ? 'scale(1.04)' : 'scale(1)',
                     }}
                     alt={`${product.product_type} ${i + 1}`}
                     loading="lazy"

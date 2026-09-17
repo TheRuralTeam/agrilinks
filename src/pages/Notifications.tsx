@@ -23,6 +23,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
+import Loader from '../components/ui/Loader';
 
 /* ─── AgriLink Design System (Branding T) ─────────────────────── */
 const T = {
@@ -345,8 +346,7 @@ const Notifications = () => {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: T.canvas }}>
         <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin mx-auto mb-4" style={{ color: T.g900 }} />
-          <p style={{ color: T.muted }}>Carregando notificações...</p>
+          <Loader compact label="A carregar notificações" />
         </div>
       </div>
     );
@@ -503,11 +503,5 @@ const Notifications = () => {
     </div>
   );
 };
-
-const Loader2 = ({ className, style }: { className?: string, style?: React.CSSProperties }) => (
-  <svg className={className} style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-  </svg>
-);
 
 export default Notifications;

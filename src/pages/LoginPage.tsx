@@ -9,6 +9,7 @@ import orbisLinkLogo from '../assets/orbislink-logo.png'
 
 import autenticar from '../assets/auth1.jpg'
 import { toast } from '../hooks/use-toast'
+import Loader from '../components/ui/Loader'
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 import { T } from '../lib/brand';
@@ -122,7 +123,6 @@ const LoginPage = () => {
     <div className="min-h-screen flex flex-col lg:flex-row" style={{ backgroundColor: T.canvas, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
 
       <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(16px); }
           to   { opacity: 1; transform: translateY(0); }
@@ -180,14 +180,7 @@ const LoginPage = () => {
             zIndex: 9999,
           }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-              <div style={{
-                width: 40, height: 40,
-                border: `3px solid ${T.rule}`,
-                borderTopColor: T.g600,
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-              }} />
-              <p style={{ fontWeight: 700, fontSize: 14, color: T.ink, margin: 0 }}>A autenticar…</p>
+              <Loader compact label="A autenticar…" />
             </div>
           </div>
         )}

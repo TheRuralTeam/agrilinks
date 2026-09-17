@@ -1,10 +1,6 @@
 /// <reference types="https://esm.sh/@types/web-push@3.6.3" />
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from '../_shared/http.ts';
 
 // Dynamic import for web-push to avoid type issues
 const webpush = await import('npm:web-push@3.6.7').then(m => m.default);

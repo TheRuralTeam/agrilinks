@@ -4,11 +4,12 @@ import { supabase } from "../integrations/supabase/client";
 import { sendConfirmationEmail, buildAuthRedirectUrl } from '../features/auth/email'
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { CheckCircle2, Loader2, MailCheck } from "lucide-react";
+import { CheckCircle2, MailCheck } from "lucide-react";
 import { Input } from "../components/ui/input";
 import orbisLinkLogo from "../assets/orbislink-logo.png";
 import { toast } from "../hooks/use-toast";
 import { useAuth } from "../contexts/AuthContext";
+import Loader from "../components/ui/Loader";
 
 const RESEND_COOLDOWN = 60;
 
@@ -144,7 +145,7 @@ const EmailConfirmation = () => {
               >
                 {sending ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader compact label="" className="mr-2 [&_svg]:text-primary-foreground" />
                     A enviar...
                   </>
                 ) : countdown > 0 ? (

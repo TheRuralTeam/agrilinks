@@ -19,6 +19,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { validatePreOrderSubmission } from '../features/products/businessRules'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
 import { toast } from 'sonner'
+import Loader from '../components/ui/Loader'
+import { sendOrderUpdateEmail } from '../features/auth/email'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
 
@@ -301,6 +303,16 @@ const SearchPage = () => {
       })
 
       if (error) throw error
+      const { data: seller } = await supabase.from('users').select('email, full_name').eq('id', selectedProduct.user_id).maybeSingle()
+      if (seller?.email) {
+        void sendOrderUpdateEmail({
+          email: seller.email,
+          customer_name: seller.full_name || selectedProduct.farmer_name,
+          order_id: selectedProduct.id,
+          status: 'pending',
+          message: `Recebeu uma nova pré-compra de ${orderData.quantity} kg de ${selectedProduct.product_type}.`,
+        }).catch((emailError) => console.warn('Email de nova pré-compra não enviado:', emailError))
+      }
 
       await supabase.rpc('create_notification', {
         p_user_id: selectedProduct.user_id,
@@ -556,7 +568,7 @@ const SearchPage = () => {
 
         {loading && (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="animate-spin rounded-full h-10 w-10 border-2 border-[#E5EDE6] border-t-[#2c863b]"></div>
+            <Loader compact label="A pesquisar" />
             <p className="text-[#758A79] font-medium">Buscando as melhores ofertas...</p>
           </div>
         )}

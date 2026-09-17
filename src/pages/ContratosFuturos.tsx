@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, FileSignature, ShieldCheck, Plus, Loader2, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, FileSignature, ShieldCheck, Plus, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '../integrations/supabase/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useCanAct } from '../hooks/useCanAct'
 import { T, FONT } from '../lib/brand'
+import Loader from '../components/ui/Loader'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '../components/ui/dialog'
@@ -144,7 +145,7 @@ const ContratosFuturos = () => {
       <div style={{ maxWidth: 760, margin: '0 auto', padding: 16, display: 'grid', gap: 12 }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: 40, color: T.muted }}>
-            <Loader2 className="animate-spin" size={22} style={{ margin: '0 auto' }} />
+            <Loader compact label="A carregar contratos" />
           </div>
         ) : contracts.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 48, color: T.muted, background: T.white, borderRadius: 16, border: `1px solid ${T.rule}` }}>

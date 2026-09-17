@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, PackageCheck, MapPin, CalendarDays, Weight, Loader2 } from 'lucide-react'
+import { ArrowLeft, PackageCheck, MapPin, CalendarDays, Weight } from 'lucide-react'
 import { supabase } from '../integrations/supabase/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useCanAct } from '../hooks/useCanAct'
 import { T, FONT } from '../lib/brand'
 import { toast } from 'sonner'
+import Loader from '../components/ui/Loader'
 
 interface FreightLoad {
   id: string
@@ -141,7 +142,7 @@ const ProximasCargas = () => {
       <main style={{ padding: '0 16px', display: 'grid', gap: 12 }}>
         {loading && (
           <div style={{ display: 'flex', justifyContent: 'center', padding: 48, color: T.muted }}>
-            <Loader2 className="animate-spin" size={24} />
+            <Loader compact label="A carregar cargas" />
           </div>
         )}
 

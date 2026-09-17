@@ -1,7 +1,8 @@
 import { z } from "npm:zod@3.23.8";
+import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { jsonResponse } from "../_shared/http.ts";
 import {
   buildBrandEmailTemplate,
-  jsonResponse,
   normalizeEmail,
   safeRedirect,
   sendResendEmail,
@@ -30,7 +31,23 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     const email = normalizeEmail(parsed.data.email);
-    const redirectTo = safeRedirect(parsed.data.redirect_to, "https://agrilink.ao/reset-password");
+    const redirectTo = safeRedirect(parsed.data.redirect_to, "https://agrilink.ao/auth/callback?next=%2Freset-password");
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: "recovery",
+      email,
+      options: { redirectTo },
+    });
+    if (linkError) throw linkError;
+    const hashedToken = linkData.properties?.hashed_token;
+    if (!hashedToken) throw new Error("O Supabase não retornou o token de recuperação.");
+    const actionUrl = new URL(redirectTo);
+    actionUrl.searchParams.set("token_hash", hashedToken);
+    actionUrl.searchParams.set("type", "recovery");
 
     const html = buildBrandEmailTemplate({
       title: "Recuperar a password — AgriLink",
@@ -42,7 +59,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         <p style="margin:0 0 12px;">Clique no botão abaixo para criar uma nova senha.</p>
       `,
       ctaText: "Redefinir password",
-      ctaHref: redirectTo,
+      ctaHref: actionUrl.toString(),
       secondaryText: "Se não pediu esta alteração, pode ignorar este e-mail com segurança.",
     });
 
