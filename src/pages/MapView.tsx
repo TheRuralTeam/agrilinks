@@ -35,6 +35,8 @@ import {
   Eye,
   EyeOff,
   Sliders,
+  WifiOff,
+  LocateFixed,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import SatelliteMonitor from '../components/SatelliteMonitor';
@@ -127,27 +129,72 @@ interface FilterOptions {
 
 type RouteInfo = { coords: [number, number][]; km: number; mins: number | null };
 
-/* ─── OSRM helper — rota real pelas estradas ────────────────────────────────── */
+/* ─── Retry helper genérico com backoff exponencial ─────────────────────────── */
+async function retryWithBackoff<T>(
+  fn: (attempt: number) => Promise<T>,
+  maxRetries = 2,
+  baseDelayMs = 500
+): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn(attempt);
+    } catch (err) {
+      lastErr = err;
+      if (attempt < maxRetries) {
+        await new Promise((r) => setTimeout(r, baseDelayMs * Math.pow(2, attempt)));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+/* ─── Cache de rotas OSRM (evita recalcular a mesma rota várias vezes) ──────── */
+const ROUTE_CACHE_TTL = 10 * 60 * 1000; // 10 min
+const routeCache = new Map<
+  string,
+  { coords: [number, number][]; distance: number | null; duration: number | null; ts: number }
+>();
+
+function routeCacheKey(from: [number, number], to: [number, number]) {
+  const r = (n: number) => n.toFixed(4); // ~11m de precisão — suficiente para cache
+  return `${r(from[0])},${r(from[1])}|${r(to[0])},${r(to[1])}`;
+}
+
+/* ─── OSRM helper — rota real pelas estradas, com retries + cache ──────────── */
 async function fetchRoadRouteFull(
   from: [number, number],
   to: [number, number]
 ): Promise<{ coords: [number, number][]; distance: number | null; duration: number | null }> {
+  const key = routeCacheKey(from, to);
+  const cached = routeCache.get(key);
+  if (cached && Date.now() - cached.ts < ROUTE_CACHE_TTL) return cached;
+
   try {
-    const url =
-      `https://router.project-osrm.org/route/v1/driving/` +
-      `${from[1]},${from[0]};${to[1]},${to[0]}` +
-      `?overview=full&geometries=geojson`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    const data = await res.json();
-    const route = data?.routes?.[0];
-    if (data.code === 'Ok' && route?.geometry?.coordinates?.length) {
-      const coords = route.geometry.coordinates.map(
-        ([lng, lat]: [number, number]) => [lat, lng] as [number, number]
-      );
-      return { coords, distance: route.distance ?? null, duration: route.duration ?? null };
-    }
-  } catch {}
-  return { coords: [from, to], distance: null, duration: null };
+    const result = await retryWithBackoff(async () => {
+      const url =
+        `https://router.project-osrm.org/route/v1/driving/` +
+        `${from[1]},${from[0]};${to[1]},${to[0]}` +
+        `?overview=full&geometries=geojson`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      const data = await res.json();
+      const route = data?.routes?.[0];
+      if (data.code === 'Ok' && route?.geometry?.coordinates?.length) {
+        const coords = route.geometry.coordinates.map(
+          ([lng, lat]: [number, number]) => [lat, lng] as [number, number]
+        );
+        return { coords, distance: route.distance ?? null, duration: route.duration ?? null };
+      }
+      throw new Error('OSRM: sem rota válida');
+    }, 2, 400);
+    const withTs = { ...result, ts: Date.now() };
+    routeCache.set(key, withTs);
+    return result;
+  } catch {
+    const fallback = { coords: [from, to] as [number, number][], distance: null, duration: null };
+    routeCache.set(key, { ...fallback, ts: Date.now() });
+    return fallback;
+  }
 }
 
 function formatDuration(seconds: number | null | undefined): string {
@@ -621,6 +668,12 @@ const STREET_TILE = {
   url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 };
+// Tile server de reserva — entra em ação automaticamente se o principal falhar
+// a carregar demasiadas tiles (ver <TileLayer eventHandlers> mais abaixo).
+const FALLBACK_TILE = {
+  url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+  attribution: '© OpenStreetMap contributors, © OpenTopoMap (CC-BY-SA)',
+};
 
 const MapView = () => {
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -629,6 +682,8 @@ const MapView = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [tileFailed, setTileFailed] = useState(false);
+  const tileErrorCountRef = useRef(0);
 
   const [searchText, setSearchText] = useState('');
   const [searchResults, setSearchResults] = useState<NominatimResult[]>([]);
@@ -645,7 +700,12 @@ const MapView = () => {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null); // [lng, lat]
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [trackedProduct, setTrackedProduct] = useState<Product | null>(null);
+
+  // Estado de rede — pausa chamadas externas (rotas, geocoding) quando offline
+  // e refaz o fetch de produtos assim que a ligação volta.
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   // Rotas calculadas (substituem os refs imperativos de polyline)
   const [allRoutes, setAllRoutes] = useState<Record<string, RouteInfo>>({});
@@ -657,14 +717,19 @@ const MapView = () => {
 
   const { user } = useAuth();
 
+  /* ── Fetch de produtos com retries + backoff exponencial ─────────────────── */
   const fetchProducts = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const { data, error } = await supabase.from('products').select('*').limit(100);
-      if (error) throw error;
+      const data = await retryWithBackoff(async () => {
+        const { data, error } = await supabase.from('products').select('*').limit(100);
+        if (error) throw error;
+        return data;
+      }, 2, 600);
       setProducts((data || []) as any);
+      setMapError(null);
     } catch {
-      setMapError('Erro ao carregar produtos');
+      setMapError('Erro ao carregar produtos. Verifique a sua ligação.');
     } finally {
       setLoading(false);
     }
@@ -674,13 +739,70 @@ const MapView = () => {
     fetchProducts();
   }, [fetchProducts]);
 
-  // Geolocalização do utilizador
+  /* ── Sincronização em tempo real — INSERT/UPDATE/DELETE refletem no mapa ── */
   useEffect(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setUserLocation([pos.coords.longitude, pos.coords.latitude]),
-      () => {}
+    const channel = supabase
+      .channel('products-map-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
+        setProducts((prev) => {
+          if (payload.eventType === 'INSERT') {
+            const incoming = payload.new as Product;
+            return prev.some((p) => p.id === incoming.id) ? prev : [...prev, incoming];
+          }
+          if (payload.eventType === 'UPDATE') {
+            const updated = payload.new as Product;
+            return prev.map((p) => (p.id === updated.id ? updated : p));
+          }
+          if (payload.eventType === 'DELETE') {
+            const removed = payload.old as Product;
+            return prev.filter((p) => p.id !== removed.id);
+          }
+          return prev;
+        });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  /* ── Estado de rede — refaz o fetch assim que a ligação volta ────────────── */
+  useEffect(() => {
+    const goOnline = () => {
+      setIsOnline(true);
+      fetchProducts();
+    };
+    const goOffline = () => setIsOnline(false);
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, [fetchProducts]);
+
+  /* ── Geolocalização contínua do utilizador (watchPosition), com erro tratado ── */
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocalização não suportada neste dispositivo.');
+      return;
+    }
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        setUserLocation([pos.coords.longitude, pos.coords.latitude]);
+        setLocationError(null);
+      },
+      (err) => {
+        setLocationError(
+          err.code === err.PERMISSION_DENIED
+            ? 'Permissão de localização negada.'
+            : 'Não foi possível obter a sua localização.'
+        );
+      },
+      { enableHighAccuracy: false, maximumAge: 30000, timeout: 10000 }
     );
+    return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
   const filteredProducts = useMemo(
@@ -707,24 +829,50 @@ const MapView = () => {
     };
   }, [filteredProducts]);
 
-  /* ── Geocoding (Nominatim) ──────────────────────────────────────────────── */
-  const handleSearch = useCallback(async (value: string) => {
+  /* ── Geocoding (Nominatim) — com debounce + cancelamento de pedidos antigos ── */
+  const searchAbortRef = useRef<AbortController | null>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSearch = useCallback((value: string) => {
     setSearchText(value);
+
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+
     if (!value.trim()) {
+      searchAbortRef.current?.abort();
       setSearchResults([]);
+      setSearchLoading(false);
       return;
     }
-    setSearchLoading(true);
-    try {
-      const r = await axios.get('https://nominatim.openstreetmap.org/search', {
-        params: { q: value, format: 'json', limit: 5, countrycodes: 'ao' },
-        headers: { 'Accept-Language': 'pt' },
-      });
-      setSearchResults(r.data as NominatimResult[]);
-    } catch {
-    } finally {
-      setSearchLoading(false);
-    }
+
+    searchDebounceRef.current = setTimeout(async () => {
+      searchAbortRef.current?.abort();
+      const controller = new AbortController();
+      searchAbortRef.current = controller;
+
+      setSearchLoading(true);
+      try {
+        const r = await axios.get('https://nominatim.openstreetmap.org/search', {
+          params: { q: value, format: 'json', limit: 5, countrycodes: 'ao' },
+          headers: { 'Accept-Language': 'pt' },
+          signal: controller.signal,
+        });
+        setSearchResults(r.data as NominatimResult[]);
+      } catch (e: any) {
+        if (e?.code !== 'ERR_CANCELED' && e?.name !== 'CanceledError') {
+          setSearchResults([]);
+        }
+      } finally {
+        if (searchAbortRef.current === controller) setSearchLoading(false);
+      }
+    }, 350);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+      searchAbortRef.current?.abort();
+    };
   }, []);
 
   const selectSearchResult = useCallback((result: NominatimResult) => {
@@ -747,7 +895,8 @@ const MapView = () => {
 
   /* ── Rotas: utilizador → todos os produtos filtrados (até 8 mais próximos) ── */
   useEffect(() => {
-    if (!userLocation) {
+    if (!userLocation || !isOnline) {
+      if (!isOnline) return; // mantém as últimas rotas conhecidas em memória
       setAllRoutes({});
       return;
     }
@@ -779,11 +928,18 @@ const MapView = () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredProducts, userLocation]);
+  }, [filteredProducts, userLocation, isOnline]);
 
   /* ── Rota: produto seleccionado → utilizador ─────────────────────────────── */
   useEffect(() => {
-    if (!selectedProduct || !selectedProduct.location_lat || !selectedProduct.location_lng || !userLocation) {
+    if (
+      !selectedProduct ||
+      !selectedProduct.location_lat ||
+      !selectedProduct.location_lng ||
+      !userLocation ||
+      !isOnline
+    ) {
+      if (!isOnline) return;
       setSelectedRoute(null);
       return;
     }
@@ -798,7 +954,7 @@ const MapView = () => {
     return () => {
       cancelled = true;
     };
-  }, [selectedProduct, userLocation]);
+  }, [selectedProduct, userLocation, isOnline]);
 
   /* ── Rastreabilidade: produto rastreado → utilizador (com ponto animado) ── */
   useEffect(() => {
@@ -806,7 +962,8 @@ const MapView = () => {
       cancelAnimationFrame(animRef.current);
       animRef.current = null;
     }
-    if (!trackedProduct || !trackedProduct.location_lat || !trackedProduct.location_lng) {
+    if (!trackedProduct || !trackedProduct.location_lat || !trackedProduct.location_lng || !isOnline) {
+      if (!isOnline) return;
       setTrackRoute(null);
       setMovingDotPos(null);
       return;
@@ -847,7 +1004,7 @@ const MapView = () => {
       cancelled = true;
       if (animRef.current) cancelAnimationFrame(animRef.current);
     };
-  }, [trackedProduct, userLocation]);
+  }, [trackedProduct, userLocation, isOnline]);
 
   const clickProductInList = useCallback((p: Product) => {
     setSelectedProduct(p);
@@ -855,6 +1012,12 @@ const MapView = () => {
       setFlyTarget({ lat: p.location_lat, lng: p.location_lng, zoom: 14 });
     }
   }, []);
+
+  const recenterOnUser = useCallback(() => {
+    if (userLocation && mapInstanceRef.current) {
+      setFlyTarget({ lat: userLocation[1], lng: userLocation[0], zoom: 13 });
+    }
+  }, [userLocation]);
 
   /* ── Error screen ───────────────────────────────────────────────────────── */
   if (mapError)
@@ -899,7 +1062,7 @@ const MapView = () => {
           </h3>
           <p style={{ fontSize: 13, color: T.muted, marginBottom: 20, fontFamily: FONT }}>{mapError}</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => fetchProducts()}
             style={{
               width: '100%',
               height: 44,
@@ -937,7 +1100,20 @@ const MapView = () => {
               L.control.zoom({ position: 'topright' }).addTo(map);
             }}
           />
-          <TileLayer url={STREET_TILE.url} attribution={STREET_TILE.attribution} maxZoom={19} subdomains="abc" />
+          <TileLayer
+            url={tileFailed ? FALLBACK_TILE.url : STREET_TILE.url}
+            attribution={tileFailed ? FALLBACK_TILE.attribution : STREET_TILE.attribution}
+            maxZoom={19}
+            subdomains="abc"
+            eventHandlers={{
+              tileerror: () => {
+                tileErrorCountRef.current += 1;
+                // Só troca de fornecedor se várias tiles falharem seguidas —
+                // evita trocar por causa de um único pedido perdido.
+                if (tileErrorCountRef.current > 6 && !tileFailed) setTileFailed(true);
+              },
+            }}
+          />
 
           {/* Utilizador */}
           {userLocation && <Marker position={[userLocation[1], userLocation[0]]} icon={userIcon} />}
@@ -1003,6 +1179,27 @@ const MapView = () => {
         </MapContainer>
       </div>
 
+      {/* ══ OFFLINE BANNER ═══════════════════════════════════════════════════ */}
+      {!isOnline && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 56,
+            left: 0,
+            right: 0,
+            zIndex: 35,
+            background: T.dangerBg,
+            borderBottom: `1px solid ${T.danger}33`,
+            padding: '6px 16px',
+            textAlign: 'center',
+          }}
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: T.danger, fontFamily: FONT }}>
+            <WifiOff size={12} /> Sem ligação à internet — a mostrar dados em cache
+          </span>
+        </div>
+      )}
+
       {/* ══ HEADER ══════════════════════════════════════════════════════════ */}
       <header
         className="al-header absolute top-0 left-0 right-0 z-30"
@@ -1059,24 +1256,39 @@ const MapView = () => {
             <div className="flex items-center gap-2 flex-shrink-0">
               {[
                 {
+                  icon: <LocateFixed size={15} />,
+                  onClick: recenterOnUser,
+                  title: userLocation ? 'Centrar na minha localização' : 'Localização indisponível',
+                  active: false,
+                  disabled: !userLocation,
+                },
+                {
                   icon: showProductsList ? <EyeOff size={15} /> : <Eye size={15} />,
                   onClick: () => setShowProductsList(!showProductsList),
                   title: showProductsList ? 'Ocultar lista' : 'Mostrar lista',
                   active: false,
+                  disabled: false,
                 },
                 {
                   icon: <Sliders size={15} />,
                   onClick: () => setShowFilters(!showFilters),
                   title: 'Filtros',
                   active: showFilters,
+                  disabled: false,
                 },
               ].map((btn, i) => (
                 <button
                   key={i}
                   title={btn.title}
                   onClick={btn.onClick}
+                  disabled={btn.disabled}
                   className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ background: btn.active ? T.g700 : T.soft, color: btn.active ? T.white : T.mid }}
+                  style={{
+                    background: btn.active ? T.g700 : T.soft,
+                    color: btn.active ? T.white : T.mid,
+                    opacity: btn.disabled ? 0.4 : 1,
+                    cursor: btn.disabled ? 'not-allowed' : 'pointer',
+                  }}
                 >
                   {btn.icon}
                 </button>
@@ -1223,6 +1435,22 @@ const MapView = () => {
                 <ArrowRight size={13} color={T.faint} />
               </button>
             ))}
+          </div>
+        )}
+        {locationError && (
+          <div
+            style={{
+              marginTop: 8,
+              padding: '7px 12px',
+              borderRadius: 12,
+              background: T.goldBg,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 7,
+            }}
+          >
+            <AlertCircle size={12} color={T.goldL} />
+            <span style={{ fontSize: 11, color: T.ink, fontFamily: FONT, fontWeight: 600 }}>{locationError}</span>
           </div>
         )}
       </div>
@@ -1717,4 +1945,4 @@ const MapView = () => {
   );
 };
 
-export default MapView;
+export default MapView;   
