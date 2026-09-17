@@ -24,9 +24,6 @@ import { changeLanguage, getSavedCountry } from "../i18n/index";
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 import { T } from '../lib/brand';
 
-// NIF/documento de identidade é opcional — se o utilizador não preencher,
-// enviamos este valor por omissão e ele pode ser actualizado mais tarde no perfil.
-const DEFAULT_NIF = "0000000000000";
 const GOLD_BORDER = 'rgba(229,160,32,0.28)';
 
 // ─── Tipos de conta: cada um com o seu ícone e cor de destaque próprios ──────
@@ -259,7 +256,7 @@ const Registration = () => {
       const { error, data } = await register({
         email: cleanEmail, phone: fullPhone, password,
         full_name: cleanName,
-        identity_document: identityDocument.trim() || DEFAULT_NIF,
+        identity_document: identityDocument.trim(),
         user_type: userType as "agricultor" | "agente" | "comprador" | "motorista",
         load_capacity_kg: userType === "motorista" && loadCapacity ? Number(loadCapacity) : null,
         province_id: selectedProvince,
