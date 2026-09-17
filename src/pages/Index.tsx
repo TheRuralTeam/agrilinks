@@ -661,7 +661,7 @@ export default function AgriLinkLanding() {
                 <p className="testimonial-quote">{t.quote}</p>
                 <div className="testimonial-who">
                   <span className="testimonial-avatar" style={{ background: `${t.color}1E`, color: t.color }}>
-                    {t.name.replace(/[\[\]]/g, "").charAt(0)}
+                    {t.name.replaceAll('[', '').replaceAll(']', '').charAt(0)}
                   </span>
                   <div>
                     <div className="testimonial-name">{t.name}</div>

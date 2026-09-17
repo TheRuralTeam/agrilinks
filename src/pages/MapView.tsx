@@ -83,7 +83,7 @@ const FONT = "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif";
 // (não usamos ícones default em lado nenhum — todos os markers abaixo levam
 // divIcon próprio — mas isto evita o quadrado-partido caso algum marker
 // futuro seja adicionado sem icon próprio).
-// @ts-ignore
+// @ts-expect-error Leaflet's runtime default icon helper is not in its typings.
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -927,7 +927,6 @@ const MapView = () => {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredProducts, userLocation, isOnline]);
 
   /* ── Rota: produto seleccionado → utilizador ─────────────────────────────── */
