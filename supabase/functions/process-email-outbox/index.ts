@@ -19,19 +19,32 @@ async function buildJobEmail(job: any) {
       : template === "auth-recovery"
         ? "recovery"
         : String(payload.auth_type || "magiclink");
-    const { data, error } = await supabase.auth.admin.generateLink({
-      type: authType as "signup" | "recovery" | "magiclink",
-      email: String(payload.email || job.recipient),
+    const email = String(payload.email || job.recipient);
+    let effectiveType = authType;
+    let linkResult = await supabase.auth.admin.generateLink({
+      type: effectiveType as "signup" | "recovery" | "magiclink",
+      email,
       options: { redirectTo: String(payload.redirect_to) },
     });
-    if (error) throw error;
+    if (linkResult.error && authType === "signup" && /already been registered/i.test(linkResult.error.message)) {
+      effectiveType = "magiclink";
+      linkResult = await supabase.auth.admin.generateLink({
+        type: "magiclink",
+        email,
+        options: { redirectTo: String(payload.redirect_to) },
+      });
+    }
+    if (linkResult.error) throw linkResult.error;
+    const data = linkResult.data;
     const tokenHash = data.properties?.hashed_token;
     if (!tokenHash) throw new Error("O Supabase não retornou o token de autenticação.");
     const actionUrl = new URL(String(payload.redirect_to));
     actionUrl.searchParams.set("token_hash", tokenHash);
-    actionUrl.searchParams.set("type", authType);
+    actionUrl.searchParams.set("type", effectiveType);
     const headline = template === "auth-recovery"
       ? "Recuperar a palavra-passe"
+      : effectiveType === "magiclink" && template === "auth-signup"
+        ? "Aceda à sua conta AgriLink"
       : template === "auth-signup"
         ? "Confirme a sua conta"
         : "Confirme o seu email";
@@ -40,7 +53,11 @@ async function buildJobEmail(job: any) {
       preheader: job.subject,
       headline,
       bodyHtml: `<p style="margin:0 0 12px;">Olá ${fullName},</p><p style="margin:0 0 12px;">Clique no botão abaixo para continuar na AgriLink.</p>`,
-      ctaText: template === "auth-recovery" ? "Redefinir password" : "Confirmar o meu email",
+      ctaText: template === "auth-recovery"
+        ? "Redefinir password"
+        : effectiveType === "magiclink" && template === "auth-signup"
+          ? "Entrar na AgriLink"
+          : "Confirmar o meu email",
       ctaHref: actionUrl.toString(),
     });
   }
