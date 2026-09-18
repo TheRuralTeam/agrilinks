@@ -21,7 +21,6 @@ import orbisLinkLogo from '../assets/orbislink-logo.png'
 import { fetchActiveProducts } from '../features/products/productsService'
 import { validatePreOrderSubmission } from '../features/products/businessRules'
 import { isNeutralPublicView, sanitizePublicProduct } from '../lib/publicData'
-import { sendOrderUpdateEmail } from '../features/auth/email'
 import Loader from '../components/ui/Loader'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -306,16 +305,6 @@ const AppHome = () => {
         quantity: orderData.quantity, location: orderData.location, status: 'pending',
       })
       if (error) throw error
-      const { data: seller } = await supabase.from('users').select('email, full_name').eq('id', selectedProduct.user_id).maybeSingle()
-      if (seller?.email) {
-        void sendOrderUpdateEmail({
-          email: seller.email,
-          customer_name: seller.full_name || selectedProduct.farmer_name,
-          order_id: selectedProduct.id,
-          status: 'pending',
-          message: `Recebeu uma nova pré-compra de ${orderData.quantity} kg de ${selectedProduct.product_type}.`,
-        }).catch((emailError) => console.warn('Email de nova pré-compra não enviado:', emailError))
-      }
       await supabase.rpc('create_notification', {
         p_user_id: selectedProduct.user_id, p_type: 'pre_order', p_title: 'Nova Pré-Compra',
         p_message: `${user.email} quer comprar ${orderData.quantity}kg do seu ${selectedProduct.product_type}`,
