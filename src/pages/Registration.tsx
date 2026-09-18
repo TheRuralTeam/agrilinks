@@ -140,7 +140,7 @@ const FieldLabelRow = ({ children, optional }: { children: React.ReactNode; opti
 const Registration = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { register, login, signInWithGoogle } = useAuth();
+  const { register, registerWithOtp, login, signInWithGoogle } = useAuth();
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleGoogleSignUp = async () => {
@@ -166,7 +166,7 @@ const Registration = () => {
   const [agentCode, setAgentCode] = useState("");
   const [validatingCode, setValidatingCode] = useState(false);
   const [agentCodeValid, setAgentCodeValid] = useState<boolean | null>(null);
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(-1);
 
   const [selectedCountry, setSelectedCountry] = useState<Country>(() => {
     const savedCode = getSavedCountry();
@@ -299,8 +299,47 @@ const Registration = () => {
     }
   };
 
+  const handleOtpRegistration = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMessage('');
+    try {
+      const fullPhone = `${selectedCountry.dialCode} ${phone}`.trim();
+      const { error } = await registerWithOtp({ full_name: fullName, email, phone: fullPhone });
+      if (error) throw error;
+      toast({ title: 'Email de confirmação enviado', description: 'Abra o email e clique no botão para ativar a conta.' });
+      navigate(`/confirmar-email?email=${encodeURIComponent(email.trim().toLowerCase())}`, { replace: true });
+    } catch (error: any) {
+      setErrorMessage(error?.message || 'Não foi possível enviar o email de confirmação.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const progressPercent = ((currentStep + 1) / steps.length) * 100;
   const selectedType = USER_TYPES.find(u => u.id === userType);
+
+  if (currentStep === -1) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: T.canvas, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
+        <div style={{ width: '100%', maxWidth: 480, background: T.white, border: `1px solid ${T.rule}`, borderRadius: 24, padding: 32, boxShadow: T.shadowLg }}>
+          <img src={orbisLinkLogo} alt="AgriLink" style={{ height: 48, margin: '0 auto 24px', display: 'block' }} />
+          <h1 style={{ margin: 0, textAlign: 'center', color: T.ink, fontSize: 25, fontWeight: 800 }}>Criar conta AgriLink</h1>
+          <p style={{ margin: '10px 0 24px', textAlign: 'center', color: T.muted, fontSize: 14 }}>Use o botão no email para confirmar a sua conta.</p>
+          <form onSubmit={handleOtpRegistration} style={{ display: 'grid', gap: 16 }}>
+            {errorMessage && <div style={{ color: '#B91C1C', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 12, padding: 12, fontSize: 13 }}>{errorMessage}</div>}
+            <input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Nome completo" required style={{ ...inputStyle, paddingLeft: 16 }} />
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" required style={{ ...inputStyle, paddingLeft: 16 }} />
+            <CountryPhoneInput value={phone} onChange={setPhone} selectedCountry={selectedCountry} onCountryChange={handleCountryChange} />
+            <button type="submit" disabled={loading} style={{ height: 50, border: 0, borderRadius: 999, background: loading ? T.muted : T.g600, color: T.white, fontWeight: 700, cursor: loading ? 'wait' : 'pointer' }}>{loading ? 'A enviar…' : 'Enviar código de confirmação'}</button>
+          </form>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '22px 0' }}><div style={{ flex: 1, height: 1, background: T.rule }} /><span style={{ color: T.faint, fontSize: 11 }}>OU</span><div style={{ flex: 1, height: 1, background: T.rule }} /></div>
+          <button type="button" onClick={handleGoogleSignUp} disabled={googleLoading} style={{ width: '100%', height: 50, borderRadius: 999, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, fontWeight: 700, cursor: googleLoading ? 'wait' : 'pointer' }}>{googleLoading ? 'A conectar…' : 'Continuar com Google'}</button>
+          <p style={{ textAlign: 'center', margin: '20px 0 0', color: T.muted, fontSize: 13 }}>Já tem conta? <Link to="/login" style={{ color: T.g600, fontWeight: 700 }}>Entrar</Link></p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row" style={{ backgroundColor: T.canvas, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>

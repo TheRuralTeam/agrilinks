@@ -65,10 +65,15 @@ const LoginPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || !password) return
+    if (!email) return
     setErrorMsg('')
     setLoading(true)
     try {
+      if (!password) {
+        await sendMagicLink({ email, next: '/app' })
+        toast({ title: 'Código enviado', description: 'Verifique o seu email e clique no botão para entrar.' })
+        return
+      }
       const { error } = await login(email, password)
       if (error) {
         if (
@@ -259,11 +264,10 @@ const LoginPage = () => {
                 <Lock style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.muted, width: 17, height: 17, pointerEvents: 'none' }} />
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
+                  placeholder="Opcional: deixe vazio para receber um código por email"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   style={{ ...inputStyle, paddingRight: '48px' }}
-                  required
                 />
                 <button
                   type="button"

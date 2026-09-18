@@ -159,7 +159,12 @@ const CountrySelector = ({
 const AppHome = () => {
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const { user, isAdmin } = useAuth()
+  const { user, userProfile, isAdmin } = useAuth()
+  const [showProfileSetup, setShowProfileSetup] = useState(false)
+
+  useEffect(() => {
+    if (user && userProfile && !userProfile.user_type) setShowProfileSetup(true)
+  }, [user, userProfile])
   const { requireAct } = useCanAct()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -374,6 +379,19 @@ const AppHome = () => {
   /* ── Main render ── */
   return (
     <div className="min-h-screen" style={{ background: T.canvas, fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif" }}>
+      <Dialog open={showProfileSetup} onOpenChange={setShowProfileSetup}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Conta criada com sucesso</DialogTitle>
+            <DialogDescription>
+              Vá a Configurações para definir o tipo de usuário e desbloquear os recursos adequados ao seu perfil.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => { setShowProfileSetup(false); navigate('/completar-perfil') }}>Ir para configurações</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ═══ HEADER ════════════════════════════════════════════════════════ */}
       <header style={{

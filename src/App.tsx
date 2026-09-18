@@ -79,7 +79,7 @@ const ProtectedRoute = ({ children, allowIncomplete = false, allowUnverified = f
  * Rota aberta: utilizadores autenticados passam pelas mesmas validações do
  * ProtectedRoute; visitantes entram em Modo Convidado (dados locais, 2h).
  */
-const OpenRoute = ({ children }: { children: React.ReactNode }) => {
+const OpenRoute = ({ children, allowIncomplete = false }: { children: React.ReactNode; allowIncomplete?: boolean }) => {
   const { user, userProfile, loading } = useAuth();
 
   if (loading) {
@@ -89,7 +89,7 @@ const OpenRoute = ({ children }: { children: React.ReactNode }) => {
   if (user) {
     const emailConfirmed = Boolean(user.email_confirmed_at) || userProfile?.email_verified === true;
     if (!emailConfirmed) return <Navigate to="/confirmar-email" replace />;
-    if (userProfile && !isProfileComplete(userProfile)) return <Navigate to="/completar-perfil" replace />;
+    if (!allowIncomplete && userProfile && !isProfileComplete(userProfile)) return <Navigate to="/completar-perfil" replace />;
   }
 
   return <>{children}</>;
@@ -119,7 +119,7 @@ const AppRoutes = () => {
         <Route
           path="/app"
           element={
-            <OpenRoute>
+            <OpenRoute allowIncomplete>
               <AppLayout>
                 <AppHome />
               </AppLayout>

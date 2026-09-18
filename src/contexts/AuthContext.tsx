@@ -15,6 +15,7 @@ interface AuthContextType {
   isSupportAgent: boolean
   login: (email: string, password: string) => Promise<{ error: any }>
   register: (userData: RegisterData) => Promise<{ error: any; data?: any }>
+  registerWithOtp: (data: { full_name: string; email: string; phone: string }) => Promise<{ error: any; data?: any }>
   signInWithGoogle: () => Promise<{ error: any }>
   logout: () => Promise<void>
   verifyEmail: (token: string) => Promise<{ error: any }>
@@ -267,13 +268,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  const registerWithOtp = async ({ full_name, email, phone }: { full_name: string; email: string; phone: string }) => {
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!normalizedEmail || !full_name.trim() || !phone.trim()) {
+      return { error: { message: 'Nome, email e telefone são obrigatórios.' }, data: null }
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signInWithOtp({
+        email: normalizedEmail,
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: buildAuthRedirectUrl('/app'),
+          data: {
+            full_name: full_name.trim(),
+            phone: phone.trim(),
+          },
+        },
+      })
+      return { error, data }
+    } catch (error: any) {
+      return { error, data: null }
+    }
+  }
+
   const signInWithGoogle = async () => {
     try {
       // O Supabase trata o callback OAuth internamente e depois devolve o utilizador
       // para este URL da aplicação. Não devemos apontar redirectTo para o endpoint
       // /auth/v1/callback do Supabase, nem enviar parâmetros extra para o Google
       // (isso provoca erro 400 "invalid_request" no ecrã de consentimento).
-      const appRedirectUrl = buildAuthRedirectUrl('/completar-perfil')
+      const appRedirectUrl = buildAuthRedirectUrl('/app')
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -348,6 +373,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isSupportAgent,
     login,
     register,
+    registerWithOtp,
     signInWithGoogle,
     logout,
     verifyEmail,
