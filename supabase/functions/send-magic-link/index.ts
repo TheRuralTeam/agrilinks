@@ -1,6 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 import { corsHeaders } from "../_shared/http.ts";
-import { sendResendEmail } from "../_shared/email.ts";
 import { z } from "npm:zod@3.23.8";
 
 const AuthTypeSchema = z.enum([
@@ -29,18 +28,6 @@ const ALLOWED_HOSTS = [
 
 const DEFAULT_REDIRECT =
   "https://agrilink.ao/auth/callback?next=/app";
-
-/**
- * Escapa HTML para evitar injeção no email.
- */
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
 
 /**
  * Verifica se a URL de redirect pertence a um domínio autorizado.
@@ -239,283 +226,30 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    /**
-     * Gera o Magic Link através do Supabase Auth.
-     *
-     * O token NÃO é criado manualmente.
-     */
-    const {
-      data: linkData,
-      error: linkError,
-    } = await supabaseAdmin.auth.admin.generateLink({
-      type: authType,
-      email,
-      options: {
-        redirectTo,
+    const subject = authType === "recovery"
+      ? "Recupere a sua palavra-passe — AgriLink"
+      : authType === "signup"
+        ? "Ative a sua conta — AgriLink"
+        : "Confirme o seu email — AgriLink";
+    const serviceKey = SUPABASE_SERVICE_ROLE_KEY;
+    const [queued, queueOk] = await fetch(`${SUPABASE_URL}/rest/v1/email_outbox`, {
+      method: "POST",
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation,resolution=ignore-duplicates",
       },
-    });
-
-    if (linkError) {
-      console.error(
-        "Supabase generateLink error:",
-        linkError,
-      );
-
-      return new Response(
-        JSON.stringify({
-          error:
-            "Não foi possível gerar o Magic Link.",
-          details: linkError.message,
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
-        },
-      );
-    }
-
-    /**
-     * O Supabase retorna o link de autenticação.
-     */
-    const hashedToken = linkData?.properties?.hashed_token;
-
-    if (!hashedToken) {
-      console.error(
-        "Supabase não retornou hashed_token.",
-        linkData,
-      );
-
-      return new Response(
-        JSON.stringify({
-          error:
-            "O Supabase não retornou um token de confirmação.",
-        }),
-        {
-          status: 500,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
-        },
-      );
-    }
-
-    // O email aponta primeiro para a aplicação. Scanners de segurança podem abrir
-    // esta URL, mas o token só é consumido quando a pessoa clica no botão da página.
-    const callbackUrl = new URL(redirectTo);
-    callbackUrl.searchParams.set("token_hash", hashedToken);
-    callbackUrl.searchParams.set("type", authType);
-    const actionLink = callbackUrl.toString();
-
-    /**
-     * Escapa nome para HTML.
-     */
-    const safeFullName =
-      escapeHtml(fullName);
-
-    /**
-     * HTML do email.
-     */
-    const subject =
-      authType === "recovery"
-        ? "Recupere a sua palavra-passe — AgriLink"
-        : authType === "signup"
-          ? "Ative a sua conta — AgriLink"
-          : "Confirme o seu email — AgriLink";
-
-    const html = `
-<!DOCTYPE html>
-<html lang="pt">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${escapeHtml(subject)}</title>
-</head>
-
-<body
-  style="
-    margin:0;
-    padding:0;
-    background:#f4f7f3;
-    font-family:Arial,Helvetica,sans-serif;
-  "
->
-  <div
-    style="
-      max-width:620px;
-      margin:0 auto;
-      padding:40px 18px;
-    "
-  >
-
-    <div
-      style="
-        background:#ffffff;
-        border:1px solid #dce7dc;
-        border-radius:18px;
-        overflow:hidden;
-      "
-    >
-
-      <!-- Header -->
-      <div
-        style="
-          padding:30px;
-          background:#f5faed;
-          border-bottom:4px solid #7cb342;
-        "
-      >
-        <h1
-          style="
-            margin:0;
-            color:#7cb342;
-            font-size:30px;
-          "
-        >
-          AgriLink
-        </h1>
-
-        <p
-          style="
-            margin:8px 0 0;
-            color:#405247;
-            font-size:13px;
-            font-weight:bold;
-            letter-spacing:1px;
-            text-transform:uppercase;
-          "
-        >
-          Confirmação de conta
-        </p>
-      </div>
-
-      <!-- Content -->
-      <div style="padding:34px 30px;">
-
-        <h2
-          style="
-            margin:0 0 12px;
-            color:#172019;
-            font-size:22px;
-          "
-        >
-          Olá, ${safeFullName}
-        </h2>
-
-        <p
-          style="
-            margin:0 0 26px;
-            color:#435248;
-            font-size:15px;
-            line-height:1.7;
-          "
-        >
-          Recebemos um pedido para aceder à sua
-          conta AgriLink. Clique no botão abaixo
-          para confirmar o seu email e continuar.
-        </p>
-
-        <!-- Button -->
-        <div
-          style="
-            text-align:center;
-            margin:30px 0;
-          "
-        >
-          <a
-            href="${actionLink}"
-            target="_blank"
-            style="
-              display:inline-block;
-              background:#7cb342;
-              color:#ffffff;
-              text-decoration:none;
-              font-weight:bold;
-              font-size:16px;
-              padding:16px 30px;
-              border-radius:10px;
-            "
-          >
-            Confirmar o meu email
-          </a>
-        </div>
-
-        <p
-          style="
-            margin:0;
-            color:#6b7d70;
-            font-size:13px;
-            line-height:1.6;
-          "
-        >
-          Este link é de utilização única e
-          expira de acordo com a configuração
-          do Supabase Auth.
-        </p>
-
-        <p
-          style="
-            margin-top:20px;
-            color:#98a99d;
-            font-size:12px;
-            line-height:1.5;
-            word-break:break-all;
-          "
-        >
-          Se o botão não funcionar, copie e cole
-          este endereço no navegador:
-          <br /><br />
-          ${escapeHtml(actionLink)}
-        </p>
-
-      </div>
-
-      <!-- Footer -->
-      <div
-        style="
-          padding:18px 30px;
-          background:#fafcf9;
-          border-top:1px solid #dce7dc;
-          text-align:center;
-        "
-      >
-        <p
-          style="
-            margin:0;
-            color:#9aaba0;
-            font-size:12px;
-          "
-        >
-          AgriLink · contacto@agrilink.ao
-        </p>
-      </div>
-
-    </div>
-
-  </div>
-</body>
-</html>
-`;
-
-    /**
-     * Envia pelo Resend.
-     */
-    const resendResult = await sendResendEmail({
-      to: email,
-      subject,
-      html,
-    });
-
-    console.log(
-      "Magic Link enviado:",
-      {
-        email,
-        resendId: resendResult?.id,
-      },
-    );
+      body: JSON.stringify({
+        dedupe_key: `auth:${authType}:${email}:${Math.floor(Date.now() / 60000)}`,
+        recipient: email,
+        subject,
+        template: authType === "recovery" ? "auth-recovery" : "auth-magic-link",
+        priority: 100,
+        payload: { email, full_name: fullName, redirect_to: redirectTo, auth_type: authType },
+      }),
+    }).then(async (response) => [await response.json().catch(() => null), response.ok] as const);
+    if (!queueOk) throw new Error(queued?.message || "Não foi possível agendar o link.");
 
     /**
      * Resposta final.
@@ -523,10 +257,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({
         success: true,
-        message:
-          "Magic Link enviado com sucesso.",
+        queued: true,
+        message: "Link agendado para envio.",
         email,
-        resend_id: resendResult?.id ?? null,
       }),
       {
         status: 200,

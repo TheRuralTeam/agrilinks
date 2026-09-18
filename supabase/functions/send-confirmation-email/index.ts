@@ -1,12 +1,6 @@
 import { z } from "npm:zod@3.23.8";
-import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 import { jsonResponse } from "../_shared/http.ts";
-import {
-  buildBrandEmailTemplate,
-  normalizeEmail,
-  safeRedirect,
-  sendResendEmail,
-} from "../_shared/email.ts";
+import { normalizeEmail, safeRedirect } from "../_shared/email.ts";
 
 const BodySchema = z.object({
   email: z.string().trim().email().max(255),
@@ -34,48 +28,33 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const email = normalizeEmail(parsed.data.email);
     const fullName = parsed.data.full_name?.trim() || "Agricultor";
     const redirectTo = safeRedirect(parsed.data.redirect_to, "https://agrilink.ao/auth/callback?next=%2Fapp");
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { autoRefreshToken: false, persistSession: false } },
-    );
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: "signup",
-      email,
-      options: { redirectTo },
-    });
-    if (linkError) throw linkError;
-    const hashedToken = linkData.properties?.hashed_token;
-    if (!hashedToken) throw new Error("O Supabase não retornou o token de confirmação.");
-    const actionUrl = new URL(redirectTo);
-    actionUrl.searchParams.set("token_hash", hashedToken);
-    actionUrl.searchParams.set("type", "signup");
-
-    const html = buildBrandEmailTemplate({
-      title: "Confirme a sua conta — AgriLink",
-      preheader: "Confirme o seu email para ativar a sua conta na AgriLink.",
-      headline: "Confirme a sua conta",
-      bodyHtml: `
-        <p style="margin:0 0 12px;">Olá ${fullName},</p>
-        <p style="margin:0 0 12px;">Obrigado por se juntar à AgriLink.</p>
-        <p style="margin:0 0 12px;">Para ativar a sua conta e começar a aproveitar a plataforma, confirme o seu endereço de e-mail.</p>
-      `,
-      ctaText: "Confirmar a minha conta",
-      ctaHref: actionUrl.toString(),
-      secondaryText: "Se você não criou esta conta, pode ignorar este e-mail.",
-    });
-
-    const result = await sendResendEmail({
-      to: email,
-      subject: "Confirme a sua conta — AgriLink",
-      html,
-    });
+    const [queued, queueOk] = await fetch(
+      `${Deno.env.get("SUPABASE_URL")}/rest/v1/email_outbox`,
+      {
+        method: "POST",
+        headers: {
+          apikey: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}`,
+          "Content-Type": "application/json",
+          Prefer: "return=representation,resolution=ignore-duplicates",
+        },
+        body: JSON.stringify({
+          dedupe_key: `auth:signup:${email}:${Math.floor(Date.now() / 60000)}`,
+          recipient: email,
+          subject: "Confirme a sua conta — AgriLink",
+          template: "auth-signup",
+          priority: 100,
+          payload: { full_name: fullName, redirect_to: redirectTo, email },
+        }),
+      },
+    ).then(async (response) => [await response.json().catch(() => null), response.ok] as const);
+    if (!queueOk) throw new Error(queued?.message || "Não foi possível agendar a confirmação.");
 
     return jsonResponse({
       success: true,
-      message: "Confirmação enviada com sucesso.",
+      queued: true,
+      message: "Confirmação agendada para envio.",
       email,
-      resend_id: result?.id ?? null,
     }, 200);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Erro interno ao enviar confirmação.";
