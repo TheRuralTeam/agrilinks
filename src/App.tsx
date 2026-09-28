@@ -29,7 +29,6 @@ const ConversationsList = lazy(() => import("./pages/ConversationsList"));
 const Support = lazy(() => import("./pages/Support"));
 const PublishProduct = lazy(() => import("./pages/PublishProduct"));
 const MarketData = lazy(() => import("./pages/MarketData"));
-const Wallet = lazy(() => import("./pages/Wallet"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const FichaRecebimento = lazy(() => import("./pages/FichaRecebimento"));
 const CriarContratoFuturos = lazy(() => import("./pages/CriarContratoFuturos"));
@@ -220,9 +219,7 @@ const AppRoutes = () => {
           path="/carteira"
           element={
             <ProtectedRoute>
-              <AppLayout>
-                <Wallet />
-              </AppLayout>
+              <Navigate to="/perfil" replace />
             </ProtectedRoute>
           }
         />

@@ -2035,6 +2035,10 @@ export type Database = {
       }
       admin_delete_product: { Args: { p_product_id: string }; Returns: boolean }
       admin_delete_user: { Args: { p_user_id: string }; Returns: boolean }
+      admin_update_pre_order_status: {
+        Args: { p_order_id: string; p_status: string }
+        Returns: { id: string; status: string; updated_at: string }[]
+      }
       admin_reject_product: {
         Args: { p_product_id: string; p_reason?: string }
         Returns: boolean
@@ -2165,6 +2169,10 @@ export type Database = {
       request_email_confirmation: {
         Args: { user_email: string }
         Returns: Json
+      }
+      respond_to_pre_order: {
+        Args: { p_order_id: string; p_status: string }
+        Returns: { id: string; status: string; updated_at: string }[]
       }
       send_message:
         | {

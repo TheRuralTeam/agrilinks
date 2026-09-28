@@ -71,7 +71,7 @@ const BottomNavigation = () => {
     <>
       <div className="h-24" aria-hidden="true" />
 
-      <nav className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-2xl rounded-2xl border border-border/70 bg-card/90 p-1.5 shadow-medium backdrop-blur-xl supports-[padding:max(0px)]:pb-[max(0.375rem,env(safe-area-inset-bottom))]" aria-label="Navegação principal">
+      <nav className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-2xl rounded-2xl border border-border/70 bg-white p-1.5 shadow-medium supports-[padding:max(0px)]:pb-[max(0.375rem,env(safe-area-inset-bottom))]" aria-label="Navegação principal">
         <div className="flex items-center justify-around gap-0.5">
           {navItems.map((item) => {
             const active = isActive(item.path)
@@ -85,7 +85,7 @@ const BottomNavigation = () => {
                   isAction
                     ? 'bg-primary text-primary-foreground shadow-soft active:scale-[0.97]'
                     : active
-                      ? 'bg-primary/10 text-primary'
+                      ? 'bg-primary text-primary-foreground'
                       : 'hover:bg-muted active:bg-muted/80'
                 }`}
                 aria-current={active ? 'page' : undefined}

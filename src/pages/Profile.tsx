@@ -18,6 +18,10 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from '../hooks/use-toast'
 import { getProfileDisplayName, getProfileRoleLabel, resolveAvatarUrl } from '../lib/profileDisplay'
 import { sanitizePublicProfile, isNeutralPublicView } from '../lib/publicData'
+import { getWalletBalance } from '../features/wallet/walletService'
+import type { WalletBalance } from '../features/wallet/walletDomain'
+import { WalletSummaryCard } from '../features/wallet/WalletSummaryCard'
+import { respondToPreOrder } from '../features/orders/adminPreOrderService'
 
 /* ─── Design tokens ──────────────────────────────────────────────────────────
    Mesma fonte de verdade da landing (../lib/brand). Os campos abaixo com
@@ -36,16 +40,6 @@ const T: any = {
   gBorder: (Brand as any).gBorder ?? Brand.rule,
   shadow: (Brand as any).shadow ?? 'rgba(17,23,20,0.05)',
 };
-
-// Cores por papel — as mesmas já usadas nos cartões de papéis da landing.
-// Reaproveitadas aqui para dar identidade visual a cada tipo de conta em
-// vez de tratar agricultor/agente/comprador/motorista todos da mesma cor.
-const ROLE_ACCENT: Record<string, string> = {
-  agricultor: '#2D7D3A',
-  agente: '#C6871E',
-  comprador: '#2563EB',
-  motorista: '#DB6B1F',
-}
 
 const FONT = "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
 const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)'
@@ -116,7 +110,7 @@ const TabBtn = ({ active, onClick, icon, label, badge, accent }: { active: boole
     position: 'relative', flexShrink: 0, whiteSpace: 'nowrap',
   }}>
     {icon}
-    <span className="hidden sm:inline">{label}</span>
+    <span>{label}</span>
     {badge !== undefined && badge > 0 && (
       <span style={{ minWidth: 16, height: 16, padding: '0 4px', borderRadius: 20, background: '#EF4444', color: T.white, fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{badge}</span>
     )}
@@ -258,6 +252,7 @@ const Profile = () => {
   const { t } = useTranslation()
   const { user, userProfile: realProfile, logout } = useAuth()
   const { isGuest } = useGuestGate()
+  const authenticatedUserId = user?.id
   const userProfile: any = React.useMemo(
     () => realProfile || (isGuest ? { ...GUEST_PROFILE, ...getGuestProfile() } : null),
     [realProfile, isGuest]
@@ -268,6 +263,10 @@ const Profile = () => {
   const [userProducts, setUserProducts] = useState<UserProduct[]>([])
   const [fichasRecebimento, setFichasRecebimento] = useState<FichaRecebimento[]>([])
   const [receivedOrders, setReceivedOrders] = useState<ReceivedOrder[]>([])
+  const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null)
+  const [walletBalanceOwnerId, setWalletBalanceOwnerId] = useState<string | null>(null)
+  const [walletLoading, setWalletLoading] = useState(false)
+  const [walletError, setWalletError] = useState(false)
   const [loading, setLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)
   const [avatarLoading, setAvatarLoading] = useState(false)
@@ -289,7 +288,7 @@ const Profile = () => {
   const profileDisplayName = getProfileDisplayName((publicProfile as any) || profileData)
   const profileRoleLabel = getProfileRoleLabel((publicProfile as any)?.user_type || userProfile?.user_type)
   const profileAvatarUrl = resolveAvatarUrl((publicProfile as any)?.avatar_url || userProfile?.avatar_url)
-  const roleAccent = ROLE_ACCENT[userProfile?.user_type as string] || T.g600
+  const roleAccent = T.g600
   const memberCode = (userProfile as any)?.agent_code || (user?.id ? user.id.slice(0, 8).toUpperCase() : '—')
 
   const [sourcingRequests, setSourcingRequests] = useState<SourcingRequest[]>([])
@@ -410,6 +409,37 @@ const Profile = () => {
   }, [user, userProfile, isGuest, fetchAgentStats, fetchBuyerStats, fetchFichasRecebimento, fetchReceivedOrders, fetchSourcingRequests, fetchUserProducts])
 
   useEffect(() => {
+    if (!authenticatedUserId || isGuest) {
+      setWalletBalance(null)
+      setWalletLoading(false)
+      setWalletError(false)
+      return
+    }
+
+    let isCurrent = true
+    setWalletBalance(null)
+    setWalletBalanceOwnerId(null)
+    setWalletLoading(true)
+    setWalletError(false)
+
+    getWalletBalance(authenticatedUserId)
+      .then((balance) => {
+        if (isCurrent) {
+          setWalletBalance(balance)
+          setWalletBalanceOwnerId(authenticatedUserId)
+        }
+      })
+      .catch(() => {
+        if (isCurrent) setWalletError(true)
+      })
+      .finally(() => {
+        if (isCurrent) setWalletLoading(false)
+      })
+
+    return () => { isCurrent = false }
+  }, [authenticatedUserId, isGuest])
+
+  useEffect(() => {
     if (userProfile) {
       setProfileData({ full_name: userProfile.full_name || '', phone: userProfile.phone || '', email: userProfile.email || user?.email || '', province_id: userProfile.province_id || '', municipality_id: userProfile.municipality_id || '' })
       setProvinceName(userProfile.province_id)
@@ -452,20 +482,21 @@ const Profile = () => {
 
   const acceptOrder = async (orderId: string) => {
     try {
-      const { error } = await supabase.from('pre_orders').update({ status: 'accepted' }).eq('id', orderId)
-      if (error) throw error
-      setReceivedOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'accepted' } : o))
+      const updatedOrder = await respondToPreOrder(orderId, 'accepted')
+      setReceivedOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: updatedOrder.status } : o))
       toast({ title: 'Pedido aceite.' })
-    } catch { toast({ title: 'Erro ao aceitar pedido', variant: 'destructive' } as any) }
+    } catch (error: any) { toast({ title: 'Erro ao aceitar pedido', description: error.message, variant: 'destructive' } as any) }
   }
 
   const rejectOrder = async (orderId: string) => {
     if (!confirm('Deseja rejeitar este pedido?')) return
     try {
-      const { error } = await supabase.from('pre_orders').update({ status: 'rejected' }).eq('id', orderId)
-      if (error) throw error
-      setReceivedOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'rejected' } : o))
-    } catch { console.error('Erro ao rejeitar') }
+      const updatedOrder = await respondToPreOrder(orderId, 'rejected')
+      setReceivedOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: updatedOrder.status } : o))
+    } catch (error: any) {
+      console.error('Erro ao rejeitar pedido:', error)
+      toast({ title: 'Erro ao rejeitar pedido', description: error.message, variant: 'destructive' } as any)
+    }
   }
 
   const contactBuyer = async (order: ReceivedOrder) => {
@@ -529,14 +560,14 @@ const Profile = () => {
       {/* ═══ HEADER ═══════════════════════════════════════════════════════════ */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 30,
-        background: 'rgba(247,249,247,0.72)', backdropFilter: 'saturate(180%) blur(20px)', WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+        background: 'rgba(255,255,255,0.92)', backdropFilter: 'saturate(180%) blur(20px)', WebkitBackdropFilter: 'saturate(180%) blur(20px)',
         borderBottom: `1px solid ${T.rule}`,
       }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="ag-profile-toolbar" style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h1 style={{ fontFamily: FONT, fontSize: 17, fontWeight: 700, color: T.ink, margin: 0, letterSpacing: '-0.01em' }}>
             {t('profile.title')}
           </h1>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="ag-profile-actions" style={{ display: 'flex', gap: 8 }}>
             <Btn variant="outline" size="sm" onClick={() => navigate('/contratos')}>
               <FileSignature size={14}/> <span className="hidden sm:inline">Contratos</span>
             </Btn>
@@ -569,7 +600,7 @@ const Profile = () => {
                   <div style={{
                     width: 64, height: 64, borderRadius: '50%',
                     border: `2px solid ${roleAccent}33`,
-                    background: `linear-gradient(135deg, ${roleAccent}, ${T.g400})`,
+                    background: roleAccent,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
                   }}>
                     {profileAvatarUrl
@@ -597,7 +628,7 @@ const Profile = () => {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: roleAccent, flexShrink: 0 }} />
-                    <span style={{ fontSize: 13, color: T.muted, fontWeight: 600 }}>{userProfile?.user_type}</span>
+                    <span style={{ fontSize: 13, color: T.muted, fontWeight: 600 }}>{profileRoleLabel}</span>
                   </div>
                 </div>
               </div>
@@ -642,6 +673,15 @@ const Profile = () => {
               </div>
             </div>
           </div>
+
+          {user && !isGuest && (
+            <WalletSummaryCard
+              key={authenticatedUserId}
+              balance={walletBalanceOwnerId === authenticatedUserId ? walletBalance : null}
+              loading={walletLoading}
+              error={walletError}
+            />
+          )}
 
           <div style={{ animation: `ag-fade-up 0.5s ${EASE} 0.06s both` }}>
             <StatsStrip items={statItems} />
@@ -957,6 +997,9 @@ const Profile = () => {
 
         @media (max-width: 480px) {
           .ag-layout { padding: 18px 14px !important; gap: 14px !important; }
+          .ag-profile-toolbar { padding: 0 14px !important; }
+          .ag-profile-actions { gap: 5px !important; }
+          .ag-profile-actions .ag-btn { padding-left: 9px !important; padding-right: 9px !important; }
         }
 
         @media (min-width: 1024px) {
@@ -965,7 +1008,6 @@ const Profile = () => {
         @media (min-width: 640px) {
           .sm\\:grid-cols-2 { grid-template-columns: 1fr 1fr !important; }
           .sm\\:inline { display: inline !important; }
-          .hidden { display: none; }
         }
         @media (prefers-reduced-motion: reduce) {
           *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }

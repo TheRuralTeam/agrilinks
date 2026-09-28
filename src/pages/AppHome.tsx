@@ -30,19 +30,19 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 
 const CATEGORIES = [
-  { id: 'all',     label: 'Todos',      icon: faLayerGroup,    color: '#1A5C24' },
-  { id: 'frutas',  label: 'Frutas',     icon: faAppleWhole,    color: '#E63946' },
-  { id: 'citrus',  label: 'Cítricos',   icon: faLemon,         color: '#F4A100' },
-  { id: 'legumes', label: 'Legumes',    icon: faCarrot,        color: '#E07A12' },
-  { id: 'verduras',label: 'Verduras',   icon: faSeedling,      color: '#3D9A48' },
-  { id: 'cereais', label: 'Cereais',    icon: faWheatAwn,      color: '#B07D0A' },
-  { id: 'tempero', label: 'Temperos',   icon: faPepperHot,     color: '#C53030' },
-  { id: 'pescado', label: 'Pescado',    icon: faFish,          color: '#2563B0' },
-  { id: 'carnes',  label: 'Carnes',     icon: faDrumstickBite, color: '#8B2E2E' },
-  { id: 'ovos',    label: 'Ovos',       icon: faEgg,           color: '#D4A24C' },
-  { id: 'paes',    label: 'Pães',       icon: faBreadSlice,    color: '#A0522D' },
-  { id: 'lacteos', label: 'Lácteos',    icon: faCheese,        color: '#E5A020' },
-  { id: 'bebidas', label: 'Bebidas',    icon: faMugHot,        color: '#5C3317' },
+  { id: 'all',     label: 'Todos',      icon: faLayerGroup,    color: T.green },
+  { id: 'frutas',  label: 'Frutas',     icon: faAppleWhole,    color: T.green },
+  { id: 'citrus',  label: 'Cítricos',   icon: faLemon,         color: T.green },
+  { id: 'legumes', label: 'Legumes',    icon: faCarrot,        color: T.green },
+  { id: 'verduras',label: 'Verduras',   icon: faSeedling,      color: T.green },
+  { id: 'cereais', label: 'Cereais',    icon: faWheatAwn,      color: T.green },
+  { id: 'tempero', label: 'Temperos',   icon: faPepperHot,     color: T.green },
+  { id: 'pescado', label: 'Pescado',    icon: faFish,          color: T.green },
+  { id: 'carnes',  label: 'Carnes',     icon: faDrumstickBite, color: T.green },
+  { id: 'ovos',    label: 'Ovos',       icon: faEgg,           color: T.green },
+  { id: 'paes',    label: 'Pães',       icon: faBreadSlice,    color: T.green },
+  { id: 'lacteos', label: 'Lácteos',    icon: faCheese,        color: T.green },
+  { id: 'bebidas', label: 'Bebidas',    icon: faMugHot,         color: T.green },
 ]
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
@@ -76,7 +76,7 @@ const ProductSkeleton = () => (
 /* ─── Jumping fruit mascot (empty / offline states) ─────────────────────────── */
 const JumpingMascot = ({ offline = false }: { offline?: boolean }) => {
   const fruits = [faAppleWhole, faCarrot, faLemon]
-  const fruitColors = ['#E63946', '#E07A12', '#F4A100']
+  const fruitColors = [T.green, T.green, T.green]
   return (
     <div style={{ position:'relative', width:120, height:90, marginBottom:8 }}>
       {fruits.map((icon, i) => (

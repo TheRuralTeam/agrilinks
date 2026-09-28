@@ -5,81 +5,81 @@
 @tailwind utilities;
 
 /* =========================================================
-   OrbisLink B2B Platform - Advanced Design System
-   ========================================================= */
+  AgriLink — white and official brand-green design foundation
+  ========================================================= */
 
 @layer base {
   :root {
-    /* Background System — Fresh light canvas */
+    /* Brand palette: white and AgriLink green (#2c863b). */
     --background: 0 0% 100%;
-    --background-secondary: 130 20% 97%;
-    --foreground: 95 40% 10%;
+    --background-secondary: 0 0% 100%;
+    --foreground: 0 0% 0%;
 
-    /* Card System */
+    /* Surfaces */
     --card: 0 0% 100%;
-    --card-foreground: 95 40% 10%;
-    --card-border: 88 30% 86%;
+    --card-foreground: 0 0% 0%;
+    --card-border: 130 51% 35% / 0.24;
 
-    /* Popover */
+    /* Popovers */
     --popover: 0 0% 100%;
-    --popover-foreground: 95 40% 10%;
+    --popover-foreground: 0 0% 0%;
 
-    /* Primary Brand — Verde Alface #7CB342 (unified across platform) */
+    /* Primary brand green */
     --primary: 130 51% 35%;
     --primary-light: 130 51% 35%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 130 51% 29%;
-    --primary-glow: 130 51% 45%;
+    --primary-hover: 130 51% 35%;
+    --primary-glow: 130 51% 35%;
 
-    /* Secondary — Pale Lettuce */
-    --secondary: 125 39% 94%;
-    --secondary-light: 128 35% 97%;
-    --secondary-foreground: 95 40% 14%;
+    /* Secondary surfaces use white; emphasis comes from green. */
+    --secondary: 0 0% 100%;
+    --secondary-light: 0 0% 100%;
+    --secondary-foreground: 0 0% 0%;
 
-    /* Business — Deep Lettuce (same hue family, darker) */
+    /* Business */
     --business: 130 51% 35%;
     --business-light: 130 51% 35%;
     --business-foreground: 0 0% 100%;
 
-    /* Accent — OrbisLink Gold #B07D0A */
-    --accent: 41 89% 36%;
-    --accent-light: 39 75% 47%;
+    /* Compatibility aliases stay within the brand palette. */
+    --accent: 130 51% 35%;
+    --accent-light: 130 51% 35%;
     --accent-foreground: 0 0% 100%;
-    --accent-hover: 41 92% 30%;
+    --accent-hover: 130 51% 35%;
 
     /* Muted */
-    --muted: 88 25% 94%;
-    --muted-foreground: 95 14% 38%;
+    --muted: 0 0% 100%;
+    --muted-foreground: 0 0% 0%;
 
-    /* Status — derived from lettuce */
+    /* Status aliases retain textual and icon cues, not extra palette colors. */
     --success: 130 51% 35%;
     --success-foreground: 0 0% 100%;
-    --warning: 41 89% 40%;
+    --warning: 130 51% 35%;
     --warning-foreground: 0 0% 100%;
-    --destructive: 0 65% 48%;
+    --destructive: 130 51% 35%;
     --destructive-foreground: 0 0% 100%;
 
     /* Borders */
-    --border: 88 26% 87%;
-    --border-strong: 88 26% 74%;
-    --input: 88 26% 90%;
+    --border: 130 51% 35% / 0.24;
+    --border-strong: 130 51% 35% / 0.48;
+    --input: 130 51% 35% / 0.32;
     --ring: 130 51% 35%;
 
-    /* Gradients — single green family */
-    --gradient-primary: linear-gradient(135deg, hsl(130 51% 35%), hsl(130 51% 42%));
-    --gradient-business: linear-gradient(135deg, hsl(130 51% 35%), hsl(130 51% 42%));
-    --gradient-hero: linear-gradient(145deg, hsl(130 51% 35%) 0%, hsl(130 51% 40%) 60%, hsl(130 51% 46%) 100%);
-    --gradient-gold: linear-gradient(135deg, hsl(41 89% 36%), hsl(39 75% 47%));
-    --gradient-card: linear-gradient(160deg, hsl(0 0% 100%) 0%, hsl(88 40% 98%) 100%);
-    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(84 38% 97%) 100%);
+    /* Legacy gradient utilities resolve to solid brand colors. */
+    --gradient-primary: linear-gradient(135deg, #2c863b, #2c863b);
+    --gradient-business: linear-gradient(135deg, #2c863b, #2c863b);
+    --gradient-hero: linear-gradient(145deg, #2c863b, #2c863b);
+    --gradient-gold: linear-gradient(135deg, #2c863b, #2c863b);
+    --gradient-card: linear-gradient(160deg, #ffffff, #ffffff);
+    --gradient-surface: linear-gradient(180deg, #ffffff, #ffffff);
 
     /* Shadows */
-    --shadow-xs: 0 1px 2px 0 hsl(95 40% 10% / 0.04);
-    --shadow-soft: 0 3px 12px -4px hsl(95 40% 10% / 0.10);
-    --shadow-medium: 0 8px 24px -8px hsl(95 40% 10% / 0.14);
-    --shadow-strong: 0 16px 40px -12px hsl(95 40% 10% / 0.18);
-    --shadow-glow: 0 0 32px hsl(88 55% 55% / 0.35);
-    --shadow-inner: inset 0 1px 2px hsl(95 40% 10% / 0.06);
+    --shadow-xs: 0 1px 2px 0 hsl(130 51% 35% / 0.04);
+    --shadow-soft: 0 3px 12px -4px hsl(130 51% 35% / 0.10);
+    --shadow-medium: 0 8px 24px -8px hsl(130 51% 35% / 0.14);
+    --shadow-strong: 0 16px 40px -12px hsl(130 51% 35% / 0.18);
+    --shadow-glow: 0 0 32px hsl(130 51% 35% / 0.20);
+    --shadow-inner: inset 0 1px 2px hsl(130 51% 35% / 0.06);
 
     /* Animations */
     --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
@@ -90,12 +90,12 @@
 
     /* Sidebar */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 95 40% 14%;
+    --sidebar-foreground: 0 0% 0%;
     --sidebar-primary: 130 51% 35%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 88 25% 94%;
-    --sidebar-accent-foreground: 140 35% 12%;
-    --sidebar-border: 95 22% 88%;
+    --sidebar-accent: 0 0% 100%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 130 51% 35% / 0.24;
     --sidebar-ring: 130 51% 35%;
 
     /* Safe areas */
@@ -108,120 +108,127 @@
        Map & Satellite Panel palette — Verde Alface (Lettuce Green)
        Consumed via var(--map-*) in MapView.tsx and SatelliteMonitor.tsx
        ============================================================ */
-    --map-g950: #15240C;
-    --map-g900: #1E3211;
-    --map-g800: #2B4818;
-    --map-g700: #3C6622;
-    --map-g600: #58932F;
-    --map-g500: #7CB342;
-    --map-g400: #98C863;
-    --map-g200: #D4E9B4;
-    --map-g100: #ECF5DC;
-    --map-g50:  #F6FAEC;
-    --map-gborder: #C9E0A4;
-    --map-accent:   #3C6622;
-    --map-accent-l: #58932F;
-    --map-accent-bg:#ECF5DC;
-    --map-ink:    #0C1311;
-    --map-slate:  #243329;
-    --map-mid:    #3A4D40;
-    --map-muted:  #6B8070;
-    --map-faint:  #9DB5A4;
-    --map-rule:   #DDE8DF;
-    --map-canvas: #F4F7F5;
-    --map-surface:#FAFCFA;
+    --map-g950: #2C863B;
+    --map-g900: #2C863B;
+    --map-g800: #2C863B;
+    --map-g700: #2C863B;
+    --map-g600: #2C863B;
+    --map-g500: #2C863B;
+    --map-g400: #2C863B;
+    --map-g200: #FFFFFF;
+    --map-g100: #FFFFFF;
+    --map-g50:  #FFFFFF;
+    --map-gborder: #2C863B;
+    --map-accent:   #2C863B;
+    --map-accent-l: #2C863B;
+    --map-accent-bg:#FFFFFF;
+    --map-ink:    #2C863B;
+    --map-slate:  #2C863B;
+    --map-mid:    #2C863B;
+    --map-muted:  #2C863B;
+    --map-faint:  #2C863B;
+    --map-rule:   #2C863B;
+    --map-canvas: #FFFFFF;
+    --map-surface:#FFFFFF;
     --map-white:  #FFFFFF;
-    --map-gold:   #92660A;
-    --map-gold-l: #C78B12;
-    --map-gold-bg:#FDF6E3;
-    --map-danger: #DC2626;
-    --map-danger-bg:#FEF2F2;
-    --map-blue:   #1D4ED8;
-    --map-blue-bg:#EFF6FF;
-    --map-shadow:    rgba(10,35,16,0.08);
-    --map-shadow-md: rgba(10,35,16,0.14);
-    --map-shadow-lg: rgba(10,35,16,0.20);
+    --map-gold:   #2C863B;
+    --map-gold-l: #2C863B;
+    --map-gold-bg:#FFFFFF;
+    --map-danger: #2C863B;
+    --map-danger-bg:#FFFFFF;
+    --map-blue:   #2C863B;
+    --map-blue-bg:#FFFFFF;
+    --map-shadow:    rgba(44,134,59,0.08);
+    --map-shadow-md: rgba(44,134,59,0.14);
+    --map-shadow-lg: rgba(44,134,59,0.20);
   }
 
   .dark {
-    --background: 95 35% 6%;
-    --background-secondary: 95 30% 9%;
-    --foreground: 84 25% 95%;
+    --background: 0 0% 100%;
+    --background-secondary: 0 0% 100%;
+    --foreground: 0 0% 0%;
 
-    --card: 95 30% 9%;
-    --card-foreground: 84 25% 95%;
-    --card-border: 90 22% 18%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --card-border: 130 51% 35% / 0.24;
 
-    --popover: 95 30% 9%;
-    --popover-foreground: 84 25% 95%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
 
-    --primary: 122 39% 49%;
-    --primary-light: 128 43% 58%;
-    --primary-foreground: 95 40% 8%;
-    --primary-hover: 129 50% 35%;
+    --primary: 130 51% 35%;
+    --primary-light: 130 51% 35%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 130 51% 35%;
 
-    --secondary: 95 22% 16%;
-    --secondary-light: 95 22% 22%;
-    --secondary-foreground: 84 25% 95%;
+    --secondary: 0 0% 100%;
+    --secondary-light: 0 0% 100%;
+    --secondary-foreground: 0 0% 0%;
+    --business: 130 51% 35%;
+    --business-light: 130 51% 35%;
+    --business-foreground: 0 0% 100%;
 
-    --muted: 95 22% 14%;
-    --muted-foreground: 88 14% 65%;
+    --muted: 0 0% 100%;
+    --muted-foreground: 0 0% 0%;
+    --success: 130 51% 35%;
+    --success-foreground: 0 0% 100%;
+    --warning: 130 51% 35%;
+    --warning-foreground: 0 0% 100%;
 
-    --accent: 41 75% 50%;
-    --accent-light: 39 70% 60%;
-    --accent-foreground: 95 40% 8%;
+    --accent: 130 51% 35%;
+    --accent-light: 130 51% 35%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 65% 45%;
+    --destructive: 130 51% 35%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 95 22% 16%;
-    --border-strong: 95 22% 24%;
-    --input: 95 22% 16%;
-    --ring: 122 39% 49%;
+    --border: 130 51% 35% / 0.24;
+    --border-strong: 130 51% 35% / 0.48;
+    --input: 130 51% 35% / 0.32;
+    --ring: 130 51% 35%;
 
-    --sidebar-background: 95 30% 7%;
-    --sidebar-foreground: 84 25% 92%;
-    --sidebar-primary: 122 39% 49%;
-    --sidebar-primary-foreground: 95 40% 8%;
-    --sidebar-accent: 95 22% 14%;
-    --sidebar-accent-foreground: 84 25% 92%;
-    --sidebar-border: 95 22% 16%;
-    --sidebar-ring: 122 39% 49%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-primary: 130 51% 35%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 100%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 130 51% 35% / 0.24;
+    --sidebar-ring: 130 51% 35%;
 
-    /* Map & Satellite Panel — dark mode (Verde Alface preservada) */
-    --map-g950: #ECF5DC;
-    --map-g900: #D4E9B4;
-    --map-g800: #98C863;
-    --map-g700: #B0D67A;
-    --map-g600: #98C863;
-    --map-g500: #7CB342;
-    --map-g400: #58932F;
-    --map-g200: #2B4818;
-    --map-g100: #1E3211;
-    --map-g50:  #15240C;
-    --map-gborder: #3C6622;
-    --map-accent:   #98C863;
-    --map-accent-l: #B0D67A;
-    --map-accent-bg:#1E3211;
-    --map-ink:    #ECF5DC;
-    --map-slate:  #D4E9B4;
-    --map-mid:    #98C863;
-    --map-muted:  #7C9882;
-    --map-faint:  #5A7060;
-    --map-rule:   #2B4818;
-    --map-canvas: #0B1408;
-    --map-surface:#15240C;
-    --map-white:  #1E3211;
-    --map-gold:   #E0A52A;
-    --map-gold-l: #F2C156;
-    --map-gold-bg:#2A1F08;
-    --map-danger: #F87171;
-    --map-danger-bg:#2A1414;
-    --map-blue:   #60A5FA;
-    --map-blue-bg:#0F1A2A;
-    --map-shadow:    rgba(0,0,0,0.45);
-    --map-shadow-md: rgba(0,0,0,0.60);
-    --map-shadow-lg: rgba(0,0,0,0.75);
+    /* Map overlays retain the same two brand colors in dark mode. */
+    --map-g950: #FFFFFF;
+    --map-g900: #FFFFFF;
+    --map-g800: #FFFFFF;
+    --map-g700: #FFFFFF;
+    --map-g600: #FFFFFF;
+    --map-g500: #FFFFFF;
+    --map-g400: #FFFFFF;
+    --map-g200: #2C863B;
+    --map-g100: #2C863B;
+    --map-g50:  #2C863B;
+    --map-gborder: #FFFFFF;
+    --map-accent:   #FFFFFF;
+    --map-accent-l: #FFFFFF;
+    --map-accent-bg:#2C863B;
+    --map-ink:    #FFFFFF;
+    --map-slate:  #FFFFFF;
+    --map-mid:    #FFFFFF;
+    --map-muted:  #FFFFFF;
+    --map-faint:  #FFFFFF;
+    --map-rule:   #FFFFFF;
+    --map-canvas: #2C863B;
+    --map-surface:#2C863B;
+    --map-white:  #2C863B;
+    --map-gold:   #FFFFFF;
+    --map-gold-l: #FFFFFF;
+    --map-gold-bg:#2C863B;
+    --map-danger: #FFFFFF;
+    --map-danger-bg:#2C863B;
+    --map-blue:   #FFFFFF;
+    --map-blue-bg:#2C863B;
+    --map-shadow:    rgba(255,255,255,0.12);
+    --map-shadow-md: rgba(255,255,255,0.20);
+    --map-shadow-lg: rgba(255,255,255,0.28);
   }
 
   * {

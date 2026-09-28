@@ -66,6 +66,12 @@ import WorkSessionTimer from "../components/admin/WorkSessionTimer";
 import MarketPricesManager from "../components/admin/MarketPricesManager";
 
 import { useWorkSession } from "../hooks/useWorkSession";
+import {
+  getAdminPreOrderStatusLabel,
+  isAdminPreOrderStatusFinal,
+  type AdminPreOrderStatus,
+} from "../features/orders/adminPreOrderStatus";
+import { setAdminPreOrderStatus } from "../features/orders/adminPreOrderService";
 
 type AdminPermission = "manage_users" | "manage_products" | "manage_orders" | "manage_support" | "manage_sourcing" | "view_analytics" | "manage_admins";
 
@@ -243,6 +249,7 @@ const COLORS = ['#22c55e', '#f59e0b', '#ef4444', '#3b82f6'];
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [updatingOrders, setUpdatingOrders] = useState<Set<string>>(() => new Set());
   const [products, setProducts] = useState<Product[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -345,18 +352,10 @@ const AdminDashboard = () => {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      const { data } = await supabase.from("pre_orders").select("*").order("created_at", { ascending: false });
-      if (data) setOrders(data);
-    };
-    fetchOrders();
-  }, []);
-
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [prodRes, usersRes, transRes, notRes, fichasRes, sourcingRes, topAgentsRes, referralsRes] = await Promise.all([
+      const [prodRes, usersRes, transRes, notRes, fichasRes, sourcingRes, topAgentsRes, referralsRes, ordersRes] = await Promise.all([
         supabase.from("products").select("*").order("created_at", { ascending: false }),
         supabase.from("users").select("*").order("created_at", { ascending: false }),
         supabase.from("transactions").select("*").order("created_at", { ascending: false }),
@@ -365,6 +364,7 @@ const AdminDashboard = () => {
         supabase.from("sourcing_requests").select("*").order("created_at", { ascending: false }),
         supabase.rpc("get_top_agents_by_referrals", { limit_count: 3 }),
         supabase.from("agent_referrals").select("*").order("created_at", { ascending: false }),
+        supabase.from("pre_orders").select("*").order("created_at", { ascending: false }),
       ]);
       setProducts(prodRes.data || []);
       setUsers(usersRes.data || []);
@@ -373,6 +373,12 @@ const AdminDashboard = () => {
       setFichas(fichasRes.data || []);
       setSourcingRequests(sourcingRes.data || []);
       setTopAgents(topAgentsRes.data || []);
+      if (ordersRes.error) {
+        console.error("Erro ao carregar pedidos:", ordersRes.error);
+        toast.error("Não foi possível carregar os pedidos.");
+      } else {
+        setOrders(ordersRes.data || []);
+      }
       
       // Process referrals with user data
       if (referralsRes.data && usersRes.data) {
@@ -535,13 +541,33 @@ const AdminDashboard = () => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   }, []);
 
-  const updateOrderStatus = useCallback(async (orderId: string, newStatus: string) => {
-    const { error } = await supabase.from("pre_orders").update({ status: newStatus }).eq("id", orderId);
-    if (!error) {
-      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
-      toast.success(`Status atualizado para ${newStatus}`);
+  const updateOrderStatus = useCallback(async (orderId: string, newStatus: AdminPreOrderStatus) => {
+    if (!isSupportAgent && !hasPermission("manage_orders")) {
+      toast.error("Não tem permissão para gerir pedidos.");
+      return;
     }
-  }, []);
+
+    setUpdatingOrders((previous) => new Set(previous).add(orderId));
+    try {
+      const updatedOrder = await setAdminPreOrderStatus(orderId, newStatus);
+
+      setOrders((previous) => previous.map((order) => (
+        order.id === updatedOrder.id
+          ? { ...order, status: updatedOrder.status }
+          : order
+      )));
+      toast.success(`Pedido atualizado: ${getAdminPreOrderStatusLabel(updatedOrder.status)}.`);
+    } catch (error) {
+      console.error("Erro ao atualizar pedido:", error);
+      toast.error(error instanceof Error ? error.message : "Não foi possível atualizar o pedido.");
+    } finally {
+      setUpdatingOrders((previous) => {
+        const next = new Set(previous);
+        next.delete(orderId);
+        return next;
+      });
+    }
+  }, [hasPermission, isSupportAgent]);
 
   const updateSourcingStatus = useCallback(async (id: string, newStatus: string, adminNotes?: string) => {
     const updateData: { status: string; admin_notes?: string } = { status: newStatus };
@@ -641,8 +667,10 @@ const AdminDashboard = () => {
     const colors: Record<string, string> = {
       completed: "bg-green-100 text-green-700",
       concluida: "bg-green-100 text-green-700",
+      accepted: "bg-green-100 text-green-700",
       pending: "bg-amber-100 text-amber-700",
       aguardando: "bg-amber-100 text-amber-700",
+      rejected: "bg-red-100 text-red-700",
       in_progress: "bg-blue-100 text-blue-700",
       failed: "bg-red-100 text-red-700",
       cancelado: "bg-red-100 text-red-700",
@@ -948,18 +976,42 @@ const AdminDashboard = () => {
                         <TableCell>{user?.full_name || "-"}</TableCell>
                         <TableCell>{order.quantity} kg</TableCell>
                         <TableCell>
-                          <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
+                          <Badge className={getStatusColor(order.status)}>{getAdminPreOrderStatusLabel(order.status)}</Badge>
                         </TableCell>
                         <TableCell className="text-sm text-gray-500">{new Date(order.created_at).toLocaleDateString("pt-BR")}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-green-600" onClick={() => updateOrderStatus(order.id, "concluida")} disabled={order.status === "concluida"}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-green-600"
+                              aria-label="Aceitar pedido"
+                              title="Aceitar pedido"
+                              onClick={() => updateOrderStatus(order.id, "accepted")}
+                              disabled={updatingOrders.has(order.id) || isAdminPreOrderStatusFinal(order.status) || order.status === "accepted"}
+                            >
                               <Check className="h-4 w-4" />
                             </Button>
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-600" onClick={() => updateOrderStatus(order.id, "cancelado")} disabled={order.status === "cancelado"}>
-                              <X className="h-4 w-4" />
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-red-600"
+                              aria-label="Remover pedido do fluxo"
+                              title="Remover pedido do fluxo"
+                              onClick={() => updateOrderStatus(order.id, "rejected")}
+                              disabled={updatingOrders.has(order.id) || isAdminPreOrderStatusFinal(order.status) || order.status === "rejected"}
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-amber-600" onClick={() => updateOrderStatus(order.id, "aguardando")} disabled={order.status === "aguardando"}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-amber-600"
+                              aria-label="Voltar pedido para pendente"
+                              title="Voltar para pendente"
+                              onClick={() => updateOrderStatus(order.id, "pending")}
+                              disabled={updatingOrders.has(order.id) || isAdminPreOrderStatusFinal(order.status) || order.status === "pending" || order.status === "aguardando"}
+                            >
                               <Clock className="h-4 w-4" />
                             </Button>
                           </div>

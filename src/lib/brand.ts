@@ -2,8 +2,8 @@
  * AgriLink Design System — single source of truth
  *
  * Extracted from the Notifications screen (reference design):
- * - Official green: #2c863b (the "Activar" button green). No other green tone is allowed.
- * - Background: always white / light canvas. Green is an accent only.
+ * - Brand palette: black text, white surfaces, and AgriLink green (#2c863b).
+ * - Transparency may be used to create tints without adding palette colors.
  * - Typography: Plus Jakarta Sans across the whole platform.
  */
 
@@ -13,49 +13,49 @@ export const FONT = "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif";
 export const PRIMARY_GREEN = '#2c863b';
 
 export const T = {
-  /* Greens — all collapsed onto the single official tone */
+  /* Compatibility aliases retained while screens migrate to shared tokens. */
   g900: PRIMARY_GREEN,
   g700: PRIMARY_GREEN,
   g600: PRIMARY_GREEN,
   g500: PRIMARY_GREEN,
   g400: PRIMARY_GREEN,
   green: PRIMARY_GREEN,
-  /* Tints (surfaces / borders derived from the same hue) */
-  g100: '#E8F5E9',
-  g50: '#F2FAF3',
-  gBorder: '#C8E6CA',
+  /* Green tints use transparency so the palette remains white and green. */
+  g100: 'rgba(44, 134, 59, 0.08)',
+  g50: 'rgba(44, 134, 59, 0.04)',
+  gBorder: 'rgba(44, 134, 59, 0.24)',
 
-  /* Earth (secondary, non-green accents) */
-  e700: '#5C3317',
-  e500: '#7B4F2E',
-  e300: '#A0522D',
-  ePale: '#FDF5EE',
-  eBorder: '#EDD9C6',
+  /* Legacy earth-tone aliases now resolve to the brand palette. */
+  e700: PRIMARY_GREEN,
+  e500: PRIMARY_GREEN,
+  e300: PRIMARY_GREEN,
+  ePale: '#FFFFFF',
+  eBorder: 'rgba(44, 134, 59, 0.24)',
 
-  /* Neutrals — light canvas everywhere */
-  ink: '#111714',
-  mid: '#3D4D40',
-  muted: '#758A79',
-  faint: '#A8BAA9',
-  canvas: '#F7F9F7',
+  /* Text hierarchy stays neutral; green is reserved for brand emphasis. */
+  ink: '#000000',
+  mid: '#000000',
+  muted: '#000000',
+  faint: '#000000',
+  canvas: '#FFFFFF',
   white: '#FFFFFF',
-  rule: '#E5EDE6',
+  rule: 'rgba(44, 134, 59, 0.24)',
 
-  /* Gold accent */
-  gold: '#B07D0A',
-  goldL: '#E5A020',
-  goldMid: '#C9922A',
-  goldDark: '#8B6020',
-  goldDeep: '#8B6020',
-  goldLight: '#E5A020',
-  goldBg: '#FDF8F0',
-  goldPale: '#FBF3E4',
-  goldBorder: '#EDD9C6',
+  /* Legacy gold aliases now resolve to the brand palette. */
+  gold: PRIMARY_GREEN,
+  goldL: PRIMARY_GREEN,
+  goldMid: PRIMARY_GREEN,
+  goldDark: PRIMARY_GREEN,
+  goldDeep: PRIMARY_GREEN,
+  goldLight: PRIMARY_GREEN,
+  goldBg: '#FFFFFF',
+  goldPale: '#FFFFFF',
+  goldBorder: 'rgba(44, 134, 59, 0.24)',
 
   /* Shadows */
-  shadow: 'rgba(13,43,18,0.10)',
-  shadowMd: 'rgba(13,43,18,0.15)',
-  shadowLg: '0 8px 32px rgba(13,43,18,0.12)',
+  shadow: 'rgba(44,134,59,0.10)',
+  shadowMd: 'rgba(44,134,59,0.15)',
+  shadowLg: '0 8px 32px rgba(44,134,59,0.12)',
 } as const;
 
 /** Shared radii / spacing scale */
