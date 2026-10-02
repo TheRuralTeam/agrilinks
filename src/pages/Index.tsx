@@ -241,6 +241,8 @@ export default function AgriLinkLanding() {
         .partner-item { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 10px; padding: 4px 18px; border-left: 1px solid var(--line); }
         .partner-role { color: var(--muted); font-size: 10px; line-height: 1.4; font-weight: 700; text-transform: uppercase; }
         .partner-item img { display: block; width: auto; max-width: 100%; height: 44px; object-fit: contain; object-position: left center; }
+        .partner-link { display: inline-flex; align-items: center; }
+        .partner-link:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; }
         .partner-logos { display: flex; align-items: center; gap: 14px; }
         .partner-logos .total-logo { width: 136px; height: 44px; }
         .partner-logos .program-logo { width: 190px; height: 100px; object-fit: contain; object-position: center; }
@@ -465,7 +467,9 @@ export default function AgriLinkLanding() {
             </div>
             <div className="partner-item">
               <span className="partner-role">Parceiro e cliente</span>
-              <img src={casaLettoLogo} alt="Grupo CasaLetto" loading="lazy" />
+              <a className="partner-link" href="https://casaletto.co.ao/" aria-label="Visitar o site do Grupo CasaLetto">
+                <img src={casaLettoLogo} alt="Grupo CasaLetto" loading="lazy" />
+              </a>
             </div>
           </div>
         </div>
