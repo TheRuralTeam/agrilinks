@@ -19,6 +19,7 @@ import agrilinkLogo from "../assets/agrilink-logo.png";
 import casaLettoLogo from "../assets/parceiros/Grupo_CasaLetto-no-bg.png";
 import totalEnergiesLogo from "../assets/Parceiros Institucionais/total energies.png";
 import totalEntrepreneursLogo from "../assets/Parceiros Institucionais/Total Energies 100 anos 100 empreendedores.png";
+import theTeamLogo from "../assets/parceiros/Parceiro Tecnologico/THE TEAM.png";
 import ttgiLogo from "../assets/ttgi.jpg";
 import fotoFeliciano from "../assets/FELICIANO.jpeg";
 import fotoMoises from "../assets/MOISES.jpeg";
@@ -236,13 +237,19 @@ export default function AgriLinkLanding() {
         .partners-intro { max-width: 290px; }
         .partners-intro p { margin: 0 0 7px; color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .partners-intro h2 { margin: 0; font-size: 20px; line-height: 1.35; font-weight: 800; }
-        .partner-list { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, .8fr); }
+        .partner-list { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, .7fr) minmax(0, .8fr); }
         .partner-item { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 10px; padding: 4px 18px; border-left: 1px solid var(--line); }
         .partner-role { color: var(--muted); font-size: 10px; line-height: 1.4; font-weight: 700; text-transform: uppercase; }
         .partner-item img { display: block; width: auto; max-width: 100%; height: 44px; object-fit: contain; object-position: left center; }
         .partner-logos { display: flex; align-items: center; gap: 14px; }
         .partner-logos .total-logo { width: 136px; height: 44px; }
         .partner-logos .program-logo { width: 190px; height: 100px; object-fit: contain; object-position: center; }
+        .partner-item .the-team-logo { width: 148px; height: 100px; object-fit: contain; object-position: left center; }
+
+        @media (max-width: 1130px) {
+          .partners-inner { grid-template-columns: 1fr; gap: 22px; }
+          .partners-intro { max-width: none; }
+        }
 
         .intro { padding: 108px 0 96px; }
         .intro-grid { display: grid; grid-template-columns: .82fr 1.18fr; gap: 80px; align-items: start; }
@@ -353,11 +360,11 @@ export default function AgriLinkLanding() {
         @media (max-width: 900px) {
           .footer-inner { grid-template-columns: 1fr; gap: 22px; }
           .footer-ttgi { justify-content: flex-start; text-align: left; }
-          .partners-inner { grid-template-columns: .8fr 1.2fr; gap: 24px; }
           .partner-list { grid-template-columns: 1fr; }
           .partner-logos { gap: 10px; }
           .partner-logos .total-logo { width: 120px; height: 42px; }
           .partner-logos .program-logo { width: 124px; height: 82px; }
+          .partner-item .the-team-logo { width: 132px; height: 88px; }
           .hero h1 { font-size: 44px; }
           .section-title { font-size: 34px; }
           .nav-links, .nav-actions { display: none; }
@@ -455,6 +462,10 @@ export default function AgriLinkLanding() {
             <div className="partner-item">
               <span className="partner-role">Parceiro e cliente</span>
               <img src={casaLettoLogo} alt="Grupo CasaLetto" loading="lazy" />
+            </div>
+            <div className="partner-item">
+              <span className="partner-role">Parceiro tecnológico</span>
+              <img className="the-team-logo" src={theTeamLogo} alt="The Team Group Investment" loading="lazy" />
             </div>
           </div>
         </div>
