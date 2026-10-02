@@ -238,15 +238,17 @@ export default function AgriLinkLanding() {
         .partners-intro p { margin: 0 0 7px; color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .partners-intro h2 { margin: 0; font-size: 20px; line-height: 1.35; font-weight: 800; }
         .partner-list { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.8fr) minmax(0, .7fr); }
-        .partner-item { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 10px; padding: 4px 18px; border-left: 1px solid var(--line); }
+        .partner-item { min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 4px 18px; border-left: 1px solid var(--line); text-align: center; }
+        .partner-item:first-child { border-left: 0; }
         .partner-role { color: var(--muted); font-size: 10px; line-height: 1.4; font-weight: 700; text-transform: uppercase; }
-        .partner-item img { display: block; width: auto; max-width: 100%; height: 44px; object-fit: contain; object-position: left center; }
+        .partner-item img { display: block; width: auto; max-width: 100%; height: 44px; object-fit: contain; object-position: center; }
         .partner-link { display: inline-flex; align-items: center; }
         .partner-link:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; }
-        .partner-logos { display: flex; align-items: center; gap: 14px; }
+        .partner-logos { display: flex; align-items: center; justify-content: center; gap: 14px; }
         .partner-logos .total-logo { width: 136px; height: 44px; }
         .partner-logos .program-logo { width: 190px; height: 100px; object-fit: contain; object-position: center; }
-        .partner-item .the-team-logo { width: 148px; height: 100px; object-fit: contain; object-position: left center; }
+        .partner-item .the-team-logo { width: 148px; height: 100px; object-fit: contain; object-position: center; }
+        .partner-item .casaletto-logo { height: 50px; }
 
         @media (max-width: 1130px) {
           .partners-inner { grid-template-columns: 1fr; gap: 22px; }
@@ -363,6 +365,8 @@ export default function AgriLinkLanding() {
           .footer-inner { grid-template-columns: 1fr; gap: 22px; }
           .footer-ttgi { justify-content: flex-start; text-align: left; }
           .partner-list { grid-template-columns: 1fr; }
+          .partner-item { border-left: 0; border-top: 1px solid var(--line); padding: 14px 18px; }
+          .partner-item:first-child { border-top: 0; }
           .partner-logos { gap: 10px; }
           .partner-logos .total-logo { width: 120px; height: 42px; }
           .partner-logos .program-logo { width: 124px; height: 82px; }
@@ -397,7 +401,7 @@ export default function AgriLinkLanding() {
           .partners-inner { grid-template-columns: 1fr; gap: 22px; }
           .partners-intro { max-width: none; }
           .partner-list { grid-template-columns: 1fr; }
-          .partner-item { padding: 14px 0; border-left: 0; border-top: 1px solid var(--line); }
+          .partner-item { padding: 14px 0; }
           .partner-item img { height: 40px; }
           .partner-logos .total-logo { width: 130px; height: 42px; }
           .partner-logos .program-logo { width: 152px; height: 88px; }
@@ -455,7 +459,6 @@ export default function AgriLinkLanding() {
           </div>
           <div className="partner-list">
             <div className="partner-item">
-              <span className="partner-role">Parceiro tecnológico</span>
               <img className="the-team-logo" src={theTeamLogo} alt="The Team Group Investment" loading="lazy" />
             </div>
             <div className="partner-item">
@@ -468,7 +471,7 @@ export default function AgriLinkLanding() {
             <div className="partner-item">
               <span className="partner-role">Parceiro e cliente</span>
               <a className="partner-link" href="https://casaletto.co.ao/" aria-label="Visitar o site do Grupo CasaLetto">
-                <img src={casaLettoLogo} alt="Grupo CasaLetto" loading="lazy" />
+                <img className="casaletto-logo" src={casaLettoLogo} alt="Grupo CasaLetto" loading="lazy" />
               </a>
             </div>
           </div>
