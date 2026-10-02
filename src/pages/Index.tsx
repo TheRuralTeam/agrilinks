@@ -233,13 +233,13 @@ export default function AgriLinkLanding() {
         .btn-ghost:hover { background: rgba(255,255,255,.12); }
 
         .partners { padding: 34px 0; border-bottom: 1px solid var(--line); }
-        .partners-inner { display: grid; grid-template-columns: .65fr 1.35fr; align-items: center; gap: 32px; }
+        .partners-inner { display: grid; grid-template-columns: .65fr 1.35fr; align-items: center; gap: 18px; }
         .partners-intro { max-width: 290px; }
         .partners-intro p { margin: 0 0 7px; color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .partners-intro h2 { margin: 0; font-size: 20px; line-height: 1.35; font-weight: 800; }
         .partner-list { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.8fr) minmax(0, .7fr); }
         .partner-item { min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 4px 18px; border-left: 1px solid var(--line); text-align: center; }
-        .partner-item:first-child { border-left: 0; }
+        .partner-item:first-child { border-left: 0; padding-left: 0; }
         .partner-role { color: var(--muted); font-size: 10px; line-height: 1.4; font-weight: 700; text-transform: uppercase; }
         .partner-item img { display: block; width: auto; max-width: 100%; height: 44px; object-fit: contain; object-position: center; }
         .partner-link { display: inline-flex; align-items: center; }
@@ -251,7 +251,7 @@ export default function AgriLinkLanding() {
         .partner-item .casaletto-logo { height: 50px; }
 
         @media (max-width: 1130px) {
-          .partners-inner { grid-template-columns: 1fr; gap: 22px; }
+          .partners-inner { grid-template-columns: 1fr; gap: 12px; }
           .partners-intro { max-width: none; }
         }
 
