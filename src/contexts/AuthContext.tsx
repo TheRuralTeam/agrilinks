@@ -16,7 +16,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ error: any }>
   register: (userData: RegisterData) => Promise<{ error: any; data?: any }>
   registerWithOtp: (data: { full_name: string; email: string; phone: string }) => Promise<{ error: any; data?: any }>
-  signInWithGoogle: () => Promise<{ error: any }>
+  signInWithGoogle: (next?: string) => Promise<{ error: any }>
   logout: () => Promise<void>
   verifyEmail: (token: string) => Promise<{ error: any }>
   resendVerification: () => Promise<{ error: any }>
@@ -292,13 +292,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (next = '/app') => {
     try {
       // O Supabase trata o callback OAuth internamente e depois devolve o utilizador
       // para este URL da aplicação. Não devemos apontar redirectTo para o endpoint
       // /auth/v1/callback do Supabase, nem enviar parâmetros extra para o Google
       // (isso provoca erro 400 "invalid_request" no ecrã de consentimento).
-      const appRedirectUrl = buildAuthRedirectUrl('/app')
+      const appRedirectUrl = buildAuthRedirectUrl(next)
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',

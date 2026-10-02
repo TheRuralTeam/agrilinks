@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, Compass, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { buildAuthRedirectUrl, sendMagicLink, sendPasswordResetEmail } from '../features/auth/email'
@@ -57,10 +57,17 @@ const LoginPage = () => {
 
   const { login, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const requestedPath = (location.state as { from?: unknown } | null)?.from
+  const redirectTo = typeof requestedPath === 'string'
+    && requestedPath.startsWith('/')
+    && !requestedPath.startsWith('//')
+    ? requestedPath
+    : '/app'
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true)
-    try { await signInWithGoogle() } finally { setGoogleLoading(false) }
+    try { await signInWithGoogle(redirectTo) } finally { setGoogleLoading(false) }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,7 +77,7 @@ const LoginPage = () => {
     setLoading(true)
     try {
       if (!password) {
-        await sendMagicLink({ email, next: '/app' })
+        await sendMagicLink({ email, next: redirectTo })
         toast({ title: 'Código enviado', description: 'Verifique o seu email e clique no botão para entrar.' })
         return
       }
@@ -81,14 +88,14 @@ const LoginPage = () => {
           error.message.includes('User not confirmed') ||
           error.message.includes('Email not confirmed')
         ) {
-          await sendMagicLink({ email, next: '/app' })
+          await sendMagicLink({ email, next: redirectTo })
           setErrorMsg('A sua conta ainda não foi confirmada. Enviámos um novo link de confirmação para o seu email.')
         } else {
           setErrorMsg('Credenciais inválidas. Verifique e tente novamente.')
         }
         return
       }
-      navigate('/app')
+      navigate(redirectTo, { replace: true })
     } catch (err: any) {
       setErrorMsg(err?.message || 'Erro inesperado.')
     } finally {

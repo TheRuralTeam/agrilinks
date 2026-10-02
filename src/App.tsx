@@ -3,7 +3,7 @@ import { Toaster } from "./components/ui/toaster";
 import { Toaster as Sonner } from "./components/ui/sonner";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Loader from "./components/ui/Loader";
@@ -50,13 +50,15 @@ const isProfileComplete = (p: any) =>
 // Protected Route component
 const ProtectedRoute = ({ children, allowIncomplete = false, allowUnverified = false }: { children: React.ReactNode; allowIncomplete?: boolean; allowUnverified?: boolean }) => {
   const { user, userProfile, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return null;
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    const from = `${location.pathname}${location.search}${location.hash}`;
+    return <Navigate to="/login" state={{ from }} replace />;
   }
 
   // Supabase Auth é a fonte de verdade; o perfil público pode estar alguns ms atrasado.
@@ -110,7 +112,7 @@ const AppRoutes = () => {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/termos-publicidade" element={<TermsOfService />} />
         <Route path="/produto/:id/localizacao" element={<PublicProductLocation />} />
-        <Route path="/mapa" element={<MapView />} />
+        <Route path="/mapa" element={<ProtectedRoute><MapView /></ProtectedRoute>} />
 
         {/* App Routes */}
         <Route
@@ -126,11 +128,11 @@ const AppRoutes = () => {
         <Route
           path="/mapa-app"
           element={
-            <OpenRoute>
+            <ProtectedRoute>
               <AppLayout>
                 <MapView />
               </AppLayout>
-            </OpenRoute>
+            </ProtectedRoute>
           }
         />
         <Route
@@ -166,11 +168,11 @@ const AppRoutes = () => {
         <Route
           path="/perfil"
           element={
-            <OpenRoute>
+            <ProtectedRoute>
               <AppLayout>
                 <Profile />
               </AppLayout>
-            </OpenRoute>
+            </ProtectedRoute>
           }
         />
         <Route
