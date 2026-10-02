@@ -13,7 +13,6 @@ import "leaflet/dist/leaflet.css";
 // Mesma fonte de verdade de cor usada no ecrã de Cadastro — garante que
 // a Landing e o Cadastro nunca desalinham de branding.
 import { T } from "../lib/brand";
-import { MAP_TILE_LAYERS } from "../lib/mapTiles";
 
 import agrilinkLogo from "../assets/agrilink-logo.png";
 import casaLettoLogo from "../assets/parceiros/Grupo_CasaLetto-no-bg.png";
@@ -246,7 +245,7 @@ export default function AgriLinkLanding() {
         .partner-item img { display: block; width: auto; max-width: 100%; height: 44px; object-fit: contain; object-position: center; }
         .partner-link { display: inline-flex; align-items: center; justify-content: center; width: 100%; max-width: 220px; height: 100px; }
         .partner-link:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; }
-        .partner-logos { display: flex; align-items: center; justify-content: center; gap: 14px; }
+        .partner-logos { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 14px; max-width: 100%; }
         .partner-logos .total-logo { width: 136px; height: 44px; }
         .partner-logos .program-logo { width: 190px; height: 100px; object-fit: contain; object-position: center; }
         .partner-item .the-team-logo { width: 148px; height: 100px; object-fit: contain; object-position: center; }
@@ -605,10 +604,10 @@ export default function AgriLinkLanding() {
                   attributionControl={true}
                 >
                   <TileLayer
-                    url={MAP_TILE_LAYERS.light.url}
-                    attribution={MAP_TILE_LAYERS.light.attribution}
-                    subdomains={MAP_TILE_LAYERS.subdomains}
-                    maxZoom={MAP_TILE_LAYERS.maxZoom}
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    subdomains="abc"
+                    maxZoom={19}
                   />
                   {networkLines.map((line, i) => (
                     <Polyline
