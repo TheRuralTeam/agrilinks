@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react"
 import { useTranslation } from 'react-i18next'
-import i18n from '../i18n/index'
+import i18n, { supportedLanguageOptions } from '../i18n/index'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import {
   User, Edit, Package, MapPin, Phone, Mail, Calendar, BarChart3,
   Settings, LogOut, Trash2, Camera, CheckCircle, Share2, Star, Users,
   ClipboardList, Bell, ShoppingCart, Search, BadgeCheck, Globe,
-  TrendingUp, MessageCircle, Heart, Sparkles
+  TrendingUp, MessageCircle, Heart, Sparkles, LogIn
 } from 'lucide-react'
 import { FileSignature } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -251,8 +251,15 @@ const ReferralsTable = RTable<any>
 const Profile = () => {
   const { t } = useTranslation()
   const { user, userProfile: realProfile, logout } = useAuth()
-  const { isGuest } = useGuestGate()
+  const { isGuest, requireAuth } = useGuestGate()
   const authenticatedUserId = user?.id
+  const guardAction = (action: string, callback: () => void) => {
+    if (!user) {
+      requireAuth(`Precisas de uma conta AgriLink para ${action}.`)
+      return
+    }
+    callback()
+  }
   const userProfile: any = React.useMemo(
     () => realProfile || (isGuest ? { ...GUEST_PROFILE, ...getGuestProfile() } : null),
     [realProfile, isGuest]
@@ -364,7 +371,11 @@ const Profile = () => {
   }, [user?.id])
 
   const submitSourcingRequest = async () => {
-    if (!user || !sourcingForm.product_name || !sourcingForm.quantity || !sourcingForm.delivery_date) {
+    if (!user) {
+      requireAuth('enviar um pedido de sourcing')
+      return
+    }
+    if (!sourcingForm.product_name || !sourcingForm.quantity || !sourcingForm.delivery_date) {
       toast({ title: 'Erro', description: 'Preencha todos os campos obrigatórios', variant: 'destructive' }); return
     }
     setSubmittingSourcing(true)
@@ -448,7 +459,10 @@ const Profile = () => {
   }, [userProfile, user])
 
   const updateProfile = async () => {
-    if (!user) return
+    if (!user) {
+      requireAuth('editar o teu perfil')
+      return
+    }
     try {
       const { error } = await supabase.from('users').update({ ...profileData, updated_at: new Date().toISOString() }).eq('id', user.id)
       if (error) throw error
@@ -458,6 +472,10 @@ const Profile = () => {
   }
 
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user) {
+      requireAuth('alterar a tua foto de perfil')
+      return
+    }
     try {
       setAvatarLoading(true)
       const file = event.target.files?.[0]; if (!file) return
@@ -472,6 +490,10 @@ const Profile = () => {
   }
 
   const deleteProduct = async (productId: string) => {
+    if (!user) {
+      requireAuth('remover um produto')
+      return
+    }
     if (!confirm('Deseja remover este produto?')) return
     try {
       const { error } = await supabase.from('products').update({ status: 'removed' }).eq('id', productId)
@@ -481,6 +503,10 @@ const Profile = () => {
   }
 
   const acceptOrder = async (orderId: string) => {
+    if (!user) {
+      requireAuth('aceitar um pedido')
+      return
+    }
     try {
       const updatedOrder = await respondToPreOrder(orderId, 'accepted')
       setReceivedOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: updatedOrder.status } : o))
@@ -489,6 +515,10 @@ const Profile = () => {
   }
 
   const rejectOrder = async (orderId: string) => {
+    if (!user) {
+      requireAuth('rejeitar um pedido')
+      return
+    }
     if (!confirm('Deseja rejeitar este pedido?')) return
     try {
       const updatedOrder = await respondToPreOrder(orderId, 'rejected')
@@ -500,7 +530,11 @@ const Profile = () => {
   }
 
   const contactBuyer = async (order: ReceivedOrder) => {
-    if (!user || !order.user_id) return
+    if (!user) {
+      requireAuth('iniciar uma conversa com o comprador')
+      return
+    }
+    if (!order.user_id) return
     try {
       const { data: existingConv } = await supabase.from('conversations').select('id').or(`and(user_id.eq.${user.id},peer_user_id.eq.${order.user_id}),and(user_id.eq.${order.user_id},peer_user_id.eq.${user.id})`).limit(1)
       if (existingConv && existingConv.length > 0) { navigate(`/messages/${existingConv[0].id}`); return }
@@ -571,12 +605,20 @@ const Profile = () => {
             <Btn variant="outline" size="sm" onClick={() => navigate('/contratos')}>
               <FileSignature size={14}/> <span className="hidden sm:inline">Contratos</span>
             </Btn>
-            <Btn variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
-              <Settings size={14}/> <span className="hidden sm:inline">{t('profile.settings')}</span>
-            </Btn>
-            <Btn variant="danger" size="sm" onClick={() => logout()}>
-              <LogOut size={14}/> <span className="hidden sm:inline">{t('common.logout') || 'Sair'}</span>
-            </Btn>
+            {user && !isGuest ? (
+              <>
+                <Btn variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
+                  <Settings size={14}/> <span className="hidden sm:inline">{t('profile.settings')}</span>
+                </Btn>
+                <Btn variant="danger" size="sm" onClick={() => logout()}>
+                  <LogOut size={14}/> <span className="hidden sm:inline">{t('common.logout') || 'Sair'}</span>
+                </Btn>
+              </>
+            ) : (
+              <Btn variant="primary" size="sm" onClick={() => navigate('/login')}>
+                <LogIn size={14}/> <span className="hidden sm:inline">Entrar</span>
+              </Btn>
+            )}
           </div>
         </div>
       </header>
@@ -639,7 +681,7 @@ const Profile = () => {
                   <InfoRow icon={<Phone size={14} strokeWidth={1.6}/>} value={profileData.phone} />
                   <InfoRow icon={<MapPin size={14} strokeWidth={1.6}/>} value={`${provinceName}${municipalityName ? ', ' + municipalityName : ''}`} />
                   <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                    <Btn variant="secondary" onClick={() => setEditMode(true)} style={{ flex: 1 }}>
+                    <Btn variant="secondary" onClick={() => guardAction('editar o teu perfil', () => setEditMode(true))} style={{ flex: 1 }}>
                       <Edit size={13} strokeWidth={1.75}/> {t('profile.editProfile')}
                     </Btn>
                     {isAgente && (
@@ -932,15 +974,19 @@ const Profile = () => {
               <label style={{ fontSize: 12, fontWeight: 700, color: T.ink, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                 <Globe size={13} color={T.g500 ?? T.g600}/> {t('common.language') || 'Idioma'}
               </label>
-              <Select value={i18n.language} onValueChange={(value) => { i18n.changeLanguage(value); localStorage.setItem('orbislink_language', value); toast({ title: t('common.success'), description: t('common.languageChanged') || 'Idioma alterado.' }) }}>
+              <Select value={i18n.language} onValueChange={(value) => {
+                i18n.changeLanguage(value)
+                localStorage.setItem('orbislink_language', value)
+                toast({ title: t('common.success'), description: t('common.languageChanged') || 'Idioma alterado.' })
+              }}>
                 <SelectTrigger style={{ borderRadius: 12, border: `1px solid ${T.rule}`, height: 42, fontSize: 13, fontFamily: 'inherit' }}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent style={{ borderRadius: 16, border: `1px solid ${T.rule}` }}>
-                  {[{ val: 'pt', flag: '🇦🇴', label: 'Português' }, { val: 'en', flag: '🇬🇧', label: 'English' }, { val: 'fr', flag: '🇫🇷', label: 'Français' }].map(l => (
-                    <SelectItem key={l.val} value={l.val} style={{ fontSize: 13 }}>
+                  {supportedLanguageOptions.map((language) => (
+                    <SelectItem key={language.val} value={language.val} style={{ fontSize: 13 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 16 }}>{l.flag}</span> {l.label}
+                        <span style={{ fontSize: 16 }}>{language.flag}</span> {language.label}
                       </div>
                     </SelectItem>
                   ))}

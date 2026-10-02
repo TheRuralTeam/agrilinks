@@ -3,7 +3,7 @@ import { Toaster } from "./components/ui/toaster";
 import { Toaster as Sonner } from "./components/ui/sonner";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Loader from "./components/ui/Loader";
@@ -74,6 +74,48 @@ const ProtectedRoute = ({ children, allowIncomplete = false, allowUnverified = f
   return <>{children}</>;
 };
 
+const MAP_PREVIEW_STORAGE_KEY = 'agrilink-map-preview-expires-at';
+const MAP_PREVIEW_DURATION_MS = 60_000;
+
+const MapPreviewRoute = ({ render }: { render: (readOnly: boolean) => React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [expired, setExpired] = React.useState(false);
+  const from = `${location.pathname}${location.search}${location.hash}`;
+
+  useEffect(() => {
+    if (loading || user) return;
+
+    let expiresAt: number;
+    try {
+      const storedExpiry = Number(sessionStorage.getItem(MAP_PREVIEW_STORAGE_KEY));
+      expiresAt = storedExpiry > 0 ? storedExpiry : Date.now() + MAP_PREVIEW_DURATION_MS;
+      if (storedExpiry <= 0) sessionStorage.setItem(MAP_PREVIEW_STORAGE_KEY, String(expiresAt));
+    } catch {
+      expiresAt = Date.now() + MAP_PREVIEW_DURATION_MS;
+    }
+
+    const remaining = expiresAt - Date.now();
+    const requireLogin = () => navigate('/login', { replace: true, state: { from } });
+    if (remaining <= 0) {
+      setExpired(true);
+      requireLogin();
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setExpired(true);
+      requireLogin();
+    }, remaining);
+    return () => window.clearTimeout(timeout);
+  }, [loading, user, navigate, from]);
+
+  if (loading || expired) return <Loader />;
+  if (user) return <ProtectedRoute>{render(false)}</ProtectedRoute>;
+  return render(true);
+};
+
 /**
  * Rota aberta: utilizadores autenticados passam pelas mesmas validações do
  * ProtectedRoute; visitantes entram em Modo Convidado (dados locais, 2h).
@@ -112,7 +154,7 @@ const AppRoutes = () => {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/termos-publicidade" element={<TermsOfService />} />
         <Route path="/produto/:id/localizacao" element={<PublicProductLocation />} />
-        <Route path="/mapa" element={<ProtectedRoute><MapView /></ProtectedRoute>} />
+        <Route path="/mapa" element={<MapPreviewRoute render={(readOnly) => <MapView readOnly={readOnly} />} />} />
 
         {/* App Routes */}
         <Route
@@ -128,11 +170,11 @@ const AppRoutes = () => {
         <Route
           path="/mapa-app"
           element={
-            <ProtectedRoute>
+            <MapPreviewRoute render={(readOnly) => (
               <AppLayout>
-                <MapView />
+                <MapView readOnly={readOnly} />
               </AppLayout>
-            </ProtectedRoute>
+            )} />
           }
         />
         <Route
@@ -168,31 +210,31 @@ const AppRoutes = () => {
         <Route
           path="/perfil"
           element={
-            <ProtectedRoute>
+            <OpenRoute>
               <AppLayout>
                 <Profile />
               </AppLayout>
-            </ProtectedRoute>
+            </OpenRoute>
           }
         />
         <Route
           path="/perfil/:id"
           element={
-            <ProtectedRoute>
+            <OpenRoute>
               <AppLayout>
                 <UserProfile />
               </AppLayout>
-            </ProtectedRoute>
+            </OpenRoute>
           }
         />
         <Route
           path="/empresa/:id"
           element={
-            <ProtectedRoute>
+            <OpenRoute>
               <AppLayout>
                 <B2BProfile />
               </AppLayout>
-            </ProtectedRoute>
+            </OpenRoute>
           }
         />
         <Route

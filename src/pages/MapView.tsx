@@ -659,7 +659,7 @@ const StatsPanel: React.FC<{ count: number; avgPrice: number; totalQuantity: num
 /* ════════════════════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ════════════════════════════════════════════════════════════════════════════ */
-const MapView = () => {
+const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
   const mapInstanceRef = useRef<L.Map | null>(null);
   const animRef = useRef<number | null>(null);
 
@@ -720,11 +720,17 @@ const MapView = () => {
   }, []);
 
   useEffect(() => {
+    if (readOnly) {
+      setLoading(false);
+      return;
+    }
     fetchProducts();
-  }, [fetchProducts]);
+  }, [fetchProducts, readOnly]);
 
   /* ── Sincronização em tempo real — INSERT/UPDATE/DELETE refletem no mapa ── */
   useEffect(() => {
+    if (readOnly) return;
+
     const channel = supabase
       .channel('products-map-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
@@ -749,10 +755,12 @@ const MapView = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [readOnly]);
 
   /* ── Estado de rede — refaz o fetch assim que a ligação volta ────────────── */
   useEffect(() => {
+    if (readOnly) return;
+
     const goOnline = () => {
       setIsOnline(true);
       fetchProducts();
@@ -764,10 +772,12 @@ const MapView = () => {
       window.removeEventListener('online', goOnline);
       window.removeEventListener('offline', goOffline);
     };
-  }, [fetchProducts]);
+  }, [fetchProducts, readOnly]);
 
   /* ── Geolocalização contínua do utilizador (watchPosition), com erro tratado ── */
   useEffect(() => {
+    if (readOnly) return;
+
     if (!navigator.geolocation) {
       setLocationError('Geolocalização não suportada neste dispositivo.');
       return;
@@ -787,7 +797,7 @@ const MapView = () => {
       { enableHighAccuracy: false, maximumAge: 30000, timeout: 10000 }
     );
     return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
+  }, [readOnly]);
 
   const filteredProducts = useMemo(
     () =>
@@ -1067,7 +1077,12 @@ const MapView = () => {
 
   /* ── Render ─────────────────────────────────────────────────────────────── */
   return (
-    <div className="relative w-full h-screen overflow-hidden" style={{ background: T.white, fontFamily: FONT }}>
+    <div
+      className="relative w-full h-screen overflow-hidden"
+      aria-disabled={readOnly || undefined}
+      ref={(element) => element?.toggleAttribute('inert', readOnly)}
+      style={{ background: T.white, fontFamily: FONT, pointerEvents: readOnly ? 'none' : undefined }}
+    >
       <div className="absolute inset-0 w-full h-full z-0">
         <MapContainer
           center={[-10.5, 15.0]}

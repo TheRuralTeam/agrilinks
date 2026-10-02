@@ -2,6 +2,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useGuestGate } from '../contexts/GuestGateContext'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
+import { requiresLoginForAction } from '../lib/accessPolicy'
 
 /**
  * Gate de acções da plataforma.
@@ -20,8 +21,11 @@ export const useCanAct = () => {
 
   const requireAct = (action = 'esta acção') => {
     if (!isLoggedIn) {
-      requireAuth('Precisas de uma conta AgriLink para ' + action + '.')
-      return false
+      if (requiresLoginForAction(action)) {
+        requireAuth('Precisas de uma conta AgriLink para ' + action + '.')
+        return false
+      }
+      return true
     }
     if (!emailConfirmed) {
       toast.error('Confirme o seu e-mail para executar ' + action, {
