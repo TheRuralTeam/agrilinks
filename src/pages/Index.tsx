@@ -18,6 +18,7 @@ import { MAP_TILE_LAYERS } from "../lib/mapTiles";
 import agrilinkLogo from "../assets/agrilink-logo.png";
 import casaLettoLogo from "../assets/parceiros/Grupo_CasaLetto-no-bg.png";
 import totalEnergiesLogo from "../assets/Parceiros Institucionais/total energies.png";
+import totalEntrepreneursLogo from "../assets/Parceiros Institucionais/Total Energies 100 anos 100 empreendedores.png";
 import ttgiLogo from "../assets/ttgi.jpg";
 import fotoFeliciano from "../assets/FELICIANO.jpeg";
 import fotoMoises from "../assets/MOISES.jpeg";
@@ -231,14 +232,17 @@ export default function AgriLinkLanding() {
         .btn-ghost:hover { background: rgba(255,255,255,.12); }
 
         .partners { padding: 34px 0; border-bottom: 1px solid var(--line); }
-        .partners-inner { display: grid; grid-template-columns: .8fr 1.2fr; align-items: center; gap: 38px; }
+        .partners-inner { display: grid; grid-template-columns: .65fr 1.35fr; align-items: center; gap: 32px; }
         .partners-intro { max-width: 290px; }
         .partners-intro p { margin: 0 0 7px; color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .partners-intro h2 { margin: 0; font-size: 20px; line-height: 1.35; font-weight: 800; }
-        .partner-list { display: grid; grid-template-columns: 1fr 1fr; }
-        .partner-item { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 10px; padding: 4px 24px; border-left: 1px solid var(--line); }
+        .partner-list { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, .8fr); }
+        .partner-item { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 10px; padding: 4px 18px; border-left: 1px solid var(--line); }
         .partner-role { color: var(--muted); font-size: 10px; line-height: 1.4; font-weight: 700; text-transform: uppercase; }
         .partner-item img { display: block; width: auto; max-width: 100%; height: 44px; object-fit: contain; object-position: left center; }
+        .partner-logos { display: flex; align-items: center; gap: 14px; }
+        .partner-logos .total-logo { width: 136px; height: 44px; }
+        .partner-logos .program-logo { width: 112px; height: 84px; }
 
         .intro { padding: 108px 0 96px; }
         .intro-grid { display: grid; grid-template-columns: .82fr 1.18fr; gap: 80px; align-items: start; }
@@ -378,8 +382,11 @@ export default function AgriLinkLanding() {
           .section-title { font-size: 30px; }
           .partners-inner { grid-template-columns: 1fr; gap: 22px; }
           .partners-intro { max-width: none; }
+          .partner-list { grid-template-columns: 1fr; }
           .partner-item { padding: 14px 0; border-left: 0; border-top: 1px solid var(--line); }
           .partner-item img { height: 40px; }
+          .partner-logos .total-logo { width: 130px; height: 42px; }
+          .partner-logos .program-logo { width: 108px; height: 80px; }
           .feature-list, .roles-grid, .team-grid { grid-template-columns: 1fr; }
           .intro, .roles, .team, .engine, .faq { padding: 72px 0; }
           .aggregation { padding: 76px 0 72px; }
@@ -435,7 +442,10 @@ export default function AgriLinkLanding() {
           <div className="partner-list">
             <div className="partner-item">
               <span className="partner-role">Parceiro institucional</span>
-              <img src={totalEnergiesLogo} alt="TotalEnergies" loading="lazy" />
+              <div className="partner-logos">
+                <img className="total-logo" src={totalEnergiesLogo} alt="TotalEnergies" loading="lazy" />
+                <img className="program-logo" src={totalEntrepreneursLogo} alt="Programa 100 Anos, 100 Empreendedores da TotalEnergies Angola" loading="lazy" />
+              </div>
             </div>
             <div className="partner-item">
               <span className="partner-role">Parceiro e cliente</span>
