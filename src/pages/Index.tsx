@@ -239,18 +239,18 @@ export default function AgriLinkLanding() {
         .partners-intro { max-width: 290px; }
         .partners-intro p { margin: 0 0 7px; color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .partners-intro h2 { margin: 0; font-size: 20px; line-height: 1.35; font-weight: 800; }
-        .partner-list { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.8fr) minmax(0, .7fr); }
+        .partner-list { display: grid; grid-template-columns: minmax(148px, .8fr) minmax(377px, 1.8fr) minmax(148px, 1fr); }
         .partner-item { min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 4px 18px; border-left: 1px solid var(--line); text-align: center; }
         .partner-item:first-child { border-left: 0; padding-left: 0; }
         .partner-role { color: var(--muted); font-size: 10px; line-height: 1.4; font-weight: 700; text-transform: uppercase; }
         .partner-item img { display: block; width: auto; max-width: 100%; height: 44px; object-fit: contain; object-position: center; }
-        .partner-link { display: inline-flex; align-items: center; justify-content: center; height: 100px; }
+        .partner-link { display: inline-flex; align-items: center; justify-content: center; width: 100%; max-width: 220px; height: 100px; }
         .partner-link:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; }
         .partner-logos { display: flex; align-items: center; justify-content: center; gap: 14px; }
         .partner-logos .total-logo { width: 136px; height: 44px; }
         .partner-logos .program-logo { width: 190px; height: 100px; object-fit: contain; object-position: center; }
         .partner-item .the-team-logo { width: 148px; height: 100px; object-fit: contain; object-position: center; }
-        .partner-item .casaletto-logo { height: 50px; }
+        .partner-item .casaletto-logo { width: 100%; height: auto; max-height: 64px; }
 
         @media (max-width: 1130px) {
           .partners-inner { grid-template-columns: 1fr; gap: 12px; }
