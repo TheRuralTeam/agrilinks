@@ -302,7 +302,7 @@ export const SatelliteMonitor: React.FC = () => {
             <div style={{ flex: 1, overflowY: 'auto', padding: 14 }}>
               {tab === 'clima' && (
                 <div>
-                  {loading && !clima.length && <p style={{ fontSize: 13, color: MUTED }}>A carregar dados da NASA POWER…</p>}
+                  {loading && !clima.length && <div aria-hidden="true" />}
                   {err && <p style={{ fontSize: 12, color: '#DC2626' }}>Erro: {err}</p>}
                   {alerts.map((a, i) => (
                     <div key={i} style={{
@@ -355,11 +355,7 @@ export const SatelliteMonitor: React.FC = () => {
               {tab === 'ndvi' && (
                 <div>
                   <div style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${RULE}`, background: GREEN_DARK, position: 'relative', minHeight: 280 }}>
-                    {ndviProbing && !ndviDate && (
-                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: CARD, fontSize: 12 }}>
-                        A localizar camada NDVI mais recente…
-                      </div>
-                    )}
+                    {ndviProbing && !ndviDate && <div aria-hidden="true" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} />}
                     {ndviUrl && (
                       <img
                         key={ndviKey}
@@ -416,7 +412,7 @@ export const SatelliteMonitor: React.FC = () => {
 
               {tab === 'fazendas' && (
                 <div style={{ background: CARD, borderRadius: 10, overflow: 'hidden', border: '1px solid #DDE8DF' }}>
-                  {loading && !fazendas.length && <p style={{ padding: 12, fontSize: 12, color: MUTED }}>A carregar fazendas reais…</p>}
+                  {loading && !fazendas.length && <div aria-hidden="true" style={{ padding: 12 }} />}
                   {!loading && !fazendas.length && (
                     <p style={{ padding: 14, fontSize: 12, color: MUTED }}>
                       Nenhuma fazenda activa encontrada. Publique produtos para que apareçam aqui com dados reais.

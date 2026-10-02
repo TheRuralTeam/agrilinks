@@ -212,10 +212,10 @@
        {/* Header */}
        <header className="sticky top-0 z-20 bg-white border-b border-border px-4 py-3 flex items-center gap-4">
          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-           <ArrowLeft className="h-5 w-5 text-[#0a1628]" />
+           <ArrowLeft className="h-5 w-5 text-[#111714]" />
          </Button>
          <img src={orbisLinkLogo} alt="OrbisLink" className="h-8" />
-         <h1 className="text-lg font-semibold text-[#0a1628]">Perfil Institucional</h1>
+         <h1 className="text-lg font-semibold text-[#111714]">Perfil Institucional</h1>
        </header>
  
        {/* Company Header */}
@@ -233,20 +233,20 @@
        {/* Main Content */}
        <div className="p-4 max-w-6xl mx-auto">
          <Tabs defaultValue="overview" className="w-full">
-           <TabsList className="w-full grid grid-cols-4 mb-6 bg-gray-100">
-             <TabsTrigger value="overview" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-[#0a1628]">
+           <TabsList className="w-full grid grid-cols-4 mb-6 bg-[#f6f8f6]">
+             <TabsTrigger value="overview" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-[#111714]">
                <Building2 className="h-4 w-4 mr-1 hidden sm:inline" />
                Visão Geral
              </TabsTrigger>
-             <TabsTrigger value="commercial" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-[#0a1628]">
+             <TabsTrigger value="commercial" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-[#111714]">
                <Briefcase className="h-4 w-4 mr-1 hidden sm:inline" />
                {isBuyer ? 'Perfil Compra' : 'Portfólio'}
              </TabsTrigger>
-             <TabsTrigger value="history" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-[#0a1628]">
+             <TabsTrigger value="history" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-[#111714]">
                <History className="h-4 w-4 mr-1 hidden sm:inline" />
                Histórico
              </TabsTrigger>
-             <TabsTrigger value="documents" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-[#0a1628]">
+             <TabsTrigger value="documents" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-[#111714]">
                <FileText className="h-4 w-4 mr-1 hidden sm:inline" />
                Documentos
              </TabsTrigger>

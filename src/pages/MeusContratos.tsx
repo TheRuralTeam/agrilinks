@@ -79,7 +79,9 @@ const MeusContratos = () => {
             text="Os contratos digitais só existem para contas reais. Cria a tua conta para pedir e descarregar contratos."
           />
         ) : loading ? (
-          <p style={{ color: T.muted, fontSize: 14 }}>A carregar…</p>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
+            <Loader compact />
+          </div>
         ) : contracts.length === 0 ? (
           <EmptyState
             title="Ainda sem contratos"

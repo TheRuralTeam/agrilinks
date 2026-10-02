@@ -176,7 +176,7 @@ const CriarContratoFuturos = () => {
           fontWeight: 800, fontSize: 14, fontFamily: FONT, cursor: loading ? 'default' : 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: loading ? 0.7 : 1,
         }}>
-          {loading ? <Loader compact label="" className="[&_svg]:text-primary-foreground" /> : <FileSignature size={18} />}
+          {loading ? <Loader compact className="[&_svg]:text-primary-foreground" /> : <FileSignature size={18} />}
           Submeter pedido de contrato
         </button>
         <p style={{ fontSize: 11, color: T.muted, textAlign: 'center', lineHeight: 1.6 }}>

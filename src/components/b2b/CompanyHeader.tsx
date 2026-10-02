@@ -23,26 +23,26 @@
  const tierConfig: Record<CompanyTier, { label: string; color: string; icon: React.ReactNode; bg: string }> = {
    bronze: {
      label: 'Bronze',
-     color: 'text-amber-700',
-     bg: 'bg-amber-100 border-amber-200',
+     color: 'text-[#2c863b]',
+     bg: 'bg-[#2c863b]/10 border-[#2c863b]/20',
      icon: <Award className="h-3.5 w-3.5" />
    },
    silver: {
      label: 'Silver',
-     color: 'text-slate-500',
-     bg: 'bg-slate-100 border-slate-200',
+     color: 'text-[#111714]',
+     bg: 'bg-black/5 border-black/10',
      icon: <Award className="h-3.5 w-3.5" />
    },
    gold: {
      label: 'Gold',
-     color: 'text-[#B8860B]',
-     bg: 'bg-[#B8860B]/10 border-[#B8860B]/30',
+     color: 'text-[#2c863b]',
+     bg: 'bg-[#2c863b]/10 border-[#2c863b]/20',
      icon: <Crown className="h-3.5 w-3.5" />
    },
    enterprise: {
      label: 'Enterprise',
-     color: 'text-[#0a1628]',
-     bg: 'bg-[#0a1628]/10 border-[#0a1628]/30',
+     color: 'text-[#111714]',
+     bg: 'bg-[#2c863b]/10 border-[#2c863b]/20',
      icon: <Crown className="h-3.5 w-3.5" />
    }
  };
@@ -63,14 +63,14 @@
    return (
      <div className="bg-white border-b border-border">
        {/* Tier Banner */}
-       <div className={`h-2 ${tier === 'gold' || tier === 'enterprise' ? 'bg-gradient-to-r from-[#B8860B] to-[#D4AF37]' : tier === 'silver' ? 'bg-gradient-to-r from-slate-400 to-slate-300' : 'bg-gradient-to-r from-amber-600 to-amber-400'}`} />
+       <div className={`h-2 ${tier === 'gold' || tier === 'enterprise' ? 'bg-gradient-to-r from-[#2c863b] to-[#5aa15d]' : tier === 'silver' ? 'bg-gradient-to-r from-slate-400 to-slate-300' : 'bg-gradient-to-r from-[#2c863b] to-[#7ec37a]'}`} />
        
        <div className="p-6">
          <div className="flex items-start gap-6">
            {/* Company Logo */}
            <Avatar className="h-24 w-24 rounded-xl border-2 border-border shadow-soft">
              <AvatarImage src={logo || ''} className="object-cover" />
-             <AvatarFallback className="rounded-xl bg-[#0a1628] text-white text-2xl font-bold">
+             <AvatarFallback className="rounded-xl bg-[#2c863b] text-white text-2xl font-bold">
                {name?.charAt(0)?.toUpperCase() || 'C'}
              </AvatarFallback>
            </Avatar>
@@ -78,7 +78,7 @@
            <div className="flex-1 min-w-0">
              {/* Company Name & Verification */}
              <div className="flex items-center gap-2 flex-wrap">
-               <h1 className="text-2xl font-bold text-[#0a1628] truncate">{name}</h1>
+               <h1 className="text-2xl font-bold text-[#111714] truncate">{name}</h1>
                {isVerified && (
                  <div className="flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                    <BadgeCheck className="h-3.5 w-3.5" />
@@ -94,7 +94,7 @@
                  <span className="ml-1">{tierInfo.label}</span>
                </Badge>
                
-               <Badge variant="outline" className="border-[#0a1628]/20 text-[#0a1628]">
+               <Badge variant="outline" className="border-[#2c863b]/20 text-[#111714]">
                  <Building2 className="h-3 w-3 mr-1" />
                  {userTypeLabel}
                </Badge>

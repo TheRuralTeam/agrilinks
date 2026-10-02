@@ -74,10 +74,7 @@ const ProductCatalog = () => {
     return (
       <section id="catalogo" className="py-16 lg:py-24 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center py-20">
-          <div className="flex flex-col items-center gap-3">
-            <Loader compact label="A carregar catálogo" />
-            <span className="text-sm text-muted-foreground">Carregando catálogo...</span>
-          </div>
+          <Loader compact />
         </div>
       </section>
     );

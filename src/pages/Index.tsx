@@ -13,6 +13,7 @@ import "leaflet/dist/leaflet.css";
 // Mesma fonte de verdade de cor usada no ecrã de Cadastro — garante que
 // a Landing e o Cadastro nunca desalinham de branding.
 import { T } from "../lib/brand";
+import { MAP_TILE_LAYERS } from "../lib/mapTiles";
 
 import orbisLinkLogo from "../assets/orbislink-logo.png";
 import ttgiLogo from "../assets/ttgi.jpg";
@@ -32,10 +33,10 @@ const team = [
 
 // ─── Papéis na plataforma — mesmas cores do ecrã de Cadastro ───────────────
 const ROLES = [
-  { id: "agricultor", label: "Fornecedor", desc: "Regista a colheita e vende directamente na rede, sem intermediários a mais.", icon: faTractor, color: "#2D7D3A" },
-  { id: "agente", label: "Agente", desc: "Liga fornecedores a compradores e acompanha cada negociação até à entrega.", icon: faUserTie, color: "#C6871E" },
-  { id: "comprador", label: "Comprador", desc: "Compra directo da fonte — em grande volume ou num ponto de agregação.", icon: faCartShopping, color: "#2563EB" },
-  { id: "motorista", label: "Motorista", desc: "Transporta cargas entre o campo, os pontos de agregação e o destino final.", icon: faTruck, color: "#DB6B1F" },
+  { id: "agricultor", label: "Fornecedor", desc: "Regista a colheita e vende directamente na rede, sem intermediários a mais.", icon: faTractor, color: "#2c863b" },
+  { id: "agente", label: "Agente", desc: "Liga fornecedores a compradores e acompanha cada negociação até à entrega.", icon: faUserTie, color: "#2c863b" },
+  { id: "comprador", label: "Comprador", desc: "Compra directo da fonte — em grande volume ou num ponto de agregação.", icon: faCartShopping, color: "#2c863b" },
+  { id: "motorista", label: "Motorista", desc: "Transporta cargas entre o campo, os pontos de agregação e o destino final.", icon: faTruck, color: "#2c863b" },
 ];
 
 // ─── Pontos de agregação ────────────────────────────────────────────────────
@@ -176,7 +177,7 @@ const testimonials = [
     quote: "Sei o preço do frete antes de aceitar a carga, e o pagamento chega assim que confirmo a entrega.",
     name: "[Nome do motorista]",
     role: "Motorista — Kilamba Kiaxi",
-    color: "#2563EB",
+    color: "#2c863b",
   },
 ];
 
@@ -594,8 +595,10 @@ export default function AgriLinkLanding() {
                   attributionControl={true}
                 >
                   <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url={MAP_TILE_LAYERS.light.url}
+                    attribution={MAP_TILE_LAYERS.light.attribution}
+                    subdomains={MAP_TILE_LAYERS.subdomains}
+                    maxZoom={MAP_TILE_LAYERS.maxZoom}
                   />
                   {networkLines.map((line, i) => (
                     <Polyline

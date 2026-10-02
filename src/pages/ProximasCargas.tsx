@@ -142,7 +142,7 @@ const ProximasCargas = () => {
       <main style={{ padding: '0 16px', display: 'grid', gap: 12 }}>
         {loading && (
           <div style={{ display: 'flex', justifyContent: 'center', padding: 48, color: T.muted }}>
-            <Loader compact label="A carregar cargas" />
+            <Loader compact />
           </div>
         )}
 

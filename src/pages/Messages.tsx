@@ -386,7 +386,7 @@ const Messages = () => {
       <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 space-y-6 custom-scrollbar">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-full py-20">
-            <Loader compact label="Sincronizando" />
+            <Loader compact />
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-20">
@@ -460,7 +460,7 @@ const Messages = () => {
                 )}
               </div>
               <Button onClick={sendMessage} size="icon" disabled={(!newMessage.trim() && selectedFiles.length === 0) || isSending} className="rounded-xl h-10 w-10 shadow-md transition-transform active:scale-95" style={{ backgroundColor: T.g600, color: T.white }}>
-                {isSending ? <Loader compact label="" className="[&_svg]:text-white" /> : <Send className="h-4 w-4" />}
+                {isSending ? <Loader compact className="[&_svg]:text-white" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
           </div>

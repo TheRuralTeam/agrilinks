@@ -145,7 +145,7 @@ const ContratosFuturos = () => {
       <div style={{ maxWidth: 760, margin: '0 auto', padding: 16, display: 'grid', gap: 12 }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: 40, color: T.muted }}>
-            <Loader compact label="A carregar contratos" />
+            <Loader compact />
           </div>
         ) : contracts.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 48, color: T.muted, background: T.white, borderRadius: 16, border: `1px solid ${T.rule}` }}>

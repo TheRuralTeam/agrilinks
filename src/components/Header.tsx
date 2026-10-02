@@ -17,7 +17,7 @@ const Header = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/70 bg-card/90 shadow-xs backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border border-[#2c863b]/25 bg-white/95 shadow-[0_8px_30px_rgba(44,134,59,0.12)] backdrop-blur-xl rounded-b-2xl mx-3 mt-3 sm:mx-4 lg:mx-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <img src={OrbisLinkLogo} alt="OrbisLink Logo" className="h-9 sm:h-10 drop-shadow-sm" />

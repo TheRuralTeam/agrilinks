@@ -396,7 +396,7 @@ const DeliveryTracking: React.FC<DeliveryTrackingProps> = ({ currentUserId }) =>
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader compact label="A carregar entregas" />
+              <Loader compact />
             </div>
           ) : deliveries.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">

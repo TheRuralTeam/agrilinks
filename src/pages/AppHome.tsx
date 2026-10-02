@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '../components/ui/button'
 import { toast } from 'sonner'
@@ -17,6 +17,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useCanAct } from '../hooks/useCanAct'
 import { useNavigate } from 'react-router-dom'
 import { ProductCard, Product } from '../components/ProductCard'
+import { ProductLocationMap } from '../components/ProductLocationMap'
 import orbisLinkLogo from '../assets/orbislink-logo.png'
 import { fetchActiveProducts } from '../features/products/productsService'
 import { validatePreOrderSubmission } from '../features/products/businessRules'
@@ -44,8 +45,6 @@ const CATEGORIES = [
   { id: 'lacteos', label: 'Lácteos',    icon: faCheese,        color: T.green },
   { id: 'bebidas', label: 'Bebidas',    icon: faMugHot,         color: T.green },
 ]
-
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 import { T } from '../lib/brand';
@@ -160,11 +159,6 @@ const AppHome = () => {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { user, userProfile, isAdmin } = useAuth()
-  const [showProfileSetup, setShowProfileSetup] = useState(false)
-
-  useEffect(() => {
-    if (user && userProfile && !userProfile.user_type) setShowProfileSetup(true)
-  }, [user, userProfile])
   const { requireAct } = useCanAct()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -172,8 +166,6 @@ const AppHome = () => {
   const [mapModalOpen, setMapModalOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [orderData, setOrderData] = useState({ quantity: 1, location: '' })
-  const mapContainerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<any>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0])
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -322,53 +314,6 @@ const AppHome = () => {
     finally { setIsSubmitting(false) }
   }
 
-  /* Map modal */
-  useEffect(() => {
-    if (!mapModalOpen || !selectedProduct?.location_lat || !selectedProduct?.location_lng || !mapContainerRef.current) return
-
-    let cancelled = false
-
-    const loadMap = async () => {
-      try {
-        const [{ default: mapboxgl }] = await Promise.all([
-          import('mapbox-gl'),
-          import('mapbox-gl/dist/mapbox-gl.css')
-        ])
-
-        if (cancelled || !mapContainerRef.current) return
-
-        if (!MAPBOX_TOKEN) {
-          toast.error('Mapa não configurado. Defina VITE_MAPBOX_TOKEN nas variáveis de ambiente.')
-          return
-        }
-
-        mapboxgl.accessToken = MAPBOX_TOKEN
-        mapRef.current = new mapboxgl.Map({
-          container: mapContainerRef.current,
-          style: 'mapbox://styles/mapbox/light-v11',
-          center: [selectedProduct.location_lng, selectedProduct.location_lat],
-          zoom: 9,
-          attributionControl: false,
-        })
-
-        mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right')
-        new mapboxgl.Marker({ color: T.g600 })
-          .setLngLat([selectedProduct.location_lng, selectedProduct.location_lat])
-          .addTo(mapRef.current)
-      } catch (error) {
-        console.error('Erro ao carregar mapa do produto:', error)
-      }
-    }
-
-    loadMap()
-
-    return () => {
-      cancelled = true
-      mapRef.current?.remove()
-      mapRef.current = null
-    }
-  }, [mapModalOpen, selectedProduct])
-
   const TAX = 0.078
   const totalPrice = useMemo(() => selectedProduct ? orderData.quantity * selectedProduct.price * (1 + TAX) : 0, [selectedProduct, orderData.quantity])
   const fmt = (p: number) => `${p.toLocaleString('pt-AO')} ${selectedCountry.currency}`
@@ -379,20 +324,6 @@ const AppHome = () => {
   /* ── Main render ── */
   return (
     <div className="min-h-screen" style={{ background: T.canvas, fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif" }}>
-      <Dialog open={showProfileSetup} onOpenChange={setShowProfileSetup}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Conta criada com sucesso</DialogTitle>
-            <DialogDescription>
-              Vá a Configurações para definir o tipo de usuário e desbloquear os recursos adequados ao seu perfil.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => { setShowProfileSetup(false); navigate('/completar-perfil') }}>Ir para configurações</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* ═══ HEADER ════════════════════════════════════════════════════════ */}
       <header style={{
         position:'sticky', top:0, zIndex:30,
@@ -775,7 +706,7 @@ const AppHome = () => {
       {isSubmitting && (
         <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(13,43,18,0.75)', backdropFilter:'blur(10px)', display:'flex', alignItems:'center', justifyContent:'center' }}>
           <div style={{ background: T.white, padding:'36px 44px', borderRadius:20, display:'flex', flexDirection:'column', alignItems:'center', gap:18, border:`1px solid ${T.rule}`, boxShadow:`0 24px 80px rgba(0,0,0,0.2)` }}>
-            <Loader compact label="A registar encomenda..." />
+            <Loader compact />
           </div>
         </div>
       )}
@@ -796,7 +727,11 @@ const AppHome = () => {
               </DialogDescription>
             </div>
           </div>
-          <div ref={mapContainerRef} style={{ width:'100%', height:440 }}/>
+          <ProductLocationMap
+            latitude={selectedProduct?.location_lat}
+            longitude={selectedProduct?.location_lng}
+            className="h-[440px] rounded-none border-0"
+          />
         </DialogContent>
       </Dialog>
 

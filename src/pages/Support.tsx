@@ -324,7 +324,7 @@ const Support = () => {
               <div className="flex gap-2">
                 <Button onClick={sendSupportMessage} className="flex-1" disabled={loading}>
                   {loading ? (
-                    <Loader compact label="" className="mr-2 [&_svg]:text-primary-foreground" />
+                    <Loader compact className="mr-2 [&_svg]:text-primary-foreground" />
                   ) : (
                     <Send className="h-4 w-4 mr-2" />
                   )}

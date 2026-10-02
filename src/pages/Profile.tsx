@@ -170,13 +170,13 @@ const Textarea = ({ label, value, onChange, placeholder = '', rows = 4 }: any) =
 const StatusPill = ({ status }: { status: string }) => {
   const map: Record<string, { bg: string; color: string; label: string }> = {
     active:     { bg: T.g50,     color: T.g600,    label: 'Activo' },
-    inactive:   { bg: '#FFF7ED', color: T.gold,    label: 'Inactivo' },
+    inactive:   { bg: 'rgba(44, 134, 59, 0.06)', color: '#2c863b', label: 'Inactivo' },
     removed:    { bg: '#FEF2F2', color: '#DC2626',  label: 'Removido' },
-    pending:    { bg: '#FFF7ED', color: T.gold,    label: 'Pendente' },
+    pending:    { bg: 'rgba(44, 134, 59, 0.06)', color: '#2c863b', label: 'Pendente' },
     accepted:   { bg: T.g50,     color: T.g600,    label: 'Aceite' },
     rejected:   { bg: '#FEF2F2', color: '#DC2626',  label: 'Rejeitado' },
     completed:  { bg: T.g50,     color: T.g600,    label: 'Concluído' },
-    processing: { bg: '#EFF6FF', color: '#2563EB',  label: 'A processar' },
+    processing: { bg: 'rgba(44, 134, 59, 0.06)', color: '#2c863b', label: 'A processar' },
   }
   const s = map[status] || { bg: T.canvas, color: T.muted, label: status }
   return (

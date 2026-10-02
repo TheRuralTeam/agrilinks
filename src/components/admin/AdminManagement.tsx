@@ -515,7 +515,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader compact label="A carregar administradores" />
+              <Loader compact />
             </div>
           ) : admins.length === 0 ? (
             <div className="text-center py-12 text-gray-500">

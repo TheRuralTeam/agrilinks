@@ -164,7 +164,9 @@ const MarketPricesManager = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">A carregar preços...</p>
+            <div className="flex justify-center py-6">
+              <Loader compact />
+            </div>
           ) : prices.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">Nenhum preço registado ainda.</p>
           ) : (

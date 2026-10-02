@@ -87,8 +87,8 @@ const Btn = ({ children, onClick, variant = 'primary', style: extraStyle = {} }:
 const TypeBadge = ({ type }: { type: string | null }) => {
   const map: Record<string, { bg: string; color: string; border: string; label: string; icon: React.ReactNode }> = {
     agricultor: { bg: T.g50,   color: T.g600,  border: T.gBorder,               label: 'Fornecedor', icon: <Package size={12}/> },
-    comprador:  { bg: '#EFF6FF', color: '#2563EB', border: 'rgba(37,99,235,0.18)', label: 'Comprador',   icon: <ShoppingCart size={12}/> },
-    agente:     { bg: '#F5F0FF', color: '#7C3AED', border: 'rgba(124,58,237,0.18)', label: 'Agente',      icon: <Users size={12}/> },
+    comprador:  { bg: 'rgba(44, 134, 59, 0.06)', color: '#2c863b', border: 'rgba(44,134,59,0.18)', label: 'Comprador', icon: <ShoppingCart size={12}/> },
+    agente:     { bg: 'rgba(0, 0, 0, 0.03)', color: '#111714', border: 'rgba(17,23,20,0.12)', label: 'Agente', icon: <Users size={12}/> },
   }
   const s = map[type || ''] || { bg: T.canvas, color: T.muted, border: T.rule, label: 'Utilizador', icon: null }
   return (
@@ -246,10 +246,7 @@ const UserProfile = () => {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: T.canvas, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-          <div style={{ width: 48, height: 48, borderRadius: '50%', border: `2px solid ${T.gBorder}`, borderTopColor: T.g500, animation: 'spin 0.9s linear infinite' }}/>
-          <p style={{ fontSize: 13, color: T.faint, fontWeight: 500, fontFamily: FONT }}>A carregar perfil…</p>
-        </div>
+        <Loader compact />
       </div>
     );
   }

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { MAP_TILE_LAYERS } from '../lib/mapTiles';
 
 declare global { interface Window { L?: any } }
 
@@ -69,8 +70,10 @@ const SimpleLeafletMap: React.FC<Props> = ({
     loadLeaflet().then(L => {
       if (cancelled || !ref.current || mapRef.current) return;
       const m = L.map(ref.current, { center: [center.lat, center.lng], zoom });
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap', maxZoom: 19,
+      L.tileLayer(MAP_TILE_LAYERS.light.url, {
+        attribution: MAP_TILE_LAYERS.light.attribution,
+        subdomains: MAP_TILE_LAYERS.subdomains,
+        maxZoom: MAP_TILE_LAYERS.maxZoom,
       }).addTo(m);
       mapRef.current = m;
       layerRef.current = L.layerGroup().addTo(m);

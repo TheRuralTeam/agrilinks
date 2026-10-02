@@ -28,10 +28,10 @@ const GOLD_BORDER = 'rgba(229,160,32,0.28)';
 
 // ─── Tipos de conta: cada um com o seu ícone e cor de destaque próprios ──────
 const USER_TYPES = [
-  { id: 'agricultor', label: 'Fornecedor', desc: 'Vende a sua produção diretamente na rede', icon: faTractor, color: '#2D7D3A' },
-  { id: 'agente', label: 'Agente', desc: 'Liga fornecedores e compradores', icon: faUserTie, color: '#C6871E' },
-  { id: 'comprador', label: 'Comprador', desc: 'Compra produtos agrícolas na plataforma', icon: faCartShopping, color: '#2563EB' },
-  { id: 'motorista', label: 'Motorista', desc: 'Transporta cargas entre origem e destino', icon: faTruck, color: '#DB6B1F' },
+  { id: 'agricultor', label: 'Fornecedor', desc: 'Vende a sua produção diretamente na rede', icon: faTractor, color: '#2c863b' },
+  { id: 'agente', label: 'Agente', desc: 'Liga fornecedores e compradores', icon: faUserTie, color: '#2c863b' },
+  { id: 'comprador', label: 'Comprador', desc: 'Compra produtos agrícolas na plataforma', icon: faCartShopping, color: '#2c863b' },
+  { id: 'motorista', label: 'Motorista', desc: 'Transporta cargas entre origem e destino', icon: faTruck, color: '#2c863b' },
 ] as const;
 
 // ─── Native Select (fixes mobile scroll-to-top bug) ──────────────────────────
@@ -401,7 +401,7 @@ const Registration = () => {
             zIndex: 9999,
           }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-              <Loader compact label="A criar a tua conta…" />
+              <Loader compact />
             </div>
           </div>
         )}

@@ -1,4 +1,4 @@
-import { LoaderCircle } from 'lucide-react'
+import agrilinkLogo from '../../assets/LogoAgriLinkOfficiallNoBackground.png'
 
 interface LoaderProps {
   compact?: boolean
@@ -6,18 +6,19 @@ interface LoaderProps {
   className?: string
 }
 
-const Loader = ({ compact = false, label = 'A carregar', className = '' }: LoaderProps) => {
+const Loader = ({ compact = false, label = '', className = '' }: LoaderProps) => {
+  const ringSize = compact ? 'h-14 w-14' : 'h-16 w-16'
+  const logoSize = compact ? 'h-8 w-auto' : 'h-9 w-auto'
+
   const content = (
-    <div className={`flex items-center ${compact ? 'gap-2' : 'flex-col gap-3'} ${className}`} role="status" aria-live="polite">
-      <LoaderCircle className={compact ? 'h-4 w-4 animate-spin text-[#2c863b]' : 'h-7 w-7 animate-spin text-[#2c863b]'} aria-hidden="true" />
-      {label && <span className="text-xs font-medium text-[#758a79]">{label}</span>}
+    <div className={`relative flex items-center justify-center ${ringSize} ${className}`} role="status" aria-live="polite" aria-label="Loading">
+      <div className="absolute inset-0 animate-pulse rounded-full border-[3px] border-[#2c863b]/50" />
+      <img src={agrilinkLogo} alt="AgriLink" className={`${logoSize} relative z-10 object-contain`} />
     </div>
   )
 
-  if (compact) return content
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f7f9f7] px-6 text-[#111714]">
+    <div className="flex min-h-screen items-center justify-center px-6 bg-transparent backdrop-blur-[2px]">
       {content}
     </div>
   )

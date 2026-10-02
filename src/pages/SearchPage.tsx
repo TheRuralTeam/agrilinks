@@ -15,13 +15,12 @@ import {
 } from 'lucide-react'
 import { angolaProvinces } from '../data/angola-locations'
 import { ProductCard, Product as ProductCardType } from '../components/ProductCard'
+import { ProductLocationMap } from '../components/ProductLocationMap'
 import { useAuth } from '../contexts/AuthContext'
 import { validatePreOrderSubmission } from '../features/products/businessRules'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
 import { toast } from 'sonner'
 import Loader from '../components/ui/Loader'
-
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
 
 /* 
   BRANDING THEME - AgriLinks 
@@ -100,8 +99,6 @@ const SearchPage = () => {
   const [preOrderModalOpen, setPreOrderModalOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [orderData, setOrderData] = useState({ quantity: 1, location: '' })
-  const mapContainerRef = React.useRef<HTMLDivElement>(null)
-  const mapRef = React.useRef<any>(null)
 
   const searchData = React.useCallback(async (term: string, province?: string, category?: string) => {
     setLoading(true)
@@ -219,47 +216,6 @@ const SearchPage = () => {
     setProductResults(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p))
   }
 
-  useEffect(() => {
-    if (!mapModalOpen || !selectedProduct?.location_lat || !selectedProduct?.location_lng || !mapContainerRef.current) return
-
-    let cancelled = false
-
-    const loadMap = async () => {
-      try {
-        const [{ default: mapboxgl }] = await Promise.all([
-          import('mapbox-gl'),
-          import('mapbox-gl/dist/mapbox-gl.css')
-        ])
-
-        if (cancelled || !mapContainerRef.current) return
-
-        mapboxgl.accessToken = MAPBOX_TOKEN
-        mapRef.current = new mapboxgl.Map({
-          container: mapContainerRef.current,
-          style: 'mapbox://styles/mapbox/streets-v11',
-          center: [selectedProduct.location_lng, selectedProduct.location_lat],
-          zoom: 9,
-          attributionControl: false,
-        })
-
-        mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right')
-        new mapboxgl.Marker({ color: 'green' })
-          .setLngLat([selectedProduct.location_lng, selectedProduct.location_lat])
-          .addTo(mapRef.current)
-      } catch (error) {
-        console.error('Erro ao carregar mapa da busca:', error)
-      }
-    }
-
-    loadMap()
-
-    return () => {
-      cancelled = true
-      mapRef.current?.remove()
-      mapRef.current = null
-    }
-  }, [mapModalOpen, selectedProduct])
-
   const handleOpenMap = (product: Product) => {
     setSelectedProduct(product)
     setMapModalOpen(true)
@@ -353,54 +309,6 @@ const SearchPage = () => {
   }
 
   const hasActiveFilters = selectedProvince || selectedCategory !== 'all' || sortBy !== 'recent' || searchTerm
-
-  React.useEffect(() => {
-    if (!mapModalOpen || !selectedProduct?.location_lat || !selectedProduct?.location_lng) return
-    if (!mapContainerRef.current) return
-    if (!MAPBOX_TOKEN) {
-      toast.error('Mapa não configurado. Defina VITE_MAPBOX_TOKEN nas variáveis de ambiente.')
-      return
-    }
-
-    let cancelled = false
-
-    const init = async () => {
-      try {
-        const [{ default: mapboxgl }] = await Promise.all([
-          import('mapbox-gl'),
-          import('mapbox-gl/dist/mapbox-gl.css')
-        ])
-        if (cancelled || !mapContainerRef.current) return
-
-        mapboxgl.accessToken = MAPBOX_TOKEN
-        mapRef.current = new mapboxgl.Map({
-          container: mapContainerRef.current,
-          style: 'mapbox://styles/mapbox/streets-v11',
-          center: [selectedProduct.location_lng, selectedProduct.location_lat],
-          zoom: 9,
-          attributionControl: false
-        })
-
-        mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-right')
-        new mapboxgl.Marker({ color: 'green' })
-          .setLngLat([selectedProduct.location_lng, selectedProduct.location_lat])
-          .addTo(mapRef.current)
-      } catch (error) {
-        console.error('Error initializing map:', error)
-      }
-    }
-
-    init()
-
-    return () => {
-      cancelled = true
-      if (mapRef.current) {
-        mapRef.current.remove()
-        mapRef.current = null
-      }
-    }
-  }, [mapModalOpen, selectedProduct])
-
 
   const TAX_RATE = 0.10
   const totalPrice = selectedProduct ? orderData.quantity * selectedProduct.price * (1 + TAX_RATE) : 0
@@ -556,7 +464,7 @@ const SearchPage = () => {
 
         {loading && (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Loader compact label="A pesquisar" />
+            <Loader compact />
             <p className="text-[#758A79] font-medium">Buscando as melhores ofertas...</p>
           </div>
         )}
@@ -644,7 +552,11 @@ const SearchPage = () => {
               {selectedProduct?.product_type} - {selectedProduct?.farmer_name}
             </DialogDescription>
           </DialogHeader>
-          <div ref={mapContainerRef} className="w-full h-[400px] rounded-xl" style={{ border: '1px solid rgba(0,0,0,0.06)' }} />
+          <ProductLocationMap
+            latitude={selectedProduct?.location_lat}
+            longitude={selectedProduct?.location_lng}
+            className="h-[400px] border-0"
+          />
         </DialogContent>
       </Dialog>
 

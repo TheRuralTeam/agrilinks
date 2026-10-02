@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import SatelliteMonitor from '../components/SatelliteMonitor';
+import { MAP_TILE_LAYERS } from '../lib/mapTiles';
 import { supabase } from '../integrations/supabase/client';
 import axios from 'axios';
 
@@ -65,13 +66,13 @@ const T = {
   rule: Brand.rule,
   soft: 'rgba(118,118,128,0.08)',
   softHv: 'rgba(118,118,128,0.13)',
-  gold: Brand.gold,
-  goldL: Brand.goldL,
-  goldBg: Brand.goldBg,
+  gold: Brand.green,
+  goldL: Brand.green,
+  goldBg: 'rgba(44, 134, 59, 0.08)',
   danger: '#DC2626',
   dangerBg: 'rgba(220,38,38,0.08)',
-  blue: '#2563EB',
-  blueBg: 'rgba(37,99,235,0.08)',
+  blue: '#2c863b',
+  blueBg: 'rgba(44, 134, 59, 0.08)',
   shadow: 'rgba(0,0,0,0.06)',
   shadowMd: 'rgba(0,0,0,0.10)',
   shadowLg: 'rgba(0,0,0,0.16)',
@@ -658,23 +659,6 @@ const StatsPanel: React.FC<{ count: number; avgPrice: number; totalQuantity: num
 /* ════════════════════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ════════════════════════════════════════════════════════════════════════════ */
-// A CARTO passou a exigir API key para o serviço de basemaps raster
-// ({s}.basemaps.cartocdn.com) — antes era de acesso livre, deixou de ser,
-// e é o que causava o watermark "API KEY REQUIRED" sobre o mapa todo.
-// Usamos o mesmo provedor que já funciona na landing (tile.openstreetmap.org),
-// gratuito e sem key. Se mais tarde quiser voltar ao visual CARTO Voyager,
-// terá de criar uma conta em carto.com e passar &api_key=... na URL.
-const STREET_TILE = {
-  url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-};
-// Tile server de reserva — entra em ação automaticamente se o principal falhar
-// a carregar demasiadas tiles (ver <TileLayer eventHandlers> mais abaixo).
-const FALLBACK_TILE = {
-  url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-  attribution: '© OpenStreetMap contributors, © OpenTopoMap (CC-BY-SA)',
-};
-
 const MapView = () => {
   const mapInstanceRef = useRef<L.Map | null>(null);
   const animRef = useRef<number | null>(null);
@@ -1100,10 +1084,10 @@ const MapView = () => {
             }}
           />
           <TileLayer
-            url={tileFailed ? FALLBACK_TILE.url : STREET_TILE.url}
-            attribution={tileFailed ? FALLBACK_TILE.attribution : STREET_TILE.attribution}
-            maxZoom={19}
-            subdomains="abc"
+            url={tileFailed ? MAP_TILE_LAYERS.voyager.url : MAP_TILE_LAYERS.light.url}
+            attribution={tileFailed ? MAP_TILE_LAYERS.voyager.attribution : MAP_TILE_LAYERS.light.attribution}
+            maxZoom={MAP_TILE_LAYERS.maxZoom}
+            subdomains={MAP_TILE_LAYERS.subdomains}
             eventHandlers={{
               tileerror: () => {
                 tileErrorCountRef.current += 1;
@@ -1903,10 +1887,8 @@ const MapView = () => {
 
       {/* Loading overlay */}
       {loading && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(8px)' }}>
-          <div className="bg-white rounded-[22px] flex flex-col items-center gap-3 p-7" style={{ boxShadow: `0 24px 60px ${T.shadowLg}` }}>
-            <Loader compact label="A carregar mapa" />
-          </div>
+        <div className="absolute inset-0 z-40 flex items-center justify-center" style={{ background: 'transparent', backdropFilter: 'blur(2px)' }}>
+          <Loader compact />
         </div>
       )}
 
@@ -1937,7 +1919,7 @@ const MapView = () => {
         }
       `}</style>
       <div className="text-center mt-2" style={{ fontSize: 11, color: T.faint, marginTop: 8 }}>
-        Map data © OpenStreetMap contributors · Tiles © CARTO
+        Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a> · Tiles © <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>
       </div>
       <SatelliteMonitor />
     </div>

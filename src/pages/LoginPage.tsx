@@ -185,7 +185,7 @@ const LoginPage = () => {
             zIndex: 9999,
           }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-              <Loader compact label="A autenticar…" />
+              <Loader compact />
             </div>
           </div>
         )}

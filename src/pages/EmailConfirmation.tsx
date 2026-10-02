@@ -145,7 +145,7 @@ const EmailConfirmation = () => {
               >
                 {sending ? (
                   <>
-                    <Loader compact label="" className="mr-2 [&_svg]:text-primary-foreground" />
+                    <Loader compact className="mr-2 [&_svg]:text-primary-foreground" />
                     A enviar...
                   </>
                 ) : countdown > 0 ? (

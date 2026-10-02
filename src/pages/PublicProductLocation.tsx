@@ -30,8 +30,8 @@ const PublicProductLocation = () => {
           <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
         </Button>
         <div className="flex items-center gap-2">
-          <MapPin className="h-5 w-5 text-[#1A5C24]" />
-          <h1 className="font-semibold text-[#0a1628]">
+          <MapPin className="h-5 w-5 text-[#2c863b]" />
+          <h1 className="font-semibold text-[#111714]">
             {product ? `Localização: ${product.product_type}` : 'Localização do produto'}
           </h1>
         </div>
@@ -51,7 +51,9 @@ const PublicProductLocation = () => {
           height="70vh"
         />
       ) : (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground">A carregar…</div>
+        <div className="flex-1 flex items-center justify-center">
+          <Loader compact />
+        </div>
       )}
     </div>
   )

@@ -200,9 +200,7 @@ const MarketData = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: T.canvas }}>
-        <div className="flex flex-col items-center gap-3">
-          <Loader compact label="A carregar dados de mercado" />
-        </div>
+        <Loader compact />
       </div>
     );
   }
@@ -239,7 +237,7 @@ const MarketData = () => {
               style={{ background: T.g900, color: T.white }}
             >
               {analyzing ? (
-                <Loader compact label="" className="[&_svg]:text-primary-foreground" />
+                <Loader compact className="[&_svg]:text-primary-foreground" />
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}

@@ -272,7 +272,7 @@ const PerfilComprador = () => {
                 </Avatar>
                 <div className="absolute -bottom-1 -right-1">
                   <Button size="sm" variant="outline" className="h-8 w-8 p-0" disabled={avatarLoading} onClick={() => document.getElementById('avatar-upload')?.click()}>
-                    {avatarLoading ? <Loader compact label="" /> : <Camera className="h-3 w-3" />}
+                    {avatarLoading ? <Loader compact /> : <Camera className="h-3 w-3" />}
                   </Button>
                   <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={uploadAvatar}/>
                 </div>

@@ -1688,7 +1688,7 @@ const AdminDashboard = () => {
                   <Button onClick={generateMarketAnalysis} disabled={analyzingMarket} className="gap-2">
                     {analyzingMarket ? (
                       <>
-                        <Loader compact label="Analisando..." className="[&_svg]:text-primary-foreground" />
+                        <Loader compact className="[&_svg]:text-primary-foreground" />
                       </>
                     ) : (
                       <>

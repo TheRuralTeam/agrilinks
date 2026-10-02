@@ -18,8 +18,8 @@
    return (
      <Card className="border border-border bg-white">
        <CardHeader className="pb-4">
-         <CardTitle className="text-lg font-semibold text-[#0a1628] flex items-center gap-2">
-           <Building2 className="h-5 w-5 text-[#B8860B]" />
+         <CardTitle className="text-lg font-semibold text-[#111714] flex items-center gap-2">
+           <Building2 className="h-5 w-5 text-[#2c863b]" />
            Sobre a Empresa
          </CardTitle>
        </CardHeader>
@@ -32,19 +32,19 @@
            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
              {foundedYear && (
                <div className="text-center">
-                 <p className="text-2xl font-bold text-[#0a1628]">{foundedYear}</p>
+                 <p className="text-2xl font-bold text-[#111714]">{foundedYear}</p>
                  <p className="text-xs text-muted-foreground">Fundação</p>
                </div>
              )}
              {employees && (
                <div className="text-center">
-                 <p className="text-2xl font-bold text-[#0a1628]">{employees}</p>
+                 <p className="text-2xl font-bold text-[#111714]">{employees}</p>
                  <p className="text-xs text-muted-foreground">Colaboradores</p>
                </div>
              )}
              {annualRevenue && (
                <div className="text-center">
-                 <p className="text-2xl font-bold text-[#B8860B]">{annualRevenue}</p>
+                 <p className="text-2xl font-bold text-[#2c863b]">{annualRevenue}</p>
                  <p className="text-xs text-muted-foreground">Faturação Anual</p>
                </div>
              )}

@@ -41,12 +41,12 @@
          <Card className="border border-border bg-white">
            <CardContent className="p-5">
              <div className="flex items-center gap-3">
-               <div className="h-12 w-12 rounded-xl bg-[#0a1628]/10 flex items-center justify-center">
-                 <Factory className="h-6 w-6 text-[#0a1628]" />
+               <div className="h-12 w-12 rounded-xl bg-[#2c863b]/10 flex items-center justify-center">
+                 <Factory className="h-6 w-6 text-[#111714]" />
                </div>
                <div>
                  <p className="text-xs text-muted-foreground">Capacidade Produtiva</p>
-                 <p className="text-lg font-bold text-[#0a1628]">{productionCapacity}</p>
+                 <p className="text-lg font-bold text-[#111714]">{productionCapacity}</p>
                </div>
              </div>
            </CardContent>
@@ -55,14 +55,14 @@
          <Card className="border border-border bg-white">
            <CardContent className="p-5">
              <div className="flex items-start gap-3">
-               <div className="h-12 w-12 rounded-xl bg-[#B8860B]/10 flex items-center justify-center shrink-0">
-                 <Award className="h-6 w-6 text-[#B8860B]" />
+               <div className="h-12 w-12 rounded-xl bg-[#2c863b]/10 flex items-center justify-center shrink-0">
+                 <Award className="h-6 w-6 text-[#2c863b]" />
                </div>
                <div>
                  <p className="text-xs text-muted-foreground mb-2">Certificações</p>
                  <div className="flex flex-wrap gap-1">
                    {certifications.map((cert, index) => (
-                     <Badge key={index} variant="outline" className="text-xs border-[#B8860B]/30 text-[#B8860B]">
+                     <Badge key={index} variant="outline" className="text-xs border-[#2c863b]/20 text-[#2c863b]">
                        {cert}
                      </Badge>
                    ))}
@@ -96,10 +96,10 @@
        {/* Products Portfolio */}
        <Card className="border border-border bg-white">
          <CardHeader className="pb-4">
-           <CardTitle className="text-lg font-semibold text-[#0a1628] flex items-center gap-2">
-             <Package className="h-5 w-5 text-[#B8860B]" />
+           <CardTitle className="text-lg font-semibold text-[#111714] flex items-center gap-2">
+             <Package className="h-5 w-5 text-[#2c863b]" />
              Portfólio de Produtos
-             <Badge className="ml-auto bg-[#0a1628] text-white">{products.length} produtos</Badge>
+             <Badge className="ml-auto bg-[#2c863b] text-white">{products.length} produtos</Badge>
            </CardTitle>
          </CardHeader>
          <CardContent>
@@ -107,7 +107,7 @@
              {products.map((product) => (
                <div 
                  key={product.id} 
-                 className="flex gap-4 p-4 border border-border rounded-xl hover:border-[#B8860B]/30 transition-colors"
+                 className="flex gap-4 p-4 border border-border rounded-xl hover:border-[#2c863b]/30 transition-colors"
                >
                  {/* Product Image */}
                  <div className="h-24 w-24 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 overflow-hidden">
@@ -122,7 +122,7 @@
                  <div className="flex-1 min-w-0">
                    <div className="flex items-start justify-between gap-2">
                      <div>
-                       <h4 className="font-semibold text-[#0a1628] truncate">{product.name}</h4>
+                       <h4 className="font-semibold text-[#111714] truncate">{product.name}</h4>
                        <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
                      </div>
                      <Button 
@@ -139,11 +139,11 @@
                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
                      <div>
                        <p className="text-xs text-muted-foreground">Unidade</p>
-                       <p className="text-sm font-medium text-[#0a1628]">{product.unit}</p>
+                       <p className="text-sm font-medium text-[#111714]">{product.unit}</p>
                      </div>
                      <div>
                        <p className="text-xs text-muted-foreground">MOQ</p>
-                       <p className="text-sm font-medium text-[#0a1628]">{product.moq.toLocaleString()}</p>
+                       <p className="text-sm font-medium text-[#111714]">{product.moq.toLocaleString()}</p>
                      </div>
                      <div>
                        <p className="text-xs text-muted-foreground">Estoque</p>
@@ -151,16 +151,16 @@
                      </div>
                      <div>
                        <p className="text-xs text-muted-foreground">Lead Time</p>
-                       <p className="text-sm font-medium text-[#0a1628]">{product.leadTime}</p>
+                       <p className="text-sm font-medium text-[#111714]">{product.leadTime}</p>
                      </div>
                    </div>
                    
                    {/* Volume Prices */}
                    <div className="mt-3 flex flex-wrap gap-2">
                      {product.prices.map((priceInfo, index) => (
-                       <div key={index} className="px-2 py-1 bg-[#B8860B]/10 rounded text-xs">
+                       <div key={index} className="px-2 py-1 bg-[#2c863b]/10 rounded text-xs">
                          <span className="text-muted-foreground">≥{priceInfo.minQty}: </span>
-                         <span className="font-bold text-[#B8860B]">{priceInfo.price.toLocaleString()} Kz</span>
+                         <span className="font-bold text-[#2c863b]">{priceInfo.price.toLocaleString()} Kz</span>
                        </div>
                      ))}
                    </div>

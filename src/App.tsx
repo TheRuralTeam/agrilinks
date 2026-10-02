@@ -6,11 +6,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import { LanguageWelcomeBanner } from "./components/LanguageWelcomeBanner";
 import Loader from "./components/ui/Loader";
 import AppLayout from "./layouts/AppLayout";
 import { GuestGateProvider } from "./contexts/GuestGateContext";
-import GuestCTABar from "./components/GuestCTABar";
 import { purgeExpiredGuestSession } from "./lib/guestSession";
 
 const Index = lazy(() => import("./pages/Index"));
@@ -347,11 +345,9 @@ const App = () => {
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <LanguageWelcomeBanner />
             <BrowserRouter>
               <GuestGateProvider>
                 <AppRoutes />
-                <GuestCTABar />
               </GuestGateProvider>
             </BrowserRouter>
           </TooltipProvider>
