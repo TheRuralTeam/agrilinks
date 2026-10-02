@@ -216,7 +216,8 @@ export default function AgriLinkLanding() {
         .nav-links a:hover { color: white; }
         .nav-actions { display: flex; align-items: center; gap: 10px; }
         .login-btn { color: white; border: 1px solid rgba(255,255,255,.35); background: transparent; border-radius: 6px; padding: 10px 18px; font-size: 13px; font-weight: 600; }
-        .register-btn { color: var(--green-dark); border: 0; background: var(--gold-light); border-radius: 6px; padding: 11px 19px; font-weight: 800; font-size: 13px; }
+        .register-btn { color: var(--green-dark); border: 0; background: var(--white); border-radius: 6px; padding: 11px 19px; font-weight: 800; font-size: 13px; transition: background .18s ease, transform .18s ease; }
+        .register-btn:hover { background: #f3f6f3; transform: translateY(-2px); }
         .menu-button { display: none; border: 0; background: transparent; color: white; }
 
         .hero { min-height: 660px; position: relative; display: flex; align-items: center; color: white; background: linear-gradient(100deg, ${T.g900} 0%, rgba(16,35,26,.86) 45%, rgba(16,35,26,.24) 100%), url(${heroImage}) center/cover; }
@@ -227,9 +228,10 @@ export default function AgriLinkLanding() {
         .hero-copy { max-width: 540px; color: rgba(255,255,255,.8); font-size: 17px; line-height: 1.75; font-weight: 500; }
         .hero-actions { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 12px; }
         .btn-primary, .btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 9px; border-radius: 6px; padding: 15px 23px; font-size: 14px; font-weight: 700; transition: transform .18s ease, background .18s ease, box-shadow .18s ease; }
-        .btn-primary { border: 0; background: var(--gold-light); color: var(--green-dark); }
+        .btn-primary { border: 0; background: var(--white); color: var(--green-dark); }
         .btn-ghost { border: 1px solid rgba(255,255,255,.35); color: white; background: rgba(255,255,255,.05); }
         .btn-primary:hover, .btn-ghost:hover { transform: translateY(-2px); }
+        .btn-primary:hover { background: #f3f6f3; }
         .btn-ghost:hover { background: rgba(255,255,255,.12); }
 
         .partners { padding: 34px 0; border-bottom: 1px solid var(--line); }
@@ -242,7 +244,7 @@ export default function AgriLinkLanding() {
         .partner-item:first-child { border-left: 0; padding-left: 0; }
         .partner-role { color: var(--muted); font-size: 10px; line-height: 1.4; font-weight: 700; text-transform: uppercase; }
         .partner-item img { display: block; width: auto; max-width: 100%; height: 44px; object-fit: contain; object-position: center; }
-        .partner-link { display: inline-flex; align-items: center; }
+        .partner-link { display: inline-flex; align-items: center; justify-content: center; height: 100px; }
         .partner-link:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; }
         .partner-logos { display: flex; align-items: center; justify-content: center; gap: 14px; }
         .partner-logos .total-logo { width: 136px; height: 44px; }
@@ -370,6 +372,7 @@ export default function AgriLinkLanding() {
           .partner-logos { gap: 10px; }
           .partner-logos .total-logo { width: 120px; height: 42px; }
           .partner-logos .program-logo { width: 124px; height: 82px; }
+          .partner-link { height: 82px; }
           .partner-item .the-team-logo { width: 132px; height: 88px; }
           .hero h1 { font-size: 44px; }
           .section-title { font-size: 34px; }
@@ -405,6 +408,7 @@ export default function AgriLinkLanding() {
           .partner-item img { height: 40px; }
           .partner-logos .total-logo { width: 130px; height: 42px; }
           .partner-logos .program-logo { width: 152px; height: 88px; }
+          .partner-link { height: 88px; }
           .feature-list, .roles-grid, .team-grid { grid-template-columns: 1fr; }
           .intro, .roles, .team, .engine, .faq { padding: 72px 0; }
           .aggregation { padding: 76px 0 72px; }
