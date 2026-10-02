@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight, Check, ChevronDown, Clock3, FileCheck2, Globe2, Home, Menu,
-  Quote, Route, ShieldCheck, Sprout, Truck as TruckIcon, Users, Wallet, Warehouse, X,
+  Route, ShieldCheck, Sprout, Truck as TruckIcon, Users, Wallet, Warehouse, X,
 } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTractor, faUserTie, faCartShopping, faTruck } from "@fortawesome/free-solid-svg-icons";
@@ -15,13 +15,15 @@ import "leaflet/dist/leaflet.css";
 import { T } from "../lib/brand";
 import { MAP_TILE_LAYERS } from "../lib/mapTiles";
 
-import orbisLinkLogo from "../assets/orbislink-logo.png";
+import agrilinkLogo from "../assets/agrilink-logo.png";
+import casaLettoLogo from "../assets/parceiros/Grupo_CasaLetto-no-bg.png";
+import totalEnergiesLogo from "../assets/Parceiros Institucionais/total energies.png";
 import ttgiLogo from "../assets/ttgi.jpg";
 import fotoFeliciano from "../assets/FELICIANO.jpeg";
 import fotoMoises from "../assets/MOISES.jpeg";
 import fotoLizeth from "../assets/LIZETH.jpeg";
 import fotoClaudio from "../assets/CLAUDIO.jpeg";
-import heroImage from "../assets/agrilink-community-conference.jpg";
+import heroImage from "../assets/hero-agriculture.jpg";
 
 // ─── Equipa ───────────────────────────────────────────────────────────────
 const team = [
@@ -122,14 +124,6 @@ const steps = [
   "Escolhe como recebes: entrega directa ou levantamento num ponto de agregação.",
 ];
 
-// TODO(TIO): substituir pelos números reais da plataforma antes de publicar.
-const stats = [
-  { value: "3", label: "pontos de agregação activos em Luanda" },
-  { value: "4", label: "papéis na rede — de quem produz a quem entrega" },
-  { value: "100%", label: "pagamentos retidos em garantia até à entrega" },
-  { value: "24h", label: "tempo médio para ligar oferta a comprador" },
-];
-
 // ─── O motor do produto — mecânica real da plataforma ──────────────────────
 const engineFeatures = [
   {
@@ -155,29 +149,6 @@ const engineFeatures = [
     tag: "Logística",
     title: "O motorista escolhe a carga que transporta",
     description: "Cada motorista vê as cargas disponíveis na sua zona e aceita as que lhe convêm — sem despacho central a impor rotas.",
-  },
-];
-
-// TODO(TIO): substituir por testemunhos reais de fornecedores, agentes e
-// compradores assim que existirem — mantidos como placeholder por agora.
-const testimonials = [
-  {
-    quote: "Antes vendia a quem aparecesse no mercado. Agora sei com quem estou a negociar antes de carregar o camião.",
-    name: "[Nome do fornecedor]",
-    role: "Fornecedor — Huambo",
-    color: T.g600,
-  },
-  {
-    quote: "Deixei de perder dias à procura de comprador para cada lote — a rede liga-me a quem já está à procura.",
-    name: "[Nome do agente]",
-    role: "Agente — Luanda",
-    color: T.gold,
-  },
-  {
-    quote: "Sei o preço do frete antes de aceitar a carga, e o pagamento chega assim que confirmo a entrega.",
-    name: "[Nome do motorista]",
-    role: "Motorista — Kilamba Kiaxi",
-    color: "#2c863b",
   },
 ];
 
@@ -242,32 +213,36 @@ export default function AgriLinkLanding() {
         .nav-links { display: flex; align-items: center; gap: 28px; font-size: 13px; color: rgba(255,255,255,.8); }
         .nav-links a:hover { color: white; }
         .nav-actions { display: flex; align-items: center; gap: 10px; }
-        .login-btn { color: white; border: 1px solid rgba(255,255,255,.35); background: transparent; border-radius: 999px; padding: 10px 18px; font-size: 13px; font-weight: 600; }
-        .register-btn { color: var(--green-dark); border: 0; background: var(--gold-light); border-radius: 999px; padding: 11px 19px; font-weight: 800; font-size: 13px; }
+        .login-btn { color: white; border: 1px solid rgba(255,255,255,.35); background: transparent; border-radius: 6px; padding: 10px 18px; font-size: 13px; font-weight: 600; }
+        .register-btn { color: var(--green-dark); border: 0; background: var(--gold-light); border-radius: 6px; padding: 11px 19px; font-weight: 800; font-size: 13px; }
         .menu-button { display: none; border: 0; background: transparent; color: white; }
 
-        .hero { min-height: 720px; position: relative; display: flex; align-items: center; color: white; background: linear-gradient(100deg, ${T.g900} 0%, rgba(16,35,26,.74) 46%, rgba(16,35,26,.18) 100%), url(${heroImage}) center/cover; }
+        .hero { min-height: 660px; position: relative; display: flex; align-items: center; color: white; background: linear-gradient(100deg, ${T.g900} 0%, rgba(16,35,26,.86) 45%, rgba(16,35,26,.24) 100%), url(${heroImage}) center/cover; }
         .hero-content { position: relative; z-index: 1; padding: 132px 0 92px; max-width: 700px; }
         .eyebrow { display: inline-flex; align-items: center; gap: 9px; color: var(--gold-light); font-size: 13px; font-weight: 700; }
         .eyebrow::before { content: ''; width: 26px; height: 2px; background: var(--gold-light); }
-        .hero h1 { margin: 20px 0 22px; font-weight: 800; font-size: clamp(36px, 5.4vw, 58px); line-height: 1.08; letter-spacing: -0.02em; }
+        .hero h1 { margin: 20px 0 22px; font-weight: 800; font-size: 56px; line-height: 1.08; }
         .hero-copy { max-width: 540px; color: rgba(255,255,255,.8); font-size: 17px; line-height: 1.75; font-weight: 500; }
         .hero-actions { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 12px; }
-        .btn-primary, .btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 9px; border-radius: 999px; padding: 15px 23px; font-size: 14px; font-weight: 700; transition: transform .18s ease, background .18s ease, box-shadow .18s ease; }
+        .btn-primary, .btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 9px; border-radius: 6px; padding: 15px 23px; font-size: 14px; font-weight: 700; transition: transform .18s ease, background .18s ease, box-shadow .18s ease; }
         .btn-primary { border: 0; background: var(--gold-light); color: var(--green-dark); }
         .btn-ghost { border: 1px solid rgba(255,255,255,.35); color: white; background: rgba(255,255,255,.05); }
         .btn-primary:hover, .btn-ghost:hover { transform: translateY(-2px); }
         .btn-ghost:hover { background: rgba(255,255,255,.12); }
 
-        .stats-bar { position: relative; z-index: 2; margin-top: -56px; background: var(--white); border-radius: 22px; box-shadow: 0 18px 44px rgba(16,35,26,.14); display: grid; grid-template-columns: repeat(4, 1fr); }
-        .stat { padding: 26px 22px; border-left: 1px solid var(--line); }
-        .stat:first-child { border-left: 0; }
-        .stat-value { font-size: 30px; font-weight: 800; color: var(--green); letter-spacing: -0.02em; }
-        .stat-label { margin-top: 4px; color: var(--muted); font-size: 12.5px; line-height: 1.5; font-weight: 500; max-width: 20ch; }
+        .partners { padding: 34px 0; border-bottom: 1px solid var(--line); }
+        .partners-inner { display: grid; grid-template-columns: .8fr 1.2fr; align-items: center; gap: 38px; }
+        .partners-intro { max-width: 290px; }
+        .partners-intro p { margin: 0 0 7px; color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .partners-intro h2 { margin: 0; font-size: 20px; line-height: 1.35; font-weight: 800; }
+        .partner-list { display: grid; grid-template-columns: 1fr 1fr; }
+        .partner-item { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 10px; padding: 4px 24px; border-left: 1px solid var(--line); }
+        .partner-role { color: var(--muted); font-size: 10px; line-height: 1.4; font-weight: 700; text-transform: uppercase; }
+        .partner-item img { display: block; width: auto; max-width: 100%; height: 44px; object-fit: contain; object-position: left center; }
 
         .intro { padding: 108px 0 96px; }
         .intro-grid { display: grid; grid-template-columns: .82fr 1.18fr; gap: 80px; align-items: start; }
-        .section-title { margin: 14px 0 16px; font-weight: 800; font-size: clamp(28px, 3.4vw, 42px); line-height: 1.12; letter-spacing: -0.02em; }
+        .section-title { margin: 14px 0 16px; font-weight: 800; font-size: 40px; line-height: 1.12; }
         .section-copy { color: var(--muted); font-size: 15.5px; line-height: 1.8; max-width: 520px; font-weight: 500; }
         .feature-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
         .feature { border-top: 1px solid var(--line); padding-top: 20px; }
@@ -279,7 +254,7 @@ export default function AgriLinkLanding() {
         .roles { background: var(--soft); padding: 100px 0; }
         .roles-head { max-width: 600px; margin-bottom: 44px; }
         .roles-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-        .role-card { background: var(--white); border: 1.5px solid var(--line); border-radius: 20px; padding: 26px 22px; transition: transform .18s ease, border-color .18s ease; }
+        .role-card { background: var(--white); border: 1.5px solid var(--line); border-radius: 8px; padding: 26px 22px; transition: transform .18s ease, border-color .18s ease; }
         .role-card:hover { transform: translateY(-3px); }
         .role-icon { width: 46px; height: 46px; border-radius: 13px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
         .role-card h3 { margin: 0 0 8px; font-size: 16px; font-weight: 800; }
@@ -289,23 +264,12 @@ export default function AgriLinkLanding() {
         .engine { padding: 108px 0; }
         .engine-head { max-width: 600px; margin-bottom: 44px; }
         .engine-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
-        .engine-card { border: 1.5px solid var(--line); border-radius: 20px; padding: 26px 26px 24px; }
+        .engine-card { border: 1.5px solid var(--line); border-radius: 8px; padding: 26px 26px 24px; }
         .engine-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
         .engine-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: var(--gold-bg); color: var(--green); }
         .engine-tag { font-size: 11.5px; font-weight: 800; color: var(--gold); background: var(--gold-bg); border-radius: 999px; padding: 5px 12px; }
         .engine-card h3 { margin: 0 0 10px; font-size: 16.5px; font-weight: 800; line-height: 1.35; }
         .engine-card p { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.65; font-weight: 500; }
-
-        /* ── Testemunhos ───────────────────────────────────────────────────── */
-        .testimonials { background: var(--soft); padding: 100px 0; }
-        .testimonials-head { max-width: 560px; margin-bottom: 40px; }
-        .testimonials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-        .testimonial-card { background: var(--white); border: 1.5px solid var(--line); border-radius: 20px; padding: 28px 24px; display: flex; flex-direction: column; }
-        .testimonial-quote { margin: 0 0 22px; font-size: 14.5px; line-height: 1.7; font-weight: 600; color: var(--ink); flex: 1; }
-        .testimonial-who { display: flex; align-items: center; gap: 11px; }
-        .testimonial-avatar { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 14px; flex-shrink: 0; }
-        .testimonial-name { font-size: 13px; font-weight: 800; }
-        .testimonial-role { font-size: 12px; color: var(--muted); font-weight: 500; margin-top: 1px; }
 
         /* ── FAQ ──────────────────────────────────────────────────────────── */
         .faq { padding: 108px 0; }
@@ -325,15 +289,14 @@ export default function AgriLinkLanding() {
         .aggregation-head .eyebrow { color: var(--gold); }
         .aggregation-head .eyebrow::before { background: var(--gold); }
         .aggregation-explainer { max-width: 760px; margin: 0 auto 56px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-        .explain-card { border: 1.5px solid var(--line); border-radius: 18px; padding: 22px 24px; background: var(--white); }
+        .explain-card { border: 1.5px solid var(--line); border-radius: 8px; padding: 22px 24px; background: var(--white); }
         .explain-card .row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .explain-card .row-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .explain-card h4 { margin: 0; font-size: 14.5px; font-weight: 800; }
         .explain-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; font-weight: 500; }
 
-        .map-block { position: relative; border-radius: 28px; padding: 3px; background: linear-gradient(135deg, var(--green), var(--gold)); }
-        .map-block::before { content: ''; position: absolute; inset: -60px; background: radial-gradient(closest-side, rgba(45,125,58,.12), transparent 72%); z-index: -1; }
-        .map-inner { border-radius: 25px; overflow: hidden; background: var(--white); display: grid; grid-template-columns: 1.5fr 1fr; min-height: 460px; }
+        .map-block { position: relative; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+        .map-inner { overflow: hidden; background: var(--white); display: grid; grid-template-columns: 1.5fr 1fr; min-height: 460px; }
         .map-canvas { position: relative; }
         .map-canvas .leaflet-container { height: 100%; width: 100%; min-height: 460px; background: #eef3ea; }
         .map-legend { padding: 30px 26px; display: flex; flex-direction: column; gap: 0; border-left: 1px solid var(--line); }
@@ -361,15 +324,14 @@ export default function AgriLinkLanding() {
         .team-head { max-width: 550px; margin-bottom: 46px; }
         .team-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
         .team-card { border-top: 1px solid var(--line); padding-top: 14px; }
-        .team-card img { width: 100%; aspect-ratio: 1 / 1.12; object-fit: cover; border-radius: 18px; filter: saturate(.85); display: block; margin-bottom: 16px; }
+        .team-card img { width: 100%; aspect-ratio: 1 / 1.12; object-fit: cover; border-radius: 8px; filter: saturate(.85); display: block; margin-bottom: 16px; }
         .team-name { font-size: 15.5px; font-weight: 800; }
         .team-role { margin-top: 4px; color: var(--muted); font-size: 12.5px; font-weight: 500; }
 
         .cta { padding: 20px 0 100px; }
-        .cta-box { position: relative; overflow: hidden; border-radius: 26px; padding: 64px; background: var(--green); color: white; display: flex; align-items: end; justify-content: space-between; gap: 40px; }
-        .cta-box::after { content: ''; position: absolute; width: 340px; height: 340px; right: -110px; top: -160px; border-radius: 50%; border: 1px solid rgba(255,255,255,.18); box-shadow: 0 0 0 36px rgba(255,255,255,.04), 0 0 0 74px rgba(255,255,255,.04); }
+        .cta-box { position: relative; overflow: hidden; border-radius: 8px; padding: 64px; background: var(--green); color: white; display: flex; align-items: end; justify-content: space-between; gap: 40px; }
         .cta-box > * { position: relative; z-index: 1; }
-        .cta-box h2 { margin: 14px 0 14px; max-width: 600px; font: 800 clamp(30px, 4.2vw, 46px)/1.08 inherit; letter-spacing: -0.02em; }
+        .cta-box h2 { margin: 14px 0 14px; max-width: 600px; font-size: 44px; font-weight: 800; line-height: 1.08; }
         .cta-box p { margin: 0; max-width: 480px; color: rgba(255,255,255,.78); line-height: 1.7; font-weight: 500; }
         .cta-box .btn-primary { white-space: nowrap; }
 
@@ -387,6 +349,8 @@ export default function AgriLinkLanding() {
         @media (max-width: 900px) {
           .footer-inner { grid-template-columns: 1fr; gap: 22px; }
           .footer-ttgi { justify-content: flex-start; text-align: left; }
+          .hero h1 { font-size: 44px; }
+          .section-title { font-size: 34px; }
           .nav-links, .nav-actions { display: none; }
           .menu-button { display: block; }
           .nav.mobile-open { background: var(--green-dark); }
@@ -396,10 +360,7 @@ export default function AgriLinkLanding() {
           .nav.mobile-open .nav-actions { order: 4; width: 100%; justify-content: flex-start; }
           .intro-grid { grid-template-columns: 1fr; gap: 44px; }
           .roles-grid { grid-template-columns: repeat(2, 1fr); }
-          .stats-bar { grid-template-columns: repeat(2, 1fr); }
-          .stat:nth-child(3) { border-left: 0; }
           .engine-grid { grid-template-columns: 1fr; }
-          .testimonials-grid { grid-template-columns: 1fr; }
           .faq-inner { grid-template-columns: 1fr; gap: 28px; }
           .aggregation-explainer { grid-template-columns: 1fr; }
           .map-inner { grid-template-columns: 1fr; }
@@ -413,20 +374,24 @@ export default function AgriLinkLanding() {
           .container { width: min(100% - 32px, 1160px); }
           .hero { min-height: 640px; }
           .hero-content { padding-top: 132px; }
+          .hero h1 { font-size: 36px; }
+          .section-title { font-size: 30px; }
+          .partners-inner { grid-template-columns: 1fr; gap: 22px; }
+          .partners-intro { max-width: none; }
+          .partner-item { padding: 14px 0; border-left: 0; border-top: 1px solid var(--line); }
+          .partner-item img { height: 40px; }
           .feature-list, .roles-grid, .team-grid { grid-template-columns: 1fr; }
-          .intro, .roles, .team, .engine, .testimonials, .faq { padding: 72px 0; }
+          .intro, .roles, .team, .engine, .faq { padding: 72px 0; }
           .aggregation { padding: 76px 0 72px; }
-          .stats-bar { grid-template-columns: 1fr; margin-top: -32px; border-radius: 18px; }
-          .stat { border-left: 0; border-top: 1px solid var(--line); }
-          .stat:first-child { border-top: 0; }
           .footer-inner { align-items: flex-start; flex-direction: column; }
+          .cta-box h2 { font-size: 34px; }
         }
       `}</style>
 
       <nav className={`nav ${menuOpen ? "mobile-open" : ""}`}>
         <div className="container nav-inner">
           <a className="brand" href="#top" aria-label="AgriLink">
-            <img src={orbisLinkLogo} alt="AgriLink" />
+            <img src={agrilinkLogo} alt="AgriLink" />
           </a>
           <div className="nav-links">
             <a href="#produto">Produto</a>
@@ -461,16 +426,24 @@ export default function AgriLinkLanding() {
         </div>
       </section>
 
-      <div className="container">
-        <div className="stats-bar">
-          {stats.map((s) => (
-            <div className="stat" key={s.label}>
-              <div className="stat-value">{s.value}</div>
-              <div className="stat-label">{s.label}</div>
+      <section className="partners" aria-labelledby="partners-title">
+        <div className="container partners-inner">
+          <div className="partners-intro">
+            <p>Uma rede construída em conjunto</p>
+            <h2 id="partners-title">Parcerias que aproximam mercados.</h2>
+          </div>
+          <div className="partner-list">
+            <div className="partner-item">
+              <span className="partner-role">Parceiro institucional</span>
+              <img src={totalEnergiesLogo} alt="TotalEnergies" loading="lazy" />
             </div>
-          ))}
+            <div className="partner-item">
+              <span className="partner-role">Parceiro e cliente</span>
+              <img src={casaLettoLogo} alt="Grupo CasaLetto" loading="lazy" />
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
       <section className="intro" id="produto">
         <div className="container intro-grid">
@@ -647,36 +620,6 @@ export default function AgriLinkLanding() {
         </div>
       </section>
 
-      {/* ── Testemunhos ──────────────────────────────────────────────────── */}
-      <section className="testimonials">
-        <div className="container">
-          <div className="testimonials-head">
-            <div className="eyebrow" style={{ color: T.gold }}>
-              <span style={{ display: "inline-block", width: 26, height: 2, background: T.gold }} />
-              Quem já está na rede
-            </div>
-            <h2 className="section-title">Contado por quem usa, não por nós.</h2>
-          </div>
-          <div className="testimonials-grid">
-            {testimonials.map((t) => (
-              <article className="testimonial-card" key={t.name}>
-                <Quote size={22} color={t.color} style={{ marginBottom: 16 }} />
-                <p className="testimonial-quote">{t.quote}</p>
-                <div className="testimonial-who">
-                  <span className="testimonial-avatar" style={{ background: `${t.color}1E`, color: t.color }}>
-                    {t.name.replaceAll('[', '').replaceAll(']', '').charAt(0)}
-                  </span>
-                  <div>
-                    <div className="testimonial-name">{t.name}</div>
-                    <div className="testimonial-role">{t.role}</div>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── FAQ ──────────────────────────────────────────────────────────── */}
       <section className="faq" id="faq">
         <div className="container faq-inner">
@@ -746,7 +689,7 @@ export default function AgriLinkLanding() {
       <footer>
         <div className="container footer-inner">
           <div>
-            <a className="footer-brand" href="#top"><img src={orbisLinkLogo} alt="AgriLink" /></a>
+            <a className="footer-brand" href="#top"><img src={agrilinkLogo} alt="AgriLink" /></a>
             <div className="footer-company">
               <strong>The Team - Comércio e Serviços, Lda.</strong>
               Empresa gestora da plataforma AgriLink.
