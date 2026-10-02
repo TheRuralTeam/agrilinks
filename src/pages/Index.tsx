@@ -237,7 +237,7 @@ export default function AgriLinkLanding() {
         .partners-intro { max-width: 290px; }
         .partners-intro p { margin: 0 0 7px; color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .partners-intro h2 { margin: 0; font-size: 20px; line-height: 1.35; font-weight: 800; }
-        .partner-list { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, .7fr) minmax(0, .8fr); }
+        .partner-list { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.8fr) minmax(0, .7fr); }
         .partner-item { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 10px; padding: 4px 18px; border-left: 1px solid var(--line); }
         .partner-role { color: var(--muted); font-size: 10px; line-height: 1.4; font-weight: 700; text-transform: uppercase; }
         .partner-item img { display: block; width: auto; max-width: 100%; height: 44px; object-fit: contain; object-position: left center; }
@@ -453,6 +453,10 @@ export default function AgriLinkLanding() {
           </div>
           <div className="partner-list">
             <div className="partner-item">
+              <span className="partner-role">Parceiro tecnológico</span>
+              <img className="the-team-logo" src={theTeamLogo} alt="The Team Group Investment" loading="lazy" />
+            </div>
+            <div className="partner-item">
               <span className="partner-role">Parceiro institucional</span>
               <div className="partner-logos">
                 <img className="total-logo" src={totalEnergiesLogo} alt="TotalEnergies" loading="lazy" />
@@ -462,10 +466,6 @@ export default function AgriLinkLanding() {
             <div className="partner-item">
               <span className="partner-role">Parceiro e cliente</span>
               <img src={casaLettoLogo} alt="Grupo CasaLetto" loading="lazy" />
-            </div>
-            <div className="partner-item">
-              <span className="partner-role">Parceiro tecnológico</span>
-              <img className="the-team-logo" src={theTeamLogo} alt="The Team Group Investment" loading="lazy" />
             </div>
           </div>
         </div>
