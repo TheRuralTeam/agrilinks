@@ -808,6 +808,44 @@ export type Database = {
           },
         ]
       }
+      freight_load_locations: {
+        Row: {
+          accuracy_m: number | null
+          freight_load_id: string
+          heading_deg: number | null
+          latitude: number
+          longitude: number
+          recorded_at: string
+          speed_mps: number | null
+        }
+        Insert: {
+          accuracy_m?: number | null
+          freight_load_id: string
+          heading_deg?: number | null
+          latitude: number
+          longitude: number
+          recorded_at?: string
+          speed_mps?: number | null
+        }
+        Update: {
+          accuracy_m?: number | null
+          freight_load_id?: string
+          heading_deg?: number | null
+          latitude?: number
+          longitude?: number
+          recorded_at?: string
+          speed_mps?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_load_locations_freight_load_id_fkey"
+            columns: ["freight_load_id"]
+            isOneToOne: true
+            referencedRelation: "freight_loads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       futures_contracts: {
         Row: {
           admin_notes: string | null
