@@ -4,6 +4,7 @@ import { supabase } from '../integrations/supabase/client'
 import { User as UserProfile, RegisterData } from '../types/database'
 import { toast } from '../hooks/use-toast'
 import { buildAuthRedirectUrl, sendConfirmationEmail, sendPasswordResetEmail } from '../features/auth/email'
+import { AdminPermission, isAdminPermission } from '../features/auth/authorization'
 
 interface AuthContextType {
   user: User | null
@@ -13,6 +14,10 @@ interface AuthContextType {
   isRootAdmin: boolean
   isSuperRoot: boolean
   isSupportAgent: boolean
+  permissions: AdminPermission[]
+  hasPermission: (permission: AdminPermission) => boolean
+  hasAnyPermission: (permissions: AdminPermission[]) => boolean
+  hasAllPermissions: (permissions: AdminPermission[]) => boolean
   login: (email: string, password: string) => Promise<{ error: any }>
   register: (userData: RegisterData) => Promise<{ error: any; data?: any }>
   registerWithOtp: (data: { full_name: string; email: string; phone: string }) => Promise<{ error: any; data?: any }>
@@ -52,21 +57,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isRootAdmin, setIsRootAdmin] = useState(false)
   const [isSuperRoot, setIsSuperRoot] = useState(false)
   const [isSupportAgent, setIsSupportAgent] = useState(false)
+  const [permissions, setPermissions] = useState<AdminPermission[]>([])
   const appliedSessionRef = useRef<string | null>(null)
 
   const checkAdminRole = async (userId: string) => {
     try {
-      const [admin, root, superRoot, support] = await Promise.all([
+      const [admin, root, superRoot, support, permissionRows] = await Promise.all([
         supabase.rpc('has_role', { _user_id: userId, _role: 'admin' }),
         supabase.rpc('is_root_admin', { _user_id: userId }),
         supabase.rpc('is_super_root', { _user_id: userId }),
         supabase.rpc('is_support_agent', { _user_id: userId }),
+        supabase.from('admin_permissions').select('permission').eq('user_id', userId),
       ])
 
       const hasAdminRole = admin.data
       const rootAdminData = root.data
       const superRootData = superRoot.data
       const isSupportAgentData = support.data
+      const nextPermissions = (permissionRows.data ?? []).map((row) => row.permission).filter((p): p is AdminPermission => typeof p === 'string' && isAdminPermission(p))
       
       if (!admin.error) {
         setIsAdmin(hasAdminRole === true || rootAdminData === true)
@@ -83,6 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!support.error) {
         setIsSupportAgent(isSupportAgentData === true)
       }
+      setPermissions(permissionRows.error ? [] : nextPermissions)
     } catch (error) {
       console.error('Error checking admin role:', error)
       setIsAdmin(false)
@@ -148,6 +157,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsRootAdmin(false)
         setIsSuperRoot(false)
         setIsSupportAgent(false)
+        setPermissions([])
         localStorage.removeItem('userProfile')
       }
 
@@ -327,6 +337,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsRootAdmin(false)
       setIsSuperRoot(false)
       setIsSupportAgent(false)
+      setPermissions([])
       localStorage.removeItem('userProfile')
     }
   }
@@ -371,6 +382,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isRootAdmin,
     isSuperRoot,
     isSupportAgent,
+    permissions,
+    hasPermission: (permission) => isRootAdmin || isSuperRoot || permissions.includes(permission),
+    hasAnyPermission: (required) => isRootAdmin || isSuperRoot || required.some((permission) => permissions.includes(permission)),
+    hasAllPermissions: (required) => isRootAdmin || isSuperRoot || required.every((permission) => permissions.includes(permission)),
     login,
     register,
     registerWithOtp,
