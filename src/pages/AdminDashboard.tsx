@@ -251,6 +251,8 @@ const AdminDashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [updatingOrders, setUpdatingOrders] = useState<Set<string>>(() => new Set());
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orderTrash, setOrderTrash] = useState<Order[]>([]);
+  const [showOrderTrash, setShowOrderTrash] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -541,6 +543,25 @@ const AdminDashboard = () => {
     await supabase.from("notifications").update({ read: true }).eq("id", id);
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   }, []);
+
+  const loadOrderTrash = useCallback(async () => {
+    const { data, error } = await supabase.from("pre_orders").select("*").not("deleted_at", "is", null).order("deleted_until", { ascending: true });
+    if (error) { toast.error("Não foi possível carregar a lixeira."); return; }
+    setOrderTrash(data || []);
+  }, []);
+
+  const removePreOrder = useCallback(async (order: Order) => {
+    if (!hasPermission("manage_orders") && !isSupportAgent) { toast.error("Sem permissão para remover pedidos."); return; }
+    if (!confirm("Mover esta pré-compra para a lixeira por 15 dias?")) return;
+    const { error } = await supabase.rpc("admin_remove_pre_order", {
+      p_order_id: order.id,
+      p_reason: "Removido pelo painel administrativo",
+    });
+    if (error) { toast.error(error.message); return; }
+    setOrders(prev => prev.filter(item => item.id !== order.id));
+    await loadOrderTrash();
+    toast.success("Pré-compra movida para a lixeira por 15 dias.");
+  }, [hasPermission, isSupportAgent, loadOrderTrash]);
 
   const updateOrderStatus = useCallback(async (orderId: string, newStatus: AdminPreOrderStatus) => {
     if (!isSupportAgent && !hasPermission("manage_orders")) {
@@ -951,9 +972,14 @@ const AdminDashboard = () => {
         {activeTab === "orders" && (
           <Card className="border-0 shadow-sm">
             <CardHeader>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5 text-primary" /> Pedidos ({orders.length})
               </CardTitle>
+              <Button variant="outline" size="sm" onClick={async () => { setShowOrderTrash(true); await loadOrderTrash(); }}>
+                <Trash2 className="h-4 w-4 mr-2" /> Lixeira · 15 dias
+              </Button>
+            </div>
             </CardHeader>
             <CardContent className="overflow-x-auto">
               <Table>
@@ -991,6 +1017,27 @@ const AdminDashboard = () => {
                               onClick={() => setSelectedOrder(order)}
                             >
                               <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-gray-600"
+                              aria-label="Ver detalhes da pré-compra"
+                              title="Ver detalhes"
+                              onClick={() => setSelectedOrder(order)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-red-600"
+                              aria-label="Mover para lixeira"
+                              title="Mover para lixeira por 15 dias"
+                              onClick={() => removePreOrder(order)}
+                              disabled={updatingOrders.has(order.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                             <Button
                               size="sm"
@@ -1047,6 +1094,21 @@ const AdminDashboard = () => {
               <div><span className="text-xs text-gray-500">Pagamento</span><p className="font-medium">{selectedOrder.payment_status || "—"}</p></div>
               <div><span className="text-xs text-gray-500">Criada em</span><p className="font-medium">{new Date(selectedOrder.created_at).toLocaleString("pt-AO")}</p></div>
             </div>}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showOrderTrash} onOpenChange={setShowOrderTrash}>
+          <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
+            <DialogHeader><DialogTitle>Histórico de lixo · 15 dias</DialogTitle></DialogHeader>
+            <div className="space-y-2">
+              {orderTrash.length === 0 ? <p className="py-8 text-center text-sm text-gray-500">A lixeira está vazia.</p> : orderTrash.map(order => {
+                const remaining = order.deleted_until ? Math.max(0, Math.ceil((new Date(order.deleted_until).getTime() - Date.now()) / 86400000)) : 0;
+                return <button key={order.id} onClick={() => setSelectedOrder(order)} className="w-full text-left rounded-xl border border-gray-100 p-3 hover:bg-gray-50">
+                  <div className="font-semibold text-sm">{order.quantity} kg · {getAdminPreOrderStatusLabel(order.status)}</div>
+                  <div className="text-xs text-gray-500 mt-1">Expira em {remaining} dia(s)</div>
+                </button>;
+              })}
+            </div>
           </DialogContent>
         </Dialog>
 
