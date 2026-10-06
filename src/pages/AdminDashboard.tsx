@@ -250,6 +250,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [updatingOrders, setUpdatingOrders] = useState<Set<string>>(() => new Set());
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -984,6 +985,16 @@ const AdminDashboard = () => {
                             <Button
                               size="sm"
                               variant="ghost"
+                              className="h-8 w-8 p-0 text-gray-600"
+                              aria-label="Ver detalhes da pré-compra"
+                              title="Ver detalhes da pré-compra"
+                              onClick={() => setSelectedOrder(order)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
                               className="h-8 w-8 p-0 text-green-600"
                               aria-label="Aceitar pedido"
                               title="Aceitar pedido"
@@ -1024,6 +1035,20 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         )}
+
+<Dialog open={!!selectedOrder} onOpenChange={(open) => { if (!open) setSelectedOrder(null); }}>
+          <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
+            <DialogHeader><DialogTitle>Detalhes da pré-compra</DialogTitle></DialogHeader>
+            {selectedOrder && <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div className="sm:col-span-2 rounded-xl bg-gray-50 p-3"><span className="text-xs text-gray-500">ID</span><p className="font-medium break-all">{selectedOrder.id}</p></div>
+              <div><span className="text-xs text-gray-500">Quantidade</span><p className="font-medium">{selectedOrder.quantity} kg</p></div>
+              <div><span className="text-xs text-gray-500">Estado</span><p className="font-medium">{getAdminPreOrderStatusLabel(selectedOrder.status)}</p></div>
+              <div className="sm:col-span-2"><span className="text-xs text-gray-500">Local de entrega</span><p className="font-medium break-words">{selectedOrder.location}</p></div>
+              <div><span className="text-xs text-gray-500">Pagamento</span><p className="font-medium">{selectedOrder.payment_status || "—"}</p></div>
+              <div><span className="text-xs text-gray-500">Criada em</span><p className="font-medium">{new Date(selectedOrder.created_at).toLocaleString("pt-AO")}</p></div>
+            </div>}
+          </DialogContent>
+        </Dialog>
 
         {/* PRODUTOS */}
         {activeTab === "products" && (
