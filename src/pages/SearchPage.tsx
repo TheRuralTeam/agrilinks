@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Input } from '../components/ui/input'
 import { Card, CardContent } from '../components/ui/card'
@@ -107,7 +107,7 @@ const SearchPage = () => {
       const products = await fetchProductsFeed({
         userId: user?.id,
         status: 'active',
-        limit: 50,
+        limit: 20,
         province,
         search: term,
         category,
@@ -136,8 +136,17 @@ const SearchPage = () => {
     }
   }, [user?.id, activeTab])
 
+  const searchTimer = useRef<number | null>(null)
+
   useEffect(() => {
-    searchData(searchTerm, selectedProvince, selectedCategory)
+    if (searchTimer.current) window.clearTimeout(searchTimer.current)
+    searchTimer.current = window.setTimeout(() => {
+      searchData(searchTerm, selectedProvince, selectedCategory)
+    }, searchTerm.trim() ? 300 : 0)
+
+    return () => {
+      if (searchTimer.current) window.clearTimeout(searchTimer.current)
+    }
   }, [searchTerm, selectedProvince, selectedCategory, activeTab, searchData])
 
   // Ordenar produtos
