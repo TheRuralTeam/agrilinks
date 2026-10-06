@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { angolaProvinces } from '../data/angola-locations'
 import { ProductCard, Product as ProductCardType } from '../components/ProductCard'
+import { fetchProductsFeed } from '../features/products/productsService'
 import { ProductLocationMap } from '../components/ProductLocationMap'
 import { useAuth } from '../contexts/AuthContext'
 import { validatePreOrderSubmission } from '../features/products/businessRules'
@@ -103,77 +104,22 @@ const SearchPage = () => {
   const searchData = React.useCallback(async (term: string, province?: string, category?: string) => {
     setLoading(true)
     try {
-      // Buscar produtos
-      let query = supabase
-        .from('products')
-        .select('*')
-        .eq('status', 'active')
-      
-      if (province) {
-        query = query.eq('province_id', province)
-      }
-      
-      if (term.trim()) {
-        query = query.or(`product_type.ilike.%${term}%,description.ilike.%${term}%,farmer_name.ilike.%${term}%`)
-      }
+      const products = await fetchProductsFeed({
+        userId: user?.id,
+        status: 'active',
+        limit: 50,
+        province,
+        search: term,
+        category,
+      })
 
-      // Filtrar por categoria (usando product_type)
-      if (category && category !== 'all') {
-        query = query.ilike('product_type', `%${category}%`)
-      }
+      setProductResults(products as Product[])
 
-      const { data: products } = await query
-
-      const productsWithData = await Promise.all(
-        (products || []).map(async (product) => {
-          const { count: likesCount } = await supabase
-            .from('product_likes')
-            .select('*', { count: 'exact', head: true })
-            .eq('product_id', product.id)
-
-          const { data: userLike } = user
-            ? await supabase
-                .from('product_likes')
-                .select('id')
-                .eq('product_id', product.id)
-                .eq('user_id', user.id)
-                .maybeSingle()
-            : { data: null }
-
-          const { data: comments } = await supabase
-            .from('product_comments')
-            .select(`id, user_id, comment_text, created_at`)
-            .eq('product_id', product.id)
-            .order('created_at', { ascending: false })
-
-          const commentsWithUserInfo = await Promise.all(
-            (comments || []).map(async (c) => {
-              const { data: userData } = await supabase
-                .from('users')
-                .select('full_name, user_type')
-                .eq('id', c.user_id)
-                .maybeSingle()
-              return { ...c, user_name: userData?.full_name || 'Usuário', user_type: userData?.user_type || 'agricultor' }
-            })
-          )
-
-          return { 
-            ...product, 
-            likes_count: likesCount || 0, 
-            is_liked: !!userLike, 
-            comments: commentsWithUserInfo 
-          } as Product
-        })
-      )
-
-      setProductResults(productsWithData)
-
-      // Buscar usuários
       if (term.trim() && (activeTab === 'all' || activeTab === 'users')) {
         const { data: users } = await supabase
           .from('users')
           .select('id, full_name, email, user_type, avatar_url')
-          .or(`full_name.ilike.%${term}%,email.ilike.%${term}%`)
+          .or(`full_name.ilike.%${term.trim().replace(/[%(),]/g, ' ') }%,email.ilike.%${term.trim().replace(/[%(),]/g, ' ')}%`)
           .limit(20)
 
         setUserResults((users || []) as UserResult[])
@@ -181,11 +127,14 @@ const SearchPage = () => {
         setUserResults([])
       }
     } catch (err) {
-      console.error(err)
+      console.error('[AgriLink] Marketplace search failed:', err)
+      setProductResults([])
+      setUserResults([])
+      toast.error('Não foi possível carregar os resultados. Tente novamente.')
     } finally {
       setLoading(false)
     }
-  }, [user, activeTab])
+  }, [user?.id, activeTab])
 
   useEffect(() => {
     searchData(searchTerm, selectedProvince, selectedCategory)
