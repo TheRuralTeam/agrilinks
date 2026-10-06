@@ -10,6 +10,7 @@ import Loader from "./components/ui/Loader";
 import AppLayout from "./layouts/AppLayout";
 import { GuestGateProvider } from "./contexts/GuestGateContext";
 import { purgeExpiredGuestSession } from "./lib/guestSession";
+import { AdminPermission } from "./features/auth/authorization";
 
 const Index = lazy(() => import("./pages/Index"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -133,6 +134,16 @@ const OpenRoute = ({ children, allowIncomplete = false }: { children: React.Reac
     if (!allowIncomplete && userProfile && !isProfileComplete(userProfile)) return <Navigate to="/completar-perfil" replace />;
   }
 
+  return <>{children}</>;
+};
+
+const PermissionRoute = ({ children, permissions, requireAll = false }: { children: React.ReactNode; permissions: AdminPermission[]; requireAll?: boolean }) => {
+  const { user, loading, isAdmin, isRootAdmin, isSuperRoot, hasAnyPermission, hasAllPermissions } = useAuth();
+  if (loading) return <Loader />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!isAdmin && !isRootAdmin && !isSuperRoot) return <Navigate to="/app" replace />;
+  const allowed = requireAll ? hasAllPermissions(permissions) : hasAnyPermission(permissions);
+  if (!allowed) return <Navigate to="/app" replace />;
   return <>{children}</>;
 };
 
@@ -284,9 +295,9 @@ const AppRoutes = () => {
         <Route
           path="/admindashboard"
           element={
-            <ProtectedRoute>
+            <PermissionRoute permissions={['view_analytics']}>
               <AdminDashboard />
-            </ProtectedRoute>
+            </PermissionRoute>
           }
         />
         <Route
