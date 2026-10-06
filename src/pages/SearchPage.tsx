@@ -119,7 +119,7 @@ const SearchPage = () => {
         const { data: users } = await supabase
           .from('users')
           .select('id, full_name, email, user_type, avatar_url')
-          .or(`full_name.ilike.%${term.trim().replace(/[%(),]/g, ' ') }%,email.ilike.%${term.trim().replace(/[%(),]/g, ' ')}%`)
+          .or(`full_name.ilike.%${term.trim().replace(/[%(),]/g, ' ')}%,email.ilike.%${term.trim().replace(/[%(),]/g, ' ')}%`)
           .limit(20)
 
         setUserResults((users || []) as UserResult[])
