@@ -49,28 +49,24 @@ export const fetchProductsFeed = async ({
   const productIds = productsData.map((p) => p.id)
   const userIds = [...new Set(productsData.map((p) => p.user_id).filter(Boolean))]
 
-  const [{ data: users, error: usersError }, { data: likes, error: likesError }] = await Promise.all([
+  const [{ data: users, error: usersError }, { data: myLikes, error: likesError }] = await Promise.all([
     userIds.length
       ? supabase.from('users').select('id, full_name, user_type, avatar_url, verified').in('id', userIds)
       : Promise.resolve({ data: [] as any[], error: null }),
-    supabase.from('product_likes').select('id, product_id, user_id').in('product_id', productIds),
+    userId
+      ? supabase.from('product_likes').select('product_id').eq('user_id', userId).in('product_id', productIds)
+      : Promise.resolve({ data: [] as any[], error: null }),
   ])
 
   if (usersError) throw usersError
   if (likesError) throw likesError
 
   const userById = new Map((users || []).map((u) => [u.id, u]))
-  const productLikesById = new Map<string, number>()
-  const likedProductIds = new Set<string>()
-
-  for (const like of likes || []) {
-    productLikesById.set(like.product_id, (productLikesById.get(like.product_id) || 0) + 1)
-    if (userId && like.user_id === userId) likedProductIds.add(like.product_id)
-  }
+  const likedProductIds = new Set((myLikes || []).map((like) => like.product_id))
 
   return productsData.map((product) => ({
     ...product,
-    likes_count: productLikesById.get(product.id) || 0,
+    likes_count: Number(product.likes_count || 0),
     is_liked: likedProductIds.has(product.id),
     user_verified: userById.get(product.user_id)?.verified || false,
     comments: [],
