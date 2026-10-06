@@ -866,9 +866,9 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                   <Leaf size={32} color={T.rule as unknown as string} style={{ margin: '0 auto 8px', display: 'block' }} />
                   <p>Seja o primeiro a comentar!</p>
                 </div>
-              ))}
+              )}
             </div>
-          )}
+          ))
         </div>
       </div>
 
