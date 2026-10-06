@@ -1006,8 +1006,16 @@ const AdminDashboard = () => {
                     const product = products.find((p) => p.id === order.product_id);
                     return (
                       <TableRow key={order.id} className="hover:bg-gray-50/50 cursor-pointer" onClick={() => setSelectedOrder(order)}>
-                        <TableCell className="font-medium">{product?.product_type || "-"}</TableCell>
-                        <TableCell>{user?.full_name || "-"}</TableCell>
+                        <TableCell className="font-medium">
+                          <button type="button" className="text-left text-primary hover:underline font-semibold" onClick={() => setSelectedOrder(order)}>
+                            {product?.product_type || "Produto não encontrado"}
+                          </button>
+                        </TableCell>
+                        <TableCell>
+                          <button type="button" className="text-left hover:underline" onClick={() => setSelectedOrder(order)}>
+                            {user?.full_name || "Cliente não encontrado"}
+                          </button>
+                        </TableCell>
                         <TableCell>{order.quantity} kg</TableCell>
                         <TableCell>
                           <Badge className={getStatusColor(order.status)}>{getAdminPreOrderStatusLabel(order.status)}</Badge>
@@ -1041,7 +1049,7 @@ const AdminDashboard = () => {
                               className="h-8 w-8 p-0 text-red-600"
                               aria-label="Mover para lixeira"
                               title="Mover para lixeira por 15 dias"
-                              onClick={() => removePreOrder(order)}
+                              onClick={(e) => { e.stopPropagation(); removePreOrder(order); }}
                               disabled={updatingOrders.has(order.id)}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -1052,7 +1060,7 @@ const AdminDashboard = () => {
                               className="h-8 w-8 p-0 text-green-600"
                               aria-label="Aceitar pedido"
                               title="Aceitar pedido"
-                              onClick={() => updateOrderStatus(order.id, "accepted")}
+                              onClick={(e) => { e.stopPropagation(); updateOrderStatus(order.id, "accepted"); }}
                               disabled={updatingOrders.has(order.id) || isAdminPreOrderStatusFinal(order.status) || order.status === "accepted"}
                             >
                               <Check className="h-4 w-4" />
@@ -1063,7 +1071,7 @@ const AdminDashboard = () => {
                               className="h-8 w-8 p-0 text-red-600"
                               aria-label="Remover pedido do fluxo"
                               title="Remover pedido do fluxo"
-                              onClick={() => updateOrderStatus(order.id, "rejected")}
+                              onClick={(e) => { e.stopPropagation(); updateOrderStatus(order.id, "rejected"); }}
                               disabled={updatingOrders.has(order.id) || isAdminPreOrderStatusFinal(order.status) || order.status === "rejected"}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -1074,7 +1082,7 @@ const AdminDashboard = () => {
                               className="h-8 w-8 p-0 text-amber-600"
                               aria-label="Voltar pedido para pendente"
                               title="Voltar para pendente"
-                              onClick={() => updateOrderStatus(order.id, "pending")}
+                              onClick={(e) => { e.stopPropagation(); updateOrderStatus(order.id, "pending"); }}
                               disabled={updatingOrders.has(order.id) || isAdminPreOrderStatusFinal(order.status) || order.status === "pending" || order.status === "aguardando"}
                             >
                               <Clock className="h-4 w-4" />
