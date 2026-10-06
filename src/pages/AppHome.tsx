@@ -256,7 +256,11 @@ const AppHome = () => {
       : items, [user])
 
   const fetchProducts = useCallback(async (page = 0, append = false) => {
-    if (page === 0 && products.length === 0) setLoading(true)
+    if (page === 0) {
+      let hasCachedFeed = false
+      try { hasCachedFeed = Boolean(JSON.parse(sessionStorage.getItem('agrilink:marketplace:feed') || 'null')?.products?.length) } catch {}
+      if (!hasCachedFeed) setLoading(true)
+    }
     else setLoadingMore(true)
 
     try {
