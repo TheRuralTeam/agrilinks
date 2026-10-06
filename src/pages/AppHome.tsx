@@ -171,6 +171,9 @@ const AppHome = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string>('all')
   const [isOnline, setIsOnline] = useState(navigator.onLine)
+  const [feedPage, setFeedPage] = useState(0)
+  const [hasMoreProducts, setHasMoreProducts] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   const filteredProducts = useMemo(() => {
     if (activeCategory === 'all') return products
@@ -247,27 +250,72 @@ const AppHome = () => {
 
   /* Fetch products — corre sempre, mesmo sem sessão (modo convidado),
      para o spinner nunca ficar preso à espera de um `user` que pode nunca existir. */
-  const fetchProducts = useCallback(async () => {
-    setLoading(true)
+  const applyPublicSafety = useCallback((items: Product[]) =>
+    isNeutralPublicView(user)
+      ? items.map((product) => sanitizePublicProduct(product) as Product)
+      : items, [user])
+
+  const fetchProducts = useCallback(async (page = 0, append = false) => {
+    if (page === 0) setLoading(true)
+    else setLoadingMore(true)
+
     try {
-      const fetchedProducts = await fetchActiveProducts(user?.id)
-      const safeFeed = isNeutralPublicView(user)
-        ? (fetchedProducts || []).map((product) => sanitizePublicProduct(product) as Product)
-        : fetchedProducts as Product[]
-      setProducts(safeFeed)
+      const fetchedProducts = await fetchActiveProducts(user?.id, page, 20)
+      const safeFeed = applyPublicSafety((fetchedProducts || []) as Product[])
+      setProducts(prev => append ? [...prev, ...safeFeed] : safeFeed)
+      setFeedPage(page)
+      setHasMoreProducts(safeFeed.length === 20)
+
+      if (page === 0) {
+        try {
+          sessionStorage.setItem('agrilink:marketplace:feed', JSON.stringify({
+            expiresAt: Date.now() + 30_000,
+            products: safeFeed,
+          }))
+        } catch {}
+      }
     } catch (err) {
-      console.error('Erro ao carregar produtos:', err)
-      setProducts([])
+      console.error('[AgriLink] Erro ao carregar Marketplace:', err)
+      if (page === 0) {
+        try {
+          const cached = JSON.parse(sessionStorage.getItem('agrilink:marketplace:feed') || 'null')
+          if (cached?.expiresAt > Date.now() && Array.isArray(cached.products)) {
+            setProducts(cached.products)
+            setHasMoreProducts(false)
+          } else {
+            setProducts([])
+          }
+        } catch {
+          setProducts([])
+        }
+      }
     } finally {
-      setLoading(false)
+      if (page === 0) setLoading(false)
+      else setLoadingMore(false)
     }
-  }, [user])
+  }, [user, applyPublicSafety])
 
   useEffect(() => {
-    fetchProducts()
+    let cancelled = false
+    try {
+      const cached = JSON.parse(sessionStorage.getItem('agrilink:marketplace:feed') || 'null')
+      if (!cancelled && cached?.expiresAt > Date.now() && Array.isArray(cached.products)) {
+        setProducts(cached.products)
+        setLoading(false)
+      }
+    } catch {}
+    fetchProducts(0, false)
+    return () => { cancelled = true }
   }, [fetchProducts])
 
+  useEffect(() => {
+    setFeedPage(0)
+    setHasMoreProducts(true)
+    if (!loading) fetchProducts(0, false)
+  }, [activeCategory])
+
   const handleProductUpdate = (p: Product) => setProducts(prev => prev.map(x => x.id === p.id ? p : x))
+  const handleLoadMore = () => { if (!loadingMore && hasMoreProducts) fetchProducts(feedPage + 1, true) }
   const handleOpenMap = (p: Product) => { setSelectedProduct(p); setMapModalOpen(true) }
   const handleOpenPreOrder = (p: Product) => {
     if (!requireAct('fazer uma pré-compra')) return
@@ -324,6 +372,12 @@ const AppHome = () => {
   /* ── Main render ── */
   return (
     <div className="min-h-screen" style={{ background: T.canvas, fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif" }}>
+      {!isOnline && (
+        <div style={{ padding:'8px 16px', textAlign:'center', fontSize:12, fontWeight:600, background:T.g50, color:T.g700 }}>
+          Modo offline: a mostrar os últimos produtos disponíveis neste dispositivo.
+        </div>
+      )}
+
       {/* ═══ HEADER ════════════════════════════════════════════════════════ */}
       <header style={{
         position:'sticky', top:0, zIndex:30,
