@@ -9,12 +9,6 @@ export interface ProductFeedOptions {
   category?: string
 }
 
-const chunk = <T,>(items: T[], size: number): T[][] => {
-  const result: T[][] = []
-  for (let i = 0; i < items.length; i += size) result.push(items.slice(i, i + size))
-  return result
-}
-
 /**
  * Loads the marketplace feed in batches instead of making one request per
  * product/comment/reply. This keeps the number of database round-trips
