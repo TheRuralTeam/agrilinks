@@ -362,7 +362,18 @@ const AppHome = () => {
         if (raw.includes('INVALID_QUANTITY')) throw new Error('A quantidade indicada é inválida.')
         if (raw.includes('DELIVERY_LOCATION_REQUIRED')) throw new Error('Informe o local de entrega.')
         if (raw.includes('DELIVERY_COORDINATES_REQUIRED')) throw new Error('Não foi possível identificar correctamente o local de entrega. Escolha uma localização mais específica.')
-        if (raw.includes('INSUFFICIENT_STOCK')) throw new Error('Stock insuficiente. A disponibilidade foi actualizada.')
+        const stockMatch = raw.match(/INSUFFICIENT_STOCK:([0-9]+(?:\\.[0-9]+)?)/)
+        if (stockMatch) {
+          const available = Number(stockMatch[1])
+          setProducts(prev => prev.map(p => p.id === selectedProduct.id ? { ...p, quantity: available, status: available > 0 ? p.status : 'removed' } : p).filter(p => Number(p.quantity) > 0 && p.status === 'active'))
+          throw new Error(available > 0
+            ? `A quantidade solicitada não está disponível. Neste momento existem apenas ${available.toLocaleString('pt-AO')} kg disponíveis.`
+            : 'Este produto já não tem stock disponível e foi removido do Marketplace.')
+        }
+        if (raw.includes('STOCK_UNAVAILABLE:0')) {
+          setProducts(prev => prev.filter(p => p.id !== selectedProduct.id))
+          throw new Error('Este produto já não tem stock disponível e foi removido do Marketplace.')
+        }
         if (raw.includes('PRODUCT_NOT_AVAILABLE')) throw new Error('Este produto já não está disponível.')
         if (raw.includes('PRODUCT_NOT_FOUND')) throw new Error('Este produto já não existe.')
         if (raw.includes('SELLER_CANNOT_BUY_OWN_PRODUCT')) throw new Error('Não pode comprar o seu próprio produto.')
@@ -373,7 +384,7 @@ const AppHome = () => {
       const reservation = Array.isArray(data) ? data[0] : data
       if (!reservation) throw new Error('Não foi possível criar a reserva.')
 
-      toast.success('Produto reservado por 15 minutos. Pode continuar para o pagamento.')
+      toast.success('Pré-compra registada. O fornecedor será notificado e a reserva fica activa por 15 minutos.')
       // O preço final, frete e pagamento são calculados pelo servidor após a aceitação do fornecedor.
       setModalOpen(false)
       setSelectedProduct(null)
