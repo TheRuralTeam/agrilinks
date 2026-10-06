@@ -138,3 +138,11 @@ FOR EACH ROW EXECUTE FUNCTION public.consume_marketplace_reservation();
 REVOKE ALL ON FUNCTION public.release_marketplace_reservation(uuid,boolean) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.consume_marketplace_reservation() FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.expire_marketplace_reservations() FROM PUBLIC,anon,authenticated;
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname='pg_cron') THEN
+    PERFORM cron.schedule('agrilink-expire-marketplace-reservations','*/1 * * * *','SELECT public.expire_marketplace_reservations()');
+  END IF;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
