@@ -18,7 +18,8 @@ import { useCanAct } from '../hooks/useCanAct'
 import { useNavigate } from 'react-router-dom'
 import { ProductCard, Product } from '../components/ProductCard'
 import { ProductLocationMap } from '../components/ProductLocationMap'
-import orbisLinkLogo from '../assets/orbislink-logo.png'
+import { getMarketplaceCheckoutSummary } from '../features/marketplace/marketplaceCheckoutService'
+import agrilinkLogo from '../assets/agrilink-logo.png'
 import { fetchActiveProducts } from '../features/products/productsService'
 import { validatePreOrderSubmission } from '../features/products/businessRules'
 import { isNeutralPublicView, sanitizePublicProduct } from '../lib/publicData'
@@ -167,6 +168,7 @@ const AppHome = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [orderData, setOrderData] = useState({ quantity: 1, location: '' })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0])
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string>('all')
@@ -332,6 +334,7 @@ const AppHome = () => {
     setIsSubmitting(true)
     try {
       const quantity = Number(orderData.quantity || 0)
+      if (!Number.isFinite(quantity) || quantity <= 0) throw new Error('Informe uma quantidade válida.')
       const idempotencyKey = crypto.randomUUID()
       const { data, error } = await supabase.rpc('create_marketplace_pre_order', {
         p_product_id: selectedProduct.id,
@@ -355,6 +358,7 @@ const AppHome = () => {
       if (!reservation) throw new Error('Não foi possível criar a reserva.')
 
       toast.success('Produto reservado por 15 minutos. Pode continuar para o pagamento.')
+      // O preço final, frete e pagamento são calculados pelo servidor após a aceitação do fornecedor.
       setModalOpen(false)
       setSelectedProduct(null)
     } catch (error: any) {
@@ -397,8 +401,8 @@ const AppHome = () => {
             onClick={() => navigate('/')}
           >
             <img
-              src={orbisLinkLogo}
-              alt="OrbisLink"
+              src={agrilinkLogo}
+              alt="AgriLink"
               style={{ height: 26, width: 'auto', objectFit: 'contain', display: 'block' }}
             />
           </div>
@@ -654,7 +658,7 @@ const AppHome = () => {
             <div style={{ display:'flex', gap:11, padding:'11px 14px', borderRadius:12, background: T.white, border:`1px solid ${T.rule}` }}>
               <Bell size={15} color={T.g500} style={{ flexShrink:0, marginTop:1 }}/>
               <p style={{ fontSize:12, color: T.muted, lineHeight:1.6, margin:0 }}>
-                Esta é uma demonstração de interesse. O fornecedor confirmará disponibilidade de volume.
+                A reserva bloqueia o stock por 15 minutos. O fornecedor confirma o pedido e, depois, o sistema calcula o frete e abre o pagamento.
               </p>
             </div>
 
@@ -726,7 +730,7 @@ const AppHome = () => {
               <p style={{ fontSize:10, fontWeight:800, color: T.g600, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:12 }}>Resumo</p>
               {[
                 { label: 'Subtotal', val: fmt(orderData.quantity * (selectedProduct?.price||0)) },
-                { label: 'Frete', val: fmt(orderData.quantity * (selectedProduct?.price||0) * TAX) },
+                { label: 'Frete', val: 'Calculado após confirmação' },
               ].map(row => (
                 <div key={row.label} style={{ display:'flex', justifyContent:'space-between', fontSize:12, color: T.muted, marginBottom:8 }}>
                   <span>{row.label}</span>
@@ -735,7 +739,7 @@ const AppHome = () => {
               ))}
               <div style={{ display:'flex', justifyContent:'space-between', paddingTop:10, borderTop:`1px solid ${T.rule}`, alignItems:'center' }}>
                 <span style={{ fontSize:13, fontWeight:700, color: T.ink }}>Total</span>
-                <span style={{ fontSize:22, fontWeight:900, color: T.g600, letterSpacing:'-0.02em', fontVariantNumeric:'tabular-nums' }}>{fmt(totalPrice)}</span>
+                <span style={{ fontSize:18, fontWeight:900, color: T.g600, letterSpacing:'-0.02em' }}>A confirmar</span>
               </div>
             </div>
           </div>
