@@ -862,6 +862,11 @@ const Profile = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <span style={{ fontWeight: 700, color: T.ink }}>{r.product?.product_type || t('profile.product')}</span>
                     <StatusPill status={r.status} />
+                    {r.stockFullyRequested && (
+                      <span style={{ fontSize: 10.5, fontWeight: 700, color: T.g700 }}>
+                        Estoque solicitado totalmente
+                      </span>
+                    )}
                   </div>
                 ) },
                 { key: 'comprador', label: t('profile.product') === 'Product' ? 'Buyer' : 'Comprador', render: r => (
