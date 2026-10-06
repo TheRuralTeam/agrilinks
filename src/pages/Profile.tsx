@@ -343,12 +343,12 @@ const Profile = () => {
       if (prodError) throw prodError
       if (!userProductIds || userProductIds.length === 0) { setReceivedOrders([]); return }
       const productIds = userProductIds.map(p => p.id)
-      const { data: orders, error: ordersError } = await supabase.from('pre_orders').select('id, product_id, user_id, quantity, location, status, created_at').in('product_id', productIds).order('created_at', { ascending: false })
+      const { data: orders, error: ordersError } = await supabase.from('pre_orders').select('id, product_id, user_id, quantity, location, status, stock_fully_requested, created_at').in('product_id', productIds).order('created_at', { ascending: false })
       if (ordersError) throw ordersError
       const ordersWithDetails = await Promise.all((orders || []).map(async (order) => {
         const { data: product } = await supabase.from('products').select('product_type, price').eq('id', order.product_id).single()
         const { data: buyer } = await supabase.from('users').select('full_name, phone, email').eq('id', order.user_id).single()
-        return { ...order, product: product || undefined, buyer: buyer || undefined } as ReceivedOrder
+        return { ...order, product: product || undefined, buyer: buyer || undefined, stockFullyRequested: Boolean((order as any).stock_fully_requested) } as ReceivedOrder
       }))
       setReceivedOrders(ordersWithDetails)
     } catch (error) { console.error(error) }
