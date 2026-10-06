@@ -61,31 +61,9 @@ export const fetchProductsFeed = async ({
 
   // Comments/replies are intentionally loaded on demand in ProductCard/ProductDetails.
   // The feed only carries product-level discovery data to keep the initial payload small.
+  // Social content is fetched only when the product card is expanded.
   const commentRows: any[] = []
-  const commentIds = commentRows.map((comment) => comment.id)
-  const commentUserIds = [...new Set(commentRows.map((comment) => comment.user_id).filter(Boolean))]
 
-  const [{ data: commentLikes }, { data: replies }, { data: commentUsers }] = await Promise.all([
-    commentIds.length
-      ? supabase.from('comment_likes').select('id, comment_id, user_id').in('comment_id', commentIds)
-      : Promise.resolve({ data: [] }),
-    commentIds.length
-      ? supabase
-          .from('comment_replies')
-          .select('id, comment_id, user_id, reply_text, created_at')
-          .in('comment_id', commentIds)
-          .order('created_at', { ascending: true })
-      : Promise.resolve({ data: [] }),
-    commentUserIds.length
-      ? supabase.from('users').select('id, full_name, user_type, avatar_url').in('id', commentUserIds)
-      : Promise.resolve({ data: [] }),
-  ])
-
-  const replyRows = replies || []
-  const replyUserIds = [...new Set(replyRows.map((reply) => reply.user_id).filter(Boolean))]
-  const { data: replyUsers } = replyUserIds.length
-    ? await supabase.from('users').select('id, full_name, user_type').in('id', replyUserIds)
-    : { data: [] }
 
   const userById = new Map((users || []).map((u) => [u.id, u]))
   const commentUserById = new Map((commentUsers || []).map((u) => [u.id, u]))
