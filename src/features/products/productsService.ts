@@ -26,7 +26,7 @@ export const fetchProductsFeed = async ({
 }: ProductFeedOptions = {}) => {
   let query = supabase
     .from('products')
-    .select('id,user_id,product_type,quantity,harvest_date,price,province_id,municipality_id,logistics_access,farmer_name,photos,status,created_at,updated_at,description,location_lat,location_lng,category')
+    .select('id,user_id,product_type,quantity,harvest_date,price,province_id,municipality_id,logistics_access,farmer_name,photos,status,created_at,updated_at,description,location_lat,location_lng,category,likes_count')
     .eq('status', status)
     .order('created_at', { ascending: false })
     .range(page * limit, page * limit + limit - 1)
