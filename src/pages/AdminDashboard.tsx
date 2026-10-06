@@ -106,6 +106,13 @@ interface Order {
   location: string;
   status: string;
   created_at: string;
+  updated_at?: string | null;
+  destination_lat?: number | null;
+  destination_lng?: number | null;
+  unit_price?: number | null;
+  payment_status?: string | null;
+  stock_reserved?: boolean | null;
+  reservation_expires_at?: string | null;
 }
 
 interface Transaction {
@@ -998,7 +1005,7 @@ const AdminDashboard = () => {
                     const user = users.find((u) => u.id === order.user_id);
                     const product = products.find((p) => p.id === order.product_id);
                     return (
-                      <TableRow key={order.id} className="hover:bg-gray-50/50">
+                      <TableRow key={order.id} className="hover:bg-gray-50/50 cursor-pointer" onClick={() => setSelectedOrder(order)}>
                         <TableCell className="font-medium">{product?.product_type || "-"}</TableCell>
                         <TableCell>{user?.full_name || "-"}</TableCell>
                         <TableCell>{order.quantity} kg</TableCell>
@@ -1086,14 +1093,38 @@ const AdminDashboard = () => {
 <Dialog open={!!selectedOrder} onOpenChange={(open) => { if (!open) setSelectedOrder(null); }}>
           <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
             <DialogHeader><DialogTitle>Detalhes da pré-compra</DialogTitle></DialogHeader>
-            {selectedOrder && <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-              <div className="sm:col-span-2 rounded-xl bg-gray-50 p-3"><span className="text-xs text-gray-500">ID</span><p className="font-medium break-all">{selectedOrder.id}</p></div>
-              <div><span className="text-xs text-gray-500">Quantidade</span><p className="font-medium">{selectedOrder.quantity} kg</p></div>
-              <div><span className="text-xs text-gray-500">Estado</span><p className="font-medium">{getAdminPreOrderStatusLabel(selectedOrder.status)}</p></div>
-              <div className="sm:col-span-2"><span className="text-xs text-gray-500">Local de entrega</span><p className="font-medium break-words">{selectedOrder.location}</p></div>
-              <div><span className="text-xs text-gray-500">Pagamento</span><p className="font-medium">{selectedOrder.payment_status || "—"}</p></div>
-              <div><span className="text-xs text-gray-500">Criada em</span><p className="font-medium">{new Date(selectedOrder.created_at).toLocaleString("pt-AO")}</p></div>
-            </div>}
+            {selectedOrder && (() => {
+              const buyer = users.find((u) => u.id === selectedOrder.user_id);
+              const product = products.find((p) => p.id === selectedOrder.product_id);
+              const total = selectedOrder.unit_price != null ? Number(selectedOrder.unit_price) * Number(selectedOrder.quantity) : null;
+              return <div className="space-y-4 text-sm">
+                <div className="rounded-xl border p-4 bg-gray-50">
+                  <p className="text-xs text-gray-500 mb-1">CLIENTE</p>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-11 w-11"><AvatarFallback>{(buyer?.full_name || "C").slice(0,1).toUpperCase()}</AvatarFallback></Avatar>
+                    <div className="min-w-0">
+                      <p className="font-semibold truncate">{buyer?.full_name || "Cliente não encontrado"}</p>
+                      <p className="text-xs text-gray-500 break-all">{buyer?.phone || "Telefone não disponível"} · {buyer?.email || "Email não disponível"}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="sm:col-span-2 rounded-xl bg-gray-50 p-3"><span className="text-xs text-gray-500">ID DO PEDIDO</span><p className="font-medium break-all">{selectedOrder.id}</p></div>
+                  <div><span className="text-xs text-gray-500">Produto</span><p className="font-medium">{product?.product_type || "Produto não encontrado"}</p></div>
+                  <div><span className="text-xs text-gray-500">Quantidade</span><p className="font-medium">{selectedOrder.quantity} kg</p></div>
+                  <div><span className="text-xs text-gray-500">Preço unitário</span><p className="font-medium">{selectedOrder.unit_price != null ? Number(selectedOrder.unit_price).toLocaleString("pt-AO") + " Kz" : "—"}</p></div>
+                  <div><span className="text-xs text-gray-500">Valor total estimado</span><p className="font-medium">{total != null ? total.toLocaleString("pt-AO") + " Kz" : "—"}</p></div>
+                  <div><span className="text-xs text-gray-500">Estado</span><p className="font-medium">{getAdminPreOrderStatusLabel(selectedOrder.status)}</p></div>
+                  <div><span className="text-xs text-gray-500">Pagamento</span><p className="font-medium">{selectedOrder.payment_status || "—"}</p></div>
+                  <div className="sm:col-span-2"><span className="text-xs text-gray-500">Local de entrega</span><p className="font-medium break-words">{selectedOrder.location || "—"}</p></div>
+                  <div><span className="text-xs text-gray-500">Coordenadas de entrega</span><p className="font-medium">{selectedOrder.destination_lat != null && selectedOrder.destination_lng != null ? selectedOrder.destination_lat + ", " + selectedOrder.destination_lng : "—"}</p></div>
+                  <div><span className="text-xs text-gray-500">Stock reservado</span><p className="font-medium">{selectedOrder.stock_reserved ? "Sim" : "Não"}</p></div>
+                  <div><span className="text-xs text-gray-500">Criado em</span><p className="font-medium">{new Date(selectedOrder.created_at).toLocaleString("pt-AO")}</p></div>
+                  <div><span className="text-xs text-gray-500">Atualizado em</span><p className="font-medium">{selectedOrder.updated_at ? new Date(selectedOrder.updated_at).toLocaleString("pt-AO") : "—"}</p></div>
+                  <div className="sm:col-span-2"><span className="text-xs text-gray-500">ID do cliente</span><p className="font-medium break-all">{selectedOrder.user_id}</p></div>
+                </div>
+              </div>;
+            })()}
           </DialogContent>
         </Dialog>
 
