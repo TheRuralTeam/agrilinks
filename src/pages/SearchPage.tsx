@@ -234,7 +234,7 @@ const SearchPage = () => {
 
   const hasActiveFilters = selectedProvince || selectedCategory !== 'all' || sortBy !== 'recent' || searchTerm
 
-  const TAX_RATE = 0.10
+  const TAX_RATE = 0
   const totalPrice = selectedProduct ? orderData.quantity * selectedProduct.price * (1 + TAX_RATE) : 0
 
   return (
