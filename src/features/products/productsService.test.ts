@@ -20,22 +20,16 @@ describe('productsService', () => {
   it('returns an empty public feed when there are no active products in the database', async () => {
     mockSupabaseFrom.mockImplementation((table: string) => {
       if (table === 'products') {
-        return {
-          select: () => ({
-            eq: () => ({
-              limit: async () => ({ data: [], error: null }),
-            }),
-          }),
+        const builder: any = {
+          select: () => builder,
+          eq: () => builder,
+          order: () => builder,
+          limit: async () => ({ data: [], error: null }),
         }
+        return builder
       }
 
-      return {
-        select: () => ({
-          eq: () => ({
-            maybeSingle: async () => ({ data: null }),
-          }),
-        }),
-      }
+      throw new Error(`Unexpected query to ${table} when the product feed is empty`)
     })
 
     const products = await fetchActiveProducts()
