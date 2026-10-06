@@ -7,6 +7,7 @@ export interface ProductFeedOptions {
   province?: string
   search?: string
   category?: string
+  page?: number
 }
 
 /**
@@ -21,13 +22,14 @@ export const fetchProductsFeed = async ({
   province,
   search,
   category,
+  page = 0,
 }: ProductFeedOptions = {}) => {
   let query = supabase
     .from('products')
-    .select('*')
+    .select('id,user_id,product_type,quantity,harvest_date,price,province_id,municipality_id,logistics_access,farmer_name,photos,status,created_at,updated_at,description,location_lat,location_lng,category')
     .eq('status', status)
     .order('created_at', { ascending: false })
-    .limit(limit)
+    .range(page * limit, page * limit + limit - 1)
 
   if (province) query = query.eq('province_id', province)
 
@@ -75,24 +77,11 @@ export const fetchProductsFeed = async ({
   }))
 }
 
-export const fetchActiveProducts = async (userId?: string) => {
+export const fetchActiveProducts = async (userId?: string, page = 0, limit = 20) => {
   try {
-    const products = await fetchProductsFeed({ userId, status: 'active', limit: 100 })
-
-    const ranked = [...products].sort((a, b) => {
-      const now = Date.now()
-      const day = 864e5
-      const score = (product: typeof products[number]) =>
-        Math.max(0, 7 - (now - new Date(product.created_at).getTime()) / day) * 0.4 +
-        (product.likes_count || 0) * 0.3 +
-        (product.comments?.length || 0) * 0.3
-
-      return score(b) - score(a)
-    })
-
-    return ranked.slice(0, 20)
+    return await fetchProductsFeed({ userId, status: 'active', limit, page })
   } catch (error) {
-    console.warn('[AgriLink] Product feed unavailable; returning empty result set.', error)
+    console.warn('[AgriLink] Product feed unavailable:', error)
     return []
   }
 }
@@ -101,7 +90,7 @@ export const fetchActiveProducts = async (userId?: string) => {
 export const fetchProductById = async (productId: string, userId?: string) => {
   const { data: product, error } = await supabase
     .from('products')
-    .select('*')
+     .select('id,user_id,product_type,quantity,harvest_date,price,province_id,municipality_id,logistics_access,farmer_name,contact,photos,status,created_at,updated_at,description,location_lat,location_lng,category')
     .eq('id', productId)
     .eq('status', 'active')
     .maybeSingle()
