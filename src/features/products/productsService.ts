@@ -47,54 +47,23 @@ export const fetchProductsFeed = async ({
   const productIds = productsData.map((p) => p.id)
   const userIds = [...new Set(productsData.map((p) => p.user_id).filter(Boolean))]
 
-  const [{ data: users }, { data: likes }, { data: comments }] = await Promise.all([
+  const [{ data: users, error: usersError }, { data: likes, error: likesError }] = await Promise.all([
     userIds.length
       ? supabase.from('users').select('id, full_name, user_type, avatar_url, verified').in('id', userIds)
-      : Promise.resolve({ data: [] }),
+      : Promise.resolve({ data: [] as any[], error: null }),
     supabase.from('product_likes').select('id, product_id, user_id').in('product_id', productIds),
-    supabase
-      .from('product_comments')
-      .select('id, product_id, user_id, comment_text, created_at')
-      .in('product_id', productIds)
-      .order('created_at', { ascending: false }),
   ])
 
-  // Comments/replies are intentionally loaded on demand in ProductCard/ProductDetails.
-  // The feed only carries product-level discovery data to keep the initial payload small.
-  // Social content is fetched only when the product card is expanded.
-  const commentRows: any[] = []
-
+  if (usersError) throw usersError
+  if (likesError) throw likesError
 
   const userById = new Map((users || []).map((u) => [u.id, u]))
-  const commentUserById = new Map((commentUsers || []).map((u) => [u.id, u]))
-  const replyUserById = new Map((replyUsers || []).map((u) => [u.id, u]))
-
   const productLikesById = new Map<string, number>()
   const likedProductIds = new Set<string>()
+
   for (const like of likes || []) {
     productLikesById.set(like.product_id, (productLikesById.get(like.product_id) || 0) + 1)
     if (userId && like.user_id === userId) likedProductIds.add(like.product_id)
-  }
-
-  const commentLikesById = new Map<string, number>()
-  const likedCommentIds = new Set<string>()
-  for (const like of commentLikes || []) {
-    commentLikesById.set(like.comment_id, (commentLikesById.get(like.comment_id) || 0) + 1)
-    if (userId && like.user_id === userId) likedCommentIds.add(like.comment_id)
-  }
-
-  const repliesByCommentId = new Map<string, typeof replyRows>()
-  for (const reply of replyRows) {
-    const list = repliesByCommentId.get(reply.comment_id) || []
-    list.push(reply)
-    repliesByCommentId.set(reply.comment_id, list)
-  }
-
-  const commentsByProductId = new Map<string, typeof commentRows>()
-  for (const comment of commentRows) {
-    const list = commentsByProductId.get(comment.product_id) || []
-    list.push(comment)
-    commentsByProductId.set(comment.product_id, list)
   }
 
   return productsData.map((product) => ({
@@ -102,19 +71,7 @@ export const fetchProductsFeed = async ({
     likes_count: productLikesById.get(product.id) || 0,
     is_liked: likedProductIds.has(product.id),
     user_verified: userById.get(product.user_id)?.verified || false,
-    comments: (commentsByProductId.get(product.id) || []).map((comment) => ({
-      ...comment,
-      user_name: commentUserById.get(comment.user_id)?.full_name || 'Utilizador',
-      user_type: commentUserById.get(comment.user_id)?.user_type || 'agricultor',
-      user_avatar: commentUserById.get(comment.user_id)?.avatar_url,
-      likes_count: commentLikesById.get(comment.id) || 0,
-      is_liked: likedCommentIds.has(comment.id),
-      replies: (repliesByCommentId.get(comment.id) || []).map((reply) => ({
-        ...reply,
-        user_name: replyUserById.get(reply.user_id)?.full_name || 'Utilizador',
-        user_type: replyUserById.get(reply.user_id)?.user_type || 'agricultor',
-      })),
-    })),
+    comments: [],
   }))
 }
 
