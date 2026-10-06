@@ -327,44 +327,44 @@ const AppHome = () => {
   }
 
   const handlePreOrderSubmit = async () => {
-    if (!selectedProduct || !user) return toast.error('Erro ao processar pré-compra')
-
-    try {
-      validatePreOrderSubmission({
-        product: {
-          id: selectedProduct.id,
-          status: selectedProduct.status,
-          quantity: Number(selectedProduct.quantity || 0),
-          user_id: selectedProduct.user_id,
-          price: Number(selectedProduct.price || 0),
-        },
-        buyer_id: user.id,
-        quantity: Number(orderData.quantity || 0),
-        location: orderData.location,
-      })
-    } catch (validationError: any) {
-      toast.error(validationError?.message || 'Dados da pré-compra inválidos.')
-      return
-    }
+    if (!selectedProduct || !user) return toast.error('Inicie sessão para continuar')
 
     setIsSubmitting(true)
     try {
-      const { error } = await supabase.from('pre_orders').insert({
-        product_id: selectedProduct.id, user_id: user.id,
-        quantity: orderData.quantity, location: orderData.location, status: 'pending',
+      const quantity = Number(orderData.quantity || 0)
+      const idempotencyKey = crypto.randomUUID()
+      const { data, error } = await supabase.rpc('create_marketplace_pre_order', {
+        p_product_id: selectedProduct.id,
+        p_quantity: quantity,
+        p_location: orderData.location,
+        p_delivery_lat: null,
+        p_delivery_lng: null,
+        p_idempotency_key: idempotencyKey,
       })
-      if (error) throw error
-      await supabase.rpc('create_notification', {
-        p_user_id: selectedProduct.user_id, p_type: 'pre_order', p_title: 'Nova Pré-Compra',
-        p_message: `${user.email} quer comprar ${orderData.quantity}kg do seu ${selectedProduct.product_type}`,
-        p_metadata: { product_id: selectedProduct.id, buyer_id: user.id, quantity: orderData.quantity },
-      })
-      toast.success('Pré-compra registada com sucesso.')
+
+      if (error) {
+        const message = error.message || ''
+        if (message.includes('INSUFFICIENT_STOCK')) throw new Error('Stock insuficiente. A disponibilidade foi atualizada.')
+        if (message.includes('PRODUCT_NOT_AVAILABLE')) throw new Error('Este produto já não está disponível.')
+        if (message.includes('SELLER_CANNOT_BUY_OWN_PRODUCT')) throw new Error('Não pode comprar o seu próprio produto.')
+        if (message.includes('DELIVERY_LOCATION_REQUIRED')) throw new Error('Informe o local de entrega.')
+        throw error
+      }
+
+      const reservation = Array.isArray(data) ? data[0] : data
+      if (!reservation) throw new Error('Não foi possível criar a reserva.')
+
+      toast.success('Produto reservado por 15 minutos. Pode continuar para o pagamento.')
       setModalOpen(false)
       setSelectedProduct(null)
-    } catch { toast.error('Erro ao processar pré-compra') }
-    finally { setIsSubmitting(false) }
+    } catch (error: any) {
+      console.error('[AgriLink] Erro ao criar pré-compra:', error)
+      toast.error(error?.message || 'Não foi possível concluir a reserva.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
+
 
   const TAX = 0.078
   const totalPrice = useMemo(() => selectedProduct ? orderData.quantity * selectedProduct.price * (1 + TAX) : 0, [selectedProduct, orderData.quantity])
