@@ -256,7 +256,7 @@ const AppHome = () => {
       : items, [user])
 
   const fetchProducts = useCallback(async (page = 0, append = false) => {
-    if (page === 0) setLoading(true)
+    if (page === 0 && products.length === 0) setLoading(true)
     else setLoadingMore(true)
 
     try {
@@ -269,7 +269,7 @@ const AppHome = () => {
       if (page === 0) {
         try {
           sessionStorage.setItem('agrilink:marketplace:feed', JSON.stringify({
-            expiresAt: Date.now() + 30_000,
+            expiresAt: Date.now() + 5 * 60_000,
             products: safeFeed,
           }))
         } catch {}
@@ -279,7 +279,7 @@ const AppHome = () => {
       if (page === 0) {
         try {
           const cached = JSON.parse(sessionStorage.getItem('agrilink:marketplace:feed') || 'null')
-          if (cached?.expiresAt > Date.now() && Array.isArray(cached.products)) {
+          if (Array.isArray(cached.products)) {
             setProducts(cached.products)
             setHasMoreProducts(false)
           } else {
