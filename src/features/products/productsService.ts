@@ -59,7 +59,9 @@ export const fetchProductsFeed = async ({
       .order('created_at', { ascending: false }),
   ])
 
-  const commentRows = comments || []
+  // Comments/replies are intentionally loaded on demand in ProductCard/ProductDetails.
+  // The feed only carries product-level discovery data to keep the initial payload small.
+  const commentRows: any[] = []
   const commentIds = commentRows.map((comment) => comment.id)
   const commentUserIds = [...new Set(commentRows.map((comment) => comment.user_id).filter(Boolean))]
 
@@ -158,4 +160,92 @@ export const fetchActiveProducts = async (userId?: string) => {
     console.warn('[AgriLink] Product feed unavailable; returning empty result set.', error)
     return []
   }
+}
+
+
+export const fetchProductById = async (productId: string, userId?: string) => {
+  const { data: product, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', productId)
+    .eq('status', 'active')
+    .maybeSingle()
+
+  if (error) throw error
+  if (!product) return null
+
+  const [userResult, likesResult] = await Promise.all([
+    supabase.from('users').select('id, full_name, user_type, avatar_url, verified').eq('id', product.user_id).maybeSingle(),
+    supabase.from('product_likes').select('id, user_id').eq('product_id', productId),
+  ])
+
+  if (userResult.error) throw userResult.error
+  if (likesResult.error) throw likesResult.error
+
+  return {
+    ...product,
+    farmer_name: product.farmer_name || userResult.data?.full_name || 'Fornecedor',
+    user_verified: userResult.data?.verified || false,
+    likes_count: likesResult.data?.length || 0,
+    is_liked: Boolean(userId && likesResult.data?.some((like) => like.user_id === userId)),
+    comments: [],
+  }
+}
+
+export const fetchProductComments = async (productId: string, userId?: string) => {
+  const { data: comments, error } = await supabase
+    .from('product_comments')
+    .select('id, product_id, user_id, comment_text, created_at')
+    .eq('product_id', productId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  if (!comments?.length) return []
+
+  const commentIds = comments.map((comment) => comment.id)
+  const userIds = [...new Set(comments.map((comment) => comment.user_id).filter(Boolean))]
+
+  const [{ data: likes }, { data: replies }, { data: users }] = await Promise.all([
+    supabase.from('comment_likes').select('id, comment_id, user_id').in('comment_id', commentIds),
+    supabase.from('comment_replies').select('id, comment_id, user_id, reply_text, created_at').in('comment_id', commentIds).order('created_at', { ascending: true }),
+    userIds.length
+      ? supabase.from('users').select('id, full_name, user_type, avatar_url').in('id', userIds)
+      : Promise.resolve({ data: [] }),
+  ])
+
+  const replyRows = replies || []
+  const replyUserIds = [...new Set(replyRows.map((reply) => reply.user_id).filter(Boolean))]
+  const { data: replyUsers } = replyUserIds.length
+    ? await supabase.from('users').select('id, full_name, user_type').in('id', replyUserIds)
+    : { data: [] }
+
+  const userById = new Map((users || []).map((u) => [u.id, u]))
+  const replyUserById = new Map((replyUsers || []).map((u) => [u.id, u]))
+  const repliesByComment = new Map<string, typeof replyRows>()
+  for (const reply of replyRows) {
+    const list = repliesByComment.get(reply.comment_id) || []
+    list.push(reply)
+    repliesByComment.set(reply.comment_id, list)
+  }
+
+  const likesByComment = new Map<string, number>()
+  const likedComments = new Set<string>()
+  for (const like of likes || []) {
+    likesByComment.set(like.comment_id, (likesByComment.get(like.comment_id) || 0) + 1)
+    if (userId && like.user_id === userId) likedComments.add(like.comment_id)
+  }
+
+  return comments.map((comment) => ({
+    ...comment,
+    user_name: userById.get(comment.user_id)?.full_name || 'Utilizador',
+    user_type: userById.get(comment.user_id)?.user_type || 'agricultor',
+    user_avatar: userById.get(comment.user_id)?.avatar_url,
+    likes_count: likesByComment.get(comment.id) || 0,
+    is_liked: likedComments.has(comment.id),
+    replies: (repliesByComment.get(comment.id) || []).map((reply) => ({
+      ...reply,
+      user_name: replyUserById.get(reply.user_id)?.full_name || 'Utilizador',
+      user_type: replyUserById.get(reply.user_id)?.user_type || 'agricultor',
+    })),
+  }))
 }
