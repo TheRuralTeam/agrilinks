@@ -868,7 +868,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                 </div>
               )}
             </div>
-          ))
+          ))}
         </div>
       </div>
 
