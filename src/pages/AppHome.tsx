@@ -581,6 +581,24 @@ const AppHome = () => {
           }
         </div>
 
+        {!loading && filteredProducts.length > 0 && hasMoreProducts && (
+          <div style={{ display:'flex', justifyContent:'center', paddingTop:28 }}>
+            <button
+              type="button"
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+              style={{
+                minWidth:180, height:44, padding:'0 20px', borderRadius:999,
+                border:`1px solid ${T.rule}`, background:T.white, color:T.ink,
+                fontSize:13, fontWeight:700, cursor:loadingMore ? 'wait' : 'pointer',
+                boxShadow:'0 4px 18px rgba(0,0,0,0.05)',
+              }}
+            >
+              {loadingMore ? 'A carregar…' : 'Ver mais produtos'}
+            </button>
+          </div>
+        )}
+
         {/* Empty / offline state */}
         {!loading && filteredProducts.length === 0 && (
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'100px 20px', textAlign:'center' }}>
