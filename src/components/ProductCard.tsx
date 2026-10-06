@@ -9,6 +9,7 @@ import { supabase } from '../integrations/supabase/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useCanAct } from '../hooks/useCanAct'
 import { useNavigate } from 'react-router-dom'
+import { fetchProductComments } from '../features/products/productsService'
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog'
 import SimpleLeafletMap from './SimpleLeafletMap'
 import "slick-carousel/slick/slick.css"
@@ -405,6 +406,8 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
   const [mapModalOpen, setMapModalOpen] = useState(false)
+  const [commentsLoading, setCommentsLoading] = useState(false)
+  const [commentsLoaded, setCommentsLoaded] = useState(false)
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
@@ -414,6 +417,22 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   const discount = product.quantity > 100 ? 15 : product.quantity > 50 ? 10 : 0
   const originalPrice = discount > 0 ? product.price / (1 - discount / 100) : product.price
   const isNew = (new Date().getTime() - new Date(product.created_at).getTime()) / (1000 * 60 * 60 * 24) < 7
+
+  const toggleComments = async () => {
+    const nextVisible = !commentVisible
+    setCommentVisible(nextVisible)
+    if (!nextVisible || commentsLoaded) return
+    setCommentsLoading(true)
+    try {
+      const comments = await fetchProductComments(product.id, user?.id)
+      onProductUpdate?.({ ...product, comments })
+      setCommentsLoaded(true)
+    } catch {
+      toast.error('Não foi possível carregar os comentários.')
+    } finally {
+      setCommentsLoading(false)
+    }
+  }
 
   const toggleLike = async () => {
     if (!requireAct('dar like')) return
@@ -710,7 +729,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                   color: commentVisible ? T.g600 : T.mid,
                   background: commentVisible ? T.g50 : 'transparent',
                 }}
-                onClick={() => setCommentVisible(!commentVisible)}
+                onClick={toggleComments}
                 onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(118,118,128,0.08)')}
                 onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = commentVisible ? T.g50 : 'transparent')}
               >
@@ -727,6 +746,9 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
 
           {/* Comments section */}
           {commentVisible && (
+            commentsLoading ? (
+              <div style={{ ...styles.commentBox, color: T.faint, textAlign: 'center' }}>A carregar comentários...</div>
+            ) : (
             <div style={{ ...styles.commentBox, animation: 'pcSlideDown 0.25s ease' }}>
               <style>{`
                 @keyframes pcSlideDown { from { opacity:0; transform:translateY(-8px) } to { opacity:1; transform:translateY(0) } }
@@ -844,6 +866,8 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                 </div>
               )}
             </div>
+          )}
+            )
           )}
         </div>
       </div>
