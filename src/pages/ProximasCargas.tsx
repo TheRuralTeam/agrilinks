@@ -1107,7 +1107,7 @@ const ProximasCargas = () => {
                 {tab === 'disponiveis' ? (
                   <button
                     disabled={busyId === load.id || tooHeavy}
-                    onClick={() => accept(load)}
+                    onClick={() => submitQuote(load)}
                     style={{
                       marginTop: 14,
                       width: '100%',
@@ -1123,10 +1123,10 @@ const ProximasCargas = () => {
                     }}
                   >
                     {busyId === load.id
-                      ? 'A aceitar…'
+                      ? 'A calcular…'
                       : tooHeavy
                         ? 'Capacidade insuficiente'
-                        : 'Aceitar carga'}
+                        : 'Calcular e propor preço'}
                   </button>
                 ) : load.status === 'accepted' || load.status === 'in_transit' ? (
                   <button
