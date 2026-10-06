@@ -351,12 +351,23 @@ const AppHome = () => {
       })
 
       if (error) {
-        const message = error.message || ''
-        if (message.includes('INSUFFICIENT_STOCK')) throw new Error('Stock insuficiente. A disponibilidade foi atualizada.')
-        if (message.includes('PRODUCT_NOT_AVAILABLE')) throw new Error('Este produto já não está disponível.')
-        if (message.includes('SELLER_CANNOT_BUY_OWN_PRODUCT')) throw new Error('Não pode comprar o seu próprio produto.')
-        if (message.includes('DELIVERY_LOCATION_REQUIRED')) throw new Error('Informe o local de entrega.')
-        throw error
+        const raw = [error.message, (error as any).details, (error as any).hint].filter(Boolean).join(' ')
+        console.error('[AgriLink] create_marketplace_pre_order failed', {
+          code: (error as any).code,
+          message: error.message,
+          details: (error as any).details,
+          hint: (error as any).hint,
+        })
+        if (raw.includes('AUTH_REQUIRED') || (error as any).code === '42501') throw new Error('A sua sessão expirou. Inicie sessão novamente.')
+        if (raw.includes('INVALID_QUANTITY')) throw new Error('A quantidade indicada é inválida.')
+        if (raw.includes('DELIVERY_LOCATION_REQUIRED')) throw new Error('Informe o local de entrega.')
+        if (raw.includes('DELIVERY_COORDINATES_REQUIRED')) throw new Error('Não foi possível identificar correctamente o local de entrega. Escolha uma localização mais específica.')
+        if (raw.includes('INSUFFICIENT_STOCK')) throw new Error('Stock insuficiente. A disponibilidade foi actualizada.')
+        if (raw.includes('PRODUCT_NOT_AVAILABLE')) throw new Error('Este produto já não está disponível.')
+        if (raw.includes('PRODUCT_NOT_FOUND')) throw new Error('Este produto já não existe.')
+        if (raw.includes('SELLER_CANNOT_BUY_OWN_PRODUCT')) throw new Error('Não pode comprar o seu próprio produto.')
+        if (raw.includes('duplicate key') || raw.includes('23505')) throw new Error('Esta pré-compra já foi registada. Verifique os seus pedidos.')
+        throw new Error(error.message || 'O sistema não conseguiu criar a pré-compra. Tente novamente.') 
       }
 
       const reservation = Array.isArray(data) ? data[0] : data
