@@ -598,7 +598,9 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                       transition: 'transform 0.7s ease',
                     }}
                     alt={`${product.product_type} ${i + 1}`}
-                    loading="lazy"
+                    loading={i === 0 ? 'eager' : 'lazy'}
+                    decoding="async"
+                    fetchPriority={i === 0 ? 'high' : 'auto'}
                   />
                 </div>
               ))}
