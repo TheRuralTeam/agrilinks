@@ -37,11 +37,8 @@ Deno.serve(async (request: Request) => {
   if (!checkout.payment_ready) return jsonResponse({ error: checkout.reason ?? "Checkout not ready" }, 409);
 
   const amount = normalizePaymentAmount(String(checkout.total));
-  const { data: wallet, error: walletError } = await supabase.from("wallets").select("id").eq("user_id", auth.user.id).maybeSingle();
-  if (walletError || !wallet) return jsonResponse({ error: "Wallet not found" }, 404);
-
   const values = {
-    user_id: auth.user.id, wallet_id: wallet.id, provider_id: input.provider_id,
+    user_id: auth.user.id, wallet_id: null, provider_id: input.provider_id,
     idempotency_key: input.idempotency_key, amount, currency: "AOA",
     pre_order_id: input.pre_order_id, purpose: "order_payment",
     description: "Pagamento AgriLink " + input.pre_order_id,
