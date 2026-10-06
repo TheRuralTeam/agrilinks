@@ -337,16 +337,21 @@ const AppHome = () => {
       const quantity = Number(orderData.quantity || 0)
       if (!Number.isFinite(quantity) || quantity <= 0) throw new Error('Informe uma quantidade válida.')
       setGeocodingLocation(true)
-      const destination = await geocodeAngolaLocation(orderData.location)
-      setGeocodingLocation(false)
-      if (!destination) throw new Error('Não encontramos o local de entrega. Escolha uma localização em Angola mais específica.')
+      let destination: { lat: string; lon: string } | null = null
+      try {
+        destination = await geocodeAngolaLocation(orderData.location)
+      } catch (geocodeError) {
+        console.warn('[AgriLink] Geocoding indisponível; pré-compra será criada sem coordenadas.', geocodeError)
+      } finally {
+        setGeocodingLocation(false)
+      }
       const idempotencyKey = crypto.randomUUID()
       const { data, error } = await supabase.rpc('create_marketplace_pre_order', {
         p_product_id: selectedProduct.id,
         p_quantity: quantity,
         p_location: orderData.location,
-        p_delivery_lat: Number(destination.lat),
-        p_delivery_lng: Number(destination.lon),
+        p_delivery_lat: destination ? Number(destination.lat) : null,
+        p_delivery_lng: destination ? Number(destination.lon) : null,
         p_idempotency_key: idempotencyKey,
       })
 
@@ -361,7 +366,7 @@ const AppHome = () => {
         if (raw.includes('AUTH_REQUIRED') || (error as any).code === '42501') throw new Error('A sua sessão expirou. Inicie sessão novamente.')
         if (raw.includes('INVALID_QUANTITY')) throw new Error('A quantidade indicada é inválida.')
         if (raw.includes('DELIVERY_LOCATION_REQUIRED')) throw new Error('Informe o local de entrega.')
-        if (raw.includes('DELIVERY_COORDINATES_REQUIRED')) throw new Error('Não foi possível identificar correctamente o local de entrega. Escolha uma localização mais específica.')
+        if (raw.includes('DELIVERY_COORDINATES_PAIR_REQUIRED') || raw.includes('DELIVERY_COORDINATES_INVALID')) throw new Error('O local de entrega foi informado de forma inválida. Tente novamente.')
         const stockMatch = raw.match(/INSUFFICIENT_STOCK:([0-9]+(?:\\.[0-9]+)?)/)
         if (stockMatch) {
           const available = Number(stockMatch[1])
