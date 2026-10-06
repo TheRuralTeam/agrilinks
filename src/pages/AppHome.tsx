@@ -376,8 +376,7 @@ const AppHome = () => {
   }
 
 
-  const TAX = 0
-  const totalPrice = useMemo(() => selectedProduct ? orderData.quantity * selectedProduct.price * (1 + TAX) : 0, [selectedProduct, orderData.quantity])
+  const productSubtotal = useMemo(() => selectedProduct ? orderData.quantity * selectedProduct.price : 0, [selectedProduct, orderData.quantity])
   const fmt = (p: number) => `${p.toLocaleString('pt-AO')} ${selectedCountry.currency}`
 
   /* ── Loading ── */
@@ -735,7 +734,7 @@ const AppHome = () => {
             <div style={{ padding:'14px 16px', borderRadius:12, background: T.white, border:`1px solid ${T.rule}` }}>
               <p style={{ fontSize:10, fontWeight:800, color: T.g600, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:12 }}>Resumo</p>
               {[
-                { label: 'Subtotal', val: fmt(orderData.quantity * (selectedProduct?.price||0)) },
+                { label: 'Subtotal', val: fmt(productSubtotal) },
                 { label: 'Frete', val: 'Calculado após confirmação' },
               ].map(row => (
                 <div key={row.label} style={{ display:'flex', justifyContent:'space-between', fontSize:12, color: T.muted, marginBottom:8 }}>
