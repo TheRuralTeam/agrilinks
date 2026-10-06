@@ -416,6 +416,30 @@ const ProximasCargas = () => {
     );
   };
 
+  const submitQuote = async (load: FreightLoad) => {
+    if (!requireAct('propor o preço de uma carga')) return;
+    if (!user?.id || load.created_by === user.id) return;
+    if (!load.origin_lat || !load.origin_lng || !load.destination_lat || !load.destination_lng) {
+      toast.error('Esta carga não tem uma rota GPS válida.'); return;
+    }
+    setBusyId(load.id);
+    try {
+      const route = await calculateFreightRoute([load.origin_lat,load.origin_lng],[load.destination_lat,load.destination_lng]);
+      const { error } = await supabase.rpc('submit_freight_quote', {
+        p_freight_load_id: load.id,
+        p_price_method: 'suggested',
+        p_manual_price: null,
+        p_route_distance_km: route.distanceKm,
+        p_route_duration_minutes: route.durationMinutes,
+      });
+      if (error) throw error;
+      toast.success('Preço de transporte enviado ao comprador para aprovação.');
+      await fetchLoads();
+    } catch (error: any) {
+      toast.error(error?.message || 'Não foi possível enviar a proposta de transporte.');
+    } finally { setBusyId(null); }
+  };
+
   const accept = async (load: FreightLoad) => {
     if (!requireAct('aceitar uma carga')) return;
     if (capacity && load.weight_kg > capacity) {
@@ -423,11 +447,7 @@ const ProximasCargas = () => {
       return;
     }
     setBusyId(load.id);
-    const { error } = await supabase
-      .from('freight_loads')
-      .update({ driver_id: user!.id, status: 'accepted', accepted_at: new Date().toISOString() })
-      .eq('id', load.id)
-      .is('driver_id', null);
+    const { error } = await supabase.rpc('accept_freight_load', { p_freight_load_id: load.id });
     setBusyId(null);
     if (error) {
       toast.error('Não foi possível aceitar esta carga.');
@@ -443,15 +463,12 @@ const ProximasCargas = () => {
       toast.error('Só o motorista atribuído pode atualizar esta carga.');
       return;
     }
-    const next =
-      load.status === 'accepted'
-        ? { status: 'in_transit', in_transit_at: new Date().toISOString() }
-        : { status: 'delivered', delivered_at: new Date().toISOString() };
+    const nextStatus = load.status === 'accepted' ? 'in_transit' : 'delivered';
     setBusyId(load.id);
-    const { error } = await supabase.from('freight_loads').update(next).eq('id', load.id);
+    const { error } = await supabase.rpc('advance_freight_load_status', { p_freight_load_id: load.id, p_status: nextStatus });
     setBusyId(null);
     if (error) {
-      toast.error('Não foi possível actualizar.');
+      toast.error(error?.message || 'Não foi possível actualizar.');
       return;
     }
     if (next.status === 'delivered' && sharingLocationFor === load.id) stopLocationSharing();
