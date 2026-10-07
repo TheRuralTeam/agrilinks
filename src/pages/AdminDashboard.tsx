@@ -295,6 +295,8 @@ const AdminDashboard = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [fichas, setFichas] = useState<Ficha[]>([]);
   const [sourcingRequests, setSourcingRequests] = useState<SourcingRequest[]>([]);
+  const [sourcingNoteTarget, setSourcingNoteTarget] = useState<SourcingRequest | null>(null);
+  const [sourcingNote, setSourcingNote] = useState("");
   const [topAgents, setTopAgents] = useState<TopAgent[]>([]);
   const [allReferrals, setAllReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1655,10 +1657,12 @@ const AdminDashboard = () => {
                                 <DropdownMenuItem onClick={() => updateSourcingStatus(req.id, "cancelled")}>
                                   <X className="h-4 w-4 mr-2 text-red-500" /> Cancelado
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => {
-                                  const notes = prompt("Notas do Admin:", req.admin_notes || "");
-                                  if (notes !== null) updateSourcingStatus(req.id, req.status, notes);
-                                }}>
+                                 <DropdownMenuItem onClick={() => {
+                                   setSourcingNoteTarget(req);
+                                   setSourcingNote(req.admin_notes || "");
+                                 }}>
+                                   <MessageSquare className="h-4 w-4 mr-2" /> Adicionar Notas
+                                 </DropdownMenuItem>
                                   <MessageSquare className="h-4 w-4 mr-2" /> Adicionar Notas
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => { setTargetUser(req.user_id); setNotificationModalOpen(true); }}>
@@ -2311,6 +2315,50 @@ const AdminDashboard = () => {
       </Dialog>
 
       {/* Modal de Notificação */}
+        <Dialog open={!!sourcingNoteTarget} onOpenChange={(open) => { if (!open) setSourcingNoteTarget(null); }}>
+          <DialogContent className="w-[calc(100vw-1rem)] max-w-lg overflow-hidden rounded-2xl border-[#DCE8DE] p-0">
+            <div className="h-1.5 bg-primary" />
+            <div className="p-6">
+              <DialogHeader>
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-primary/15 bg-primary/[0.05] p-2">
+                    <img src={agrilinkLogo} alt="AgriLink" className="h-full w-full object-contain" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-lg">Notas do pedido de sourcing</DialogTitle>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{sourcingNoteTarget?.product_name || "Pedido de sourcing"}</p>
+                  </div>
+                </div>
+              </DialogHeader>
+              <div className="mt-4 space-y-2">
+                <label htmlFor="admin-sourcing-note" className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Nota administrativa</label>
+                <Textarea
+                  id="admin-sourcing-note"
+                  value={sourcingNote}
+                  onChange={(e) => setSourcingNote(e.target.value)}
+                  placeholder="Registe aqui o acompanhamento, decisão ou observação operacional."
+                  rows={6}
+                  className="resize-none rounded-xl"
+                  autoFocus
+                />
+              </div>
+              <DialogFooter className="mt-5 gap-2">
+                <Button variant="ghost" onClick={() => setSourcingNoteTarget(null)}>Cancelar</Button>
+                <Button
+                  onClick={() => {
+                    if (!sourcingNoteTarget) return;
+                    updateSourcingStatus(sourcingNoteTarget.id, sourcingNoteTarget.status, sourcingNote.trim());
+                    setSourcingNoteTarget(null);
+                  }}
+                  className="bg-primary text-white hover:bg-primary/90"
+                >
+                  Guardar nota
+                </Button>
+              </DialogFooter>
+            </div>
+          </DialogContent>
+        </Dialog>
+
       <Dialog open={notificationModalOpen} onOpenChange={setNotificationModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
