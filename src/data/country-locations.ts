@@ -643,6 +643,20 @@ const ukProvinces: Province[] = [
   }
 ];
 
+// Angola deve permanecer com as 21 províncias da divisão político-administrativa vigente.
+export const ANGOLA_PROVINCE_COUNT = 21;
+export const ANGOLA_PROVINCE_IDS = [
+  "cabinda", "zaire", "uige", "bengo", "luanda", "icolo-e-bengo",
+  "cuanza-norte", "cuanza-sul", "malanje", "lunda-norte", "lunda-sul",
+  "moxico", "moxico-leste", "bie", "huambo", "benguela", "namibe",
+  "huila", "cunene", "cubango", "cuando"
+] as const;
+
+if (angolaProvinces.length !== ANGOLA_PROVINCE_COUNT ||
+    ANGOLA_PROVINCE_IDS.some((id) => !angolaProvinces.some((province) => province.id === id))) {
+  throw new Error("A base de localização de Angola deve conter exatamente as 21 províncias atuais.");
+}
+
 export const countryLocations: CountryLocations = {
   AO: angolaProvinces,
   CD: congoProvinces,
