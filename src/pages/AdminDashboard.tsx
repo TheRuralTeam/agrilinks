@@ -60,6 +60,7 @@ import {
 } from "../components/ui/dropdown-menu";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import OrbisLinkLogo from "../assets/orbislink-logo.png";
+import agrilinkLogo from "../assets/agrilink-logo.png";
 import AdminManagement from "../components/admin/AdminManagement";
 import DeliveryTracking from "../components/admin/DeliveryTracking";
 import WorkSessionTimer from "../components/admin/WorkSessionTimer";
@@ -1104,8 +1105,8 @@ const AdminDashboard = () => {
             <div className="h-1.5 bg-primary" />
             <div className="p-6">
               <DialogHeader>
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Trash2 className="h-5 w-5" />
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white border border-primary/15 shadow-sm p-2">
+                  <img src={agrilinkLogo} alt="AgriLink" className="h-full w-full object-contain" />
                 </div>
                 <DialogTitle className="text-center text-lg">Mover pedido para a lixeira?</DialogTitle>
               </DialogHeader>
