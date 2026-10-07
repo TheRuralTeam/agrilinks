@@ -13,6 +13,7 @@ import {
   Route,
   Weight,
   X,
+  Download,
 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import { FreightRouteMap, FreightPointSelection } from '../components/FreightRouteMap';
@@ -27,11 +28,13 @@ import {
   FreightCoordinate,
   FreightRoute,
 } from '../lib/freightGeo';
-import { toast } from 'sonner';\nimport { downloadFreightLoadPdf } from '../lib/freightPdf';
+import { toast } from 'sonner';
+import { downloadFreightLoadPdf } from '../lib/freightPdf';
 import Loader from '../components/ui/Loader';
 
 interface FreightLoad {
   id: string;
+  qr_token: string;
   created_by: string;
   product_name: string;
   weight_kg: number;
