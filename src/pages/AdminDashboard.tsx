@@ -1331,7 +1331,7 @@ const AdminDashboard = () => {
                               <DropdownMenuItem onClick={() => { setTargetUser(product.user_id); setNotificationModalOpen(true); }}>
                                 <Bell className="h-4 w-4 mr-2" /> Notificar
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDelete("products", product.id, setProducts)} className="text-red-600">
+                              <DropdownMenuItem onClick={() => handleDelete("products", product.id)} className="text-red-600">
                                 <Trash2 className="h-4 w-4 mr-2" /> Apagar
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -1355,7 +1355,7 @@ const AdminDashboard = () => {
               </CardTitle>
               <div className="flex items-center gap-2">
                 {selectedUsers.size > 0 && (
-                  <Button size="sm" variant="destructive" className="gap-1" onClick={() => handleBulkDelete("users", selectedUsers, setUsers, () => setSelectedUsers(new Set()))}>
+                  <Button size="sm" variant="destructive" className="gap-1" onClick={() => handleBulkDelete("users", selectedUsers)}>
                     <Trash2 className="h-4 w-4" /> Apagar ({selectedUsers.size})
                   </Button>
                 )}
@@ -1446,7 +1446,7 @@ const AdminDashboard = () => {
                             <DropdownMenuItem onClick={() => { setTargetUser(user.id); setNotificationModalOpen(true); }}>
                               <Bell className="h-4 w-4 mr-2" /> Notificar
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete("users", user.id, setUsers)} className="text-red-600">
+                            <DropdownMenuItem onClick={() => handleDelete("users", user.id)} className="text-red-600">
                               <Trash2 className="h-4 w-4 mr-2" /> Apagar
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -1579,7 +1579,7 @@ const AdminDashboard = () => {
     <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-primary" onClick={(e) => { e.stopPropagation(); void downloadFichaRecebimentoPdf({ ...f, user_name: users.find(u => u.id === f.user_id)?.full_name, user_phone: users.find(u => u.id === f.user_id)?.phone, user_email: users.find(u => u.id === f.user_id)?.email }); }} aria-label="Baixar ficha em PDF">
       <Download className="h-4 w-4" />
     </Button>
-    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-600" onClick={(e) => { e.stopPropagation(); handleDelete("fichas_recebimento", f.id, setFichas); }}>
+    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-600" onClick={(e) => { e.stopPropagation(); handleDelete("fichas_recebimento", f.id); }}>
       <Trash2 className="h-4 w-4" />
     </Button>
   </div>
