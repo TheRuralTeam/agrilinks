@@ -72,7 +72,6 @@ const AppHome = () => {
   const [orderData, setOrderData] = useState({ quantity: 1, location: '' })
   const [geocodingLocation, setGeocodingLocation] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string>('all')
   const [isOnline, setIsOnline] = useState(navigator.onLine)
@@ -707,8 +706,7 @@ const AppHome = () => {
 
         @keyframes shimmer     { 0%,100% { opacity:1 } 50% { opacity:0.4 } }
         @keyframes breathe     { 0%,100% { opacity:1; transform:scale(1) } 50% { opacity:0.4; transform:scale(0.7) } }
-        @keyframes tickerScroll { 0% { transform:translateX(0) } 100% { transform:translateX(-50%) } }
-        @keyframes fruitJump   { 0%,100% { transform: translateY(0) scale(1) } 50% { transform: translateY(-22px) scale(1.05) } }
+        @keyframes tickerScroll { 0% { transform:translateX(0) } 100% { transform:translateX(-50%) } } 50% { transform: translateY(-22px) scale(1.05) } }
 
         * { box-sizing: border-box; }
 
