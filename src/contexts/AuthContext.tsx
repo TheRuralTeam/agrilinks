@@ -20,6 +20,7 @@ interface AuthContextType {
   hasAllPermissions: (permissions: AdminPermission[]) => boolean
   login: (email: string, password: string) => Promise<{ error: any }>
   register: (userData: RegisterData) => Promise<{ error: any; data?: any }>
+  registerSimple: (data: { email: string; phone: string; password: string }) => Promise<{ error: any; data?: any }>
   registerWithOtp: (data: { full_name: string; email: string; phone: string }) => Promise<{ error: any; data?: any }>
   signInWithGoogle: (next?: string) => Promise<{ error: any }>
   logout: () => Promise<void>
@@ -278,6 +279,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  const registerSimple = async ({ email, phone, password }: { email: string; phone: string; password: string }) => {
+    const normalizedEmail = email.trim().toLowerCase()
+    const normalizedPhone = phone.trim()
+    if (!normalizedEmail || !normalizedPhone || !password) {
+      return { error: { message: 'Email, telefone e senha são obrigatórios.' }, data: null }
+    }
+    if (password.length < 8) {
+      return { error: { message: 'A senha deve ter pelo menos 8 caracteres.' }, data: null }
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+        options: {
+          emailRedirectTo: buildAuthRedirectUrl('/app'),
+          data: {
+            phone: normalizedPhone,
+          },
+        },
+      })
+      if (error) return { error, data: null }
+      if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        return { error: { message: 'Este email já está registado. Faça login ou reenvie a confirmação.' }, data: null }
+      }
+      return { error: null, data }
+    } catch (error: any) {
+      return { error, data: null }
+    }
+  }
+
   const registerWithOtp = async ({ full_name, email, phone }: { full_name: string; email: string; phone: string }) => {
     const normalizedEmail = email.trim().toLowerCase()
     if (!normalizedEmail || !full_name.trim() || !phone.trim()) {
@@ -388,6 +420,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     hasAllPermissions: (required) => isRootAdmin || isSuperRoot || required.every((permission) => permissions.includes(permission)),
     login,
     register,
+    registerSimple,
     registerWithOtp,
     signInWithGoogle,
     logout,
