@@ -699,6 +699,7 @@ export type Database = {
           origin_lng: number | null
           pickup_date: string | null
           product_id: string | null
+          pre_order_id: string | null
           product_name: string
           qr_token: string
           status: string
@@ -726,6 +727,7 @@ export type Database = {
           origin_lng?: number | null
           pickup_date?: string | null
           product_id?: string | null
+          pre_order_id?: string | null
           product_name: string
           qr_token?: string
           status?: string
@@ -753,6 +755,7 @@ export type Database = {
           origin_lng?: number | null
           pickup_date?: string | null
           product_id?: string | null
+          pre_order_id?: string | null
           product_name?: string
           qr_token?: string
           status?: string
