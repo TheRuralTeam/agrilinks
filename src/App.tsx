@@ -41,7 +41,7 @@ const CompletarPerfil = lazy(() => import("./pages/CompletarPerfil"));
 const PublicProductLocation = lazy(() => import("./pages/PublicProductLocation"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const MeusContratos = lazy(() => import("./pages/MeusContratos"));
-const ProximasCargas = lazy(() => import("./pages/ProximasCargas"));
+const ProximasCargas = lazy(() => import("./pages/ProximasCargas"));\nconst FreightLoadScan = lazy(() => import("./pages/FreightLoadScan"));
 
 const queryClient = new QueryClient();
 
@@ -334,6 +334,16 @@ const AppRoutes = () => {
             <ProtectedRoute>
               <AppLayout>
                 <ProximasCargas />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cargas/scan/:token"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <FreightLoadScan />
               </AppLayout>
             </ProtectedRoute>
           }
