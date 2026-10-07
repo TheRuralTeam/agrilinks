@@ -35,6 +35,7 @@ import Loader from '../components/ui/Loader';
 interface FreightLoad {
   id: string;
   qr_token: string;
+  pre_order_id: string | null;
   created_by: string;
   product_name: string;
   weight_kg: number;
@@ -361,6 +362,35 @@ const ProximasCargas = () => {
     },
     []
   );
+
+  const downloadLoadPdf = useCallback(async (load: FreightLoad) => {
+    try {
+      let clientName: string | null = null;
+
+      if (load.pre_order_id) {
+        const { data: preOrder } = await supabase
+          .from('pre_orders')
+          .select('user_id')
+          .eq('id', load.pre_order_id)
+          .maybeSingle();
+
+        if (preOrder?.user_id) {
+          const { data: client } = await supabase
+            .from('users')
+            .select('full_name')
+            .eq('id', preOrder.user_id)
+            .maybeSingle();
+          clientName = client?.full_name ?? null;
+        }
+      }
+
+      await downloadFreightLoadPdf({ ...load, client_name: clientName });
+      toast.success('PDF da carga preparado com sucesso.');
+    } catch (error) {
+      console.error('Erro ao gerar PDF da carga:', error);
+      toast.error('Não foi possível gerar o PDF desta carga.');
+    }
+  }, []);
 
   const startLocationSharing = (load: FreightLoad) => {
     if (!requireAct('partilhar a localização desta carga')) return;
@@ -964,7 +994,7 @@ const ProximasCargas = () => {
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
                   <button
                     type="button"
-                    onClick={() => void downloadFreightLoadPdf(load)}
+                    onClick={() => void downloadLoadPdf(load)}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
