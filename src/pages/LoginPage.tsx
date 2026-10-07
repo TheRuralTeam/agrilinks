@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, Compass, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { buildAuthRedirectUrl, sendMagicLink, sendPasswordResetEmail } from '../features/auth/email'
+import { sendMagicLink, sendPasswordResetEmail } from '../features/auth/email'
 import agrilinkLogo from '../assets/agrilink-logo.png'
 // Imagem partilhada com o ecrã de Cadastro para manter a mesma identidade visual.
 // Para trocar por vídeo: substituir o <img> do painel esquerdo por um <video autoPlay muted loop playsInline>.
@@ -326,7 +326,8 @@ const LoginPage = () => {
           )}
 
 
-          {authMode === 'login' && (<>\n          {/* Resend confirmation */}
+          {authMode === 'login' && (<>
+          {/* Resend confirmation */}
           <div style={{ textAlign: 'center', marginTop: 14 }}>
             <button
               type="button"
@@ -343,7 +344,8 @@ const LoginPage = () => {
             </button>
           </div>
 
-          </>) }\n          {/* Divider */}
+          </>) }
+          {/* Divider */}
           <div className="flex items-center" style={{ margin: '22px 0' }}>
             <div style={{ flex: 1, height: 1, backgroundColor: T.rule }} />
             <span style={{
@@ -355,7 +357,8 @@ const LoginPage = () => {
             <div style={{ flex: 1, height: 1, backgroundColor: T.rule }} />
           </div>
 
-          {authMode === 'login' && (<>\n          {/* Google Sign-in */}
+          {authMode === 'login' && (<>
+          {/* Google Sign-in */}
           <button
             type="button"
             onClick={handleGoogleSignIn}
@@ -377,7 +380,8 @@ const LoginPage = () => {
             {googleLoading ? 'A conectar...' : 'Continuar com Google'}
           </button>
 
-          </>)}\n          {authMode === 'login' ? (
+          </>)}
+          {authMode === 'login' ? (
             <button className="register-btn" onClick={() => { setAuthMode('signup'); setErrorMsg(''); setPassword(''); }} style={{ width:'100%', height:50, borderRadius:999, border: `1px solid ${T.goldBorder}`, background:T.goldPale, color:T.ink, fontSize:14, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:16 }}>
               <UserPlus style={{ color:T.gold, width:17, height:17 }} /> Criar Nova Conta
             </button>
