@@ -700,7 +700,6 @@ export type Database = {
           pickup_date: string | null
           product_id: string | null
           product_name: string
-          qr_token?: string
           qr_token: string
           status: string
           updated_at: string
@@ -728,6 +727,7 @@ export type Database = {
           pickup_date?: string | null
           product_id?: string | null
           product_name: string
+          qr_token?: string
           status?: string
           updated_at?: string
           weight_kg?: number
