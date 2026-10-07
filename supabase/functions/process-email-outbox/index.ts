@@ -62,6 +62,38 @@ async function buildJobEmail(job: any) {
     });
   }
 
+  if (template === "pre-order-accepted") {
+    const product = escapeHtml(String(payload.product_name || "produto agrícola"));
+    const quantity = Number(payload.quantity || 0);
+    const unitPrice = Number(payload.unit_price || 0);
+    const total = Number(payload.total_price || quantity * unitPrice);
+    const pickup = escapeHtml(String(payload.pickup_location || "A definir"));
+    const receiving = escapeHtml(String(payload.receiving_point || "A definir"));
+    const supplier = escapeHtml(String(payload.supplier_name || "Fornecedor AgriLink"));
+    const money = (value: number) => value.toLocaleString("pt-AO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    return buildBrandEmailTemplate({
+      title: job.subject,
+      preheader: "A sua pré-compra foi aceite e o stock solicitado está disponível.",
+      headline: "Pré-compra aceite",
+      bodyHtml: `
+        <p style="margin:0 0 14px;">Olá ${fullName},</p>
+        <p style="margin:0 0 18px;">A AgriLink confirma que o fornecedor validou a disponibilidade da quantidade solicitada.</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;border:1px solid #dfe7e1;border-radius:14px;overflow:hidden;">
+          <tr><td style="padding:12px 14px;background:#f4faf5;font-size:12px;color:#5b6b5e;font-weight:700;">PRODUTO</td><td style="padding:12px 14px;background:#f4faf5;font-size:14px;color:#111714;text-align:right;font-weight:800;">${product}</td></tr>
+          <tr><td style="padding:12px 14px;font-size:12px;color:#758a79;">Quantidade disponível</td><td style="padding:12px 14px;font-size:14px;color:#111714;text-align:right;font-weight:700;">${quantity.toLocaleString("pt-AO")} kg</td></tr>
+          <tr><td style="padding:12px 14px;font-size:12px;color:#758a79;">Preço unitário</td><td style="padding:12px 14px;font-size:14px;color:#111714;text-align:right;font-weight:700;">${money(unitPrice)} Kz/kg</td></tr>
+          <tr><td style="padding:12px 14px;font-size:12px;color:#758a79;">Local de recolha</td><td style="padding:12px 14px;font-size:14px;color:#111714;text-align:right;font-weight:700;">${pickup}</td></tr>
+          <tr><td style="padding:12px 14px;font-size:12px;color:#758a79;">Ponto de recebimento</td><td style="padding:12px 14px;font-size:14px;color:#111714;text-align:right;font-weight:700;">${receiving}</td></tr>
+          <tr><td style="padding:14px;background:#14532d;color:#ffffff;font-size:13px;font-weight:800;">TOTAL</td><td style="padding:14px;background:#14532d;color:#ffffff;font-size:18px;text-align:right;font-weight:900;">${money(total)} Kz</td></tr>
+        </table>
+      `,
+      ctaText: "Abrir a minha pré-compra",
+      ctaHref: "https://www.agrilink.ao/app",
+      secondaryText: `Fornecedor: ${supplier}. Consulte a plataforma para acompanhar o próximo passo, pagamento e logística.`,
+    });
+  }
+
   const title = escapeHtml(String(payload.title || job.subject));
   const message = escapeHtml(String(payload.message || "Tem uma nova notificação na AgriLink."));
   return buildBrandEmailTemplate({
