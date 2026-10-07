@@ -1,8 +1,10 @@
 import { jsPDF } from 'jspdf';
+import agrilinkLogo from '../assets/agrilink-logo.png';
 
 export interface FreightPdfLoad {
   id: string;
   qr_token: string;
+  client_name?: string | null;
   product_name: string;
   weight_kg: number;
   origin_label: string;
@@ -63,32 +65,69 @@ export const downloadFreightLoadPdf = async (load: FreightPdfLoad) => {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const scanUrl = `${window.location.origin}/cargas/scan/${encodeURIComponent(load.qr_token)}`;
+  const safeClient = load.client_name?.trim() || 'Cliente não identificado';
 
+  // Brand header
   doc.setFillColor(...GREEN);
   doc.rect(0, 0, pageWidth, 7, 'F');
 
-  doc.setTextColor(...GREEN);
-  doc.setFontSize(24);
-  doc.setFont(undefined, 'bold');
-  doc.text('AgriLink', 20, 24);
+  try {
+    const logoDataUrl = await toDataUrl(agrilinkLogo);
+    doc.addImage(logoDataUrl, 'PNG', 20, 14, 26, 18);
+  } catch {
+    doc.setTextColor(...GREEN);
+    doc.setFontSize(18);
+    doc.setFont(undefined, 'bold');
+    doc.text('AgriLink', 20, 27);
+  }
 
   doc.setTextColor(...MUTED);
-  doc.setFontSize(10);
-  doc.setFont(undefined, 'normal');
-  doc.text('Documento operacional de carga', 20, 31);
+  doc.setFontSize(8);
+  doc.setFont(undefined, 'bold');
+  doc.text('DOCUMENTO OPERACIONAL DE CARGA', pageWidth - 20, 20, { align: 'right' });
 
   doc.setTextColor(...INK);
-  doc.setFontSize(18);
+  doc.setFontSize(11);
   doc.setFont(undefined, 'bold');
-  doc.text(load.product_name, 20, 48);
-
-  doc.setFontSize(9);
+  doc.text('Cliente', 20, 43);
   doc.setFont(undefined, 'normal');
-  doc.setTextColor(...MUTED);
-  doc.text(`ID da carga: ${maskUuid(load.id)}`, 20, 56);
+  doc.text(doc.splitTextToSize(safeClient, 100), 20, 49);
+
+  // QR is a capability token, never the load payload.
+  try {
+    const qrDataUrl = await toDataUrl(
+      `https://api.qrserver.com/v1/create-qr-code/?size=300x300&ecc=H&margin=12&data=${encodeURIComponent(scanUrl)}`,
+    );
+    doc.addImage(qrDataUrl, 'PNG', pageWidth - 66, 29, 42, 42);
+    doc.setFontSize(7);
+    doc.setTextColor(...MUTED);
+    doc.text('SCAN · ACESSO AUTORIZADO', pageWidth - 45, 75, { align: 'center' });
+  } catch {
+    doc.setFontSize(7);
+    doc.setTextColor(...MUTED);
+    doc.text('QR indisponível', pageWidth - 45, 51, { align: 'center' });
+  }
 
   doc.setDrawColor(220, 225, 221);
-  doc.line(20, 62, pageWidth - 20, 62);
+  doc.line(20, 84, pageWidth - 20, 84);
+
+  doc.setTextColor(...GREEN);
+  doc.setFontSize(9);
+  doc.setFont(undefined, 'bold');
+  doc.text('CARGA', 20, 94);
+
+  doc.setTextColor(...INK);
+  doc.setFontSize(21);
+  doc.setFont(undefined, 'bold');
+  const productLines = doc.splitTextToSize(load.product_name, pageWidth - 40);
+  doc.text(productLines, 20, 104);
+
+  let y = 104 + Math.max(1, productLines.length) * 9 + 7;
+  doc.setFontSize(8);
+  doc.setTextColor(...MUTED);
+  doc.setFont(undefined, 'normal');
+  doc.text(`ID: ${maskUuid(load.id)}`, 20, y);
+  y += 10;
 
   const rows: Array<[string, string]> = [
     ['Estado', statusLabel[load.status] || load.status],
@@ -101,8 +140,7 @@ export const downloadFreightLoadPdf = async (load: FreightPdfLoad) => {
     ['Tempo estimado', load.route_duration_minutes != null ? `${load.route_duration_minutes} min` : '—'],
   ];
 
-  let y = 76;
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   rows.forEach(([label, value]) => {
     doc.setTextColor(...MUTED);
     doc.setFont(undefined, 'bold');
@@ -111,41 +149,44 @@ export const downloadFreightLoadPdf = async (load: FreightPdfLoad) => {
     doc.setFont(undefined, 'normal');
     const lines = doc.splitTextToSize(value || '—', 105);
     doc.text(lines, 82, y);
-    y += Math.max(9, lines.length * 5.5);
+    y += Math.max(8, lines.length * 5.2);
   });
 
   if (load.notes) {
-    y += 4;
+    y += 3;
     doc.setTextColor(...MUTED);
     doc.setFont(undefined, 'bold');
     doc.text('Observações', 22, y);
-    y += 6;
+    y += 5;
     doc.setTextColor(...INK);
     doc.setFont(undefined, 'normal');
-    doc.text(doc.splitTextToSize(load.notes, pageWidth - 44), 22, y);
+    const noteLines = doc.splitTextToSize(load.notes, pageWidth - 44);
+    doc.text(noteLines, 22, y);
   }
+
+  // Professional footer: brand mark + AgriLink positioning statement.
+  doc.setDrawColor(220, 225, 221);
+  doc.line(20, pageHeight - 31, pageWidth - 20, pageHeight - 31);
 
   try {
-    const qrDataUrl = await toDataUrl(
-      `https://api.qrserver.com/v1/create-qr-code/?size=240x240&ecc=H&margin=12&data=${encodeURIComponent(scanUrl)}`,
-    );
-    doc.addImage(qrDataUrl, 'PNG', pageWidth - 66, 16, 42, 42);
-    doc.setFontSize(8);
-    doc.setTextColor(...MUTED);
-    doc.text('Ler QR para consultar', pageWidth - 45, 62, { align: 'center' });
-    doc.text('detalhes autorizados', pageWidth - 45, 67, { align: 'center' });
+    const logoDataUrl = await toDataUrl(agrilinkLogo);
+    doc.addImage(logoDataUrl, 'PNG', 20, pageHeight - 25, 16, 11);
   } catch {
-    doc.setFontSize(8);
-    doc.setTextColor(...MUTED);
-    doc.text('QR indisponível no momento', pageWidth - 45, 38, { align: 'center' });
+    doc.setTextColor(...GREEN);
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'bold');
+    doc.text('AgriLink', 20, pageHeight - 18);
   }
 
-  doc.setDrawColor(220, 225, 221);
-  doc.line(20, pageHeight - 26, pageWidth - 20, pageHeight - 26);
   doc.setFontSize(8);
+  doc.setTextColor(...GREEN);
+  doc.setFont(undefined, 'bold');
+  doc.text('Conexão de mercado', pageWidth - 20, pageHeight - 19, { align: 'right' });
+
   doc.setTextColor(...MUTED);
-  doc.text('O QR não contém os dados da carga. O acesso é validado pela AgriLink.', 20, pageHeight - 19);
-  doc.text(`Gerado em ${new Date().toLocaleString('pt-AO')}`, 20, pageHeight - 13);
+  doc.setFont(undefined, 'normal');
+  doc.text('O QR não contém os dados da carga. O acesso é validado pela AgriLink.', 20, pageHeight - 9);
+  doc.text(`Gerado em ${new Date().toLocaleString('pt-AO')}`, pageWidth - 20, pageHeight - 9, { align: 'right' });
 
   const safeName = load.product_name.toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'carga';
   doc.save(`agrilink-carga-${safeName}-${load.id.slice(0, 8)}.pdf`);
