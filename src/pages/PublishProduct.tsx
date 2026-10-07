@@ -19,10 +19,11 @@ import { PRODUCT_CATEGORIES } from '../lib/productCategories'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import SimpleLeafletMap from '../components/SimpleLeafletMap';
 import { validateProductSubmission } from '../features/products/businessRules'
+import IdentityActionDialog from '../components/IdentityActionDialog'
 
 const PublishProduct = () => {
   const navigate = useNavigate();
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, refreshProfile } = useAuth();
   const { requireAuth } = useGuestGate();
   const [loading, setLoading] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -41,6 +42,7 @@ const PublishProduct = () => {
     logistics_access: 'sim'
   });
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [identityDialogOpen, setIdentityDialogOpen] = useState(false);
 
   const emailConfirmed = !!(user as any)?.email_confirmed_at || !!userProfile?.email_verified;
   if (user && !emailConfirmed) {
@@ -116,6 +118,11 @@ const PublishProduct = () => {
         description: "Cria a tua conta para publicar este produto de verdade no AgriLink.",
       });
       requireAuth('Para publicares este produto de verdade e chegares a compradores reais, precisas de uma conta AgriLink.');
+      return;
+    }
+
+    if (!userProfile?.identity_document?.trim()) {
+      setIdentityDialogOpen(true);
       return;
     }
 
@@ -202,7 +209,16 @@ const PublishProduct = () => {
   const availableMunicipalities = angolaProvinces.find(p => p.id === formData.province_id)?.municipalities || [];
 
   return (
-    <div className="min-h-screen bg-[#F7F9F7] p-4">
+    <>
+      <IdentityActionDialog
+        open={identityDialogOpen}
+        actionLabel="a publicação do produto"
+        onOpenChange={setIdentityDialogOpen}
+        onCompleted={async () => {
+          await refreshProfile();
+        }}
+      />
+      <div className="min-h-screen bg-[#F7F9F7] p-4">
       <div className="max-w-2xl mx-auto">
        <div className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-md shadow-sm z-50 p-4 flex justify-between items-center border-b border-[#C8E6CA]">
       <div className="flex items-center gap-2">
@@ -567,7 +583,8 @@ const PublishProduct = () => {
 
         </Card>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
