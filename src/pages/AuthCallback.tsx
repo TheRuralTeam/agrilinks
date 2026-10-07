@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../integrations/supabase/client'
-import orbisLinkLogo from '../assets/orbislink-logo.png'
+import agrilinkLogo from '../assets/agrilink-logo.png'
 import { T, FONT } from '../lib/brand'
 import { sanitizeNextPath } from '../features/auth/email'
 
@@ -143,7 +143,7 @@ const AuthCallback = () => {
           boxShadow: T.shadowLg,
         }}
       >
-        <img src={orbisLinkLogo} alt="AgriLink" style={{ height: 64, margin: '0 auto 18px', display: 'block' }} />
+        <img src={agrilinkLogo} alt="AgriLink" style={{ height: 64, margin: '0 auto 18px', display: 'block' }} />
 
         {(phase === 'checking' || phase === 'working') && (
           <div
