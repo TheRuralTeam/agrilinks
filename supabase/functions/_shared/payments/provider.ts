@@ -114,6 +114,30 @@ export class PaymentProviderRegistry {
     );
   }
 
+  async getPaymentStatus(providerId: string, providerReference: string): Promise<ProviderPaymentStatusResult> {
+    const provider = this.getProvider(providerId);
+    if (!provider.capabilities.statusQuery || !provider.getPaymentStatus) {
+      throw new Error("Payment provider does not support status queries");
+    }
+    if (!providerReference || providerReference.length > 255) {
+      throw new Error("Invalid provider reference");
+    }
+    return provider.getPaymentStatus(providerReference);
+  }
+
+  async refundPayment(providerId: string, input: ProviderRefundInput): Promise<ProviderRefundResult> {
+    const provider = this.getProvider(providerId);
+    if (!provider.capabilities.refunds || !provider.refundPayment) {
+      throw new Error("Payment provider does not support refunds");
+    }
+    if (!/^[0-9a-f-]{36}$/i.test(input.idempotencyKey)) {
+      throw new Error("Invalid refund idempotency key");
+    }
+    const amount = normalizePaymentAmount(input.amount);
+    if (!/^[A-Z]{3}$/.test(input.currency)) throw new Error("Invalid refund currency");
+    return provider.refundPayment({ ...input, amount });
+  }
+
   async verifyWebhook(providerId: string, request: Request): Promise<VerifiedPaymentWebhook> {
     const event = await this.getProvider(providerId).verifyWebhook(request);
     if (!event.eventId || event.eventId.length > 255
