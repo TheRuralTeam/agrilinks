@@ -22,7 +22,7 @@ const INK: [number, number, number] = [25, 32, 27];
 
 export const maskUuid = (id: string) => {
   const prefix = id.slice(0, 13);
-  return prefix ? `${prefix}-••••-••••-••••-••••••••••••` : '••••••••••••';
+  return prefix ? `${prefix}-****-****-****-************` : '************';
 };
 
 const statusLabel: Record<string, string> = {
