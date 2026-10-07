@@ -27,7 +27,7 @@ import {
   FreightCoordinate,
   FreightRoute,
 } from '../lib/freightGeo';
-import { toast } from 'sonner';
+import { toast } from 'sonner';\nimport { downloadFreightLoadPdf } from '../lib/freightPdf';
 import Loader from '../components/ui/Loader';
 
 interface FreightLoad {
@@ -959,6 +959,28 @@ const ProximasCargas = () => {
                 )}
 
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                  <button
+                    type="button"
+                    onClick={() => void downloadFreightLoadPdf(load)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 7,
+                      minHeight: 38,
+                      padding: '0 11px',
+                      border: `1px solid ${T.rule}`,
+                      borderRadius: 6,
+                      background: T.white,
+                      color: T.green,
+                      fontFamily: FONT,
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                    title="Descarregar documento da carga"
+                  >
+                    <Download size={15} /> PDF
+                  </button>
                   {hasCoordinates && (
                     <button
                       type="button"
