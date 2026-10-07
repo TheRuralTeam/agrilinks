@@ -200,12 +200,24 @@ const SearchPage = () => {
       if (!Number.isFinite(quantity) || quantity <= 0) throw new Error('Informe uma quantidade válida.')
       if (!orderData.location.trim()) throw new Error('Informe o local de entrega.')
 
-      let destination: { lat: string; lon: string }
+      let destination: { lat: string; lon: string } | null
       try {
         destination = await geocodeAngolaLocation(orderData.location)
       } catch (geocodeError) {
         console.warn('[AgriLink] Geocoding da entrega falhou.', geocodeError)
         throw new Error('Não foi possível localizar o ponto de entrega. Informe uma localização mais específica e tente novamente.')
+      }
+
+      if (
+        !destination ||
+        !Number.isFinite(Number(destination.lat)) ||
+        !Number.isFinite(Number(destination.lon)) ||
+        Number(destination.lat) < -90 ||
+        Number(destination.lat) > 90 ||
+        Number(destination.lon) < -180 ||
+        Number(destination.lon) > 180
+      ) {
+        throw new Error('O ponto de entrega não foi localizado com coordenadas válidas. Informe uma localização mais específica e tente novamente.')
       }
 
       const idempotencyKey = crypto.randomUUID()
