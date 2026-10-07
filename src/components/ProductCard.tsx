@@ -63,17 +63,6 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: 4,
   },
-  badgeDiscount: {
-    background: T.white,
-    color: T.g600,
-    fontSize: 11,
-    fontWeight: 800,
-    padding: '4px 10px',
-    borderRadius: 980,
-    border: `1px solid ${T.gBorder}`,
-    display: 'inline-flex',
-    alignItems: 'center',
-  },
   shareBtn: {
     position: 'absolute',
     top: 12,
@@ -182,12 +171,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: T.ink,
     letterSpacing: '-0.02em',
     fontVariantNumeric: 'tabular-nums',
-  },
-  priceOld: {
-    fontSize: 13,
-    color: T.faint,
-    textDecoration: 'line-through',
-    fontWeight: 500,
   },
   stockRow: {
     fontSize: 12,
@@ -410,12 +393,10 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   const [commentsLoaded, setCommentsLoaded] = useState(false)
 
   const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+    new Date(d).toLocaleDateString('pt-AO', { day: '2-digit', month: 'short' })
   const formatPrice = (p: number) =>
     p.toLocaleString('pt-AO', { style: 'currency', currency: 'AOA' }).replace('AOA', 'Kz')
 
-  const discount = product.quantity > 100 ? 15 : product.quantity > 50 ? 10 : 0
-  const originalPrice = discount > 0 ? product.price / (1 - discount / 100) : product.price
   const isNew = (new Date().getTime() - new Date(product.created_at).getTime()) / (1000 * 60 * 60 * 24) < 7
 
   const toggleComments = async () => {
@@ -460,12 +441,15 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
     if (!requireAct('comentar')) return
     if (!onProductUpdate) return
     try {
-      const { data: newComment } = await supabase
+      const { data: newComment, error: commentError } = await supabase
         .from('product_comments')
         .insert({ product_id: product.id, user_id: user.id, comment_text: comment.trim() })
         .select().single()
-      const { data: userData } = await supabase
+      if (commentError) throw commentError
+      if (!newComment) throw new Error('O comentário não foi criado.')
+      const { data: userData, error: userError } = await supabase
         .from('users').select('full_name, user_type, avatar_url').eq('id', user.id).single()
+      if (userError) throw userError
       const commentWithUserInfo: Comment = {
         ...newComment,
         user_name: userData?.full_name || 'Usuário',
@@ -486,9 +470,11 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
     if (!onProductUpdate) return
     try {
       if (isLiked) {
-        await supabase.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', user.id)
+        const { error } = await supabase.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', user.id)
+        if (error) throw error
       } else {
-        await supabase.from('comment_likes').insert({ comment_id: commentId, user_id: user.id })
+        const { error } = await supabase.from('comment_likes').insert({ comment_id: commentId, user_id: user.id })
+        if (error) throw error
       }
       const updatedComments = product.comments?.map(c =>
         c.id === commentId ? {
@@ -505,12 +491,15 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
     if (!requireAct('responder')) return
     if (!onProductUpdate) return
     try {
-      const { data: newReply } = await supabase
+      const { data: newReply, error: replyError } = await supabase
         .from('comment_replies')
         .insert({ comment_id: commentId, user_id: user.id, reply_text: replyText.trim() })
         .select().single()
-      const { data: userData } = await supabase
+      if (replyError) throw replyError
+      if (!newReply) throw new Error('A resposta não foi criada.')
+      const { data: userData, error: userError } = await supabase
         .from('users').select('full_name, user_type').eq('id', user.id).single()
+      if (userError) throw userError
       const replyWithUser: CommentReply = {
         ...newReply, user_name: userData?.full_name || 'Usuário',
         user_type: userData?.user_type || 'agricultor'
@@ -566,9 +555,6 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
               <Leaf size={10} />
               NOVO
             </span>
-          )}
-          {discount > 0 && (
-            <span style={styles.badgeDiscount}>−{discount}%</span>
           )}
         </div>
 
@@ -655,7 +641,6 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
           {/* Price + stock */}
           <div style={styles.priceRow}>
             <span style={styles.price}>{formatPrice(product.price)}</span>
-            {discount > 0 && <span style={styles.priceOld}>{formatPrice(originalPrice)}</span>}
           </div>
 
           <div style={styles.stockRow}>
@@ -701,7 +686,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                 onMouseLeave={e => ((e.currentTarget as HTMLElement).style.opacity = '1')}
               >
                 <MapPin size={13} />
-                Ver localização
+                Ver zona de origem
               </button>
             )}
           </div>
@@ -884,10 +869,10 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
             </div>
             <div>
               <DialogTitle style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", fontSize: 16, fontWeight: 700, color: T.ink, margin: 0 }}>
-                Localização do produto
+                Zona de origem
               </DialogTitle>
               <p style={{ fontSize: 11, color: T.faint, marginTop: 2, margin: 0 }}>
-                {product.farmer_name} · {product.province_id}, {product.municipality_id}
+                {product.province_id}, {product.municipality_id}
               </p>
             </div>
           </div>
@@ -895,14 +880,14 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
           <div style={{ width: '100%', height: 420 }}>
             {mapModalOpen && product.location_lat && product.location_lng && (
               <SimpleLeafletMap
-                center={{ lat: product.location_lat, lng: product.location_lng }}
-                zoom={13}
+                center={{ lat: Number(product.location_lat.toFixed(2)), lng: Number(product.location_lng.toFixed(2)) }}
+                zoom={9}
                 height={420}
                 markers={[{
-                  lat: product.location_lat,
-                  lng: product.location_lng,
+                  lat: Number(product.location_lat.toFixed(2)),
+                  lng: Number(product.location_lng.toFixed(2)),
                   color: T.g600 as unknown as string,
-                  popupHtml: `<strong>${product.product_type}</strong><br/>${product.farmer_name}`,
+                  popupHtml: '<strong>Zona de origem</strong><br/>Localização aproximada',
                 }]}
               />
             )}
