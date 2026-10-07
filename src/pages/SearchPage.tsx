@@ -18,6 +18,7 @@ import { ProductCard, Product as ProductCardType } from '../components/ProductCa
 import { fetchProductsFeed } from '../features/products/productsService'
 import { ProductLocationMap } from '../components/ProductLocationMap'
 import { useAuth } from '../contexts/AuthContext'
+import IdentityActionDialog from '../components/IdentityActionDialog'
 import { validatePreOrderSubmission } from '../features/products/businessRules'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
 import { toast } from 'sonner'
@@ -86,7 +87,7 @@ const productCategories = [
 
 const SearchPage = () => {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, userProfile, refreshProfile } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedProvince, setSelectedProvince] = useState<string>('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
@@ -98,6 +99,7 @@ const SearchPage = () => {
   const [showFilters, setShowFilters] = useState(false)
   const [mapModalOpen, setMapModalOpen] = useState(false)
   const [preOrderModalOpen, setPreOrderModalOpen] = useState(false)
+  const [identityDialogOpen, setIdentityDialogOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [orderData, setOrderData] = useState({ quantity: 1, location: '' })
 
@@ -187,6 +189,10 @@ const SearchPage = () => {
 
   const handlePreOrderSubmit = async () => {
     if (!selectedProduct || !user) return toast.error('Inicie sessão para continuar')
+    if (!userProfile?.identity_document?.trim()) {
+      setIdentityDialogOpen(true)
+      return
+    }
 
     try {
       const quantity = Number(orderData.quantity || 0)
@@ -468,6 +474,15 @@ const SearchPage = () => {
       </div>
 
       {/* MAP MODAL */}
+      <IdentityActionDialog
+        open={identityDialogOpen}
+        actionLabel="a pré-compra"
+        onOpenChange={setIdentityDialogOpen}
+        onCompleted={async () => {
+          await refreshProfile()
+        }}
+      />
+
       <Dialog open={mapModalOpen} onOpenChange={setMapModalOpen}>
         <DialogContent className="max-w-4xl border-none rounded-2xl">
           <DialogHeader>
