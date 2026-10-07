@@ -113,7 +113,7 @@ const PublishProduct = () => {
         created_at: new Date().toISOString(),
       });
       toast({
-        title: "Guardado no modo de teste",
+        title: "Rascunho local guardado",
         description: "Cria a tua conta para publicar este produto de verdade no AgriLink.",
       });
       requireAuth('Para publicares este produto de verdade e chegares a compradores reais, precisas de uma conta AgriLink.');
