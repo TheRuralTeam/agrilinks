@@ -1,0 +1,6 @@
+-- Functional hardening applied to Supabase project:
+-- * simple signup profile bootstrap (phone persisted from auth metadata)
+-- * secure admin user-type changes
+-- * database-level identity requirement for legal marketplace actions
+-- * exactly-once detailed acceptance email
+-- * in-app acceptance notification with dedupe
