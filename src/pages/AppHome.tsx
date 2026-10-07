@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Button } from '../components/ui/button'
 import { toast } from 'sonner'
 import {
   Search, LayoutDashboard, ShoppingCart, Bell,
@@ -8,10 +6,6 @@ import {
   MapPin, TrendingUp, Menu, X, WifiOff
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
-import { Input } from '../components/ui/input'
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from '../components/ui/dropdown-menu'
 import { supabase } from '../integrations/supabase/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useCanAct } from '../hooks/useCanAct'
@@ -51,17 +45,6 @@ const CATEGORIES = [
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 import { T } from '../lib/brand';
 
-/* ─── Countries ─────────────────────────────────────────────────────────────── */
-const COUNTRIES = [
-  { code: 'AO', name: 'Angola',              flag: '🇦🇴', currency: 'Kz'  },
-  { code: 'BR', name: 'Brasil',              flag: '🇧🇷', currency: 'R$'  },
-  { code: 'PT', name: 'Portugal',            flag: '🇵🇹', currency: '€'   },
-  { code: 'MZ', name: 'Moçambique',          flag: '🇲🇿', currency: 'MT'  },
-  { code: 'CV', name: 'Cabo Verde',          flag: '🇨🇻', currency: 'CVE' },
-  { code: 'ST', name: 'São Tomé e Príncipe', flag: '🇸🇹', currency: 'Db'  },
-  { code: 'GW', name: 'Guiné-Bissau',        flag: '🇬🇼', currency: 'CFA' },
-]
-
 /* ─── Skeleton ──────────────────────────────────────────────────────────────── */
 const ProductSkeleton = () => (
   <div className="overflow-hidden rounded-[20px] border" style={{ borderColor: 'rgba(0,0,0,0.05)', background: T.white }}>
@@ -79,7 +62,6 @@ const ProductSkeleton = () => (
    ════════════════════════════════════════════════════════════════════════════ */
 const AppHome = () => {
   const navigate = useNavigate()
-  const { t } = useTranslation()
   const { user, userProfile, isAdmin } = useAuth()
   const { requireAct } = useCanAct()
   const [products, setProducts] = useState<Product[]>([])
@@ -293,7 +275,7 @@ const AppHome = () => {
 
 
   const productSubtotal = useMemo(() => selectedProduct ? orderData.quantity * selectedProduct.price : 0, [selectedProduct, orderData.quantity])
-  const fmt = (p: number) => `${p.toLocaleString('pt-AO')} ${selectedCountry.currency}`
+  const fmt = (p: number) => `${p.toLocaleString('pt-AO')} Kz`
 
   /* ── Loading ── */
   if (loading) return <Loader />
@@ -352,9 +334,6 @@ const AppHome = () => {
 
           {/* Right actions */}
           <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink: 0 }}>
-            <div className="hidden sm:flex">
-              <CountrySelector selectedCountry={selectedCountry} onCountryChange={(c) => { setSelectedCountry(c); toast.success(`${c.flag} ${c.name}`) }}/>
-            </div>
 
             {isAdmin && (
               <button
@@ -396,7 +375,6 @@ const AppHome = () => {
             borderBottom: `1px solid rgba(0,0,0,0.06)`,
             padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12,
             boxShadow: `0 8px 24px rgba(0,0,0,0.06)`,
-            animation: 'cardEnter 0.3s ease-out'
           }} className="sm:hidden">
             {isAdmin && (
               <button
