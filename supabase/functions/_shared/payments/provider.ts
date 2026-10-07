@@ -16,9 +16,39 @@ export interface CreateCheckoutInput {
   returnUrl: string;
 }
 
+export interface PaymentProviderCapabilities {
+  checkout: boolean;
+  statusQuery: boolean;
+  refunds: boolean;
+  webhookVerification: boolean;
+  supportedCurrencies: readonly string[];
+}
+
 export interface ProviderCheckout {
   providerReference: string;
   checkoutUrl?: string;
+  qrCodePayload?: string;
+}
+
+export interface ProviderPaymentStatusResult {
+  providerReference: string;
+  status: ProviderPaymentStatus;
+  amount: string;
+  currency: string;
+}
+
+export interface ProviderRefundInput {
+  paymentIntentId: string;
+  providerReference: string;
+  idempotencyKey: string;
+  amount: string;
+  currency: string;
+  reason?: string;
+}
+
+export interface ProviderRefundResult {
+  providerReference: string;
+  status: "pending" | "succeeded" | "failed";
 }
 
 export interface VerifiedPaymentWebhook {
@@ -34,8 +64,11 @@ export interface VerifiedPaymentWebhook {
 export interface PaymentProviderAdapter {
   readonly id: string;
   readonly checkoutHosts: readonly string[];
+  readonly capabilities: PaymentProviderCapabilities;
   createCheckout(input: CreateCheckoutInput): Promise<ProviderCheckout>;
   verifyWebhook(request: Request): Promise<VerifiedPaymentWebhook>;
+  getPaymentStatus?(providerReference: string): Promise<ProviderPaymentStatusResult>;
+  refundPayment?(input: ProviderRefundInput): Promise<ProviderRefundResult>;
 }
 
 export class PaymentProviderRegistry {
@@ -59,6 +92,10 @@ export class PaymentProviderRegistry {
 
   has(providerId: string): boolean {
     return this.providers.has(providerId);
+  }
+
+  getCapabilities(providerId: string): PaymentProviderCapabilities {
+    return this.getProvider(providerId).capabilities;
   }
 
   async createCheckout(providerId: string, input: CreateCheckoutInput): Promise<ProviderCheckout> {
