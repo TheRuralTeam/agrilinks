@@ -42,7 +42,7 @@ const HeroBanner = () => {
 
           {/* Subtitle */}
           <p className="text-base sm:text-lg text-white/70 mb-8 leading-relaxed max-w-2xl animate-slide-up stagger-1">
-            A OrbisLink conecta fabricantes, distribuidores e grandes compradores em um único ecossistema digital,
+            A AgriLink conecta fabricantes, distribuidores e grandes compradores em um único ecossistema digital,
             permitindo entregas diretas da fábrica para supermercados, grossistas e revendedores.
           </p>
 
