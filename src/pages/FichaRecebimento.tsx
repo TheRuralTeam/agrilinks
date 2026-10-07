@@ -16,8 +16,7 @@ import {
 } from "../components/ui/select";
 import { supabase } from "../integrations/supabase/client";
 import { toast } from "sonner";
-import { useGuestGate } from "../contexts/GuestGateContext";
-import { pushGuestItem } from "../lib/guestSession";
+import { useCanAct } from "../hooks/useCanAct";
 import {
   ArrowLeft,
   ArrowRight,
@@ -41,11 +40,9 @@ const STEPS = [
   { id: 4, label: "Resumo", icon: FileText },
 ];
 
-const __FICHA_GUEST__ = true
-
 const FichaRecebimento = () => {
-  const { requireAuth } = useGuestGate();
   const navigate = useNavigate();
+  const { requireAct } = useCanAct();
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({
     nomeFicha: "",
@@ -115,22 +112,15 @@ const FichaRecebimento = () => {
         error: userError,
       } = await supabase.auth.getUser();
       if (userError || !user) {
-        // Modo convidado: guarda a ficha localmente e convida ao cadastro
-        pushGuestItem('fichas', {
-          id: `guest-${Date.now()}`,
-          nome_ficha: formData.nomeFicha,
-          produto: formData.produto,
-          tipo_negocio: formData.tipoNegocio,
-          created_at: new Date().toISOString(),
-          status: 'rascunho_local',
-        });
-        toast.success("Guardado no modo de teste", {
-          description: "Cria a tua conta para enviar esta ficha aos fornecedores.",
-        });
-        requireAuth('Para enviares esta ficha técnica a fornecedores reais, precisas de uma conta AgriLink.');
+        toast.error("Inicie sessão para criar uma ficha de recebimento.");
         setLoading(false);
         return;
       }
+      if (!requireAct("criar uma ficha de recebimento")) {
+        setLoading(false);
+        return;
+      }
+
       const { data: insertedFicha, error } = await supabase.from("fichas_recebimento").insert([
         {
           user_id: user.id,
