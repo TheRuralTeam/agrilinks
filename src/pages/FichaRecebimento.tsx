@@ -16,6 +16,8 @@ import {
 import { supabase } from "../integrations/supabase/client";
 import { toast } from "sonner";
 import { useCanAct } from "../hooks/useCanAct";
+import { useAuth } from "../contexts/AuthContext";
+import IdentityActionDialog from "../components/IdentityActionDialog";
 import {
   ArrowLeft,
   ArrowRight,
@@ -41,6 +43,7 @@ const STEPS = [
 
 const FichaRecebimento = () => {
   const navigate = useNavigate();
+  const { userProfile, refreshProfile } = useAuth();
   const { requireAct } = useCanAct();
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({
@@ -65,6 +68,7 @@ const FichaRecebimento = () => {
   });
   const [mapError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [identityDialogOpen, setIdentityDialogOpen] = useState(false);
 
   const handleAddLocal = () => {
     if (localTemp.descricao && localTemp.coordenadas) {
