@@ -12,6 +12,11 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get('Authorization') || '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Authorization required' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -32,13 +37,25 @@ Deno.serve(async (req) => {
       vapidPrivateKey
     );
 
-    const { userId, title, body, data, icon, sound } = await req.json();
+    const { userId, title, body, data, icon } = await req.json();
 
     if (!userId) {
       return new Response(
         JSON.stringify({ error: 'userId is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    const token = authHeader.replace(/^Bearer\s+/i, '');
+    const { data: authData, error: authError } = await supabaseClient.auth.getUser(token);
+    if (authError || !authData.user) return new Response(JSON.stringify({ error: 'Invalid session' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+    const caller = authData.user.id;
+    if (caller !== userId) {
+      const { data: allowed } = await supabaseClient.from('users').select('is_root_admin,is_super_root').eq('id', caller).maybeSingle();
+      if (!allowed?.is_root_admin && !allowed?.is_super_root) {
+        return new Response(JSON.stringify({ error: 'Permission denied' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
     }
 
     // Get user's push subscriptions
@@ -64,11 +81,11 @@ Deno.serve(async (req) => {
       body: body || 'Você tem uma nova notificação',
       icon: icon || '/agrilink-icon.png',
       badge: '/agrilink-badge.png',
-      sound: sound || '/sounds/notification.mp3',
       data: data || {},
       vibrate: [200, 100, 200],
-      tag: 'agrilink-notification',
-      requireInteraction: true,
+      tag: `agrilink-${String(data?.notification_id || crypto.randomUUID())}`,
+      requireInteraction: false,
+      renotify: true,
     });
 
     // Send push notification to all user's devices
