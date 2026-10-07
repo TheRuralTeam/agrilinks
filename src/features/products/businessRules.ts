@@ -43,6 +43,15 @@ export const validateProductSubmission = (input: ProductSubmissionInput) => {
   if (!input.province_id || !input.municipality_id) {
     errors.push('Província e município são obrigatórios.')
   }
+  else {
+    // Garante que o município pertence realmente à província selecionada.
+    // A mesma fonte de dados é usada pelo formulário de publicação.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const locations = require('../../data/country-locations') as typeof import('../../data/country-locations')
+    const province = locations.getProvincesForCountry('AO').find((item) => item.id === input.province_id)
+    const municipalityExists = province?.municipalities.some((item) => item.id === input.municipality_id) ?? false
+    if (!municipalityExists) errors.push('O município selecionado não pertence à província indicada.')
+  }
 
   if (!['sim', 'nao', 'parcial'].includes(input.logistics_access)) {
     errors.push('Acesso logístico inválido.')
