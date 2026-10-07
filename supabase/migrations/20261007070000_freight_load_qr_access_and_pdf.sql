@@ -64,7 +64,7 @@ BEGIN
     v_load.created_by = v_actor
     OR v_load.driver_id = v_actor
     OR public.has_role(v_actor, 'admin'::public.app_role)
-    OR public.has_role(v_actor, 'support'::public.app_role)
+    OR public.has_role(v_actor, 'support_agent'::public.app_role)
     OR EXISTS (
       SELECT 1 FROM public.products p
       WHERE p.id = v_load.product_id AND p.user_id = v_actor
