@@ -16,7 +16,7 @@ const FeaturesGrid = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground mb-3">
-            O que a OrbisLink faz
+            O que a AgriLink faz
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Uma plataforma completa para organizar cadeias de fornecimento em escala
