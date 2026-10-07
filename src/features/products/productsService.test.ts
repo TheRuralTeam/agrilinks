@@ -24,7 +24,7 @@ describe('productsService', () => {
           select: () => builder,
           eq: () => builder,
           order: () => builder,
-          limit: async () => ({ data: [], error: null }),
+          range: async () => ({ data: [], error: null }),
         }
         return builder
       }
