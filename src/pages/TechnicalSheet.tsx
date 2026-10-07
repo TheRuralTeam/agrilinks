@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Separator } from "../components/ui/separator";
-import { ArrowLeft, Download, Phone, MapPin, Calendar, Package, DollarSign, Truck } from "lucide-react";
+import { ArrowLeft, Download, Phone, MapPin, Calendar, Package, DollarSign, Truck, ShieldCheck } from "lucide-react";
 import Loader from "../components/ui/Loader";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../integrations/supabase/client";
@@ -30,6 +30,7 @@ const TechnicalSheet = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
