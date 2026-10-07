@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, Compass, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -63,6 +63,14 @@ const LoginPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const requestedPath = (location.state as { from?: unknown } | null)?.from
+  useEffect(() => {
+    const mode = new URLSearchParams(location.search).get('mode')
+    if (mode === 'signup') {
+      setAuthMode('signup')
+      setErrorMsg('')
+    }
+  }, [location.search])
+
   const redirectTo = typeof requestedPath === 'string'
     && requestedPath.startsWith('/')
     && !requestedPath.startsWith('//')
