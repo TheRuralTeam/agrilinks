@@ -561,6 +561,7 @@ const AdminDashboard = () => {
       toast.error("Sem permissão para remover pedidos.");
       return;
     }
+    setSelectedOrder(null);
     setOrderRemovalTarget(order);
   }, [hasPermission, isSupportAgent]);
 
