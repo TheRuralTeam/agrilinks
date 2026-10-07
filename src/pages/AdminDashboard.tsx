@@ -65,6 +65,7 @@ import AdminManagement from "../components/admin/AdminManagement";
 import DeliveryTracking from "../components/admin/DeliveryTracking";
 import WorkSessionTimer from "../components/admin/WorkSessionTimer";
 import MarketPricesManager from "../components/admin/MarketPricesManager";
+import { downloadFichaRecebimentoPdf } from "../lib/fichaRecebimentoPdf";
 
 import { useWorkSession } from "../hooks/useWorkSession";
 import {
@@ -143,9 +144,15 @@ interface Ficha {
   nome_ficha: string;
   produto: string;
   tipo_negocio: string;
-  qualidade?: string;
-  telefone?: string;
+  qualidade?: string | null;
+  embalagem?: string | null;
+  transporte?: string | null;
+  locais_entrega?: unknown;
+  telefone?: string | null;
+  descricao_final?: string | null;
+  observacoes?: string | null;
   created_at: string;
+  updated_at?: string | null;
 }
 
 type TabType = "dashboard" | "products" | "users" | "transactions" | "notifications" | "orders" | "fichas" | "sourcing" | "market" | "prices" | "admins" | "referrals" | "deliveries";
@@ -259,6 +266,8 @@ const AdminDashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [updatingOrders, setUpdatingOrders] = useState<Set<string>>(() => new Set());
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedFicha, setSelectedFicha] = useState<Ficha | null>(null);
+  const [changingUserType, setChangingUserType] = useState<Set<string>>(() => new Set());
   const [orderRemovalTarget, setOrderRemovalTarget] = useState<Order | null>(null);
   const [orderTrash, setOrderTrash] = useState<Order[]>([]);
   const [showOrderTrash, setShowOrderTrash] = useState(false);
@@ -376,7 +385,7 @@ const AdminDashboard = () => {
         supabase.from("sourcing_requests").select("*").order("created_at", { ascending: false }),
         supabase.rpc("get_top_agents_by_referrals", { limit_count: 3 }),
         supabase.from("agent_referrals").select("*").order("created_at", { ascending: false }),
-        supabase.from("pre_orders").select("*").order("created_at", { ascending: false }),
+        supabase.from("pre_orders").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       ]);
       setProducts(prodRes.data || []);
       setUsers(usersRes.data || []);
@@ -634,6 +643,38 @@ const AdminDashboard = () => {
     }
   }, []);
 
+  const changeUserType = useCallback(async (userId: string, userType: User["user_type"]) => {
+    if (!userType || !hasPermission("manage_users")) {
+      toast.error("Não tem permissão para alterar o tipo de utilizador.");
+      return;
+    }
+    setChangingUserType((prev) => new Set(prev).add(userId));
+    try {
+      const enumMap: Record<string, string> = {
+        agricultor: "agricultor",
+        comprador: "comprador",
+        agente: "agente",
+        motorista: "motorista",
+      };
+      const nextType = enumMap[userType];
+      if (!nextType) throw new Error("Tipo de utilizador inválido.");
+      const { data, error } = await supabase.rpc("admin_set_user_type", {
+        p_user_id: userId,
+        p_user_type: nextType,
+      });
+      if (error) throw error;
+      const updated = data?.[0];
+      if (!updated) throw new Error("O servidor não confirmou a alteração.");
+      setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, user_type: updated.user_type } : u));
+      toast.success("Tipo de utilizador atualizado.");
+    } catch (error) {
+      console.error("Erro ao alterar tipo de utilizador:", error);
+      toast.error(error instanceof Error ? error.message : "Não foi possível alterar o tipo.");
+    } finally {
+      setChangingUserType((prev) => { const next = new Set(prev); next.delete(userId); return next; });
+    }
+  }, [hasPermission]);
+
   const toggleUserVerification = useCallback(async (userId: string, currentVerified: boolean) => {
     try {
       const { error } = await supabase
@@ -867,10 +908,10 @@ const AdminDashboard = () => {
         {activeTab === "dashboard" && (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-              <MetricCard title="Produtos" value={products.length} icon={<Package className="h-5 w-5 sm:h-6 sm:w-6" />} trend={12} color="bg-primary" />
-              <MetricCard title="Usuários" value={users.length} icon={<Users className="h-5 w-5 sm:h-6 sm:w-6" />} trend={8} color="bg-primary" />
-              <MetricCard title="Pedidos" value={orders.length} icon={<ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" />} trend={15} color="bg-primary" />
-              <MetricCard title="Transações" value={transactions.length} icon={<DollarSign className="h-5 w-5 sm:h-6 sm:w-6" />} trend={5} color="bg-primary" />
+              <MetricCard title="Produtos" value={products.length} icon={<Package className="h-5 w-5 sm:h-6 sm:w-6" />} trend={undefined} color="bg-primary" />
+              <MetricCard title="Usuários" value={users.length} icon={<Users className="h-5 w-5 sm:h-6 sm:w-6" />} trend={undefined} color="bg-primary" />
+              <MetricCard title="Pedidos" value={orders.length} icon={<ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" />} trend={undefined} color="bg-primary" />
+              <MetricCard title="Transações" value={transactions.length} icon={<DollarSign className="h-5 w-5 sm:h-6 sm:w-6" />} trend={undefined} color="bg-primary" />
             </div>
 
             {/* Top 3 Agentes Leaderboard */}
@@ -1353,7 +1394,21 @@ const AdminDashboard = () => {
                       </TableCell>
                       <TableCell className="text-sm text-gray-500">{user.email || "-"}</TableCell>
                       <TableCell className="text-sm">{user.phone || "-"}</TableCell>
-                      <TableCell><Badge variant="outline" className="capitalize">{user.user_type || "user"}</Badge></TableCell>
+                      <TableCell>
+  <select
+    value={user.user_type || ""}
+    disabled={!hasPermission("manage_users") || changingUserType.has(user.id) || user.is_root_admin}
+    onChange={(e) => void changeUserType(user.id, e.target.value as User["user_type"])}
+    className="h-8 min-w-[125px] rounded-lg border border-gray-200 bg-white px-2 text-xs font-semibold capitalize outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
+    aria-label={`Tipo de utilizador de ${user.full_name}`}
+  >
+    <option value="" disabled>Definir tipo</option>
+    <option value="agricultor">Fornecedor</option>
+    <option value="comprador">Comprador</option>
+    <option value="agente">Agente</option>
+    <option value="motorista">Motorista</option>
+  </select>
+</TableCell>
                       <TableCell>
                         {user.verified ? (
                           <Badge className="bg-primary/10 text-primary flex items-center gap-1 w-fit">
@@ -1500,7 +1555,7 @@ const AdminDashboard = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredFichas.map((f) => (
-                    <TableRow key={f.id} className="hover:bg-gray-50/50">
+                    <TableRow key={f.id} className="hover:bg-gray-50/50 cursor-pointer" onClick={() => setSelectedFicha(f)}>
                       <TableCell className="font-medium">{f.nome_ficha}</TableCell>
                       <TableCell>{f.produto}</TableCell>
                       <TableCell><Badge className={f.tipo_negocio === "compra" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}>{f.tipo_negocio}</Badge></TableCell>
@@ -1508,15 +1563,18 @@ const AdminDashboard = () => {
                       <TableCell>{f.telefone || "-"}</TableCell>
                       <TableCell className="text-sm text-gray-500">{new Date(f.created_at).toLocaleDateString("pt-BR")}</TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => { setTargetUser(f.user_id); setNotificationModalOpen(true); }}>
-                            <Bell className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-600" onClick={() => handleDelete("fichas_recebimento", f.id, setFichas)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+  <div className="flex gap-1">
+    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); setSelectedFicha(f); }} aria-label="Ver ficha">
+      <Eye className="h-4 w-4" />
+    </Button>
+    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-primary" onClick={(e) => { e.stopPropagation(); void downloadFichaRecebimentoPdf({ ...f, user_name: users.find(u => u.id === f.user_id)?.full_name, user_phone: users.find(u => u.id === f.user_id)?.phone, user_email: users.find(u => u.id === f.user_id)?.email }); }} aria-label="Baixar ficha em PDF">
+      <Download className="h-4 w-4" />
+    </Button>
+    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-600" onClick={(e) => { e.stopPropagation(); handleDelete("fichas_recebimento", f.id, setFichas); }}>
+      <Trash2 className="h-4 w-4" />
+    </Button>
+  </div>
+</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
