@@ -11,6 +11,7 @@ import AppLayout from "./layouts/AppLayout";
 import { GuestGateProvider } from "./contexts/GuestGateContext";
 import { purgeExpiredGuestSession } from "./lib/guestSession";
 import { AdminPermission } from "./features/auth/authorization";
+import NotificationRuntime from "./components/NotificationRuntime";
 
 const Index = lazy(() => import("./pages/Index"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -413,6 +414,7 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <GuestGateProvider>
+                <NotificationRuntime />
                 <AppRoutes />
               </GuestGateProvider>
             </BrowserRouter>
