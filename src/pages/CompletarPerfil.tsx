@@ -35,7 +35,7 @@ const NativeSelect = ({ value, onChange, placeholder, options, disabled }: any) 
   <div style={{ position: "relative" }}>
     <select
       value={value} onChange={(e) => onChange(e.target.value)}
-      disabled={disabled} required
+      disabled={disabled}
       style={{
         height: 52, width: "100%", borderRadius: 14,
         border: `1.5px solid ${T.goldBorder}`,
@@ -161,7 +161,7 @@ const CompletarPerfil = () => {
             <Label>Nome Completo</Label>
             <div style={{ position: "relative" }}>
               <UserIcon style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.gold, width: 18, height: 18 }} />
-              <input style={inputStyle} value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+              <input style={inputStyle} value={fullName} onChange={(e) => setFullName(e.target.value)} />
             </div>
           </div>
 
@@ -183,33 +183,6 @@ const CompletarPerfil = () => {
             />
           </div>
 
-          {userType && (
-            <div style={{ padding: 12, borderRadius: 12, background: T.goldBg, border: `1px solid ${T.goldBorder}`, fontSize: 12, color: T.mid }}>
-              <strong>Tipo de conta:</strong> {userTypes.find(t => t.id === userType)?.label || userType}. Alterações de função são feitas pelo administrador.
-            </div>
-          )}
-          <div style={{ display: "none" }}>
-            <Label>Tipo de Conta</Label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {userTypes.map(o => {
-                const active = userType === o.id;
-                return (
-                  <button
-                    key={o.id} type="button"
-                    onClick={() => setUserType(o.id as any)}
-                    style={{
-                      height: 48, borderRadius: 12,
-                      border: `1.5px solid ${active ? T.g600 : T.goldBorder}`,
-                      backgroundColor: active ? T.g700 : T.goldBg,
-                      color: active ? T.white : T.ink,
-                      fontSize: 12, fontWeight: 800, cursor: "pointer",
-                      letterSpacing: "0.04em",
-                    }}>{o.label}</button>
-                );
-              })}
-            </div>
-          </div>
-
           {userType === "motorista" && (
             <div>
               <Label>Capacidade de carga (kg)</Label>
@@ -220,7 +193,6 @@ const CompletarPerfil = () => {
                 value={loadCapacity}
                 onChange={(e) => setLoadCapacity(e.target.value)}
                 placeholder="Ex.: 8000"
-                required
               />
             </div>
           )}
