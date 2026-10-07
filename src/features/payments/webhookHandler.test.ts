@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, beforeAll, vi } from 'vitest'
+import { webcrypto } from 'node:crypto'
 import { createPaymentWebhookHandler } from '../../../supabase/functions/_shared/payments/webhookHandler'
 import { PaymentProviderRegistry } from '../../../supabase/functions/_shared/payments/provider'
 import type { PaymentProviderAdapter, VerifiedPaymentWebhook } from '../../../supabase/functions/_shared/payments/provider'
@@ -31,6 +32,10 @@ function webhookRequest(body = '{}', path = 'provider-a') {
 }
 
 describe('payment webhook handler', () => {
+  beforeAll(() => {
+    vi.stubGlobal('crypto', webcrypto)
+  })
+
   it('persists only an event returned by the provider signature verifier', async () => {
     const { registry, adapter } = registryFor()
     const apply = vi.fn(async () => ({ data: 'processed', error: null }))
