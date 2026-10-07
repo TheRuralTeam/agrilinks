@@ -2226,6 +2226,10 @@ export type Database = {
         Args: { p_identity_document: string }
         Returns: Json
       }
+      submit_public_contact: {
+        Args: { p_name: string; p_email: string; p_phone: string; p_message: string }
+        Returns: string
+      }
       send_message:
         | {
             Args: {
