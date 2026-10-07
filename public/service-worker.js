@@ -4,7 +4,6 @@ const APP_SHELL = [
   '/index.html',
   '/manifest.webmanifest',
   '/favicon.ico',
-  '/favicon.ico',
   '/robots.txt'
 ];
 
