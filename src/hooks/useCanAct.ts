@@ -17,6 +17,8 @@ export const useCanAct = () => {
 
   const isLoggedIn = !!user
   const emailConfirmed = !!(user as any)?.email_confirmed_at || !!userProfile?.email_verified
+  const identityDocument = userProfile?.identity_document?.trim() || ''
+  const identityRequiredActions = ['fazer uma pré-compra', 'publicar um produto', 'publicar uma carga', 'criar um contrato de futuros', 'criar uma ficha']
   const canAct = isLoggedIn && emailConfirmed
 
   const requireAct = (action = 'esta acção') => {
@@ -33,8 +35,15 @@ export const useCanAct = () => {
       })
       return false
     }
+    const needsIdentity = identityRequiredActions.some((required) => action.toLowerCase().includes(required))
+    if (needsIdentity && !identityDocument) {
+      toast.error('Para ' + action + ', informe primeiro o número do Bilhete de Identidade ou NIF.', {
+        action: { label: 'Informar', onClick: () => navigate('/completar-perfil?required=identity') },
+      })
+      return false
+    }
     return true
   }
 
-  return { canAct, isLoggedIn, emailConfirmed, requireAct }
+  return { canAct, isLoggedIn, emailConfirmed, identityDocument, requireAct }
 }
