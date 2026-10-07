@@ -7,6 +7,7 @@ import Loader from "../components/ui/Loader";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../integrations/supabase/client";
 import { T } from "../lib/brand";
+import { downloadTechnicalSheetPdf } from "../lib/technicalSheetPdf";
 import { jsPDF } from "jspdf";
 
 interface Product {
@@ -107,7 +108,7 @@ const TechnicalSheet = () => {
           <CardContent>
             <Button onClick={() => navigate("/home")} className="w-full">
               Voltar ao Início
-            </Button> */}
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -132,10 +133,6 @@ const TechnicalSheet = () => {
             </div>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
-            <Button variant="outline" onClick={handlePrint} className="flex-1 sm:flex-none gap-2 rounded-full border-border bg-white hover:bg-muted">
-              <Printer className="h-4 w-4" />
-              <span className="hidden sm:inline">Imprimir</span>
-            </Button>
             <Button onClick={handleExportPDF} className="flex-1 sm:flex-none gap-2 rounded-full bg-[#2c863b] text-white hover:bg-[#246f32]">
               <Download className="h-4 w-4" />
               <span className="hidden sm:inline">Exportar PDF</span>
