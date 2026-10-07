@@ -48,7 +48,8 @@ export function createPaymentWebhookHandler(
         body: new Uint8Array(rawBody),
       });
       event = await registry.verifyWebhook(providerId, verificationRequest);
-    } catch {
+    } catch (error) {
+      console.error("Payment webhook verification failed:", error instanceof Error ? error.message : String(error));
       return jsonResponse({ error: "Webhook verification failed" }, 401);
     }
     if (event.bodySha256 !== rawBodyHash) {
