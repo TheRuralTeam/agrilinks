@@ -30,9 +30,10 @@ export function createPaymentWebhookHandler(
       return jsonResponse({ error: "Payment provider is not configured" }, 503);
     }
 
-    let boundedRequest: Request;
+    let rawBody: ArrayBuffer;
     try {
-      boundedRequest = await withBoundedBody(request, MAX_WEBHOOK_BODY_BYTES);
+      const boundedRequest = await withBoundedBody(request, MAX_WEBHOOK_BODY_BYTES);
+      rawBody = await boundedRequest.arrayBuffer();
     } catch {
       return jsonResponse({ error: "Webhook payload too large or unreadable" }, 413);
     }
@@ -40,8 +41,13 @@ export function createPaymentWebhookHandler(
     let event;
     let rawBodyHash: string;
     try {
-      rawBodyHash = await sha256Hex(await boundedRequest.clone().arrayBuffer());
-      event = await registry.verifyWebhook(providerId, boundedRequest);
+      rawBodyHash = await sha256Hex(rawBody);
+      const verificationRequest = new Request(request.url, {
+        method: "POST",
+        headers: request.headers,
+        body: rawBody.slice(0),
+      });
+      event = await registry.verifyWebhook(providerId, verificationRequest);
     } catch {
       return jsonResponse({ error: "Webhook verification failed" }, 401);
     }
