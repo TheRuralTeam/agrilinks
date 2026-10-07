@@ -255,7 +255,18 @@ const SearchPage = () => {
       const reservation = Array.isArray(data) ? data[0] : data
       if (!reservation) throw new Error('Não foi possível criar a reserva.')
 
-      toast.success('Pré-compra enviada com sucesso. A disponibilidade foi reservada temporariamente.')
+      const expiresAt = reservation.reservation_expires_at
+        ? new Date(reservation.reservation_expires_at).toLocaleTimeString('pt-AO', {
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : null
+
+      toast.success(
+        expiresAt
+          ? `Pré-compra enviada. A disponibilidade fica reservada até às ${expiresAt}.`
+          : 'Pré-compra enviada. A disponibilidade foi reservada temporariamente.'
+      )
       setPreOrderModalOpen(false)
       setSelectedProduct(null)
 
