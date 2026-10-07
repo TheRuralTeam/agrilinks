@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button";
 import { CheckCircle2, MailCheck } from "lucide-react";
 import { Input } from "../components/ui/input";
-import orbisLinkLogo from "../assets/orbislink-logo.png";
+import agrilinkLogo from "../assets/agrilink-logo.png";
 import { toast } from "../hooks/use-toast";
 import { useAuth } from "../contexts/AuthContext";
 import Loader from "../components/ui/Loader";
@@ -109,7 +109,7 @@ const EmailConfirmation = () => {
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
-          <img src={orbisLinkLogo} alt="OrbisLink" className="h-10 mx-auto" />
+          <img src={agrilinkLogo} alt="OrbisLink" className="h-10 mx-auto" />
           <CardTitle className="flex items-center justify-center gap-2">
             {sent ? (
               <>
