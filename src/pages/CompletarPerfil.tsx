@@ -98,12 +98,8 @@ const CompletarPerfil = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (userType === "motorista" && (!loadCapacity || Number(loadCapacity) <= 0)) {
-      toast({ title: "Capacidade em falta", description: "Indique a capacidade de carga do veículo (kg).", variant: "destructive" });
-      return;
-    }
-    if (!fullName || !identityDocument || !phone || !userType || !provinceId || !municipalityId) {
-      toast({ title: "Campos obrigatórios", description: "Preencha todos os campos.", variant: "destructive" });
+    if (!identityDocument.trim()) {
+      toast({ title: "Documento necessário", description: "Informe o número do Bilhete de Identidade ou NIF para continuar.", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -156,7 +152,7 @@ const CompletarPerfil = () => {
             fontSize: 26, color: T.ink, margin: "8px 0 6px",
           }}>Complete o seu Perfil</h1>
           <p style={{ fontSize: 13, color: T.muted, margin: 0 }}>
-            Para continuar, precisamos de algumas informações adicionais sobre a sua conta.
+            A identidade só é solicitada quando uma operação exige representação legal. Preencha o BI ou NIF agora; os restantes dados podem ser completados mais tarde.
           </p>
         </div>
 
@@ -187,7 +183,12 @@ const CompletarPerfil = () => {
             />
           </div>
 
-          <div>
+          {userType && (
+            <div style={{ padding: 12, borderRadius: 12, background: T.goldBg, border: `1px solid ${T.goldBorder}`, fontSize: 12, color: T.mid }}>
+              <strong>Tipo de conta:</strong> {userTypes.find(t => t.id === userType)?.label || userType}. Alterações de função são feitas pelo administrador.
+            </div>
+          )}
+          <div style={{ display: "none" }}>
             <Label>Tipo de Conta</Label>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {userTypes.map(o => {
@@ -257,7 +258,7 @@ const CompletarPerfil = () => {
               marginTop: 8, letterSpacing: "0.02em",
               boxShadow: "0 4px 20px rgba(45,125,58,0.25)",
             }}>
-            {saving ? "A guardar..." : "Concluir Cadastro"}
+            {saving ? "A guardar..." : "Guardar dados de identidade"}
             <ArrowRight style={{ width: 18, height: 18 }} />
           </button>
         </form>
