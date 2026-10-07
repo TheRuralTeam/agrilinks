@@ -132,7 +132,9 @@ self.addEventListener('notificationclick', (event) => {
       }
       for (const client of clientList) {
         if ('focus' in client && client.url.startsWith(self.location.origin)) {
-          if (targetUrl && 'navigate' in client) await client.navigate(targetUrl);
+          if (targetUrl && 'navigate' in client) {
+            return client.navigate(targetUrl).then(() => client.focus());
+          }
           return client.focus();
         }
       }
