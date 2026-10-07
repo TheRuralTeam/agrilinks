@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import {
   Search, LayoutDashboard, ShoppingCart, Bell,
   ChevronDown, CheckCircle2, Package, Activity,
-  MapPin, TrendingUp, Globe2, Zap, Menu, X, WifiOff
+  MapPin, TrendingUp, Menu, X, WifiOff
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
 import { Input } from '../components/ui/input'
@@ -74,86 +74,6 @@ const ProductSkeleton = () => (
   </div>
 )
 
-/* ─── Jumping fruit mascot (empty / offline states) ─────────────────────────── */
-const JumpingMascot = ({ offline = false }: { offline?: boolean }) => {
-  const fruits = [faAppleWhole, faCarrot, faLemon]
-  const fruitColors = [T.green, T.green, T.green]
-  return (
-    <div style={{ position:'relative', width:120, height:90, marginBottom:8 }}>
-      {fruits.map((icon, i) => (
-        <div key={i} style={{
-          position:'absolute',
-          left: `${i * 40}px`,
-          bottom: 0,
-          animation: `fruitJump 1.1s ease-in-out infinite`,
-          animationDelay: `${i * 0.15}s`,
-        }}>
-          <div style={{
-            width:40, height:40, borderRadius:'50%',
-            background: offline ? T.g50 : `${fruitColors[i]}18`,
-            display:'flex', alignItems:'center', justifyContent:'center',
-            boxShadow: '0 6px 14px rgba(0,0,0,0.08)',
-          }}>
-            <FontAwesomeIcon icon={icon} style={{ fontSize:18, color: offline ? T.g400 : fruitColors[i] }}/>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-/* ─── Country selector ──────────────────────────────────────────────────────── */
-const CountrySelector = ({
-  selectedCountry, onCountryChange
-}: {
-  selectedCountry: typeof COUNTRIES[0]
-  onCountryChange: (c: typeof COUNTRIES[0]) => void
-}) => (
-  <DropdownMenu>
-    <DropdownMenuTrigger asChild>
-      <button style={{
-        display:'flex', alignItems:'center', gap: 6, padding:'7px 12px',
-        borderRadius: 980, border: 'none',
-        background: 'rgba(118,118,128,0.08)', cursor:'pointer', transition:'background 0.15s',
-        color: T.ink, fontSize: 13, fontWeight: 600,
-      }}
-        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(118,118,128,0.13)' }}
-        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(118,118,128,0.08)' }}
-      >
-        <span style={{ fontSize: 15 }}>{selectedCountry.flag}</span>
-        <ChevronDown size={11} color={T.muted}/>
-      </button>
-    </DropdownMenuTrigger>
-    <DropdownMenuContent align="end" style={{
-      width: 220, borderRadius: 16, border: `1px solid rgba(0,0,0,0.06)`,
-      boxShadow: `0 12px 32px rgba(0,0,0,0.10)`, background: T.white, padding: '6px',
-    }}>
-      <div style={{ padding:'8px 12px 6px', fontSize:10, fontWeight:800, color: T.g600, textTransform:'uppercase', letterSpacing:'0.1em', borderBottom:`1px solid ${T.rule}`, marginBottom: 4 }}>
-        Região de Operação
-      </div>
-      {COUNTRIES.map(c => (
-        <DropdownMenuItem key={c.code} onClick={() => onCountryChange(c)} style={{
-          display:'flex', alignItems:'center', gap: 10, padding:'8px 10px', cursor:'pointer',
-          borderRadius: 10, margin:'1px 0',
-          background: selectedCountry.code === c.code ? T.g50 : 'transparent',
-          color: selectedCountry.code === c.code ? T.g600 : T.ink,
-          fontWeight: selectedCountry.code === c.code ? 700 : 400,
-          transition: 'background 0.15s',
-        }}>
-          <span style={{ fontSize: 18 }}>{c.flag}</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>{c.name}</div>
-            <div style={{ fontSize: 10, color: T.faint }}>{c.currency}</div>
-          </div>
-          {selectedCountry.code === c.code && (
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: T.g500 }}/>
-          )}
-        </DropdownMenuItem>
-      ))}
-    </DropdownMenuContent>
-  </DropdownMenu>
-)
-
 /* ════════════════════════════════════════════════════════════════════════════
    MAIN COMPONENT
    ════════════════════════════════════════════════════════════════════════════ */
@@ -171,7 +91,6 @@ const AppHome = () => {
   const [geocodingLocation, setGeocodingLocation] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0])
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string>('all')
   const [isOnline, setIsOnline] = useState(navigator.onLine)
@@ -213,44 +132,6 @@ const AppHome = () => {
       window.removeEventListener('online', goOnline)
       window.removeEventListener('offline', goOffline)
     }
-  }, [])
-
-  /* Country auto-detect */
-  useEffect(() => {
-    const cached = sessionStorage.getItem('agrilinks-country')
-    if (cached) {
-      try {
-        const { country, expiresAt } = JSON.parse(cached)
-        if (expiresAt > Date.now()) {
-          const found = COUNTRIES.find(c => c.code === country)
-          if (found) {
-            setSelectedCountry(found)
-            return
-          }
-        }
-      } catch {
-        sessionStorage.removeItem('agrilinks-country')
-      }
-    }
-
-    const controller = new AbortController()
-    const detect = async () => {
-      try {
-        const r = await fetch('https://ipapi.co/json/', { signal: controller.signal })
-        const d = await r.json()
-        const found = COUNTRIES.find(c => c.code === d.country_code)
-        if (found) {
-          setSelectedCountry(found)
-          sessionStorage.setItem('agrilinks-country', JSON.stringify({
-            country: found.code,
-            expiresAt: Date.now() + 24 * 60 * 60 * 1000,
-          }))
-          toast.success(`Região: ${found.name}`, { duration: 2000 })
-        }
-      } catch {}
-    }
-    detect()
-    return () => controller.abort()
   }, [])
 
   /* Fetch products — corre sempre, mesmo sem sessão (modo convidado),
@@ -517,10 +398,6 @@ const AppHome = () => {
             boxShadow: `0 8px 24px rgba(0,0,0,0.06)`,
             animation: 'cardEnter 0.3s ease-out'
           }} className="sm:hidden">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>Região</span>
-              <CountrySelector selectedCountry={selectedCountry} onCountryChange={(c) => { setSelectedCountry(c); toast.success(`${c.flag} ${c.name}`) }}/>
-            </div>
             {isAdmin && (
               <button
                 style={{
@@ -616,7 +493,7 @@ const AppHome = () => {
             : filteredProducts.map((product, i) => (
               <div
                 key={product.id}
-                style={{ animation:`cardEnter 0.5s cubic-bezier(0.22,1,0.36,1) both`, animationDelay:`${Math.min(i * 0.05, 0.35)}s` }}
+                
               >
                 <ProductCard
                   product={product}
@@ -650,14 +527,14 @@ const AppHome = () => {
         {/* Empty / offline state */}
         {!loading && filteredProducts.length === 0 && (
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'100px 20px', textAlign:'center' }}>
-            <JumpingMascot offline={!isOnline} />
+            <div style={{ width: 44, height: 44, borderRadius: 10, border: `1px solid ${T.rule}`, background: T.g50, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><Package size={18} color={T.g500} /></div>
             <h3 style={{ fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif", fontSize:22, color: T.ink, margin:'0 0 10px', fontWeight:700 }}>
               {isOnline ? 'Sem produtos disponíveis' : 'Sem ligação à internet'}
             </h3>
             <p style={{ fontSize:13, color: T.faint, maxWidth:320, lineHeight:1.65 }}>
               {isOnline
-                ? 'Os primeiros fornecedores estão a ser integrados. Volte em breve.'
-                : 'Verifique a sua ligação. Os produtos aparecem assim que a rede voltar.'}
+                ? 'Ainda não existem produtos disponíveis nesta categoria.'
+                : 'Verifique a sua ligação e tente novamente. Se já tiver produtos em cache, eles serão apresentados quando disponíveis.'}
             </p>
             {!isOnline && (
               <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:14, padding:'6px 12px', borderRadius:980, background: T.g50, color: T.g600, fontSize:12, fontWeight:700 }}>
@@ -710,24 +587,6 @@ const AppHome = () => {
                 A reserva bloqueia o stock por 15 minutos. O fornecedor confirma o pedido e, depois, o sistema calcula o frete e abre o pagamento.
               </p>
             </div>
-
-            {/* Contact */}
-            <div style={{ padding:'12px 14px', borderRadius:12, background: T.ePale, border:`1px solid ${T.eBorder}` }}>
-              <p style={{ fontSize:11, fontWeight:700, color: T.e500, marginBottom:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>Contacto Directo</p>
-              <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-                {['934 745 871','935 358 417','922 717 574'].map(n => (
-                  <a key={n} href={`tel:${n.replace(/ /g,'')}`} style={{
-                    padding:'6px 12px', borderRadius:8, fontSize:12, fontWeight:700,
-                    background: T.white, color: T.e500, border:`1px solid ${T.eBorder}`,
-                    textDecoration:'none', transition:'all 0.18s',
-                    display:'flex', alignItems:'center', gap:5,
-                  }}>
-                    {n}
-                  </a>
-                ))}
-              </div>
-            </div>
-
             {/* Quantity */}
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               <label style={{ fontSize:12, fontWeight:700, color: T.ink, display:'flex', alignItems:'center', gap:8 }}>
@@ -824,7 +683,7 @@ const AppHome = () => {
                   A localizar entrega...
                 </>
               ) : (
-                <><ShoppingCart size={15}/> Confirmar Encomenda</>
+                <><ShoppingCart size={15}/> Enviar pré-compra</>
               )}
             </button>
           </div>
@@ -870,7 +729,6 @@ const AppHome = () => {
 
         @keyframes shimmer     { 0%,100% { opacity:1 } 50% { opacity:0.4 } }
         @keyframes breathe     { 0%,100% { opacity:1; transform:scale(1) } 50% { opacity:0.4; transform:scale(0.7) } }
-        @keyframes cardEnter   { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
         @keyframes tickerScroll { 0% { transform:translateX(0) } 100% { transform:translateX(-50%) } }
         @keyframes fruitJump   { 0%,100% { transform: translateY(0) scale(1) } 50% { transform: translateY(-22px) scale(1.05) } }
 
