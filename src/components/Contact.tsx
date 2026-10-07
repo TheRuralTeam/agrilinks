@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { supabase } from "../integrations/supabase/client";
+import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
@@ -20,8 +22,27 @@ const Contact = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically send the form data to your backend
-    alert("Mensagem enviada com sucesso! Entraremos em contato em breve.");
+    try {
+      const contactMessage = [
+        formData.company ? "Empresa: " + formData.company : "",
+        formData.subject ? "Assunto: " + formData.subject : "",
+        formData.message,
+      ].filter(Boolean).join("\n\n");
+      const { error } = await supabase.rpc("submit_public_contact", {
+        p_name: formData.name,
+        p_email: formData.email,
+        p_phone: formData.phone,
+        p_message: contactMessage,
+      });
+      if (error) {
+        if (error.message?.includes("CONTACT_RATE_LIMITED")) {
+          throw new Error("Já recebemos uma mensagem deste email nos últimos minutos. Aguarde antes de enviar outra.");
+        }
+        throw error;
+      }
+      toast.success("Mensagem recebida pela AgriLink.", {
+        description: "A nossa equipa de suporte recebeu o pedido e fará o acompanhamento.",
+      });
     setFormData({
       name: "",
       company: "",
@@ -30,6 +51,9 @@ const Contact = () => {
       subject: "",
       message: ""
     });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível enviar a mensagem.");
+    }
   };
 
   const contactInfo = [
