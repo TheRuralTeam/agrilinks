@@ -286,6 +286,8 @@ const AdminDashboard = () => {
   const [selectedFicha, setSelectedFicha] = useState<Ficha | null>(null);
   const [changingUserType, setChangingUserType] = useState<Set<string>>(() => new Set());
   const [orderRemovalTarget, setOrderRemovalTarget] = useState<Order | null>(null);
+  const [adminDeleteTarget, setAdminDeleteTarget] = useState<{ table: string; ids: string[] } | null>(null);
+  const [adminDeleteLoading, setAdminDeleteLoading] = useState(false);
   const [orderTrash, setOrderTrash] = useState<Order[]>([]);
   const [showOrderTrash, setShowOrderTrash] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
@@ -469,86 +471,55 @@ const AdminDashboard = () => {
     }
   }, [targetUser, notificationMessage, notificationTitle, notificationType]);
 
-  const handleDelete = useCallback(async (table: string, id: string, setter: React.Dispatch<React.SetStateAction<any[]>>) => {
-    if (!confirm("Deseja realmente apagar? Esta ação não pode ser desfeita.")) return;
-    try {
-      if (table === "users") {
-        const { error } = await supabase.rpc("admin_delete_user", { p_user_id: id });
-        if (error) {
-          console.error("Erro ao apagar usuário:", error);
-          toast.error("Erro ao apagar usuário: " + error.message);
-          return;
-        }
-        setter((prev: any[]) => prev.filter((item: any) => item.id !== id));
-        setProducts((prev) => prev.filter((p) => p.user_id !== id));
-        toast.success("Usuário e dados relacionados apagados com sucesso");
-      } else if (table === "products") {
-        const { error } = await supabase.rpc("admin_delete_product", { p_product_id: id });
-        if (error) {
-          console.error("Erro ao apagar produto:", error);
-          toast.error("Erro ao apagar produto: " + error.message);
-          return;
-        }
-        setter((prev: any[]) => prev.filter((item: any) => item.id !== id));
-        toast.success("Produto e dados relacionados apagados com sucesso");
-      } else {
-        const { error } = await supabase.from(table as any).delete().eq("id", id);
-        if (error) {
-          console.error("Erro ao apagar:", error);
-          toast.error("Erro ao apagar: " + error.message);
-          return;
-        }
-        setter((prev: any[]) => prev.filter((item: any) => item.id !== id));
-        toast.success("Item apagado com sucesso");
-      }
-    } catch (err) {
-      console.error("Erro ao apagar:", err);
-      toast.error("Erro ao apagar");
-    }
+  const handleDelete = useCallback((table: string, id: string) => {
+    setAdminDeleteTarget({ table, ids: [id] });
   }, []);
 
-  const handleBulkDelete = useCallback(async (table: string, ids: Set<string>, setter: React.Dispatch<React.SetStateAction<any[]>>, clearSelection: () => void) => {
-    if (ids.size === 0) { toast.error("Nenhum item selecionado"); return; }
-    if (!confirm(`Deseja realmente apagar ${ids.size} item(s)? Esta ação não pode ser desfeita.`)) return;
-    try {
-      const idsArray = Array.from(ids);
-      if (table === "users") {
-        const { data, error } = await supabase.rpc("admin_bulk_delete_users", { p_user_ids: idsArray });
-        if (error) {
-          console.error("Erro ao apagar usuários:", error);
-          toast.error("Erro ao apagar usuários: " + error.message);
-          return;
-        }
-        setter((prev: any[]) => prev.filter((item: any) => !ids.has(item.id)));
-        setProducts((prev) => prev.filter((p) => !ids.has(p.user_id)));
-        clearSelection();
-        toast.success(`${data || idsArray.length} usuário(s) e dados relacionados apagados com sucesso`);
-      } else if (table === "products") {
-        const { data, error } = await supabase.rpc("admin_bulk_delete_products", { p_product_ids: idsArray });
-        if (error) {
-          console.error("Erro ao apagar produtos:", error);
-          toast.error("Erro ao apagar produtos: " + error.message);
-          return;
-        }
-        setter((prev: any[]) => prev.filter((item: any) => !ids.has(item.id)));
-        clearSelection();
-        toast.success(`${data || idsArray.length} produto(s) e dados relacionados apagados com sucesso`);
-      } else {
-        const { error } = await supabase.from(table as any).delete().in("id", idsArray);
-        if (error) {
-          console.error("Erro ao apagar itens:", error);
-          toast.error("Erro ao apagar itens: " + error.message);
-          return;
-        }
-        setter((prev: any[]) => prev.filter((item: any) => !ids.has(item.id)));
-        clearSelection();
-        toast.success(`${idsArray.length} item(s) apagado(s) com sucesso`);
-      }
-    } catch (err) {
-      console.error("Erro ao apagar itens:", err);
-      toast.error("Erro ao apagar itens");
+  const handleBulkDelete = useCallback((table: string, ids: Set<string>) => {
+    if (ids.size === 0) {
+      toast.error("Nenhum item selecionado");
+      return;
     }
+    setAdminDeleteTarget({ table, ids: Array.from(ids) });
   }, []);
+
+  const confirmAdminDelete = useCallback(async () => {
+    const target = adminDeleteTarget;
+    if (!target || adminDeleteLoading) return;
+    setAdminDeleteLoading(true);
+    try {
+      const ids = target.ids;
+      if (target.table === "users") {
+        const { data, error } = await supabase.rpc(ids.length === 1 ? "admin_delete_user" : "admin_bulk_delete_users",
+          ids.length === 1 ? { p_user_id: ids[0] } : { p_user_ids: ids });
+        if (error) throw error;
+        setUsers((prev) => prev.filter((item) => !ids.includes(item.id)));
+        setProducts((prev) => prev.filter((p) => !ids.includes(p.user_id)));
+        setSelectedUsers(new Set());
+        toast.success(`${Number(data || ids.length)} utilizador(es) removido(s).`);
+      } else if (target.table === "products") {
+        const { data, error } = await supabase.rpc(ids.length === 1 ? "admin_delete_product" : "admin_bulk_delete_products",
+          ids.length === 1 ? { p_product_id: ids[0] } : { p_product_ids: ids });
+        if (error) throw error;
+        setProducts((prev) => prev.filter((item) => !ids.includes(item.id)));
+        setSelectedProducts(new Set());
+        toast.success(`${Number(data || ids.length)} produto(s) removido(s).`);
+      } else {
+        const { error } = await supabase.from(target.table as any).delete().in("id", ids);
+        if (error) throw error;
+        if (target.table === "fichas_recebimento") {
+          setFichas((prev) => prev.filter((item) => !ids.includes(item.id)));
+        }
+        toast.success(`${ids.length} registo(s) removido(s).`);
+      }
+      setAdminDeleteTarget(null);
+    } catch (error) {
+      console.error("Erro ao remover registos:", error);
+      toast.error(error instanceof Error ? error.message : "Não foi possível concluir a remoção.");
+    } finally {
+      setAdminDeleteLoading(false);
+    }
+  }, [adminDeleteTarget, adminDeleteLoading]);
 
   const toggleSelectUser = useCallback((id: string) => {
     setSelectedUsers(prev => {
@@ -1268,7 +1239,7 @@ const AdminDashboard = () => {
               </CardTitle>
               <div className="flex items-center gap-2">
                 {selectedProducts.size > 0 && (
-                  <Button size="sm" variant="destructive" className="gap-1" onClick={() => handleBulkDelete("products", selectedProducts, setProducts, () => setSelectedProducts(new Set()))}>
+                  <Button size="sm" variant="destructive" className="gap-1" onClick={() => handleBulkDelete("products", selectedProducts)}>
                     <Trash2 className="h-4 w-4" /> Apagar ({selectedProducts.size})
                   </Button>
                 )}
@@ -2301,6 +2272,27 @@ const AdminDashboard = () => {
               </>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!adminDeleteTarget} onOpenChange={(open) => !open && !adminDeleteLoading && setAdminDeleteTarget(null)}>
+        <DialogContent className="w-[calc(100%-1rem)] max-w-md rounded-2xl border-[#DCE8DE]">
+          <DialogHeader>
+            <div className="mb-3 flex items-center gap-3">
+              <img src={agrilinkLogo} alt="AgriLink" className="h-7 w-auto object-contain" />
+              <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#2c863b]">Acção administrativa</span>
+            </div>
+            <DialogTitle>Confirmar remoção</DialogTitle>
+          </DialogHeader>
+          <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm leading-6 text-red-900">
+            Esta remoção será executada no servidor. {adminDeleteTarget?.ids.length === 1 ? "O registo selecionado será removido." : `${adminDeleteTarget?.ids.length} registos serão removidos.`} Não será usado o diálogo do navegador.
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" disabled={adminDeleteLoading} onClick={() => setAdminDeleteTarget(null)}>Cancelar</Button>
+            <Button variant="destructive" disabled={adminDeleteLoading} onClick={() => void confirmAdminDelete()}>
+              {adminDeleteLoading ? "A remover…" : "Confirmar remoção"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
