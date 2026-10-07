@@ -192,7 +192,6 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     error,
     subscribe,
     unsubscribe,
-    sendTestNotification,
   };
 };
 
