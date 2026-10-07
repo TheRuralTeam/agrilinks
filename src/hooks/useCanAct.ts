@@ -1,7 +1,6 @@
 import { useAuth } from '../contexts/AuthContext'
 import { useGuestGate } from '../contexts/GuestGateContext'
 import { toast } from 'sonner'
-import { useNavigate } from 'react-router-dom'
 import { requiresLoginForAction } from '../lib/accessPolicy'
 
 /**
@@ -12,7 +11,6 @@ import { requiresLoginForAction } from '../lib/accessPolicy'
  */
 export const useCanAct = () => {
   const { user, userProfile } = useAuth()
-  const navigate = useNavigate()
   const { requireAuth } = useGuestGate()
 
   const isLoggedIn = !!user
