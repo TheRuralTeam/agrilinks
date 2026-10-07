@@ -258,6 +258,7 @@ const AdminDashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [updatingOrders, setUpdatingOrders] = useState<Set<string>>(() => new Set());
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orderRemovalTarget, setOrderRemovalTarget] = useState<Order | null>(null);
   const [orderTrash, setOrderTrash] = useState<Order[]>([]);
   const [showOrderTrash, setShowOrderTrash] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
@@ -557,18 +558,39 @@ const AdminDashboard = () => {
     setOrderTrash(data || []);
   }, []);
 
-  const removePreOrder = useCallback(async (order: Order) => {
-    if (!hasPermission("manage_orders") && !isSupportAgent) { toast.error("Sem permissão para remover pedidos."); return; }
-    if (!confirm("Mover esta pré-compra para a lixeira por 15 dias?")) return;
-    const { error } = await supabase.rpc("admin_remove_pre_order", {
-      p_order_id: order.id,
-      p_reason: "Removido pelo painel administrativo",
-    });
-    if (error) { toast.error(error.message); return; }
-    setOrders(prev => prev.filter(item => item.id !== order.id));
-    await loadOrderTrash();
-    toast.success("Pré-compra movida para a lixeira por 15 dias.");
-  }, [hasPermission, isSupportAgent, loadOrderTrash]);
+  const requestRemovePreOrder = useCallback((order: Order) => {
+    if (!hasPermission("manage_orders") && !isSupportAgent) {
+      toast.error("Sem permissão para remover pedidos.");
+      return;
+    }
+    setOrderRemovalTarget(order);
+  }, [hasPermission, isSupportAgent]);
+
+  const confirmRemovePreOrder = useCallback(async () => {
+    const order = orderRemovalTarget;
+    if (!order) return;
+    setOrderRemovalTarget(null);
+    setUpdatingOrders((previous) => new Set(previous).add(order.id));
+    try {
+      const { error } = await supabase.rpc("admin_remove_pre_order", {
+        p_order_id: order.id,
+        p_reason: "Removido pelo painel administrativo",
+      });
+      if (error) throw error;
+      setOrders((prev) => prev.filter((item) => item.id !== order.id));
+      await loadOrderTrash();
+      toast.success("Pedido movido para a lixeira por 15 dias.");
+    } catch (error) {
+      console.error("Erro ao remover pedido:", error);
+      toast.error(error instanceof Error ? error.message : "Não foi possível remover o pedido.");
+    } finally {
+      setUpdatingOrders((previous) => {
+        const next = new Set(previous);
+        next.delete(order.id);
+        return next;
+      });
+    }
+  }, [orderRemovalTarget, loadOrderTrash]);
 
   const updateOrderStatus = useCallback(async (orderId: string, newStatus: AdminPreOrderStatus) => {
     if (!isSupportAgent && !hasPermission("manage_orders")) {
@@ -1026,30 +1048,20 @@ const AdminDashboard = () => {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-8 w-8 p-0 text-gray-600"
-                              aria-label="Ver detalhes da pré-compra"
-                              title="Ver detalhes da pré-compra"
-                              onClick={() => setSelectedOrder(order)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 w-8 p-0 text-gray-600"
-                              aria-label="Ver detalhes da pré-compra"
+                              className="h-8 w-8 p-0 text-gray-600 hover:bg-primary/10 hover:text-primary"
+                              aria-label="Ver detalhes do pedido"
                               title="Ver detalhes"
-                              onClick={() => setSelectedOrder(order)}
+                              onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-8 w-8 p-0 text-red-600"
-                              aria-label="Mover para lixeira"
+                              className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
+                              aria-label="Mover pedido para a lixeira"
                               title="Mover para lixeira por 15 dias"
-                              onClick={(e) => { e.stopPropagation(); removePreOrder(order); }}
+                              onClick={(e) => { e.stopPropagation(); requestRemovePreOrder(order); }}
                               disabled={updatingOrders.has(order.id)}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -1064,17 +1076,6 @@ const AdminDashboard = () => {
                               disabled={updatingOrders.has(order.id) || isAdminPreOrderStatusFinal(order.status) || order.status === "accepted"}
                             >
                               <Check className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 w-8 p-0 text-red-600"
-                              aria-label="Remover pedido do fluxo"
-                              title="Remover pedido do fluxo"
-                              onClick={(e) => { e.stopPropagation(); updateOrderStatus(order.id, "rejected"); }}
-                              disabled={updatingOrders.has(order.id) || isAdminPreOrderStatusFinal(order.status) || order.status === "rejected"}
-                            >
-                              <Trash2 className="h-4 w-4" />
                             </Button>
                             <Button
                               size="sm"
@@ -1098,7 +1099,34 @@ const AdminDashboard = () => {
           </Card>
         )}
 
-<Dialog open={!!selectedOrder} onOpenChange={(open) => { if (!open) setSelectedOrder(null); }}>
+<Dialog open={!!orderRemovalTarget} onOpenChange={(open) => { if (!open) setOrderRemovalTarget(null); }}>
+          <DialogContent className="w-[calc(100vw-1rem)] max-w-md rounded-2xl border-primary/20 p-0 overflow-hidden">
+            <div className="h-1.5 bg-primary" />
+            <div className="p-6">
+              <DialogHeader>
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Trash2 className="h-5 w-5" />
+                </div>
+                <DialogTitle className="text-center text-lg">Mover pedido para a lixeira?</DialogTitle>
+              </DialogHeader>
+              {orderRemovalTarget && (
+                <div className="mt-4 rounded-xl border border-primary/15 bg-primary/[0.04] p-4 text-center">
+                  <p className="font-semibold text-gray-900">{products.find((p) => p.id === orderRemovalTarget.product_id)?.product_type || "Pedido"}</p>
+                  <p className="mt-1 text-xs text-gray-500">{users.find((u) => u.id === orderRemovalTarget.user_id)?.full_name || "Cliente"} · {orderRemovalTarget.quantity} kg</p>
+                  <p className="mt-3 text-xs leading-5 text-gray-500">O pedido ficará no histórico de lixo durante 15 dias antes da limpeza automática.</p>
+                </div>
+              )}
+              <DialogFooter className="mt-5 gap-2 sm:justify-end">
+                <Button variant="ghost" onClick={() => setOrderRemovalTarget(null)}>Cancelar</Button>
+                <Button variant="destructive" onClick={() => void confirmRemovePreOrder()} disabled={!!orderRemovalTarget && updatingOrders.has(orderRemovalTarget.id)}>
+                  <Trash2 className="mr-2 h-4 w-4" /> Mover para lixeira
+                </Button>
+              </DialogFooter>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!selectedOrder} onOpenChange={(open) => { if (!open) setSelectedOrder(null); }}>
           <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
             <DialogHeader><DialogTitle>Detalhes da pré-compra</DialogTitle></DialogHeader>
             {selectedOrder && (() => {
