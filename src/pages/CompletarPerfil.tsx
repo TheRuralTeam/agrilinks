@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, User as UserIcon, CreditCard, ArrowRight } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../integrations/supabase/client";
@@ -60,7 +60,9 @@ const NativeSelect = ({ value, onChange, placeholder, options, disabled }: any) 
 
 const CompletarPerfil = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, userProfile, loading } = useAuth();
+  const identityOnly = new URLSearchParams(location.search).get("required") === "identity";
 
   const [fullName, setFullName] = useState("");
   const [identityDocument, setIdentityDocument] = useState("");
@@ -98,19 +100,43 @@ const CompletarPerfil = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
     if (!identityDocument.trim()) {
       toast({ title: "Documento necessário", description: "Informe o número do Bilhete de Identidade ou NIF para continuar.", variant: "destructive" });
       return;
     }
+
+    if (identityOnly) {
+      setSaving(true);
+      const { error } = await supabase.from("users").update({
+        identity_document: identityDocument.trim(),
+      } as any).eq("id", user.id);
+      setSaving(false);
+      if (error) {
+        toast({ title: "Erro", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Identidade registada", description: "Pode continuar a operação na AgriLink." });
+      navigate(-1);
+      return;
+    }
+
+    if (userType === "motorista" && (!loadCapacity || Number(loadCapacity) <= 0)) {
+      toast({ title: "Capacidade em falta", description: "Indique a capacidade de carga do veículo (kg).", variant: "destructive" });
+      return;
+    }
+
     setSaving(true);
-    const fullPhone = phone.startsWith("+") ? phone : `${selectedCountry.dialCode} ${phone}`;
+    const fullPhone = phone.trim()
+      ? (phone.startsWith("+") ? phone : `${selectedCountry.dialCode} ${phone}`)
+      : null;
+
     const { error } = await supabase.from("users").update({
-      full_name: fullName,
-      identity_document: identityDocument,
+      full_name: fullName.trim() || userProfile?.full_name || "",
+      identity_document: identityDocument.trim(),
       phone: fullPhone,
-      user_type: userType as any,
-      province_id: provinceId,
-      municipality_id: municipalityId,
+      province_id: provinceId || null,
+      municipality_id: municipalityId || null,
       load_capacity_kg: userType === "motorista" && loadCapacity ? Number(loadCapacity) : null,
     } as any).eq("id", user.id);
     setSaving(false);
@@ -118,10 +144,10 @@ const CompletarPerfil = () => {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Perfil concluído", description: "Bem-vindo ao AgriLink." });
-    // Force AuthContext refresh by reloading
+    toast({ title: "Perfil atualizado", description: "Os dados foram guardados." });
     window.location.href = "/app";
   };
+
 
   const userTypes = [
     { id: "agricultor", label: "Fornecedor" },
@@ -150,12 +176,29 @@ const CompletarPerfil = () => {
           <h1 style={{
             fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
             fontSize: 26, color: T.ink, margin: "8px 0 6px",
-          }}>Complete o seu Perfil</h1>
+          }}>{identityOnly ? "Identificação para continuar" : "Complete o seu Perfil"}</h1>
           <p style={{ fontSize: 13, color: T.muted, margin: 0 }}>
             A identidade só é solicitada quando uma operação exige representação legal. Preencha o BI ou NIF agora; os restantes dados podem ser completados mais tarde.
           </p>
         </div>
 
+        {identityOnly ? (
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div>
+            <Label>Bilhete de Identidade ou NIF</Label>
+            <div style={{ position: "relative" }}>
+              <CreditCard style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: T.gold, width: 18, height: 18 }} />
+              <input style={inputStyle} value={identityDocument} onChange={(e) => setIdentityDocument(e.target.value)} placeholder="Ex.: 006123456LA042" required autoFocus />
+            </div>
+          </div>
+          <p style={{ margin: 0, fontSize: 12, lineHeight: 1.6, color: T.muted }}>
+            Este dado é solicitado apenas porque a operação atual exige identificação legal. A AgriLink não exige verificação de identidade para entrar e utilizar a plataforma.
+          </p>
+          <button type="submit" disabled={saving} style={{ width:"100%", height:54, borderRadius:16, border:"none", background:saving?T.muted:`linear-gradient(135deg, ${T.g600} 0%, ${T.g500} 100%)`, color:T.white, fontSize:16, fontWeight:900, cursor:saving?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+            {saving ? "A guardar…" : "Guardar e continuar"} <ArrowRight style={{ width:18,height:18 }} />
+          </button>
+        </form>
+        ) : (
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div>
             <Label>Nome Completo</Label>
@@ -234,7 +277,8 @@ const CompletarPerfil = () => {
             <ArrowRight style={{ width: 18, height: 18 }} />
           </button>
         </form>
-      </div>
+ 
+        )}     </div>
     </div>
   );
 };
