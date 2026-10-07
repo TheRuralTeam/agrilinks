@@ -17,7 +17,10 @@ const PublicProductLocation = () => {
       .select('id, product_type, farmer_name, location_lat, location_lng, province_id, municipality_id, status')
       .eq('id', id).maybeSingle()
       .then(({ data, error }) => {
-        if (error || !data) { setError('Produto não encontrado'); return }
+        if (error || !data || data.status !== 'active') {
+          setError('Produto não encontrado');
+          return;
+        }
         if (
           data.location_lat == null ||
           data.location_lng == null ||
