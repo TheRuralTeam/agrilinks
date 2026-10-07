@@ -17,7 +17,6 @@ interface UsePushNotificationsReturn {
   error: string | null;
   subscribe: () => Promise<void>;
   unsubscribe: () => Promise<void>;
-  sendTestNotification: () => Promise<void>;
 }
 
 /**
@@ -112,8 +111,11 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
         return;
       }
 
-      // Converter chave VAPID
+      // A chave VAPID pública é a chave P-256 codificada em base64url.
       const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+      if (convertedVapidKey.byteLength !== 65 || convertedVapidKey[0] !== 4) {
+        throw new Error('Chave VAPID pública inválida. Deve ser uma chave P-256 base64url de 65 bytes e corresponder à chave privada do servidor.');
+      }
 
       // Subscrever
       const subscription = await registration.pushManager.subscribe({
@@ -139,7 +141,10 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
       setIsSubscribed(true);
       console.log('Subscrito a notificações push com sucesso');
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao subscrever';
+      const raw = err instanceof Error ? err.message : 'Erro ao subscrever';
+      const errorMessage = /applicationServerKey|VAPID|InvalidAccessError/i.test(raw)
+        ? 'Não foi possível activar as notificações. Verifique se VITE_VAPID_PUBLIC_KEY corresponde à VAPID_PUBLIC_KEY configurada no servidor.'
+        : raw;
       setError(errorMessage);
       console.error('Erro ao subscrever:', err);
     } finally {
@@ -179,37 +184,6 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     }
   }, [isSupported, user]);
 
-  // Enviar notificação de teste
-  const sendTestNotification = useCallback(async () => {
-    if (!isSupported || !user) {
-      setError('Não é possível enviar notificação de teste');
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/notifications/test', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          title: 'Notificação de Teste',
-          message: 'Esta é uma notificação de teste do Agri Link',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao enviar notificação de teste');
-      }
-
-      console.log('Notificação de teste enviada com sucesso');
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao enviar teste';
-      setError(errorMessage);
-      console.error('Erro ao enviar notificação de teste:', err);
-    }
-  }, [isSupported, user]);
 
   return {
     isSupported,
