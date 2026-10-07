@@ -278,6 +278,13 @@ const Profile = () => {
   const [editMode, setEditMode] = useState(false)
   const [avatarLoading, setAvatarLoading] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [confirmAction, setConfirmAction] = useState<{
+    kind: 'delete-product' | 'reject-order'
+    id: string
+    title: string
+    description: string
+  } | null>(null)
+  const [confirmBusy, setConfirmBusy] = useState(false)
   const [agentStats, setAgentStats] = useState<{ totalReferrals: number; totalPoints: number; recentReferrals: any[] } | null>(null)
   const [buyerStats, setBuyerStats] = useState<{ completedOrders: number; favoriteProducts: number }>({ completedOrders: 0, favoriteProducts: 0 })
   const [productStats, setProductStats] = useState<{ [productId: string]: { likes: number; comments: number } }>({})
@@ -494,12 +501,13 @@ const Profile = () => {
       requireAuth('remover um produto')
       return
     }
-    if (!confirm('Deseja remover este produto?')) return
-    try {
-      const { error } = await supabase.from('products').update({ status: 'removed' }).eq('id', productId)
-      if (error) throw error
-      setUserProducts(prev => prev.map(p => p.id === productId ? { ...p, status: 'removed' } : p))
-    } catch (error) { console.error(error) }
+    const product = userProducts.find(p => p.id === productId)
+    setConfirmAction({
+      kind: 'delete-product',
+      id: productId,
+      title: 'Remover produto?',
+      description: `O produto “${product?.product_type || 'Produto'}” será marcado como removido no seu catálogo.`,
+    })
   }
 
   const acceptOrder = async (orderId: string) => {
@@ -519,14 +527,13 @@ const Profile = () => {
       requireAuth('rejeitar um pedido')
       return
     }
-    if (!confirm('Deseja rejeitar este pedido?')) return
-    try {
-      const updatedOrder = await respondToPreOrder(orderId, 'rejected')
-      setReceivedOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: updatedOrder.status } : o))
-    } catch (error: any) {
-      console.error('Erro ao rejeitar pedido:', error)
-      toast({ title: 'Erro ao rejeitar pedido', description: error.message, variant: 'destructive' } as any)
-    }
+    const order = receivedOrders.find(o => o.id === orderId)
+    setConfirmAction({
+      kind: 'reject-order',
+      id: orderId,
+      title: 'Rejeitar pedido?',
+      description: `A pré-compra de ${order?.quantity?.toLocaleString?.('pt-AO') || '0'} kg será marcada como rejeitada. Esta ação não pode ser revertida pelo comprador.`,
+    })
   }
 
   const contactBuyer = async (order: ReceivedOrder) => {
@@ -965,6 +972,53 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      <Dialog open={!!confirmAction} onOpenChange={(open) => { if (!open && !confirmBusy) setConfirmAction(null) }}>
+        <DialogContent style={{ maxWidth: 430, borderRadius: 22, border: `1px solid ${T.rule}` }}>
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: FONT, fontSize: 19, fontWeight: 700, color: T.ink, display: 'flex', alignItems: 'center', gap: 9 }}>
+              <span style={{ width: 36, height: 36, borderRadius: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: T.g50, border: `1px solid ${T.gBorder}`, padding: 7 }}>
+                <img src={require('../assets/agrilink-logo.png')} alt="AgriLink" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              </span>
+              {confirmAction?.title || 'Confirmar ação'}
+            </DialogTitle>
+          </DialogHeader>
+          <div style={{ padding: '8px 0 14px', color: T.muted, fontSize: 13, lineHeight: 1.65 }}>
+            {confirmAction?.description}
+          </div>
+          <DialogFooter>
+            <Btn variant="outline" onClick={() => setConfirmAction(null)} disabled={confirmBusy}>Cancelar</Btn>
+            <Btn
+              variant="primary"
+              disabled={confirmBusy}
+              onClick={async () => {
+                if (!confirmAction || !user) return
+                setConfirmBusy(true)
+                try {
+                  if (confirmAction.kind === 'delete-product') {
+                    const { error } = await supabase.from('products').update({ status: 'removed' }).eq('id', confirmAction.id).eq('user_id', user.id)
+                    if (error) throw error
+                    setUserProducts(prev => prev.map(p => p.id === confirmAction.id ? { ...p, status: 'removed' } : p))
+                    toast({ title: 'Produto removido', description: 'O produto foi retirado do seu catálogo.' })
+                  } else {
+                    const updatedOrder = await respondToPreOrder(confirmAction.id, 'rejected')
+                    setReceivedOrders(prev => prev.map(o => o.id === confirmAction.id ? { ...o, status: updatedOrder.status } : o))
+                    toast({ title: 'Pedido rejeitado' })
+                  }
+                  setConfirmAction(null)
+                } catch (error: any) {
+                  console.error('[AgriLink] Erro ao executar ação:', error)
+                  toast({ title: 'Não foi possível concluir a ação', description: error?.message || 'Tente novamente.', variant: 'destructive' } as any)
+                } finally {
+                  setConfirmBusy(false)
+                }
+              }}
+            >
+              {confirmBusy ? 'A processar…' : 'Confirmar'}
+            </Btn>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ═══ SETTINGS MODAL ═══════════════════════════════════════════════════ */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
