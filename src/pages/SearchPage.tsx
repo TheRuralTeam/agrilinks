@@ -19,6 +19,7 @@ import { fetchProductsFeed } from '../features/products/productsService'
 import { ProductLocationMap } from '../components/ProductLocationMap'
 import { useAuth } from '../contexts/AuthContext'
 import IdentityActionDialog from '../components/IdentityActionDialog'
+import { geocodeAngolaLocation } from '../features/maps/geocodingService'
 import { validatePreOrderSubmission } from '../features/products/businessRules'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
 import { toast } from 'sonner'
@@ -196,14 +197,25 @@ const SearchPage = () => {
 
     try {
       const quantity = Number(orderData.quantity || 0)
+      if (!Number.isFinite(quantity) || quantity <= 0) throw new Error('Informe uma quantidade válida.')
+      if (!orderData.location.trim()) throw new Error('Informe o local de entrega.')
+
+      let destination: { lat: string; lon: string }
+      try {
+        destination = await geocodeAngolaLocation(orderData.location)
+      } catch (geocodeError) {
+        console.warn('[AgriLink] Geocoding da entrega falhou.', geocodeError)
+        throw new Error('Não foi possível localizar o ponto de entrega. Informe uma localização mais específica e tente novamente.')
+      }
+
       const idempotencyKey = crypto.randomUUID()
 
       const { data, error } = await supabase.rpc('create_marketplace_pre_order', {
         p_product_id: selectedProduct.id,
         p_quantity: quantity,
         p_location: orderData.location,
-        p_delivery_lat: null,
-        p_delivery_lng: null,
+        p_delivery_lat: Number(destination.lat),
+        p_delivery_lng: Number(destination.lon),
         p_idempotency_key: idempotencyKey,
       })
 
@@ -213,6 +225,7 @@ const SearchPage = () => {
         if (message.includes('PRODUCT_NOT_AVAILABLE')) throw new Error('Este produto já não está disponível.')
         if (message.includes('SELLER_CANNOT_BUY_OWN_PRODUCT')) throw new Error('Não pode comprar o seu próprio produto.')
         if (message.includes('DELIVERY_LOCATION_REQUIRED')) throw new Error('Informe o local de entrega.')
+        if (message.includes('DELIVERY_COORDINATES_PAIR_REQUIRED') || message.includes('DELIVERY_COORDINATES_INVALID')) throw new Error('O ponto de entrega não foi localizado com precisão. Informe uma localização mais específica e tente novamente.')
         throw error
       }
 
