@@ -63,12 +63,13 @@ Deno.serve(async (req) => {
     const payload = JSON.stringify({
       title: notification.title || "Notificação AgriLink",
       body: notification.message || "Você tem uma nova notificação.",
-      icon: "/placeholder.svg",
-      badge: "/placeholder.svg",
+      icon: "/favicon.ico",
+      badge: "/favicon.ico",
       data: {
         ...(notification.metadata ?? {}),
         notification_id: notification.id,
         type: notification.type,
+        path: "/notificacoes",
       },
       tag: `agrilink-${notification.id}`,
       renotify: true,
