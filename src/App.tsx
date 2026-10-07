@@ -51,7 +51,7 @@ const isProfileComplete = (p: any) =>
   !!(p && p.user_type && p.identity_document && p.province_id && p.municipality_id);
 
 // Protected Route component
-const ProtectedRoute = ({ children, allowIncomplete = false, allowUnverified = false }: { children: React.ReactNode; allowIncomplete?: boolean; allowUnverified?: boolean }) => {
+const ProtectedRoute = ({ children, allowIncomplete = true, allowUnverified = false }: { children: React.ReactNode; allowIncomplete?: boolean; allowUnverified?: boolean }) => {
   const { user, userProfile, loading } = useAuth();
   const location = useLocation();
 
@@ -123,7 +123,7 @@ const MapPreviewRoute = ({ render }: { render: (readOnly: boolean) => React.Reac
  * Rota aberta: utilizadores autenticados passam pelas mesmas validações do
  * ProtectedRoute; visitantes entram em Modo Convidado (dados locais, 2h).
  */
-const OpenRoute = ({ children, allowIncomplete = false }: { children: React.ReactNode; allowIncomplete?: boolean }) => {
+const OpenRoute = ({ children, allowIncomplete = true }: { children: React.ReactNode; allowIncomplete?: boolean }) => {
   const { user, userProfile, loading } = useAuth();
 
   if (loading) {
@@ -161,7 +161,7 @@ const AppRoutes = () => {
         <Route path="/home" element={<Navigate to="/app" replace />} />
         <Route path="/site" element={<Index />} />
         <Route path="/login" element={user ? <Navigate to="/app" replace /> : <LoginPage />} />
-        <Route path="/cadastro" element={<Registration />} />
+        <Route path="/cadastro" element={<Navigate to="/login?mode=signup" replace />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/confirmar-email" element={<EmailConfirmation />} />
         <Route path="/reset-password" element={<ResetPassword />} />
