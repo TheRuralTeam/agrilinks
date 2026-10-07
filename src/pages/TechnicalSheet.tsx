@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Separator } from "../components/ui/separator";
-import { ArrowLeft, Download, Printer, Phone, MapPin, Calendar, Package, DollarSign, Truck } from "lucide-react";
+import { ArrowLeft, Download, Phone, MapPin, Calendar, Package, DollarSign, Truck } from "lucide-react";
 import Loader from "../components/ui/Loader";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../integrations/supabase/client";
@@ -75,71 +75,16 @@ const TechnicalSheet = () => {
     return `${price.toLocaleString("pt-AO")} Kz/kg`;
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!product) return;
-
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-
-    const brandGreen = [44, 134, 59] as const;
-
-    doc.setFontSize(24);
-    doc.setTextColor(...brandGreen);
-    doc.text("AgriLink", pageWidth / 2, 20, { align: "center" });
-
-    doc.setFontSize(12);
-    doc.setTextColor(100, 100, 100);
-    doc.text("Ficha Técnica do Produto", pageWidth / 2, 28, { align: "center" });
-
-    doc.setDrawColor(200, 200, 200);
-    doc.line(20, 35, pageWidth - 20, 35);
-
-    doc.setFontSize(20);
-    doc.setTextColor(0, 0, 0);
-    doc.text(product.product_type, pageWidth / 2, 50, { align: "center" });
-
-    doc.setFontSize(12);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`${product.province_id} – ${product.municipality_id}`, pageWidth / 2, 58, { align: "center" });
-    
-    // Info
-    let yPos = 75;
-    const lineHeight = 12;
-    
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
-    
-    const infoItems = [
-      { label: "Agricultor/Cooperativa:", value: product.farmer_name },
-      { label: "Quantidade Disponível:", value: `${product.quantity.toLocaleString()} kg` },
-      { label: "Data de Colheita:", value: formatDate(product.harvest_date) },
-      { label: "Preço:", value: formatPrice(product.price) },
-      { label: "Região:", value: `${product.province_id} – ${product.municipality_id}` },
-      { label: "Contato:", value: product.contact },
-      { label: "Acesso Logístico:", value: product.logistics_access },
-    ];
-    
-    infoItems.forEach(item => {
-      doc.setFont(undefined, "bold");
-      doc.text(item.label, 25, yPos);
-      doc.setFont(undefined, "normal");
-      doc.text(item.value, 80, yPos);
-      yPos += lineHeight;
-    });
-    
-    // Footer
-    yPos += 20;
-    doc.setFontSize(9);
-    doc.setTextColor(100, 100, 100);
-    doc.text("Esta ficha pode ser impressa ou enviada para compradores e parceiros da AgriLink", pageWidth / 2, yPos, { align: "center" });
-    doc.text(`Data de geração: ${new Date().toLocaleDateString("pt-AO")}`, pageWidth / 2, yPos + 8, { align: "center" });
-
-    doc.save(`ficha-tecnica-${product.product_type.toLowerCase().replace(/\s+/g, "-")}.pdf`);
+    try {
+      const { downloadTechnicalSheetPdf } = await import("../lib/technicalSheetPdf");
+      await downloadTechnicalSheetPdf(product);
+    } catch (error) {
+      console.error("Erro ao gerar ficha técnica PDF:", error);
+    }
   };
+
 
   if (loading) {
     return (
@@ -162,7 +107,7 @@ const TechnicalSheet = () => {
           <CardContent>
             <Button onClick={() => navigate("/home")} className="w-full">
               Voltar ao Início
-            </Button>
+            </Button> */}
           </CardContent>
         </Card>
       </div>
