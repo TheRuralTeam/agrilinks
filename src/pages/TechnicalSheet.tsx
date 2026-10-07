@@ -8,7 +8,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../integrations/supabase/client";
 import { T } from "../lib/brand";
 import { downloadTechnicalSheetPdf } from "../lib/technicalSheetPdf";
-import { jsPDF } from "jspdf";
 
 interface Product {
   id: string;
@@ -268,10 +267,8 @@ const TechnicalSheet = () => {
               {/* Footer */}
               <Separator />
               <div className="text-center text-sm text-muted-foreground space-y-2">
-                <p>🔹 Esta ficha pode ser impressa ou enviada para compradores, distribuidores e parceiros da AgriLink</p>
-                <p>
-                  <strong className="text-[#2c863b]">AgriLink</strong> - Conectando produtores, compradores e cadeias de valor
-                </p>
+                <p>Ficha técnica oficial AgriLink para consulta e partilha digital.</p>
+                <p><strong className="text-[#2c863b]">Conexão de mercado</strong></p>
                 <p>
                   Data de geração: {new Date().toLocaleDateString("pt-AO")}
                 </p>
