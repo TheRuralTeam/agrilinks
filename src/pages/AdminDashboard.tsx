@@ -206,6 +206,13 @@ const TAB_TITLES: Record<TabType, string> = {
 };
 
 // --- Componentes Auxiliares ---
+const Detail = ({ label, value, multiline = false }: { label: string; value: string; multiline?: boolean }) => (
+  <div className="rounded-xl border border-[#E5EDE6] bg-white p-3.5">
+    <div className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#758A79]">{label}</div>
+    <div className={multiline ? "mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-[#111714]" : "mt-1 break-words text-sm font-semibold text-[#111714]"}>{value}</div>
+  </div>
+);
+
 const MetricCard = ({ title, value, icon, trend, color }: {
   title: string;
   value: number | string;
@@ -2216,6 +2223,55 @@ const AdminDashboard = () => {
         )}
       </main>
       </div>
+
+      <Dialog open={!!selectedFicha} onOpenChange={(open) => !open && setSelectedFicha(null)}>
+        <DialogContent className="w-[calc(100%-1rem)] max-w-2xl overflow-hidden rounded-2xl border-[#DCE8DE] p-0">
+          {selectedFicha && (() => {
+            const fichaUser = users.find((u) => u.id === selectedFicha.user_id);
+            const places = Array.isArray(selectedFicha.locais_entrega)
+              ? selectedFicha.locais_entrega.map((x: any) => typeof x === "string" ? x : [x?.label, x?.name, x?.location].filter(Boolean).join(" — ")).filter(Boolean)
+              : [];
+            return (
+              <>
+                <div className="border-b border-[#DCE8DE] bg-[#F4FAF5] px-5 py-5">
+                  <div className="flex items-start gap-3">
+                    <img src={agrilinkLogo} alt="AgriLink" className="h-8 w-auto object-contain" />
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#2c863b]">Ficha de recebimento</div>
+                      <h2 className="mt-1 break-words text-xl font-extrabold text-[#111714]">{selectedFicha.nome_ficha}</h2>
+                      <p className="mt-1 text-sm text-[#758A79]">{selectedFicha.produto}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="max-h-[70vh] space-y-5 overflow-y-auto px-5 py-5">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Detail label="Cliente" value={fichaUser?.full_name || "Não identificado"} />
+                    <Detail label="Telefone" value={selectedFicha.telefone || fichaUser?.phone || "Não indicado"} />
+                    <Detail label="Email" value={fichaUser?.email || "Não indicado"} />
+                    <Detail label="Tipo de negócio" value={selectedFicha.tipo_negocio || "Não indicado"} />
+                    <Detail label="Qualidade" value={selectedFicha.qualidade || "Não indicada"} />
+                    <Detail label="Embalagem" value={selectedFicha.embalagem || "Não indicada"} />
+                    <Detail label="Transporte" value={selectedFicha.transporte || "Não indicado"} />
+                    <Detail label="Criada em" value={new Date(selectedFicha.created_at).toLocaleString("pt-AO")} />
+                  </div>
+                  <Detail label="Locais de entrega" value={places.length ? places.join(", ") : "Não indicados"} multiline />
+                  <Detail label="Descrição final" value={selectedFicha.descricao_final || "Não indicada"} multiline />
+                  <Detail label="Observações" value={selectedFicha.observacoes || "Não há observações."} multiline />
+                </div>
+                <DialogFooter className="border-t border-[#E5EDE6] px-5 py-4">
+                  <Button variant="ghost" onClick={() => setSelectedFicha(null)}>Fechar</Button>
+                  <Button
+                    onClick={() => void downloadFichaRecebimentoPdf({ ...selectedFicha, user_name: fichaUser?.full_name, user_phone: fichaUser?.phone, user_email: fichaUser?.email })}
+                    className="gap-2 rounded-full bg-[#2c863b] text-white hover:bg-[#246f32]"
+                  >
+                    <Download className="h-4 w-4" /> Baixar PDF
+                  </Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Notificação */}
       <Dialog open={notificationModalOpen} onOpenChange={setNotificationModalOpen}>
