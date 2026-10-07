@@ -14,7 +14,6 @@ import { pushGuestItem } from '../lib/guestSession';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from '../hooks/use-toast';
 import agrilinkLogo from '../assets/agrilink-logo.png'
-import orbisLinkLogo from '../assets/orbislink-logo.png'
 import { PRODUCT_CATEGORIES } from '../lib/productCategories'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import SimpleLeafletMap from '../components/SimpleLeafletMap';
@@ -222,7 +221,7 @@ const PublishProduct = () => {
       <div className="max-w-2xl mx-auto">
        <div className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-md shadow-sm z-50 p-4 flex justify-between items-center border-b border-[#C8E6CA]">
       <div className="flex items-center gap-2">
-          <img src={orbisLinkLogo} alt="OrbisLink" className="h-11 w-auto" />
+          <img src={agrilinkLogo} alt="AgriLink" className="h-11 w-auto object-contain" />
           </div>
         <h1 className="font-semibold text-lg text-[#111714]">Publicar Produto</h1>
         <Button
