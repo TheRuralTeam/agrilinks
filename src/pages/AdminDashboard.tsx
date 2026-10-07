@@ -62,7 +62,6 @@ import {
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import OrbisLinkLogo from "../assets/orbislink-logo.png";
 import agrilinkLogo from "../assets/agrilink-logo.png";
 import AdminManagement from "../components/admin/AdminManagement";
 import DeliveryTracking from "../components/admin/DeliveryTracking";
@@ -200,7 +199,7 @@ const TAB_TITLES: Record<TabType, string> = {
   transactions: "Transações",
   notifications: "Notificações",
   fichas: "Fichas de Recebimento",
-  sourcing: "OrbisLink Sourcing",
+  sourcing: "AgriLink Sourcing",
   market: "Mercado",
   prices: "Preços de Mercado",
   admins: "Administradores",
@@ -796,10 +795,10 @@ const AdminDashboard = () => {
       {/* ═══ SIDEBAR (navegação vertical) ═══════════════════════════════════ */}
       <aside className={`fixed top-0 left-0 h-screen w-64 bg-white border-r border-gray-100 z-40 flex flex-col transition-transform duration-300 ease-out ${menuOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}>
         <div className="h-16 flex items-center gap-3 px-5 border-b border-gray-100 flex-shrink-0">
-          <img src={OrbisLinkLogo} alt="OrbisLink" className="h-8" />
+          <img src={agrilinkLogo} alt="AgriLink" className="h-8 w-auto object-contain" />
           <div className="min-w-0">
             <p className="text-sm font-bold text-gray-900 leading-tight truncate">Painel Admin</p>
-            <p className="text-[11px] text-gray-400 leading-tight">OrbisLink</p>
+            <p className="text-[11px] text-gray-400 leading-tight">AgriLink</p>
           </div>
           <button className="md:hidden ml-auto p-1.5 hover:bg-gray-100 rounded-lg flex-shrink-0" onClick={() => setMenuOpen(false)}>
             <X className="h-4 w-4 text-gray-500" />
@@ -1601,7 +1600,7 @@ const AdminDashboard = () => {
           <Card className="border-0 shadow-sm">
             <CardHeader>
               <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" /> OrbisLink Sourcing - Pedidos Especiais ({sourcingRequests.length})
+                <TrendingUp className="h-5 w-5 text-primary" /> AgriLink Sourcing - Pedidos Especiais ({sourcingRequests.length})
               </CardTitle>
             </CardHeader>
             <CardContent className="overflow-x-auto">
@@ -2252,13 +2251,16 @@ const AdminDashboard = () => {
                 <div className="max-h-[70vh] space-y-5 overflow-y-auto px-5 py-5">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Detail label="Cliente" value={fichaUser?.full_name || "Não identificado"} />
+                     <Detail label="ID do cliente" value={selectedFicha.user_id} />
                     <Detail label="Telefone" value={selectedFicha.telefone || fichaUser?.phone || "Não indicado"} />
                     <Detail label="Email" value={fichaUser?.email || "Não indicado"} />
                     <Detail label="Tipo de negócio" value={selectedFicha.tipo_negocio || "Não indicado"} />
                     <Detail label="Qualidade" value={selectedFicha.qualidade || "Não indicada"} />
                     <Detail label="Embalagem" value={selectedFicha.embalagem || "Não indicada"} />
                     <Detail label="Transporte" value={selectedFicha.transporte || "Não indicado"} />
-                    <Detail label="Criada em" value={new Date(selectedFicha.created_at).toLocaleString("pt-AO")} />
+                    <Detail label="ID da ficha" value={selectedFicha.id} />
+                     <Detail label="Criada em" value={new Date(selectedFicha.created_at).toLocaleString("pt-AO")} />
+                     <Detail label="Atualizada em" value={selectedFicha.updated_at ? new Date(selectedFicha.updated_at).toLocaleString("pt-AO") : "—"} />
                   </div>
                   <Detail label="Locais de entrega" value={places.length ? places.join(", ") : "Não indicados"} multiline />
                   <Detail label="Descrição final" value={selectedFicha.descricao_final || "Não indicada"} multiline />
