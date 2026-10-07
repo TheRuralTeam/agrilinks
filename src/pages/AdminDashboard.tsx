@@ -1661,8 +1661,6 @@ const AdminDashboard = () => {
                                    setSourcingNoteTarget(req);
                                    setSourcingNote(req.admin_notes || "");
                                  }}>
-                                   <MessageSquare className="h-4 w-4 mr-2" /> Adicionar Notas
-                                 </DropdownMenuItem>
                                   <MessageSquare className="h-4 w-4 mr-2" /> Adicionar Notas
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => { setTargetUser(req.user_id); setNotificationModalOpen(true); }}>
