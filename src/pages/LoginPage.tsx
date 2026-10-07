@@ -3,7 +3,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, Compass, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { buildAuthRedirectUrl, sendMagicLink, sendPasswordResetEmail } from '../features/auth/email'
-import orbisLinkLogo from '../assets/orbislink-logo.png'
+import agrilinkLogo from '../assets/agrilink-logo.png'
 // Imagem partilhada com o ecrã de Cadastro para manter a mesma identidade visual.
 // Para trocar por vídeo: substituir o <img> do painel esquerdo por um <video autoPlay muted loop playsInline>.
 
@@ -50,12 +50,16 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
+  const [phone, setPhone] = useState('')
+  const [signupSuccess, setSignupSuccess] = useState(false)
+  const [signupLoading, setSignupLoading] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
   const [resendLoading, setResendLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [googleLoading, setGoogleLoading] = useState(false)
 
-  const { login, signInWithGoogle } = useAuth()
+  const { login, registerSimple, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const requestedPath = (location.state as { from?: unknown } | null)?.from
@@ -72,8 +76,27 @@ const LoginPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email) return
     setErrorMsg('')
+    if (authMode === 'signup') {
+      if (!email || !phone || !password) {
+        setErrorMsg('Preencha email, telefone e senha.')
+        return
+      }
+      setSignupLoading(true)
+      try {
+        const { error } = await registerSimple({ email, phone, password })
+        if (error) {
+          setErrorMsg(error.message || 'Não foi possível criar a conta.')
+          return
+        }
+        setSignupSuccess(true)
+      } finally {
+        setSignupLoading(false)
+      }
+      return
+    }
+
+    if (!email) return
     setLoading(true)
     try {
       if (!password) {
@@ -202,18 +225,18 @@ const LoginPage = () => {
           {/* Logo, maior, sem legenda */}
           <div className="mb-10 flex justify-center lg:justify-start">
             <img
-              src={orbisLinkLogo}
+              src={agrilinkLogo}
               alt="AgriLink"
-              style={{ height: 104, display: 'block', filter: 'drop-shadow(0 2px 10px rgba(0,0,0,0.08))' }}
+              style={{ height: 72, display: 'block', filter: 'drop-shadow(0 2px 10px rgba(0,0,0,0.08))' }}
             />
           </div>
 
           <div className="mb-8 text-center lg:text-left">
             <h1 style={{ fontSize: 26, fontWeight: 800, color: T.ink, margin: 0, lineHeight: 1.2, letterSpacing: '-0.01em' }}>
-              Bem-vindo de volta
+              {authMode === 'login' ? 'Bem-vindo de volta' : 'Criar conta AgriLink'}
             </h1>
             <p style={{ fontSize: 14, color: T.muted, margin: '8px 0 0', fontWeight: 500 }}>
-              Acede à tua conta para gerir os teus negócios.
+              {authMode === 'login' ? 'Acede à tua conta para gerir os teus negócios.' : 'Começa com os dados essenciais. O resto do perfil será definido depois.'}
             </p>
           </div>
 
@@ -234,85 +257,76 @@ const LoginPage = () => {
             </div>
           )}
 
+          {signupSuccess ? (
+            <div style={{ padding: 22, borderRadius: 18, background: T.g50, border: `1px solid ${T.gBorder}`, color: T.ink }}>
+              <div style={{ width: 48, height: 48, borderRadius: 999, background: T.g600, color: T.white, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+                <Mail size={22} />
+              </div>
+              <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 800 }}>Confirma o teu email</h2>
+              <p style={{ margin: 0, fontSize: 14, color: T.muted, lineHeight: 1.6 }}>
+                Enviámos o link de confirmação para <strong>{email}</strong>. Depois de confirmares, entrares na AgriLink não exige verificação de identidade.
+              </p>
+              <button type="button" onClick={() => { setSignupSuccess(false); setAuthMode('login'); }} style={{ marginTop: 18, width: '100%', height: 46, borderRadius: 999, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, fontWeight: 700 }}>
+                Voltar ao login
+              </button>
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} className="field-group" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {/* Email */}
             <div>
               <FieldLabel>Email</FieldLabel>
               <div style={{ position: 'relative' }}>
                 <Mail style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.muted, width: 17, height: 17, pointerEvents: 'none' }} />
-                <input
-                  type="email"
-                  placeholder="exemplo@agrilink.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  style={inputStyle}
-                  required
-                />
+                <input type="email" placeholder="exemplo@agrilink.ao" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} required />
               </div>
             </div>
-
-            {/* Password */}
-            <div>
-              <FieldLabel
-                rightSlot={
-                  <button
-                    type="button"
-                    className="link-btn"
-                    onClick={() => setShowForgotPassword(true)}
-                    style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.gold, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                  >
-                    Esqueceu-se?
-                  </button>
-                }
-              >
-                Senha
-              </FieldLabel>
-              <div style={{ position: 'relative' }}>
-                <Lock style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.muted, width: 17, height: 17, pointerEvents: 'none' }} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Opcional: deixe vazio para receber um código por email"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  style={{ ...inputStyle, paddingRight: '48px' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                >
-                  {showPassword
-                    ? <EyeOff style={{ color: T.muted, width: 17, height: 17 }} />
-                    : <Eye style={{ color: T.muted, width: 17, height: 17 }} />}
+            {authMode === 'signup' ? (
+              <>
+                <div>
+                  <FieldLabel>Telefone</FieldLabel>
+                  <div style={{ position: 'relative' }}>
+                    <input type="tel" placeholder="+244 9xx xxx xxx" value={phone} onChange={e => setPhone(e.target.value)} style={{ ...inputStyle, paddingLeft: 16 }} required />
+                  </div>
+                </div>
+                <div>
+                  <FieldLabel>Senha</FieldLabel>
+                  <div style={{ position: 'relative' }}>
+                    <Lock style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.muted, width: 17, height: 17, pointerEvents: 'none' }} />
+                    <input type={showPassword ? 'text' : 'password'} placeholder="Mínimo de 8 caracteres" value={password} onChange={e => setPassword(e.target.value)} style={{ ...inputStyle, paddingRight: 48 }} minLength={8} required />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                      {showPassword ? <EyeOff style={{ color: T.muted, width: 17 }} /> : <Eye style={{ color: T.muted, width: 17 }} />}
+                    </button>
+                  </div>
+                </div>
+                <button type="submit" disabled={signupLoading} className="login-btn" style={{ width: '100%', height: 52, borderRadius: 999, border: 'none', background: signupLoading ? T.muted : T.g600, color: T.white, fontSize: 15, fontWeight: 700 }}>
+                  {signupLoading ? 'A criar conta…' : 'Criar conta'}
                 </button>
-              </div>
-            </div>
-
-            {/* Login button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="login-btn"
-              style={{
-                width: '100%',
-                height: 52,
-                borderRadius: 999,
-                border: 'none',
-                backgroundColor: loading ? T.muted : T.g600,
-                color: T.white,
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: loading ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                marginTop: 4,
-              }}
-            >
-              Entrar na Plataforma
-              <ArrowRight style={{ width: 18, height: 18 }} />
-            </button>
+              </>
+            ) : (
+              <>
+                <div>
+                  <FieldLabel rightSlot={
+                    <button type="button" className="link-btn" onClick={() => setShowForgotPassword(true)} style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.gold, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                      Esqueceu-se?
+                    </button>
+                  }>Senha</FieldLabel>
+                  <div style={{ position: 'relative' }}>
+                    <Lock style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: T.muted, width: 17, height: 17, pointerEvents: 'none' }} />
+                    <input type={showPassword ? 'text' : 'password'} placeholder="Senha" value={password} onChange={e => setPassword(e.target.value)} style={{ ...inputStyle, paddingRight: 48 }} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                      {showPassword ? <EyeOff style={{ color: T.muted, width: 17 }} /> : <Eye style={{ color: T.muted, width: 17 }} />}
+                    </button>
+                  </div>
+                </div>
+                <button type="submit" disabled={loading} className="login-btn" style={{ width: '100%', height: 52, borderRadius: 999, border: 'none', background: loading ? T.muted : T.g600, color: T.white, fontSize: 15, fontWeight: 700 }}>
+                  Entrar na Plataforma <ArrowRight style={{ width: 18 }} />
+                </button>
+              </>
+            )}
           </form>
+          )}
 
-          {/* Resend confirmation */}
+
+          {authMode === 'login' && (<>\n          {/* Resend confirmation */}
           <div style={{ textAlign: 'center', marginTop: 14 }}>
             <button
               type="button"
@@ -329,7 +343,7 @@ const LoginPage = () => {
             </button>
           </div>
 
-          {/* Divider */}
+          </>) }\n          {/* Divider */}
           <div className="flex items-center" style={{ margin: '22px 0' }}>
             <div style={{ flex: 1, height: 1, backgroundColor: T.rule }} />
             <span style={{
@@ -341,7 +355,7 @@ const LoginPage = () => {
             <div style={{ flex: 1, height: 1, backgroundColor: T.rule }} />
           </div>
 
-          {/* Google Sign-in */}
+          {authMode === 'login' && (<>\n          {/* Google Sign-in */}
           <button
             type="button"
             onClick={handleGoogleSignIn}
@@ -363,27 +377,16 @@ const LoginPage = () => {
             {googleLoading ? 'A conectar...' : 'Continuar com Google'}
           </button>
 
-          {/* Register */}
-          <button
-            className="register-btn"
-            onClick={() => navigate('/cadastro')}
-            style={{
-              width: '100%',
-              height: 50,
-              borderRadius: 999,
-              border: `1px solid ${T.goldBorder}`,
-              backgroundColor: T.goldPale,
-              color: T.ink,
-              fontSize: 14,
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              marginBottom: 16,
-            }}
-          >
-            <UserPlus style={{ color: T.gold, width: 17, height: 17 }} />
-            Criar Nova Conta
-          </button>
+          </>)}\n          {authMode === 'login' ? (
+            <button className="register-btn" onClick={() => { setAuthMode('signup'); setErrorMsg(''); setPassword(''); }} style={{ width:'100%', height:50, borderRadius:999, border: `1px solid ${T.goldBorder}`, background:T.goldPale, color:T.ink, fontSize:14, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:16 }}>
+              <UserPlus style={{ color:T.gold, width:17, height:17 }} /> Criar Nova Conta
+            </button>
+          ) : (
+            <button className="register-btn" onClick={() => { setAuthMode('login'); setSignupSuccess(false); setErrorMsg(''); }} style={{ width:'100%', height:50, borderRadius:999, border:`1px solid ${T.rule}`, background:T.white, color:T.muted, fontSize:14, fontWeight:700, cursor:'pointer', marginBottom:16 }}>
+              Já tenho uma conta
+            </button>
+          )}
+
 
           <button
             onClick={() => navigate('/app')}
