@@ -504,13 +504,16 @@ const AdminDashboard = () => {
         setProducts((prev) => prev.filter((item) => !ids.includes(item.id)));
         setSelectedProducts(new Set());
         toast.success(`${Number(data || ids.length)} produto(s) removido(s).`);
-      } else {
-        const { error } = await supabase.from(target.table as any).delete().in("id", ids);
+      } else if (target.table === "fichas_recebimento") {
+        const { data, error } = await supabase.rpc(
+          ids.length === 1 ? "admin_delete_ficha_recebimento" : "admin_bulk_delete_fichas_recebimento",
+          ids.length === 1 ? { p_ficha_id: ids[0] } : { p_ficha_ids: ids },
+        );
         if (error) throw error;
-        if (target.table === "fichas_recebimento") {
-          setFichas((prev) => prev.filter((item) => !ids.includes(item.id)));
-        }
-        toast.success(`${ids.length} registo(s) removido(s).`);
+        setFichas((prev) => prev.filter((item) => !ids.includes(item.id)));
+        toast.success(`${Number(data || ids.length)} ficha(s) removida(s).`);
+      } else {
+        throw new Error("Tipo de registo administrativo não suportado.");
       }
       setAdminDeleteTarget(null);
     } catch (error) {
