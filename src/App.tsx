@@ -368,7 +368,7 @@ const AppRoutes = () => {
         <Route
           path="/ficha-tecnica/:id"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowIncomplete>
               <TechnicalSheet />
             </ProtectedRoute>
           }
