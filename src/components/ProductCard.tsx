@@ -426,9 +426,11 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
     onProductUpdate(optimisticUpdate)
     try {
       if (product.is_liked) {
-        await supabase.from('product_likes').delete().eq('product_id', product.id).eq('user_id', user.id)
+        const { error } = await supabase.from('product_likes').delete().eq('product_id', product.id).eq('user_id', user.id)
+        if (error) throw error
       } else {
-        await supabase.from('product_likes').insert({ product_id: product.id, user_id: user.id })
+        const { error } = await supabase.from('product_likes').insert({ product_id: product.id, user_id: user.id })
+        if (error) throw error
       }
     } catch {
       onProductUpdate(product)
