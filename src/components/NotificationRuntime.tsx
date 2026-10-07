@@ -3,62 +3,95 @@ import { toast } from "sonner";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../integrations/supabase/client";
 
-function playBell() {
+function getAudioContext() {
+  const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+  return AudioContextClass ? new AudioContextClass() : null;
+}
+
+function playBell(context: AudioContext) {
   try {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const ctx = new AudioContextClass();
-    const start = () => {
-      const now = ctx.currentTime;
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.16, now + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
-      const osc = ctx.createOscillator();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(880, now);
-      osc.frequency.exponentialRampToValueAtTime(660, now + 0.42);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.43);
-      window.setTimeout(() => void ctx.close(), 600);
-    };
-    if (ctx.state === "suspended") {
-      void ctx.resume().then(start).catch(() => void ctx.close());
-    } else {
-      start();
-    }
+    if (context.state === "suspended") return;
+    const now = context.currentTime;
+    const master = context.createGain();
+    master.gain.setValueAtTime(0.0001, now);
+    master.gain.exponentialRampToValueAtTime(0.12, now + 0.015);
+    master.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
+    master.connect(context.destination);
+
+    const frequencies = [880, 1175];
+    frequencies.forEach((frequency, index) => {
+      const oscillator = context.createOscillator();
+      oscillator.type = index === 0 ? "sine" : "triangle";
+      oscillator.frequency.setValueAtTime(frequency, now + index * 0.045);
+      oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.72, now + 0.48);
+      oscillator.connect(master);
+      oscillator.start(now + index * 0.045);
+      oscillator.stop(now + 0.5);
+    });
   } catch {
-    // O som é complementar; a notificação persistida e o Web Push continuam activos.
+    // Notification persistence/toast continues when browser audio is unavailable.
   }
 }
 
 export default function NotificationRuntime() {
   const { user } = useAuth();
+  const audioContextRef = useRef<AudioContext | null>(null);
   const seen = useRef(new Set<string>());
 
   useEffect(() => {
+    const unlock = async () => {
+      if (!audioContextRef.current) audioContextRef.current = getAudioContext();
+      if (audioContextRef.current?.state === "suspended") {
+        await audioContextRef.current.resume().catch(() => undefined);
+      }
+    };
+
+    window.addEventListener("pointerdown", unlock, { capture: true });
+    window.addEventListener("keydown", unlock, { capture: true });
+    window.addEventListener("touchstart", unlock, { capture: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", unlock, true);
+      window.removeEventListener("keydown", unlock, true);
+      window.removeEventListener("touchstart", unlock, true);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!user) return;
+
     const channel = supabase
       .channel(`runtime-notifications-${user.id}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-        (payload) => {
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        async (payload) => {
           const notification = payload.new as {
             id: string;
             title?: string | null;
             message?: string | null;
+            type?: string | null;
           };
+
           if (!notification.id || seen.current.has(notification.id)) return;
           seen.current.add(notification.id);
-          if (seen.current.size > 100) {
+          if (seen.current.size > 200) {
             const first = seen.current.values().next().value;
             if (first) seen.current.delete(first);
           }
 
-          playBell();
+          if (!audioContextRef.current) audioContextRef.current = getAudioContext();
+          if (audioContextRef.current && audioContextRef.current.state === "running") {
+            playBell(audioContextRef.current);
+          }
+
+          if ("vibrate" in navigator) navigator.vibrate([120, 80, 120]);
+
           toast(notification.title || "Nova notificação", {
             description: notification.message || "Tem uma nova atualização na AgriLink.",
             duration: 5000,
@@ -71,6 +104,12 @@ export default function NotificationRuntime() {
       void supabase.removeChannel(channel);
     };
   }, [user]);
+
+  useEffect(() => () => {
+    const context = audioContextRef.current;
+    audioContextRef.current = null;
+    if (context) void context.close().catch(() => undefined);
+  }, []);
 
   return null;
 }
