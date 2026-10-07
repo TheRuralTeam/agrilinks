@@ -18,6 +18,7 @@ import { useCanAct } from '../hooks/useCanAct'
 import { useNavigate } from 'react-router-dom'
 import { ProductCard, Product } from '../components/ProductCard'
 import { ProductLocationMap } from '../components/ProductLocationMap'
+import IdentityActionDialog from '../components/IdentityActionDialog'
 import { geocodeAngolaLocation } from '../features/maps/geocodingService'
 import agrilinkLogo from '../assets/agrilink-logo.png'
 import { fetchActiveProducts } from '../features/products/productsService'
@@ -177,6 +178,7 @@ const AppHome = () => {
   const [feedPage, setFeedPage] = useState(0)
   const [hasMoreProducts, setHasMoreProducts] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [identityDialogOpen, setIdentityDialogOpen] = useState(false)
 
   const filteredProducts = useMemo(() => {
     if (activeCategory === 'all') return products
@@ -331,6 +333,10 @@ const AppHome = () => {
 
   const handlePreOrderSubmit = async () => {
     if (!selectedProduct || !user) return toast.error('Inicie sessão para continuar')
+    if (!userProfile?.identity_document?.trim()) {
+      setIdentityDialogOpen(true)
+      return
+    }
 
     setIsSubmitting(true)
     try {
@@ -661,6 +667,15 @@ const AppHome = () => {
       </main>
 
       {/* ═══ PRE-ORDER MODAL ═════════════════════════════════════════════════ */}
+      <IdentityActionDialog
+        open={identityDialogOpen}
+        actionLabel="a pré-compra"
+        onOpenChange={setIdentityDialogOpen}
+        onCompleted={async () => {
+          await refreshProfile()
+        }}
+      />
+
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent style={{
           maxWidth:500, padding:0, overflow:'hidden', borderRadius:20,
