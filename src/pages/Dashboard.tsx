@@ -141,10 +141,6 @@ const Dashboard = () => {
     navigate(`/ficha-tecnica/${productId}`)
   }
 
-  const handleDownloadAllTechnicalSheets = () => {
-    alert('Função de download em desenvolvimento')
-  }
-
   if (loading) {
     return <Loader />
   }
@@ -169,11 +165,11 @@ const Dashboard = () => {
             </div>
           </div>
           <Button
-            onClick={handleDownloadAllTechnicalSheets}
-            className="bg-business hover:bg-business/90"
+            onClick={() => navigate('/ficharecebimento')}
+            variant="outline"
           >
-            <Download className="mr-2 h-4 w-4" />
-            Baixar Todos os Relatórios
+            <FileText className="mr-2 h-4 w-4" />
+            Fichas de recebimento
           </Button>
         </div>
 
