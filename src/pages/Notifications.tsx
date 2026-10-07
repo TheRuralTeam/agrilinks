@@ -18,7 +18,6 @@ import {
   Zap,
   ArrowLeft,
 } from 'lucide-react';
-import orbisLinkLogo from '../assets/orbislink-logo.png';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../integrations/supabase/client';
@@ -96,13 +95,14 @@ class SoundManager {
     }
   }
 
-  playChickenSound() {
+  async playChickenSound() {
     if (!this.isSupported || !this.audioContext) {
       this.playFallbackSound();
       return;
     }
     try {
       const ctx = this.audioContext;
+      if (ctx.state === 'suspended') await ctx.resume().catch(() => undefined);
       const now = ctx.currentTime;
       const osc1 = ctx.createOscillator();
       const osc2 = ctx.createOscillator();
@@ -253,7 +253,7 @@ const Notifications = () => {
   }, [user]);
 
   const playNotificationSound = useCallback(() => {
-    if (soundEnabled) soundManagerRef.current.playChickenSound();
+    if (soundEnabled) void soundManagerRef.current.playChickenSound();
   }, [soundEnabled]);
 
   const showToastNotification = useCallback((notification: Notification) => {
