@@ -149,13 +149,6 @@ const CompletarPerfil = () => {
   };
 
 
-  const userTypes = [
-    { id: "agricultor", label: "Fornecedor" },
-    { id: "agente", label: "Agente" },
-    { id: "comprador", label: "Comprador" },
-    { id: "motorista", label: "Motorista" },
-  ];
-
   return (
     <div style={{
       minHeight: "100vh", backgroundColor: T.canvas,
