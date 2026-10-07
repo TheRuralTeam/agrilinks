@@ -687,6 +687,16 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [trackedProduct, setTrackedProduct] = useState<Product | null>(null);
 
+  interface FreightLoad {
+    id: string; product_id: string | null; status: string;
+    origin_label: string | null; destination_label: string | null;
+    route_distance_km: number | null; route_duration_minutes: number | null;
+    driver_id: string | null; in_transit_at: string | null; delivered_at: string | null;
+  }
+  interface FreightLocation { freight_load_id: string; latitude: number; longitude: number; recorded_at: string; }
+  const [freightLoads, setFreightLoads] = useState<FreightLoad[]>([]);
+  const [freightLocations, setFreightLocations] = useState<Record<string, FreightLocation>>({});
+
   // Estado de rede — pausa chamadas externas (rotas, geocoding) quando offline
   // e refaz o fetch de produtos assim que a ligação volta.
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -726,6 +736,39 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
     }
     fetchProducts();
   }, [fetchProducts, readOnly]);
+
+  /* ── Tracking logístico real ─────────────────────────────────────────────── */
+  const fetchFreightTracking = useCallback(async () => {
+    try {
+      const { data: loads, error } = await supabase.from('freight_loads')
+        .select('id,product_id,status,origin_label,destination_label,route_distance_km,route_duration_minutes,driver_id,in_transit_at,delivered_at')
+        .neq('status', 'cancelled');
+      if (error) throw error;
+      const activeLoads = (loads || []) as FreightLoad[];
+      setFreightLoads(activeLoads);
+      if (!activeLoads.length) { setFreightLocations({}); return; }
+      const ids = activeLoads.map((load) => load.id);
+      const { data: locations, error: locationError } = await supabase.from('freight_load_locations')
+        .select('freight_load_id,latitude,longitude,recorded_at').in('freight_load_id', ids);
+      if (locationError) throw locationError;
+      const latest: Record<string, FreightLocation> = {};
+      for (const item of (locations || []) as FreightLocation[]) {
+        const current = latest[item.freight_load_id];
+        if (!current || new Date(item.recorded_at).getTime() > new Date(current.recorded_at).getTime()) latest[item.freight_load_id] = item;
+      }
+      setFreightLocations(latest);
+    } catch { setFreightLoads([]); setFreightLocations({}); }
+  }, []);
+
+  useEffect(() => {
+    if (readOnly) return;
+    fetchFreightTracking();
+    const channel = supabase.channel('freight-tracking-map-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_loads' }, fetchFreightTracking)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'freight_load_locations' }, fetchFreightTracking)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchFreightTracking, readOnly]);
 
   /* ── Sincronização em tempo real — INSERT/UPDATE/DELETE refletem no mapa ── */
   useEffect(() => {
@@ -1744,41 +1787,17 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
 
           <div style={{ padding: '14px 18px' }}>
             {(() => {
+              const freight = freightLoads.find((load) => load.product_id === trackedProduct.id);
+              const location = freight ? freightLocations[freight.id] : undefined;
+              const hasLiveLocation = Boolean(location);
+              const isDelivered = freight?.status === 'delivered' || Boolean(freight?.delivered_at);
+              const isInTransit = ['in_transit', 'em_transito', 'accepted', 'accepted_by_driver'].includes(freight?.status || '');
+              const eta = freight?.route_duration_minutes != null ? formatDuration(freight.route_duration_minutes * 60) : null;
               const steps = [
-                {
-                  state: 'done',
-                  icon: <Leaf size={13} />,
-                  color: T.g600,
-                  title: 'Colhido',
-                  date: new Date(trackedProduct.harvest_date).toLocaleDateString('pt-AO'),
-                  sub: `Machamba · ${trackedProduct.farmer_name}`,
-                },
-                {
-                  state: 'done',
-                  icon: <User size={13} />,
-                  color: T.g600,
-                  title: 'Recolhido pelo Agente',
-                  date: '—',
-                  sub: 'Local de recolha confirmado',
-                },
-                {
-                  state: 'active',
-                  icon: <Package size={13} />,
-                  color: T.goldL,
-                  title: 'Em Trânsito',
-                  date: 'Tempo estimado: 4–8h',
-                  sub: userLocation
-                    ? `A caminho · ${distanceKm(userLocation, [trackedProduct.location_lng!, trackedProduct.location_lat!])} km`
-                    : 'A caminho do destino',
-                },
-                {
-                  state: 'pending',
-                  icon: <CheckCircle size={13} />,
-                  color: T.faint,
-                  title: 'Entrega Prevista',
-                  date: 'Próximas 24h',
-                  sub: 'Destino final',
-                },
+                { state: 'done', icon: <Leaf size={13} />, color: T.g600, title: 'Colhido', date: new Date(trackedProduct.harvest_date).toLocaleDateString('pt-AO'), sub: `Machamba · ${trackedProduct.farmer_name}` },
+                { state: freight ? 'done' : 'pending', icon: <User size={13} />, color: freight ? T.g600 : T.faint, title: 'Recolhido pelo Agente', date: freight ? 'Operação registada' : 'Ainda não registado', sub: freight?.origin_label || 'Sem frete associado a este produto' },
+                { state: isDelivered ? 'done' : isInTransit ? 'active' : 'pending', icon: <Package size={13} />, color: isDelivered || isInTransit ? T.goldL : T.faint, title: 'Em Trânsito', date: isInTransit ? (eta ? `ETA da rota: ${eta}` : 'ETA indisponível') : isDelivered ? 'Concluído' : 'Aguardando transporte', sub: hasLiveLocation ? 'Localização GPS do motorista recebida' : 'Sem localização GPS registada' },
+                { state: isDelivered ? 'done' : 'pending', icon: <CheckCircle size={13} />, color: isDelivered ? T.g600 : T.faint, title: 'Entrega', date: isDelivered && freight?.delivered_at ? new Date(freight.delivered_at).toLocaleString('pt-AO') : 'Ainda não concluída', sub: freight?.destination_label || 'Destino não registado' },
               ];
               return steps.map((s, i) => (
                 <div key={i} style={{ display: 'flex', gap: 12, position: 'relative', paddingBottom: i < steps.length - 1 ? 18 : 0 }}>
@@ -1819,14 +1838,17 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
               ));
             })()}
 
-            {userLocation && trackedProduct.location_lat && trackedProduct.location_lng && (
+            {freight && (
               <div style={{ marginTop: 14, padding: 12, borderRadius: 14, background: T.g50 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <Label>Progresso da rota</Label>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: T.g700, fontFamily: FONT }}>60%</span>
+                  <Label>Estado da rota</Label>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: T.g700, fontFamily: FONT }}>
+                    {isDelivered ? '100%' : hasLiveLocation ? 'GPS actualizado' : 'Sem GPS'}
+                  </span>
                 </div>
-                <div style={{ height: 6, borderRadius: 4, background: T.g100, overflow: 'hidden' }}>
-                  <div style={{ width: '60%', height: '100%', background: T.g600, borderRadius: 4 }} />
+                <div style={{ fontSize: 10, color: T.muted, fontFamily: FONT }}>
+                  {freight.route_distance_km != null ? `Rota prevista: ${Number(freight.route_distance_km).toFixed(1)} km` : 'Distância da rota indisponível'}
+                  {location ? ` · Última posição: ${new Date(location.recorded_at).toLocaleString('pt-AO')}` : ''}
                 </div>
               </div>
             )}
@@ -1850,7 +1872,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
             { label: 'Produtos', value: filteredProducts.length, color: T.blue, icon: <Package size={12} /> },
             {
               label: 'Em Trânsito',
-              value: Math.max(1, Math.floor(filteredProducts.length * 0.2)),
+              value: freightLoads.filter((load) => ['in_transit', 'em_transito', 'accepted', 'accepted_by_driver'].includes(load.status)).length,
               color: T.goldL,
               icon: <TrendingUp size={12} />,
             },
