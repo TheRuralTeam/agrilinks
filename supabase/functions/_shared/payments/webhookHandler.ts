@@ -45,7 +45,7 @@ export function createPaymentWebhookHandler(
       const verificationRequest = new Request(request.url, {
         method: "POST",
         headers: request.headers,
-        body: rawBody.slice(0),
+        body: new Uint8Array(rawBody),
       });
       event = await registry.verifyWebhook(providerId, verificationRequest);
     } catch {
