@@ -306,6 +306,8 @@ const AppHome = () => {
 
   useEffect(() => {
     let cancelled = false
+    setFeedPage(0)
+    setHasMoreProducts(true)
     try {
       const cached = JSON.parse(sessionStorage.getItem('agrilink:marketplace:feed') || 'null')
       if (!cancelled && cached?.expiresAt > Date.now() && Array.isArray(cached.products)) {
@@ -313,15 +315,9 @@ const AppHome = () => {
         setLoading(false)
       }
     } catch {}
-    fetchProducts(0, false)
+    void fetchProducts(0, false)
     return () => { cancelled = true }
-  }, [fetchProducts])
-
-  useEffect(() => {
-    setFeedPage(0)
-    setHasMoreProducts(true)
-    if (!loading) fetchProducts(0, false)
-  }, [activeCategory])
+  }, [activeCategory, fetchProducts])
 
   const handleProductUpdate = (p: Product) => setProducts(prev => prev.map(x => x.id === p.id ? p : x))
   const handleLoadMore = () => { if (!loadingMore && hasMoreProducts) fetchProducts(feedPage + 1, true) }
