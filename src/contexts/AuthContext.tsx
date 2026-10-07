@@ -297,6 +297,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           emailRedirectTo: buildAuthRedirectUrl('/app'),
           data: {
             phone: normalizedPhone,
+            // A conta nasce com o menor papel operacional necessário.
+            // O administrador pode alterá-lo posteriormente no painel.
+            user_type: 'comprador',
           },
         },
       })
