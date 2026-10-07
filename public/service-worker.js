@@ -4,7 +4,7 @@ const APP_SHELL = [
   '/index.html',
   '/manifest.webmanifest',
   '/favicon.ico',
-  '/placeholder.svg',
+  '/favicon.ico',
   '/robots.txt'
 ];
 
@@ -84,8 +84,8 @@ self.addEventListener('push', (event) => {
   let notificationData = {
     title: 'Notificação AgriLink',
     body: 'Você tem uma nova notificação',
-    icon: '/placeholder.svg',
-    badge: '/placeholder.svg',
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
     tag: 'agrilink-notification',
     data: {},
     actions: [
@@ -123,12 +123,20 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      const targetPath = event.notification?.data?.path;
+      const targetUrl = targetPath && typeof targetPath === 'string'
+        ? new URL(targetPath, self.location.origin).toString()
+        : self.location.origin + '/notificacoes';
       for (const client of clientList) {
-        if (client.url === self.location.origin + '/' && 'focus' in client) {
+        if (client.url === targetUrl && 'focus' in client) return client.focus();
+      }
+      for (const client of clientList) {
+        if ('focus' in client && client.url.startsWith(self.location.origin)) {
+          if (targetUrl && 'navigate' in client) await client.navigate(targetUrl);
           return client.focus();
         }
       }
-      if (self.clients.openWindow) return self.clients.openWindow('/');
+      if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
     })
   );
 });
