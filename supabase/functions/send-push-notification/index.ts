@@ -79,8 +79,8 @@ Deno.serve(async (req) => {
     const payload = JSON.stringify({
       title: title || 'Notificação AgriLink',
       body: body || 'Você tem uma nova notificação',
-      icon: icon || '/agrilink-icon.png',
-      badge: '/agrilink-badge.png',
+      icon: icon || '/favicon.ico',
+      badge: '/favicon.ico',
       data: data || {},
       vibrate: [200, 100, 200],
       tag: `agrilink-${String(data?.notification_id || crypto.randomUUID())}`,
