@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import usePushNotifications from '../components/usePushNotifications';
@@ -21,7 +20,6 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../integrations/supabase/client';
-import { motion, AnimatePresence } from 'framer-motion';
 import Loader from '../components/ui/Loader';
 
 /* ─── AgriLink Design System (Branding T) ─────────────────────── */
@@ -80,160 +78,13 @@ interface ToastNotification {
   timestamp: number;
 }
 
-// --- Gerenciador de Som ---
-class SoundManager {
-  private audioContext: AudioContext | null = null;
-  private isSupported: boolean = true;
-
-  constructor() {
-    try {
-      const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
-      this.audioContext = new AudioContextClass();
-    } catch (error) {
-      console.warn('AudioContext não suportado:', error);
-      this.isSupported = false;
-    }
-  }
-
-  async playChickenSound() {
-    if (!this.isSupported || !this.audioContext) {
-      this.playFallbackSound();
-      return;
-    }
-    try {
-      const ctx = this.audioContext;
-      if (ctx.state === 'suspended') await ctx.resume().catch(() => undefined);
-      const now = ctx.currentTime;
-      const osc1 = ctx.createOscillator();
-      const osc2 = ctx.createOscillator();
-      const gain = ctx.createGain();
-      const gain2 = ctx.createGain();
-      osc1.type = 'sine';
-      osc2.type = 'triangle';
-      osc1.frequency.setValueAtTime(800, now);
-      osc1.frequency.exponentialRampToValueAtTime(400, now + 0.1);
-      osc2.frequency.setValueAtTime(1200, now);
-      osc2.frequency.exponentialRampToValueAtTime(600, now + 0.1);
-      gain.gain.setValueAtTime(0.3, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-      gain2.gain.setValueAtTime(0.2, now);
-      gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-      osc1.connect(gain);
-      osc2.connect(gain2);
-      gain.connect(ctx.destination);
-      gain2.connect(ctx.destination);
-      osc1.start(now);
-      osc2.start(now);
-      osc1.stop(now + 0.15);
-      osc2.stop(now + 0.15);
-      for (let i = 1; i < 3; i++) {
-        const osc3 = ctx.createOscillator();
-        const osc4 = ctx.createOscillator();
-        const g1 = ctx.createGain();
-        const g2 = ctx.createGain();
-        osc3.type = 'sine';
-        osc4.type = 'triangle';
-        osc3.frequency.setValueAtTime(800, now + i * 0.2);
-        osc3.frequency.exponentialRampToValueAtTime(400, now + i * 0.2 + 0.1);
-        osc4.frequency.setValueAtTime(1200, now + i * 0.2);
-        osc4.frequency.exponentialRampToValueAtTime(600, now + i * 0.2 + 0.1);
-        g1.gain.setValueAtTime(0.3, now + i * 0.2);
-        g1.gain.exponentialRampToValueAtTime(0.01, now + i * 0.2 + 0.15);
-        g2.gain.setValueAtTime(0.2, now + i * 0.2);
-        g2.gain.exponentialRampToValueAtTime(0.01, now + i * 0.2 + 0.15);
-        osc3.connect(g1);
-        osc4.connect(g2);
-        g1.connect(ctx.destination);
-        g2.connect(ctx.destination);
-        osc3.start(now + i * 0.2);
-        osc4.start(now + i * 0.2);
-        osc3.stop(now + i * 0.2 + 0.15);
-        osc4.stop(now + i * 0.2 + 0.15);
-      }
-    } catch (error) {
-      console.error('Erro ao reproduzir som:', error);
-      this.playFallbackSound();
-    }
-  }
-
-  playFallbackSound() {
-    try {
-      const audio = new Audio('data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAA==');
-      audio.play().catch(() => {});
-    } catch (error) {}
-  }
-}
-
-// --- Componente Toast de Notificação ---
-interface NotificationToastProps {
-  notification: ToastNotification;
-  onClose: (id: string) => void;
-  soundEnabled: boolean;
-}
-
-const NotificationToast: React.FC<NotificationToastProps> = ({
-  notification,
-  onClose,
-}) => {
-  useEffect(() => {
-    const timer = setTimeout(() => onClose(notification.id), 6000);
-    return () => clearTimeout(timer);
-  }, [notification.id, onClose]);
-
-  const getColors = (type: string) => {
-    switch (type) {
-      case 'interest': return `linear-gradient(135deg, ${T.e700}, ${T.e500})`;
-      case 'message': return `linear-gradient(135deg, ${T.g900}, ${T.g600})`;
-      case 'product': return `linear-gradient(135deg, ${T.g600}, ${T.g400})`;
-      case 'system': return `linear-gradient(135deg, ${T.gold}, ${T.goldL})`;
-      default: return `linear-gradient(135deg, ${T.mid}, ${T.muted})`;
-    }
-  };
-
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'interest': return <Heart className="h-5 w-5" />;
-      case 'message': return <MessageCircle className="h-5 w-5" />;
-      case 'product': return <Package className="h-5 w-5" />;
-      case 'system': return <Zap className="h-5 w-5" />;
-      default: return <Bell className="h-5 w-5" />;
-    }
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -100 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      className="fixed top-6 right-6 z-[100] max-w-sm w-full"
-    >
-      <div style={{ background: getColors(notification.type), color: T.white, borderRadius: 16, boxShadow: `0 12px 32px ${T.shadowMd}`, overflow: 'hidden' }}>
-        <div className="p-4 flex items-start gap-3">
-          <div className="flex-shrink-0 mt-0.5">{getIcon(notification.type)}</div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-sm">{notification.title}</h3>
-            <p className="text-sm opacity-90 mt-1">{notification.message}</p>
-          </div>
-          <button onClick={() => onClose(notification.id)} className="p-1 hover:bg-white/20 rounded-full transition-colors">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <motion.div initial={{ scaleX: 1 }} animate={{ scaleX: 0 }} transition={{ duration: 6, ease: 'linear' }} className="h-1 bg-white/30 origin-left" />
-      </div>
-    </motion.div>
-  );
-};
-
 // --- Componente Principal ---
 const Notifications = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const pushNotifications = usePushNotifications();
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [toastNotifications, setToastNotifications] = useState<ToastNotification[]>([]);
   const [loading, setLoading] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const soundManagerRef = useRef<SoundManager>(new SoundManager());
 
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
@@ -252,33 +103,9 @@ const Notifications = () => {
     }
   }, [user]);
 
-  const playNotificationSound = useCallback(() => {
-    if (soundEnabled) void soundManagerRef.current.playChickenSound();
-  }, [soundEnabled]);
-
-  const showToastNotification = useCallback((notification: Notification) => {
-    const toastId = `${notification.id}-${Date.now()}`;
-    setToastNotifications((prev) => [...prev, { id: toastId, title: notification.title, message: notification.message, type: notification.type, timestamp: Date.now() }]);
-    playNotificationSound();
-    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-  }, [playNotificationSound]);
-
-  const removeToastNotification = useCallback((id: string) => {
-    setToastNotifications((prev) => prev.filter((n) => n.id !== id));
-  }, []);
-
   useEffect(() => {
-    fetchNotifications();
-    if (!user) return;
-    const channel = supabase.channel(`user-notifications-${user.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
-        const newNotif = payload.new as Notification;
-        setNotifications((prev) => [newNotif, ...prev]);
-        showToastNotification(newNotif);
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user, fetchNotifications, showToastNotification]);
+    void fetchNotifications();
+  }, [fetchNotifications]);
 
   const markAsRead = async (id: string) => {
     try {
@@ -354,12 +181,6 @@ const Notifications = () => {
 
   return (
     <div className="min-h-screen pb-24" style={{ background: T.canvas }}>
-      <AnimatePresence>
-        {toastNotifications.map((toast) => (
-          <NotificationToast key={toast.id} notification={toast} onClose={removeToastNotification} soundEnabled={soundEnabled} />
-        ))}
-      </AnimatePresence>
-
       {/* Header */}
       <header className="sticky top-0 z-50" style={{ background: T.white, borderBottom: `1px solid ${T.rule}`, boxShadow: `0 2px 8px ${T.shadow}` }}>
         <div className="px-4 py-4 flex items-center justify-between max-w-7xl mx-auto">
@@ -374,17 +195,11 @@ const Notifications = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => setSoundEnabled(!soundEnabled)} style={{ color: soundEnabled ? T.g900 : T.faint }}>
-              {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-            </Button>
             {unreadCount > 0 && (
               <Button variant="ghost" size="sm" onClick={markAllAsRead} style={{ color: T.g900, fontSize: '12px' }}>
                 Marcar todas
               </Button>
             )}
-            <Button variant="ghost" size="icon" style={{ color: T.mid }}>
-              <Settings className="h-5 w-5" />
-            </Button>
           </div>
         </div>
       </header>
