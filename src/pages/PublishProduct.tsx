@@ -323,7 +323,7 @@ const PublishProduct = () => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="price">Preço por Tonelada ou cesta (Kz)</Label>
+        <Label htmlFor="price">Preço por kg (Kz)</Label>
         <div className="relative">
           <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
