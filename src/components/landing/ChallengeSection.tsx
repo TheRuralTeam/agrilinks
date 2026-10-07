@@ -12,7 +12,7 @@ const ChallengeSection = () => {
           </p>
           <div className="bg-accent rounded-2xl p-6 sm:p-8">
             <p className="text-lg sm:text-xl font-black text-accent-foreground leading-relaxed">
-              A OrbisLink nasce para resolver esse desalinhamento, criando conexões diretas, seguras e eficientes entre quem produz e quem compra em grande escala.
+              A AgriLink nasce para resolver esse desalinhamento, criando conexões diretas, seguras e eficientes entre quem produz e quem compra em grande escala.
             </p>
           </div>
         </div>
