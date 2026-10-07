@@ -1,114 +1,229 @@
-import React from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Button } from '../components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
-import { Building2, BarChart3, Truck, ArrowRight, Package, Globe, ShieldCheck, Zap } from 'lucide-react'
-import orbisLinkLogo from '../assets/orbislink-logo.png'
-import { T } from '../lib/brand'
+import React, { FormEvent, useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Eye, EyeOff, Loader2, LockKeyhole, Mail, Phone, ArrowRight, CheckCircle2 } from "lucide-react";
+import agrilinkLogo from "../assets/agrilink-logo.png";
+import { useAuth } from "../contexts/AuthContext";
+import { toast } from "sonner";
 
 const Login = () => {
-	const navigate = useNavigate()
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login, registerSimple, signInWithGoogle } = useAuth();
+  const initialSignup = new URLSearchParams(location.search).get("mode") === "signup";
 
-	return (
-		<div className="min-h-screen flex flex-col lg:flex-row" style={{ backgroundColor: T.canvas }}>
-			<div className="relative lg:w-5/12 h-80 lg:h-auto overflow-hidden">
-				<div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(26, 92, 36, 0.4), ${T.g900} 95%)` }} />
-				<div className="absolute inset-0 flex flex-col justify-end p-8 lg:p-16">
-					<div className="max-w-md animate-in fade-in slide-in-from-left-8 duration-1000">
-						<div className="h-1 w-12 mb-6 rounded-full" style={{ backgroundColor: T.goldL }} />
-						<h2 className="text-3xl lg:text-5xl font-black mb-6 leading-tight text-white">Conectando a terra ao mercado global</h2>
-						<p className="text-base lg:text-lg font-medium text-white/90 leading-relaxed">A infraestrutura B2B que organiza cadeias de abastecimento, valoriza a produção e elimina barreiras comerciais.</p>
-					</div>
-				</div>
-			</div>
+  const [mode, setMode] = useState<"login" | "signup">(initialSignup ? "signup" : "login");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [confirmationPending, setConfirmationPending] = useState(false);
 
-			<div className="flex-1 flex items-center justify-center p-6 lg:p-20 relative overflow-hidden">
-				<div className="absolute -top-10 -right-10 w-64 h-64 rounded-full blur-3xl opacity-20" style={{ backgroundColor: T.g100 }} />
-				<div className="absolute -bottom-5 -left-5 w-96 h-96 rounded-full blur-3xl opacity-10" style={{ backgroundColor: T.eBorder }} />
+  useEffect(() => {
+    setMode(initialSignup ? "signup" : "login");
+  }, [initialSignup]);
 
-				<div className="w-full max-w-2xl z-10">
-					<div className="text-center mb-12 animate-in fade-in zoom-in-95 duration-700">
-						<img src={orbisLinkLogo} alt="OrbisLink" className="h-20 lg:h-24 mx-auto mb-6 drop-shadow-sm" />
-						<h3 className="text-xl lg:text-2xl font-black tracking-tight" style={{ color: T.ink }}>Bem-vindo ao AgriLink</h3>
-						<p className="text-sm lg:text-base font-bold uppercase tracking-[0.2em] mt-2" style={{ color: T.g600 }}>Seu elo com os mercados globais</p>
-					</div>
+  const switchMode = (next: "login" | "signup") => {
+    setMode(next);
+    navigate(next === "signup" ? "/login?mode=signup" : "/login", { replace: true });
+  };
 
-					<div className="grid gap-6 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-						<Card className="group border-none shadow-sm hover:shadow-xl transition-all duration-500 rounded-[2rem] overflow-hidden cursor-pointer" style={{ backgroundColor: T.white }} onClick={() => navigate('/cadastro')}>
-							<div className="flex flex-col sm:flex-row h-full">
-								<div className="sm:w-1/3 p-8 flex items-center justify-center transition-transform group-hover:scale-110 duration-500" style={{ backgroundColor: T.g50 }}>
-									<div className="relative">
-										<div className="absolute inset-0 rounded-full blur-xl opacity-40" style={{ backgroundColor: T.g400 }} />
-										<Package className="h-16 w-16 relative z-10" style={{ color: T.g700 }} />
-									</div>
-								</div>
-								<div className="flex-1 p-8 flex flex-col justify-center">
-									<div className="flex items-center gap-2 mb-2">
-										<span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: T.gold }} />
-										<span className="text-[10px] font-black uppercase tracking-widest" style={{ color: T.muted }}>Produtores & Agentes</span>
-									</div>
-									<CardTitle className="text-2xl font-black mb-3" style={{ color: T.ink }}>Fornecedor / Agente</CardTitle>
-									<CardDescription className="text-sm font-medium mb-6 leading-relaxed" style={{ color: T.mid }}>Publique os seus produtos, gira o seu stock e conecte-se diretamente com grandes compradores internacionais.</CardDescription>
-									<div className="flex gap-3">
-										<Button className="flex-1 h-12 font-black rounded-2xl shadow-lg transition-all group-hover:translate-x-1" style={{ backgroundColor: T.g600, color: T.white }}>Começar Agora <ArrowRight className="h-4 w-4 ml-2" /></Button>
-									</div>
-								</div>
-							</div>
-						</Card>
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (submitting) return;
 
-						<Card className="group border-none shadow-sm hover:shadow-xl transition-all duration-500 rounded-[2rem] overflow-hidden cursor-pointer" style={{ backgroundColor: T.white }} onClick={() => navigate('/dashboard')}>
-							<div className="flex flex-col sm:flex-row h-full">
-								<div className="sm:w-1/3 p-8 flex items-center justify-center transition-transform group-hover:scale-110 duration-500" style={{ backgroundColor: T.ePale }}>
-									<div className="relative">
-										<div className="absolute inset-0 rounded-full blur-xl opacity-40" style={{ backgroundColor: T.e500 }} />
-										<BarChart3 className="h-16 w-16 relative z-10" style={{ color: T.e700 }} />
-									</div>
-								</div>
-								<div className="flex-1 p-8 flex flex-col justify-center">
-									<div className="flex items-center gap-2 mb-2">
-										<span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: T.e500 }} />
-										<span className="text-[10px] font-black uppercase tracking-widest" style={{ color: T.muted }}>Administração</span>
-									</div>
-									<CardTitle className="text-2xl font-black mb-3" style={{ color: T.ink }}>Equipa OrbisLink</CardTitle>
-									<CardDescription className="text-sm font-medium mb-6 leading-relaxed" style={{ color: T.mid }}>Aceda ao painel de controlo central para gerir operações, logística e inteligência de mercado.</CardDescription>
-									<Button variant="outline" className="w-full h-12 font-black rounded-2xl border-2 transition-all" style={{ borderColor: T.rule, color: T.ink }}>Aceder Dashboard <ArrowRight className="h-4 w-4 ml-2" style={{ color: T.e700 }} /></Button>
-								</div>
-							</div>
-						</Card>
-					</div>
+    setSubmitting(true);
+    try {
+      if (mode === "login") {
+        if (!email.trim() || !password) {
+          toast.error("Informe o email e a senha.");
+          return;
+        }
+        const { error } = await login(email.trim().toLowerCase(), password);
+        if (error) return;
+        navigate("/app", { replace: true });
+        return;
+      }
 
-					<div className="mt-12 grid grid-cols-3 gap-6">
-						<div className="flex flex-col items-center text-center group">
-							<div className="h-12 w-12 rounded-2xl flex items-center justify-center mb-3" style={{ backgroundColor: T.white, border: `1px solid ${T.rule}` }}>
-								<Globe className="h-5 w-5" style={{ color: T.g600 }} />
-							</div>
-							<div className="text-[10px] font-black uppercase tracking-widest" style={{ color: T.ink }}>Global</div>
-							<div className="text-[9px] font-bold" style={{ color: T.muted }}>Mercados B2B</div>
-						</div>
-						<div className="flex flex-col items-center text-center group">
-							<div className="h-12 w-12 rounded-2xl flex items-center justify-center mb-3" style={{ backgroundColor: T.white, border: `1px solid ${T.rule}` }}>
-								<ShieldCheck className="h-5 w-5" style={{ color: T.g600 }} />
-							</div>
-							<div className="text-[10px] font-black uppercase tracking-widest" style={{ color: T.ink }}>Seguro</div>
-							<div className="text-[9px] font-bold" style={{ color: T.muted }}>Verificado</div>
-						</div>
-						<div className="flex flex-col items-center text-center group">
-							<div className="h-12 w-12 rounded-2xl flex items-center justify-center mb-3" style={{ backgroundColor: T.white, border: `1px solid ${T.rule}` }}>
-								<Zap className="h-5 w-5" style={{ color: T.g600 }} />
-							</div>
-							<div className="text-[10px] font-black uppercase tracking-widest" style={{ color: T.ink }}>Rápido</div>
-							<div className="text-[9px] font-bold" style={{ color: T.muted }}>Digital 24/7</div>
-						</div>
-					</div>
+      if (!email.trim() || !phone.trim() || !password) {
+        toast.error("Email, telefone e senha são obrigatórios.");
+        return;
+      }
+      const { error } = await registerSimple({
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
+        password,
+      });
+      if (error) {
+        toast.error(error.message || "Não foi possível criar a conta.");
+        return;
+      }
 
-					<div className="text-center mt-16 pt-8 border-t" style={{ borderColor: T.rule }}>
-						<p className="text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: T.faint }}>Conectando mercados • Movendo economias</p>
-						<p className="text-[10px] mt-4" style={{ color: T.muted }}>© <span className="font-black" style={{ color: T.g700 }}>OrbisLink Lda</span> 2025</p>
-					</div>
-				</div>
-			</div>
-		</div>
-	)
-}
+      setConfirmationPending(true);
+      toast.success("Conta criada. Verifique o seu email para confirmar o acesso.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-export default Login
+  const handleGoogle = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const { error } = await signInWithGoogle("/app");
+      if (error) toast.error(error.message || "Não foi possível iniciar com Google.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <main className="min-h-screen bg-[#F7FAF7] text-[#111714]">
+      <div className="mx-auto grid min-h-screen max-w-[1500px] lg:grid-cols-[0.92fr_1.08fr]">
+        <section className="relative hidden overflow-hidden bg-[#123B1B] lg:flex lg:flex-col lg:justify-between p-12 xl:p-16">
+          <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#5EA66A]/20 blur-3xl" />
+          <div className="absolute -bottom-40 -left-20 h-[30rem] w-[30rem] rounded-full bg-[#D9A441]/10 blur-3xl" />
+
+          <div className="relative z-10">
+            <img src={agrilinkLogo} alt="AgriLink" className="h-16 w-auto object-contain object-left" />
+          </div>
+
+          <div className="relative z-10 max-w-xl">
+            <div className="mb-5 h-1 w-14 rounded-full bg-[#D9A441]" />
+            <h1 className="text-5xl font-black leading-[1.05] tracking-tight text-white xl:text-6xl">
+              Do campo ao mercado.
+            </h1>
+            <p className="mt-6 max-w-lg text-lg leading-8 text-white/75">
+              A AgriLink conecta fornecedores, compradores, agentes e motoristas para tornar a comercialização agrícola mais simples, organizada e rastreável.
+            </p>
+            <div className="mt-10 grid gap-3">
+              {["Publique e encontre oportunidades", "Organize pedidos e negociações", "Acompanhe logística e entregas"].map((item) => (
+                <div key={item} className="flex items-center gap-3 text-sm font-semibold text-white/90">
+                  <CheckCircle2 className="h-5 w-5 text-[#8BCB91]" />
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <p className="relative z-10 text-xs font-medium text-white/45">AgriLink • Plataforma AgriTech</p>
+        </section>
+
+        <section className="flex items-center justify-center px-5 py-10 sm:px-8 lg:px-14 xl:px-20">
+          <div className="w-full max-w-xl">
+            <div className="mb-8 lg:hidden">
+              <img src={agrilinkLogo} alt="AgriLink" className="h-12 w-auto object-contain object-left" />
+            </div>
+
+            <div className="mb-8">
+              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#3E7C48]">Acesso à plataforma</p>
+              <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
+                {confirmationPending ? "Confirme o seu email" : mode === "login" ? "Bem-vindo à AgriLink" : "Crie a sua conta"}
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-[#657367]">
+                {confirmationPending
+                  ? "Enviámos a confirmação para o seu email. Abra a mensagem e confirme a conta antes de iniciar sessão."
+                  : mode === "login"
+                    ? "Entre para gerir produtos, pedidos, logística e as suas operações."
+                    : "Registo rápido com email, telefone e senha. O administrador poderá definir o seu tipo de utilizador posteriormente."}
+              </p>
+            </div>
+
+            {confirmationPending ? (
+              <div className="rounded-3xl border border-[#DDE9DE] bg-white p-6 shadow-[0_18px_50px_rgba(28,65,35,0.08)]">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#EAF5EB] text-[#3E7C48]">
+                    <Mail className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold">Confirmação pendente</p>
+                    <p className="mt-1 text-sm leading-6 text-[#657367]">
+                      Depois de confirmar o email, volte aqui e faça login normalmente.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setConfirmationPending(false); switchMode("login"); }}
+                  className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#2F6F3A] px-5 text-sm font-extrabold text-white transition hover:bg-[#245A2E]"
+                >
+                  Ir para o login <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="mb-6 grid grid-cols-2 rounded-2xl bg-[#EAF1EA] p-1">
+                  <button type="button" onClick={() => switchMode("login")} className={`rounded-xl px-4 py-2.5 text-sm font-extrabold transition ${mode === "login" ? "bg-white text-[#245A2E] shadow-sm" : "text-[#718071]"}`}>
+                    Entrar
+                  </button>
+                  <button type="button" onClick={() => switchMode("signup")} className={`rounded-xl px-4 py-2.5 text-sm font-extrabold transition ${mode === "signup" ? "bg-white text-[#245A2E] shadow-sm" : "text-[#718071]"}`}>
+                    Criar conta
+                  </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {mode === "signup" && (
+                    <label className="block">
+                      <span className="mb-2 block text-xs font-extrabold uppercase tracking-wide text-[#657367]">Telefone</span>
+                      <div className="relative">
+                        <Phone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A988B]" />
+                        <input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" autoComplete="tel" placeholder="+244 9XX XXX XXX" className="h-12 w-full rounded-2xl border border-[#DDE6DE] bg-white pl-11 pr-4 text-sm outline-none transition focus:border-[#4B8A55] focus:ring-4 focus:ring-[#4B8A55]/10" />
+                      </div>
+                    </label>
+                  )}
+
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-extrabold uppercase tracking-wide text-[#657367]">Email</span>
+                    <div className="relative">
+                      <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A988B]" />
+                      <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoComplete="email" placeholder="nome@exemplo.com" className="h-12 w-full rounded-2xl border border-[#DDE6DE] bg-white pl-11 pr-4 text-sm outline-none transition focus:border-[#4B8A55] focus:ring-4 focus:ring-[#4B8A55]/10" />
+                    </div>
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-extrabold uppercase tracking-wide text-[#657367]">Senha</span>
+                    <div className="relative">
+                      <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A988B]" />
+                      <input value={password} onChange={(e) => setPassword(e.target.value)} type={showPassword ? "text" : "password"} autoComplete={mode === "login" ? "current-password" : "new-password"} placeholder="Mínimo de 8 caracteres" className="h-12 w-full rounded-2xl border border-[#DDE6DE] bg-white pl-11 pr-12 text-sm outline-none transition focus:border-[#4B8A55] focus:ring-4 focus:ring-[#4B8A55]/10" />
+                      <button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-[#718071] hover:bg-[#F2F6F2]" aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}>
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </label>
+
+                  {mode === "login" && (
+                    <div className="flex justify-end">
+                      <Link to="/reset-password" className="text-xs font-bold text-[#3E7C48] hover:underline">Esqueci a senha</Link>
+                    </div>
+                  )}
+
+                  <button type="submit" disabled={submitting} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#2F6F3A] px-5 text-sm font-extrabold text-white shadow-lg shadow-[#2F6F3A]/15 transition hover:bg-[#245A2E] disabled:cursor-not-allowed disabled:opacity-60">
+                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : mode === "login" ? "Entrar na AgriLink" : "Criar conta"}
+                    {!submitting && <ArrowRight className="h-4 w-4" />}
+                  </button>
+                </form>
+
+                <div className="my-6 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-[#E5ECE5]" />
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#98A298]">ou</span>
+                  <div className="h-px flex-1 bg-[#E5ECE5]" />
+                </div>
+
+                <button type="button" onClick={handleGoogle} disabled={submitting} className="flex h-12 w-full items-center justify-center gap-3 rounded-2xl border border-[#DDE6DE] bg-white text-sm font-extrabold text-[#26352A] transition hover:bg-[#F7FAF7] disabled:opacity-60">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full border border-[#E4E8E4] text-xs font-black">G</span>
+                  Continuar com Google
+                </button>
+              </>
+            )}
+
+            <p className="mt-8 text-center text-xs leading-5 text-[#8A988B]">
+              Ao continuar, aceita utilizar a AgriLink de acordo com os termos e políticas aplicáveis.
+            </p>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+};
+
+export default Login;
