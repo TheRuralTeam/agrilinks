@@ -2078,6 +2078,10 @@ export type Database = {
         Returns: number
       }
       admin_delete_product: { Args: { p_product_id: string }; Returns: boolean }
+      admin_set_user_type: {
+        Args: { p_user_id: string; p_user_type: Database["public"]["Enums"]["user_type_enum"] }
+        Returns: { id: string; full_name: string; user_type: Database["public"]["Enums"]["user_type_enum"]; agent_code: string | null; updated_at: string }[]
+      }
       admin_delete_user: { Args: { p_user_id: string }; Returns: boolean }
       admin_update_pre_order_status: {
         Args: { p_order_id: string; p_status: string }
@@ -2217,6 +2221,10 @@ export type Database = {
       respond_to_pre_order: {
         Args: { p_order_id: string; p_status: string }
         Returns: { id: string; status: string; updated_at: string }[]
+      }
+      set_my_identity_document: {
+        Args: { p_identity_document: string }
+        Returns: Json
       }
       send_message:
         | {
