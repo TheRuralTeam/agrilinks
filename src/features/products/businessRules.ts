@@ -1,3 +1,5 @@
+import { getProvincesForCountry } from '../../data/country-locations'
+
 export type ProductSubmissionInput = {
   product_type: string
   quantity: number
@@ -46,9 +48,7 @@ export const validateProductSubmission = (input: ProductSubmissionInput) => {
   else {
     // Garante que o município pertence realmente à província selecionada.
     // A mesma fonte de dados é usada pelo formulário de publicação.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const locations = require('../../data/country-locations') as typeof import('../../data/country-locations')
-    const province = locations.getProvincesForCountry('AO').find((item) => item.id === input.province_id)
+    const province = getProvincesForCountry('AO').find((item) => item.id === input.province_id)
     const municipalityExists = province?.municipalities.some((item) => item.id === input.municipality_id) ?? false
     if (!municipalityExists) errors.push('O município selecionado não pertence à província indicada.')
   }
