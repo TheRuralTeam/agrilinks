@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agrilink-shell-v4';
+const CACHE_NAME = 'agrilink-shell-v5';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -81,8 +81,6 @@ self.addEventListener('message', (event) => {
 });
 
 self.addEventListener('push', (event) => {
-  console.log('[Service Worker] Push recebido:', event);
-
   let notificationData = {
     title: 'Notificação AgriLink',
     body: 'Você tem uma nova notificação',
@@ -94,7 +92,8 @@ self.addEventListener('push', (event) => {
       { action: 'open', title: 'Abrir' },
       { action: 'close', title: 'Fechar' }
     ],
-    requireInteraction: true,
+    requireInteraction: false,
+    renotify: true,
     vibrate: [200, 100, 200],
     silent: false
   };
@@ -103,39 +102,18 @@ self.addEventListener('push', (event) => {
     try {
       const data = event.data.json();
       notificationData = { ...notificationData, ...data };
-    } catch (e) {
-      console.error('[Service Worker] Erro ao parsear dados:', e);
+    } catch {
       notificationData.body = event.data.text();
     }
   }
 
-  event.waitUntil(
-    Promise.all([
-      self.registration.showNotification(notificationData.title, notificationData),
-      notificationData.sound ? playNotificationSound(notificationData.sound) : Promise.resolve()
-    ])
-  );
+  const eventId = notificationData?.data?.notification_id || notificationData?.data?.id || crypto.randomUUID();
+  notificationData.tag = 'agrilink-' + eventId;
+
+  // Service workers cannot reliably use AudioContext for background audio.
+  // The browser/OS controls the sound of the displayed notification.
+  event.waitUntil(self.registration.showNotification(notificationData.title, notificationData));
 });
-
-async function playNotificationSound(soundUrl) {
-  try {
-    const audioContext = new AudioContext();
-    const response = await fetch(soundUrl);
-    const arrayBuffer = await response.arrayBuffer();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-    const source = audioContext.createBufferSource();
-    source.buffer = audioBuffer;
-    source.connect(audioContext.destination);
-    source.start(0);
-
-    return new Promise((resolve) => {
-      source.onended = resolve;
-    });
-  } catch (error) {
-    console.error('[Service Worker] Erro ao tocar som:', error);
-  }
-}
 
 self.addEventListener('notificationclick', (event) => {
   console.log('[Service Worker] Notificação clicada:', event);
