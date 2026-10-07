@@ -365,26 +365,23 @@ const ProximasCargas = () => {
 
   const downloadLoadPdf = useCallback(async (load: FreightLoad) => {
     try {
-      let clientName: string | null = null;
+      const { data, error } = await supabase.rpc(
+        'get_freight_load_qr_details' as never,
+        { p_qr_token: load.qr_token } as never,
+      );
 
-      if (load.pre_order_id) {
-        const { data: preOrder } = await supabase
-          .from('pre_orders')
-          .select('user_id')
-          .eq('id', load.pre_order_id)
-          .maybeSingle();
+      if (error) throw error;
 
-        if (preOrder?.user_id) {
-          const { data: client } = await supabase
-            .from('users')
-            .select('full_name')
-            .eq('id', preOrder.user_id)
-            .maybeSingle();
-          clientName = client?.full_name ?? null;
-        }
-      }
+      const details = (Array.isArray(data) ? data[0] : data) as
+        | (FreightLoad & { buyer_name?: string | null })
+        | null;
 
-      await downloadFreightLoadPdf({ ...load, client_name: clientName });
+      if (!details) throw new Error('Não foi possível validar esta carga.');
+
+      await downloadFreightLoadPdf({
+        ...load,
+        client_name: details.buyer_name ?? null,
+      });
       toast.success('PDF da carga preparado com sucesso.');
     } catch (error) {
       console.error('Erro ao gerar PDF da carga:', error);
