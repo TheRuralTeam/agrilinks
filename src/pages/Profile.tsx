@@ -22,6 +22,7 @@ import { getWalletBalance } from '../features/wallet/walletService'
 import type { WalletBalance } from '../features/wallet/walletDomain'
 import { WalletSummaryCard } from '../features/wallet/WalletSummaryCard'
 import { respondToPreOrder } from '../features/orders/adminPreOrderService'
+import agrilinkLogo from '../assets/agrilink-logo.png'
 
 /* ─── Design tokens ──────────────────────────────────────────────────────────
    Mesma fonte de verdade da landing (../lib/brand). Os campos abaixo com
@@ -978,7 +979,7 @@ const Profile = () => {
           <DialogHeader>
             <DialogTitle style={{ fontFamily: FONT, fontSize: 19, fontWeight: 700, color: T.ink, display: 'flex', alignItems: 'center', gap: 9 }}>
               <span style={{ width: 36, height: 36, borderRadius: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: T.g50, border: `1px solid ${T.gBorder}`, padding: 7 }}>
-                <img src={require('../assets/agrilink-logo.png')} alt="AgriLink" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                <img src={agrilinkLogo} alt="AgriLink" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               </span>
               {confirmAction?.title || 'Confirmar ação'}
             </DialogTitle>
