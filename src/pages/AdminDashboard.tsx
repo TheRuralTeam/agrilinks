@@ -33,6 +33,8 @@ import {
   Package,
   FileText,
   TrendingUp,
+  TrendingDown,
+  Minus,
   RefreshCw,
   BadgeCheck,
   ShieldCheck,
@@ -214,31 +216,38 @@ const Detail = ({ label, value, multiline = false }: { label: string; value: str
   </div>
 );
 
-const MetricCard = ({ title, value, icon, trend, color }: {
+const MetricCard = ({ title, value, trend, trendLabel = "30 dias", icon, color }: {
   title: string;
   value: number | string;
+  trend?: number | null;
+  trendLabel?: string;
   icon: React.ReactNode;
-  trend?: number;
   color: string;
-}) => (
-  <div className="rounded-2xl p-3 sm:p-5 bg-white border border-gray-100 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
-    <div className="flex items-center justify-between gap-2">
-      <div className="min-w-0 flex-1">
-        <p className="text-xs sm:text-sm font-medium text-gray-500 truncate">{title}</p>
-        <p className="text-xl sm:text-3xl font-bold text-gray-900 mt-1 tracking-tight">{value}</p>
-        {trend !== undefined && (
-          <p className="text-xs sm:text-sm mt-1 text-emerald-600 flex items-center gap-1 font-semibold">
-            <TrendingUp className="h-3 w-3" />
-            {trend >= 0 ? "+" : ""}{trend}%
-          </p>
-        )}
-      </div>
-      <div className={`p-2 sm:p-3 rounded-xl text-white flex-shrink-0 ${color}`}>
-        {icon}
+}) => {
+  const TrendIcon = trend == null ? null : trend > 0 ? TrendingUp : trend < 0 ? TrendingDown : Minus;
+  return (
+    <div className="rounded-2xl p-3 sm:p-5 bg-white border border-gray-100 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs sm:text-sm font-medium text-gray-500 truncate">{title}</p>
+          <p className="text-xl sm:text-3xl font-bold text-gray-900 mt-1 tracking-tight">{value}</p>
+          {trend != null && TrendIcon && (
+            <p className={`text-xs sm:text-sm mt-1 flex items-center gap-1 font-semibold ${trend > 0 ? "text-emerald-600" : trend < 0 ? "text-red-600" : "text-gray-500"}`}>
+              <TrendIcon className="h-3 w-3" />
+              {trend >= 0 ? "+" : ""}{trend}% · {trendLabel}
+            </p>
+          )}
+          {trend == null && (
+            <p className="text-[11px] text-gray-400 mt-1">Sem histórico comparável</p>
+          )}
+        </div>
+        <div className={`p-2 sm:p-3 rounded-xl text-white flex-shrink-0 ${color}`}>
+          {icon}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 /* ── Item de navegação vertical (sidebar) ── */
 const SidebarItem = ({ active, onClick, icon, children, badge }: {
@@ -728,6 +737,27 @@ const AdminDashboard = () => {
     }
   }, [products]);
 
+  const get30DayTrend = useCallback((items: Array<{ created_at: string | null | undefined }>) => {
+    const now = Date.now();
+    const currentStart = now - 30 * 24 * 60 * 60 * 1000;
+    const previousStart = now - 60 * 24 * 60 * 60 * 1000;
+    const current = items.filter((item) => {
+      const t = item.created_at ? new Date(item.created_at).getTime() : NaN;
+      return Number.isFinite(t) && t >= currentStart;
+    }).length;
+    const previous = items.filter((item) => {
+      const t = item.created_at ? new Date(item.created_at).getTime() : NaN;
+      return Number.isFinite(t) && t >= previousStart && t < currentStart;
+    }).length;
+    if (previous === 0) return current === 0 ? null : null;
+    return Math.round(((current - previous) / previous) * 100);
+  }, []);
+
+  const productTrend = useMemo(() => get30DayTrend(products), [products, get30DayTrend]);
+  const userTrend = useMemo(() => get30DayTrend(users), [users, get30DayTrend]);
+  const orderTrend = useMemo(() => get30DayTrend(orders), [orders, get30DayTrend]);
+  const transactionTrend = useMemo(() => get30DayTrend(transactions), [transactions, get30DayTrend]);
+
   // --- Dados para Gráficos ---
   const chartDataRevenue = useMemo(() => {
     const data: Record<string, number> = {};
@@ -916,10 +946,10 @@ const AdminDashboard = () => {
         {activeTab === "dashboard" && (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-              <MetricCard title="Produtos" value={products.length} icon={<Package className="h-5 w-5 sm:h-6 sm:w-6" />} trend={undefined} color="bg-primary" />
-              <MetricCard title="Usuários" value={users.length} icon={<Users className="h-5 w-5 sm:h-6 sm:w-6" />} trend={undefined} color="bg-primary" />
-              <MetricCard title="Pedidos" value={orders.length} icon={<ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" />} trend={undefined} color="bg-primary" />
-              <MetricCard title="Transações" value={transactions.length} icon={<DollarSign className="h-5 w-5 sm:h-6 sm:w-6" />} trend={undefined} color="bg-primary" />
+              <MetricCard title="Produtos" value={products.length} icon={<Package className="h-5 w-5 sm:h-6 sm:w-6" />} trend={productTrend} color="bg-primary" />
+              <MetricCard title="Usuários" value={users.length} icon={<Users className="h-5 w-5 sm:h-6 sm:w-6" />} trend={userTrend} color="bg-primary" />
+              <MetricCard title="Pedidos" value={orders.length} icon={<ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" />} trend={orderTrend} color="bg-primary" />
+              <MetricCard title="Transações" value={transactions.length} icon={<DollarSign className="h-5 w-5 sm:h-6 sm:w-6" />} trend={transactionTrend} color="bg-primary" />
             </div>
 
             {/* Top 3 Agentes Leaderboard */}
