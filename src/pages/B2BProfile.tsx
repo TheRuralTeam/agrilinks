@@ -1,8 +1,13 @@
  import React, { useState, useEffect } from 'react';
- import { useParams, useNavigate } from 'react-router-dom';
+ import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
  import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
+import { Label } from '../components/ui/label';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
  import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
- import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react';
+ import { ArrowLeft, Building2, Briefcase, History } from 'lucide-react';
  import { supabase } from '../integrations/supabase/client';
  import { useAuth } from '../contexts/AuthContext';
  import { toast } from 'sonner';
@@ -17,7 +22,7 @@
  import { AboutCompany } from '../components/b2b/AboutCompany';
  import { ActionButtons } from '../components/b2b/ActionButtons';
  
- import orbisLinkLogo from '../assets/orbislink-logo.png';
+ import agrilinkLogo from '../assets/agrilink-logo.png';
  
  interface CompanyData {
    id: string;
@@ -214,7 +219,7 @@
          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
            <ArrowLeft className="h-5 w-5 text-[#111714]" />
          </Button>
-         <img src={orbisLinkLogo} alt="OrbisLink" className="h-8" />
+         <img src={agrilinkLogo} alt="AgriLink" className="h-8" />
          <h1 className="text-lg font-semibold text-[#111714]">Perfil Institucional</h1>
        </header>
  
@@ -233,7 +238,7 @@
        {/* Main Content */}
        <div className="p-4 max-w-6xl mx-auto">
          <Tabs defaultValue="overview" className="w-full">
-           <TabsList className="w-full grid grid-cols-4 mb-6 bg-[#f6f8f6]">
+           <TabsList className="w-full grid grid-cols-2 mb-6 bg-[#f6f8f6]">
              <TabsTrigger value="overview" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:text-[#111714]">
                <Building2 className="h-4 w-4 mr-1 hidden sm:inline" />
                Visão Geral
@@ -302,6 +307,35 @@
        </div>
  
        {/* Fixed Action Buttons */}
+        <Dialog open={rfqOpen} onOpenChange={(open) => { if (!open && !rfqLoading) setRfqOpen(false); }}>
+          <DialogContent className="w-[calc(100vw-1rem)] max-w-lg rounded-2xl border-[#DCE8DE] p-0 overflow-hidden">
+            <div className="h-1.5 bg-[#2c863b]" />
+            <form onSubmit={submitRFQ}>
+              <div className="p-5 sm:p-6">
+                <DialogHeader>
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#DCE8DE] bg-[#F4FAF5] p-2"><img src={agrilinkLogo} alt="AgriLink" className="h-full w-full object-contain" /></div>
+                    <div><div className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#2c863b]">AgriLink Sourcing</div><DialogTitle className="mt-1 text-lg">Solicitar cotação</DialogTitle></div>
+                  </div>
+                  <p className="text-sm leading-6 text-muted-foreground">Envie uma necessidade de compra para a equipa AgriLink. O perfil consultado será usado como referência operacional.</p>
+                </DialogHeader>
+                <div className="mt-5 space-y-4">
+                  <div className="space-y-2"><Label htmlFor="rfq-product">Produto</Label><Input id="rfq-product" value={rfqForm.productName} onChange={(e) => setRfqForm(v => ({ ...v, productName: e.target.value }))} placeholder="Ex.: Milho branco" disabled={rfqLoading} /></div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2"><Label htmlFor="rfq-quantity">Quantidade (kg)</Label><Input id="rfq-quantity" type="number" min="1" step="0.01" value={rfqForm.quantity} onChange={(e) => setRfqForm(v => ({ ...v, quantity: e.target.value }))} placeholder="1000" disabled={rfqLoading} /></div>
+                    <div className="space-y-2"><Label htmlFor="rfq-date">Data de entrega</Label><Input id="rfq-date" type="date" value={rfqForm.deliveryDate} onChange={(e) => setRfqForm(v => ({ ...v, deliveryDate: e.target.value }))} disabled={rfqLoading} /></div>
+                  </div>
+                  <div className="space-y-2"><Label htmlFor="rfq-description">Necessidade / especificações</Label><Textarea id="rfq-description" rows={5} value={rfqForm.description} onChange={(e) => setRfqForm(v => ({ ...v, description: e.target.value }))} placeholder="Qualidade, embalagem, localização de entrega, requisitos adicionais..." disabled={rfqLoading} className="resize-none" /></div>
+                </div>
+              </div>
+              <DialogFooter className="border-t border-[#E5EDE6] bg-white px-5 py-4 sm:px-6">
+                <Button type="button" variant="ghost" onClick={() => setRfqOpen(false)} disabled={rfqLoading}>Cancelar</Button>
+                <Button type="submit" disabled={rfqLoading} className="rounded-full bg-[#2c863b] text-white hover:bg-[#246f32]">{rfqLoading ? 'A enviar…' : 'Enviar solicitação'}</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
        <ActionButtons
          onChat={handleStartChat}
          onRFQ={handleRFQ}
