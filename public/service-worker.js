@@ -109,9 +109,23 @@ self.addEventListener('push', (event) => {
   const eventId = notificationData?.data?.notification_id || notificationData?.data?.id || crypto.randomUUID();
   notificationData.tag = 'agrilink-' + eventId;
 
-  // Service workers cannot reliably use AudioContext for background audio.
-  // The browser/OS controls the sound of the displayed notification.
-  event.waitUntil(self.registration.showNotification(notificationData.title, notificationData));
+  // Se a aplicação estiver visível, encaminhar o push para o runtime da página.
+  // Assim evitamos duplicar o toast/som em primeiro plano com uma notificação do sistema.
+  // Em segundo plano, o sistema operativo apresenta a notificação push normalmente.
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      const activeClients = clients.filter((client) => client.visibilityState === 'visible' && client.focused);
+      if (activeClients.length > 0) {
+        activeClients.forEach((client) => client.postMessage({
+          type: 'PUSH_NOTIFICATION',
+          notification: notificationData,
+        }));
+        return;
+      }
+      // O som/vibração em segundo plano é controlado pelo navegador e pelo sistema operativo.
+      return self.registration.showNotification(notificationData.title, notificationData);
+    })
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
