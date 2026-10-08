@@ -595,6 +595,7 @@ const Profile = () => {
   )
 
   /* ── TABS config ── */
+  // Fluxos logísticos do comprador devem permanecer ligados ao backend; não usar estado visual fictício.
   const isComprador = userProfile?.user_type === 'comprador'
   const isAgente = userProfile?.user_type === 'agente'
   const isAgricultor = userProfile?.user_type === 'agricultor'
