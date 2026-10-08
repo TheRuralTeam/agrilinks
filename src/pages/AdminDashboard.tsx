@@ -416,7 +416,7 @@ const AdminDashboard = () => {
         supabase.from("products").select("*").order("created_at", { ascending: false }),
         supabase.from("users").select("*").order("created_at", { ascending: false }),
         supabase.from("transactions").select("*").order("created_at", { ascending: false }),
-        supabase.from("notifications").select("*").eq("user_id", currentUserId).order("created_at", { ascending: false }),
+        supabase.from("notifications").select("*").eq("user_id", currentUserId ?? "").order("created_at", { ascending: false }),
         supabase.from("fichas_recebimento").select("*").order("created_at", { ascending: false }),
         supabase.from("sourcing_requests").select("*").order("created_at", { ascending: false }),
         supabase.rpc("get_top_agents_by_referrals", { limit_count: 3 }),
