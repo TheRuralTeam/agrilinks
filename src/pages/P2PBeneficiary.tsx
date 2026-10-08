@@ -21,6 +21,7 @@ import {
   fetchMyP2PMatches,
   fetchMyP2POrders,
   openP2PDispute,
+  submitP2PPaymentProof,
   submitP2PBeneficiaryApplication,
   type P2PPaymentChannel,
   type P2PApplication,
@@ -80,6 +81,9 @@ export default function P2PBeneficiaryPage() {
   const [buyerPreOrders, setBuyerPreOrders] = useState<Array<{ id: string; total_price: number | null; product_id: string; status: string; payment_status: string | null }>>([])
   const [paymentChannel, setPaymentChannel] = useState<P2PPaymentChannel>('unitel_money')
   const [paymentAccount, setPaymentAccount] = useState<P2PAccount | null>(null)
+  const [buyerP2POrders, setBuyerP2POrders] = useState<P2POrder[]>([])
+  const [buyerProofOrderId, setBuyerProofOrderId] = useState<string | null>(null)
+  const [buyerProofReference, setBuyerProofReference] = useState('')
   const [disputeOrderId, setDisputeOrderId] = useState<string | null>(null)
   const [disputeReason, setDisputeReason] = useState('')
 
@@ -92,6 +96,7 @@ export default function P2PBeneficiaryPage() {
       const { data: preOrders, error: preOrderError } = await supabase.from('pre_orders').select('id,total_price,product_id,status,payment_status').eq('user_id', user?.id).eq('status', 'accepted').eq('payment_status', 'unpaid').is('deleted_at', null).order('created_at', { ascending: false }).limit(20)
       if (preOrderError) throw preOrderError
       setBuyerPreOrders((preOrders ?? []) as typeof buyerPreOrders)
+      setBuyerP2POrders(await fetchMyP2POrders())
       if (ben) {
         const [acc, m, o] = await Promise.all([
           fetchMyP2PAccounts(ben.id),
@@ -176,6 +181,20 @@ export default function P2PBeneficiaryPage() {
   const loadPaymentAccount = async (accountId: string) => {
     try { setPaymentAccount(await fetchP2PPaymentAccount(accountId)) }
     catch (error: any) { toast({ title: 'Dados de pagamento', description: error?.message ?? 'Não foi possível carregar os dados.', variant: 'destructive' }) }
+  }
+
+  const submitBuyerProof = async () => {
+    if (!buyerProofOrderId || !buyerProofReference.trim()) return
+    setBusy(buyerProofOrderId)
+    try {
+      await submitP2PPaymentProof(buyerProofOrderId, buyerProofReference)
+      setBuyerProofOrderId(null)
+      setBuyerProofReference('')
+      toast({ title: 'Pagamento comunicado', description: 'A operação foi encaminhada para confirmação do beneficiário.' })
+      await refresh()
+    } catch (error: any) {
+      toast({ title: 'Não foi possível comunicar o pagamento', description: error?.message ?? 'Tente novamente.', variant: 'destructive' })
+    } finally { setBusy(null) }
   }
 
   const acceptMatch = async (matchId: string) => {
@@ -317,6 +336,29 @@ export default function P2PBeneficiaryPage() {
           ))}
         </CardContent>
       </Card>
+
+      {buyerP2POrders.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Meus pagamentos P2P</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            {buyerP2POrders.map((order) => (
+              <div key={order.id} className="rounded-md border p-4">
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div><p className="font-medium">{money(order.amount, order.currency)}</p><p className="text-xs text-muted-foreground">#{order.id.slice(0,8)} · {statusLabel[order.status] ?? order.status}</p></div>
+                  <Badge variant="outline">{statusLabel[order.status] ?? order.status}</Badge>
+                </div>
+                {order.status === 'payment_pending' && order.beneficiary_account_id && (
+                  <div className="mt-3 rounded-md border p-3 text-sm">
+                    <p className="font-medium">Dados oficiais para esta operação</p>
+                    {paymentAccount?.id === order.beneficiary_account_id ? <><p>{paymentAccount.account_holder}</p><p>{paymentAccount.account_identifier}</p><p className="text-muted-foreground">{paymentAccount.instructions ?? 'Utilize apenas estes dados para efectuar o pagamento.'}</p></> : <Button variant="outline" className="mt-2" onClick={() => void loadPaymentAccount(order.beneficiary_account_id!)}>Mostrar dados verificados</Button>}
+                    {buyerProofOrderId === order.id ? <div className="mt-3 space-y-2"><Input value={buyerProofReference} onChange={(e)=>setBuyerProofReference(e.target.value)} placeholder="Referência da transferência" /><div className="flex gap-2"><Button onClick={submitBuyerProof} disabled={!buyerProofReference.trim() || busy===order.id}>Comunicar pagamento</Button><Button variant="outline" onClick={()=>setBuyerProofOrderId(null)}>Cancelar</Button></div></div> : <Button className="mt-3" onClick={()=>setBuyerProofOrderId(order.id)}>Já efectuei o pagamento</Button>}
+                  </div>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {beneficiary && (
         <>
