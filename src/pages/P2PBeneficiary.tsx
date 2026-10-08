@@ -12,6 +12,9 @@ import { useAuth } from '../contexts/AuthContext'
 import {
   acceptP2PMatch,
   confirmP2PPaymentReceived,
+  createP2POrder,
+  fetchP2PPaymentAccount,
+  setP2PBeneficiaryAvailability,
   fetchMyP2PAccounts,
   fetchMyP2PApplication,
   fetchMyP2PBeneficiary,
@@ -19,7 +22,6 @@ import {
   fetchMyP2POrders,
   openP2PDispute,
   submitP2PBeneficiaryApplication,
-  submitP2PPaymentProof,
   type P2PPaymentChannel,
   type P2PApplication,
   type P2PBeneficiary,
@@ -75,8 +77,9 @@ export default function P2PBeneficiaryPage() {
   const [phone, setPhone] = useState('')
   const [notes, setNotes] = useState('')
   const [selectedChannels, setSelectedChannels] = useState<P2PPaymentChannel[]>(['unitel_money'])
-  const [proofOrderId, setProofOrderId] = useState<string | null>(null)
-  const [proofReference, setProofReference] = useState('')
+  const [buyerPreOrders, setBuyerPreOrders] = useState<Array<{ id: string; total_price: number | null; product_id: string; status: string; payment_status: string | null }>>([])
+  const [paymentChannel, setPaymentChannel] = useState<P2PPaymentChannel>('unitel_money')
+  const [paymentAccount, setPaymentAccount] = useState<P2PAccount | null>(null)
   const [disputeOrderId, setDisputeOrderId] = useState<string | null>(null)
   const [disputeReason, setDisputeReason] = useState('')
 
@@ -86,6 +89,9 @@ export default function P2PBeneficiaryPage() {
       const [app, ben] = await Promise.all([fetchMyP2PApplication(), fetchMyP2PBeneficiary()])
       setApplication(app)
       setBeneficiary(ben)
+      const { data: preOrders, error: preOrderError } = await supabase.from('pre_orders').select('id,total_price,product_id,status,payment_status').eq('user_id', user?.id).eq('status', 'accepted').eq('payment_status', 'unpaid').is('deleted_at', null).order('created_at', { ascending: false }).limit(20)
+      if (preOrderError) throw preOrderError
+      setBuyerPreOrders((preOrders ?? []) as typeof buyerPreOrders)
       if (ben) {
         const [acc, m, o] = await Promise.all([
           fetchMyP2PAccounts(ben.id),
@@ -145,6 +151,33 @@ export default function P2PBeneficiaryPage() {
     }
   }
 
+  const setAvailability = async (status: 'online' | 'busy' | 'offline') => {
+    setBusy('availability')
+    try {
+      await setP2PBeneficiaryAvailability(status)
+      toast({ title: 'Disponibilidade actualizada' })
+      await refresh()
+    } catch (error: any) {
+      toast({ title: 'Não foi possível actualizar', description: error?.message ?? 'Tente novamente.', variant: 'destructive' })
+    } finally { setBusy(null) }
+  }
+
+  const startBuyerPayment = async (preOrderId: string) => {
+    setBusy(preOrderId)
+    try {
+      const orderId = await createP2POrder(preOrderId, paymentChannel)
+      toast({ title: 'Pagamento P2P criado', description: `Operação ${orderId.slice(0, 8)} criada. A AgriLink está a procurar um beneficiário.` })
+      await refresh()
+    } catch (error: any) {
+      toast({ title: 'Não foi possível iniciar', description: error?.message ?? 'A pré-compra ainda não está pronta para pagamento.', variant: 'destructive' })
+    } finally { setBusy(null) }
+  }
+
+  const loadPaymentAccount = async (accountId: string) => {
+    try { setPaymentAccount(await fetchP2PPaymentAccount(accountId)) }
+    catch (error: any) { toast({ title: 'Dados de pagamento', description: error?.message ?? 'Não foi possível carregar os dados.', variant: 'destructive' }) }
+  }
+
   const acceptMatch = async (matchId: string) => {
     setBusy(matchId)
     try {
@@ -153,22 +186,6 @@ export default function P2PBeneficiaryPage() {
       await refresh()
     } catch (error: any) {
       toast({ title: 'Oferta indisponível', description: error?.message ?? 'Outro beneficiário pode ter aceite esta operação.', variant: 'destructive' })
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  const submitProof = async () => {
-    if (!proofOrderId || !proofReference.trim()) return
-    setBusy(proofOrderId)
-    try {
-      await submitP2PPaymentProof(proofOrderId, proofReference)
-      setProofOrderId(null)
-      setProofReference('')
-      toast({ title: 'Pagamento comunicado', description: 'A transacção aguarda confirmação do beneficiário.' })
-      await refresh()
-    } catch (error: any) {
-      toast({ title: 'Não foi possível comunicar', description: error?.message ?? 'Tente novamente.', variant: 'destructive' })
     } finally {
       setBusy(null)
     }
@@ -285,6 +302,22 @@ export default function P2PBeneficiaryPage() {
         </Card>
       )}
 
+      <Card>
+        <CardHeader><CardTitle className="text-base">Pagar uma pré-compra via P2P</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">Escolha o canal. A AgriLink só encaminha a operação para beneficiários previamente verificados e activos.</p>
+          <select className="h-10 w-full rounded-md border bg-background px-3 text-sm md:w-80" value={paymentChannel} onChange={(e) => setPaymentChannel(e.target.value as P2PPaymentChannel)}>
+            {channels.map((channel) => <option key={channel.id} value={channel.id}>{channel.label}</option>)}
+          </select>
+          {buyerPreOrders.length === 0 ? <p className="text-sm text-muted-foreground">Não existem pré-compras aceites e ainda não pagas.</p> : buyerPreOrders.map((order) => (
+            <div key={order.id} className="flex flex-col gap-3 rounded-md border p-4 md:flex-row md:items-center md:justify-between">
+              <div><p className="font-medium">{money(Number(order.total_price ?? 0))}</p><p className="text-xs text-muted-foreground">Pré-compra #{order.id.slice(0,8)} · pronta para pagamento</p></div>
+              <Button onClick={() => void startBuyerPayment(order.id)} disabled={busy === order.id}>Iniciar pagamento P2P</Button>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
       {beneficiary && (
         <>
           <section className="grid gap-4 md:grid-cols-4">
@@ -307,6 +340,17 @@ export default function P2PBeneficiaryPage() {
           </Card>
 
           <Card>
+            <CardHeader><CardTitle className="text-base">Disponibilidade para matching</CardTitle></CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              {(['online','busy','offline'] as const).map((status) => (
+                <Button key={status} variant={beneficiary.availability_status === status ? 'default' : 'outline'} disabled={busy === 'availability'} onClick={() => setAvailability(status)}>
+                  {status === 'online' ? 'Disponível' : status === 'busy' ? 'Ocupado' : 'Offline'}
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card>
             <CardHeader><CardTitle className="text-base">Operações P2P</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {activeOrders.length === 0 ? <p className="text-sm text-muted-foreground">Ainda não existem operações activas.</p> : activeOrders.map((order) => (
@@ -315,7 +359,7 @@ export default function P2PBeneficiaryPage() {
                     <div><p className="font-medium">{money(order.amount, order.currency)}</p><p className="text-xs text-muted-foreground">#{order.id.slice(0, 8)} · {statusLabel[order.status] ?? order.status} · {order.payment_channel}</p></div>
                     <Badge variant="outline">{statusLabel[order.status] ?? order.status}</Badge>
                   </div>
-                  {order.status === 'payment_pending' && <p className="mt-3 text-sm text-muted-foreground">A aguardar que o comprador envie o pagamento para os dados verificados da operação.</p>}
+                  {order.status === 'payment_pending' && <><p className="mt-3 text-sm text-muted-foreground">A aguardar que o comprador envie o pagamento para os dados verificados da operação.</p>{order.beneficiary_account_id && <Button variant="outline" className="mt-3" onClick={() => void loadPaymentAccount(order.beneficiary_account_id!)}>Ver dados do recebimento</Button>}{paymentAccount?.id === order.beneficiary_account_id && <div className="mt-3 rounded-md border p-3 text-sm"><p className="font-medium">{paymentAccount.account_holder}</p><p>{paymentAccount.account_identifier}</p><p className="text-muted-foreground">{paymentAccount.instructions ?? 'Utilize apenas os dados apresentados nesta operação.'}</p></div>}</>}
                   {order.status === 'payment_submitted' && <Button className="mt-3" onClick={() => confirmReceived(order.id)} disabled={busy === order.id}><CheckCircle2 className="mr-2 h-4 w-4" /> Confirmar recebimento</Button>}
                   {['payment_submitted','payment_detected'].includes(order.status) && <Button variant="outline" className="ml-2 mt-3" onClick={() => setDisputeOrderId(order.id)}>Abrir disputa</Button>}
                 </div>
@@ -341,9 +385,7 @@ export default function P2PBeneficiaryPage() {
         </Card>
       )}
 
-      {proofOrderId && (
-        <Card><CardHeader><CardTitle className="text-base">Comunicar pagamento</CardTitle></CardHeader><CardContent className="space-y-3"><Label>Referência da transferência</Label><Input value={proofReference} onChange={(e)=>setProofReference(e.target.value)} placeholder="ID/referência da operação" /><div className="flex gap-2"><Button onClick={submitProof} disabled={!proofReference.trim()}>Enviar</Button><Button variant="outline" onClick={()=>setProofOrderId(null)}>Cancelar</Button></div></CardContent></Card>
-      )}
+
 
       {disputeOrderId && (
         <Card><CardHeader><CardTitle className="text-base">Abrir disputa</CardTitle></CardHeader><CardContent className="space-y-3"><Label>Motivo</Label><Textarea value={disputeReason} onChange={(e)=>setDisputeReason(e.target.value)} placeholder="Descreva objectivamente o problema." /><div className="flex gap-2"><Button onClick={submitDispute} disabled={!disputeReason.trim()}>Encaminhar para análise</Button><Button variant="outline" onClick={()=>setDisputeOrderId(null)}>Cancelar</Button></div></CardContent></Card>
