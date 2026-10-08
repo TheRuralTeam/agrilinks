@@ -15,6 +15,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../integrations/supabase/client';
 import { getNotificationTargetPath } from '../lib/notificationNavigation';
@@ -87,6 +88,7 @@ const Notifications = () => {
       return true;
     } catch (error) {
       console.error('Erro ao marcar como lida:', error);
+      toast.error('Não foi possível sincronizar a leitura desta notificação.');
       return false;
     }
   }, [user?.id]);
@@ -106,8 +108,10 @@ const Notifications = () => {
         .eq('read', false);
       if (error) throw error;
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      toast.success('Todas as notificações foram marcadas como lidas.');
     } catch (error) {
       console.error('Erro ao marcar todas como lidas:', error);
+      toast.error('Não foi possível marcar todas as notificações como lidas.');
     }
   }, [user]);
 
@@ -121,8 +125,10 @@ const Notifications = () => {
         .eq('user_id', user.id);
       if (error) throw error;
       setNotifications((prev) => prev.filter((n) => n.id !== id));
+      toast.success('Notificação eliminada.');
     } catch (error) {
       console.error('Erro ao eliminar notificação:', error);
+      toast.error('Não foi possível eliminar a notificação.');
     }
   }, [user]);
 
