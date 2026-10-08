@@ -53,24 +53,38 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
       try {
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.getSubscription();
-        setIsSubscribed(!!subscription);
+        if (!subscription) {
+          setIsSubscribed(false);
+          return;
+        }
+
+        const configuredKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+        if (configuredKey) {
+          const expectedKey = urlBase64ToUint8Array(configuredKey);
+          if (!arePushKeysEqual(subscription.options.applicationServerKey, expectedKey)) {
+            await subscription.unsubscribe();
+            const { error: deleteError } = await supabase
+              .from('push_subscriptions')
+              .delete()
+              .eq('user_id', user.id)
+              .eq('endpoint', subscription.endpoint);
+            if (deleteError) throw deleteError;
+            setIsSubscribed(false);
+            setError('A chave de notificações foi actualizada. Active novamente as notificações para registar este dispositivo.');
+            return;
+          }
+        }
+
+        setError(null);
+        setIsSubscribed(true);
       } catch (err) {
         console.error('Erro ao verificar subscrição:', err);
+        setError('Não foi possível validar a subscrição de notificações deste dispositivo.');
       }
     };
 
     checkSubscription();
   }, [isSupported, user]);
-
-  // Converter ArrayBuffer para Base64
-  const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
-  };
 
   // Subscrever a notificações push
   const subscribe = useCallback(async () => {
@@ -117,13 +131,27 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
         throw new Error('Chave VAPID pública inválida. Deve ser uma chave P-256 base64url de 65 bytes e corresponder à chave privada do servidor.');
       }
 
-      // Subscrever
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: convertedVapidKey as BufferSource,
-      });
+      // Reutilizar a subscrição se já estiver vinculada à chave actual.
+      let subscription = await registration.pushManager.getSubscription();
+      if (subscription && !arePushKeysEqual(subscription.options.applicationServerKey, convertedVapidKey)) {
+        await subscription.unsubscribe();
+        const { error: deleteError } = await supabase
+          .from('push_subscriptions')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('endpoint', subscription.endpoint);
+        if (deleteError) throw deleteError;
+        subscription = null;
+      }
 
-      // Salvar subscrição no banco de dados
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedVapidKey as BufferSource,
+        });
+      }
+
+      // Guardar a subscrição associada ao utilizador e ao endpoint deste dispositivo.
       const subscriptionJSON = subscription.toJSON() as PushSubscriptionJSON;
 
       const { error: dbError } = await supabase
@@ -194,6 +222,18 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     unsubscribe,
   };
 };
+
+function arePushKeysEqual(
+  currentKey: ArrayBuffer | ArrayBufferView | null,
+  expectedKey: Uint8Array,
+): boolean {
+  if (!currentKey) return false;
+  const currentBytes = currentKey instanceof ArrayBuffer
+    ? new Uint8Array(currentKey)
+    : new Uint8Array(currentKey.buffer, currentKey.byteOffset, currentKey.byteLength);
+  if (currentBytes.length !== expectedKey.length) return false;
+  return currentBytes.every((byte, index) => byte === expectedKey[index]);
+}
 
 /**
  * Converter URL Base64 para Uint8Array
