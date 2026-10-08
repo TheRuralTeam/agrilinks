@@ -32,9 +32,6 @@ function resolveNotificationPath(type: string, metadata: Record<string, unknown>
   };
   const normalizedType = type.toLowerCase();
   const conversationId = getId("conversation_id", "conversationId");
-  const orderId = getId("pre_order_id", "order_id", "preOrderId");
-  const productId = getId("product_id", "productId");
-  const fichaId = getId("ficha_id", "fichaId");
 
   if ((normalizedType === "message" || normalizedType === "chat") && conversationId) return `/messages/${encodeURIComponent(conversationId)}`;
   if (normalizedType === "message" || normalizedType === "chat") return "/listamensagens";
