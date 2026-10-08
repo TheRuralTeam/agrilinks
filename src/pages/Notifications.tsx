@@ -17,6 +17,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../integrations/supabase/client';
+import { getNotificationTargetPath } from '../lib/notificationNavigation';
 import Loader from '../components/ui/Loader';
 
 const T = {
@@ -72,18 +73,26 @@ const Notifications = () => {
   }, [fetchNotifications]);
 
   const markAsRead = useCallback(async (id: string) => {
+    if (!user?.id) return false;
     try {
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('id', id)
-        .eq('user_id', user?.id ?? '');
+        .eq('user_id', user.id);
       if (error) throw error;
       setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
+      return true;
     } catch (error) {
       console.error('Erro ao marcar como lida:', error);
+      return false;
     }
   }, [user?.id]);
+
+  const openNotification = useCallback(async (notification: Notification) => {
+    if (!notification.read) await markAsRead(notification.id);
+    navigate(getNotificationTargetPath(notification));
+  }, [markAsRead, navigate]);
 
   const markAllAsRead = useCallback(async () => {
     if (!user) return;
@@ -199,7 +208,7 @@ const Notifications = () => {
             key={notification.id}
             style={{ background: notification.read ? T.white : T.g50, border: `1px solid ${notification.read ? T.rule : T.gBorder}` }}
             className="cursor-pointer transition-all hover:shadow-md overflow-hidden"
-            onClick={() => void markAsRead(notification.id)}
+            onClick={() => void openNotification(notification)}
           >
             <CardContent className="p-4">
               <div className="flex items-start gap-4">
