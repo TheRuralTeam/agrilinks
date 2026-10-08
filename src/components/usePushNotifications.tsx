@@ -162,7 +162,7 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
           auth_key: subscriptionJSON.keys.auth,
           p256dh_key: subscriptionJSON.keys.p256dh,
           updated_at: new Date().toISOString(),
-        });
+        }, { onConflict: 'user_id,endpoint' });
 
       if (dbError) throw dbError;
 
@@ -195,10 +195,12 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
         await subscription.unsubscribe();
 
         // Remover do banco de dados
-        await supabase
+        const { error: deleteError } = await supabase
           .from('push_subscriptions')
           .delete()
-          .eq('user_id', user.id);
+          .eq('user_id', user.id)
+          .eq('endpoint', subscription.endpoint);
+        if (deleteError) throw deleteError;
 
         setIsSubscribed(false);
         console.log('Desinscrição de notificações push com sucesso');
