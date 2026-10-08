@@ -466,28 +466,34 @@ const AdminDashboard = () => {
   };
 
   const sendNotification = useCallback(async () => {
+    if (!hasPermission("manage_support")) {
+      toast.error("Não tem permissão para enviar notificações.");
+      return;
+    }
     if (!targetUser || !notificationMessage.trim() || !notificationTitle.trim()) {
       toast.error("Preencha todos os campos!");
       return;
     }
     try {
-      const { error } = await supabase.rpc("create_notification", {
+      const { data, error } = await supabase.rpc("admin_send_notification", {
         p_user_id: targetUser,
         p_type: notificationType,
-        p_title: notificationTitle,
-        p_message: notificationMessage,
+        p_title: notificationTitle.trim(),
+        p_message: notificationMessage.trim(),
         p_metadata: {}
       });
       if (error) throw error;
+      if (!data) throw new Error("O servidor não confirmou o envio da notificação.");
       setNotificationModalOpen(false);
       setNotificationMessage("");
       setNotificationTitle("");
       setTargetUser(null);
-      toast.success("Notificação enviada!");
-    } catch {
-      toast.error("Erro ao enviar notificação");
+      toast.success("Notificação enviada com sucesso.");
+    } catch (error) {
+      console.error("Erro ao enviar notificação administrativa:", error);
+      toast.error(error instanceof Error ? error.message : "Não foi possível enviar a notificação.");
     }
-  }, [targetUser, notificationMessage, notificationTitle, notificationType]);
+  }, [hasPermission, targetUser, notificationMessage, notificationTitle, notificationType]);
 
   const handleDelete = useCallback((table: string, id: string) => {
     setAdminDeleteTarget({ table, ids: [id] });
@@ -1565,9 +1571,11 @@ const AdminDashboard = () => {
                   <button onClick={() => setFilterStatus("unread")} className={`px-3 py-1.5 text-xs ${filterStatus === "unread" ? "bg-primary text-white" : "bg-white text-gray-600"}`}>Não Lidas</button>
                   <button onClick={() => setFilterStatus("read")} className={`px-3 py-1.5 text-xs ${filterStatus === "read" ? "bg-primary text-white" : "bg-white text-gray-600"}`}>Lidas</button>
                 </div>
-                <Button size="sm" onClick={() => setNotificationModalOpen(true)}>
-                  <Send className="h-4 w-4 mr-1" /> Enviar
-                </Button>
+                {hasPermission("manage_support") && (
+                  <Button size="sm" onClick={() => setNotificationModalOpen(true)}>
+                    <Send className="h-4 w-4 mr-1" /> Enviar
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
