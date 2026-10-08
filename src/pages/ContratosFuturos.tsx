@@ -73,22 +73,6 @@ const ContratosFuturos = () => {
       }).eq('id', active.id)
       if (error) throw error
 
-      if (active.producer_id) {
-        await supabase.rpc('create_notification', {
-          p_user_id: active.producer_id,
-          p_type: 'contract',
-          p_title: 'Contrato de Futuros aceite pelo comprador',
-          p_message: `O comprador aceitou o contrato de ${active.quantity} ${active.unit} de ${active.product_name}. Confirme para o tornar vinculativo.`,
-          p_metadata: { contract_id: active.id },
-        })
-      }
-      await supabase.rpc('create_admin_notifications', {
-        p_type: 'contract',
-        p_title: 'Contrato de Futuros aceite',
-        p_message: `Contrato de ${active.product_name} aceite pelo comprador. Aguarda confirmação do produtor.`,
-        p_metadata: { contract_id: active.id },
-      })
-
       toast.success('Contrato digital aceite com sucesso.')
       setActive(null)
       load()
@@ -106,13 +90,6 @@ const ContratosFuturos = () => {
       producer_confirmed_at: new Date().toISOString(),
     }).eq('id', c.id)
     if (error) return toast.error(error.message)
-    await supabase.rpc('create_notification', {
-      p_user_id: c.buyer_id,
-      p_type: 'contract',
-      p_title: 'Contrato de Futuros confirmado',
-      p_message: `O produtor confirmou o contrato de ${c.product_name}. O contrato está agora activo.`,
-      p_metadata: { contract_id: c.id },
-    })
     toast.success('Contrato confirmado.')
     load()
   }
