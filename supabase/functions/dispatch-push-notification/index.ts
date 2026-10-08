@@ -10,6 +10,44 @@ const supabase = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } },
 );
 
+
+function resolveNotificationPath(type: string, metadata: Record<string, unknown> | null): string {
+  const data = metadata ?? {};
+  const explicit = data.path;
+  if (typeof explicit === "string" && explicit.startsWith("/") && !explicit.startsWith("//") && !explicit.includes("\\")) {
+    try {
+      const parsed = new URL(explicit, "https://agrilink.ao");
+      if (parsed.origin === "https://agrilink.ao") return parsed.pathname + parsed.search + parsed.hash;
+    } catch {
+      // Use the safe type-based fallback below.
+    }
+  }
+
+  const getId = (...keys: string[]) => {
+    for (const key of keys) {
+      const value = data[key];
+      if (typeof value === "string" && value.trim()) return value.trim();
+    }
+    return null;
+  };
+  const normalizedType = type.toLowerCase();
+  const conversationId = getId("conversation_id", "conversationId");
+  const orderId = getId("pre_order_id", "order_id", "preOrderId");
+  const productId = getId("product_id", "productId");
+  const fichaId = getId("ficha_id", "fichaId");
+
+  if ((normalizedType === "message" || normalizedType === "chat") && conversationId) return `/messages/${encodeURIComponent(conversationId)}`;
+  if (normalizedType === "message" || normalizedType === "chat") return "/listamensagens";
+  if (normalizedType.startsWith("pre_order") || normalizedType.includes("order")) {
+    return orderId ? `/dashboard?order=${encodeURIComponent(orderId)}` : "/dashboard";
+  }
+  if (normalizedType.includes("ficha") && fichaId) return `/ficharecebimento?ficha=${encodeURIComponent(fichaId)}`;
+  if (normalizedType.includes("product")) return productId ? `/app?product=${encodeURIComponent(productId)}` : "/app";
+  if (normalizedType === "referral" || normalizedType.includes("agent")) return "/dashboard";
+  if (normalizedType === "support") return "/suporte";
+  return "/notificacoes";
+}
+
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -69,7 +107,7 @@ Deno.serve(async (req) => {
         ...(notification.metadata ?? {}),
         notification_id: notification.id,
         type: notification.type,
-        path: "/notificacoes",
+        path: resolveNotificationPath(notification.type, notification.metadata as Record<string, unknown> | null),
       },
       tag: `agrilink-${notification.id}`,
       renotify: true,
