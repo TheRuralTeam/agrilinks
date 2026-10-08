@@ -59,8 +59,16 @@ interface FichaRecebimento {
 interface ReceivedOrder {
   id: string; product_id: string; user_id: string; quantity: number
   location: string; status: string; created_at: string
+  unit_price?: number | null; payment_status?: string | null
   product?: { product_type: string; price: number }
   buyer?: { full_name: string; phone: string; email?: string }
+}
+interface BuyerPreOrder {
+  id: string; product_id: string; quantity: number; location: string
+  status: string; created_at: string; updated_at: string
+  unit_price: number | null; total_price: number | null
+  payment_status: string | null; reservation_expires_at: string | null
+  product?: { product_type: string; price: number }
 }
 interface SourcingRequest {
   id: string; product_name: string; quantity: number; delivery_date: string
@@ -271,6 +279,7 @@ const Profile = () => {
   const [userProducts, setUserProducts] = useState<UserProduct[]>([])
   const [fichasRecebimento, setFichasRecebimento] = useState<FichaRecebimento[]>([])
   const [receivedOrders, setReceivedOrders] = useState<ReceivedOrder[]>([])
+  const [buyerPreOrders, setBuyerPreOrders] = useState<BuyerPreOrder[]>([])
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null)
   const [walletBalanceOwnerId, setWalletBalanceOwnerId] = useState<string | null>(null)
   const [walletLoading, setWalletLoading] = useState(false)
@@ -378,6 +387,22 @@ const Profile = () => {
     } catch (error) { console.error(error) }
   }, [user?.id])
 
+  const fetchBuyerPreOrders = React.useCallback(async () => {
+    if (!user?.id) { setBuyerPreOrders([]); return }
+    try {
+      const { data, error } = await supabase.from('pre_orders')
+        .select('id, product_id, quantity, location, status, created_at, updated_at, unit_price, total_price, payment_status, reservation_expires_at')
+        .eq('user_id', user.id).is('deleted_at', null).order('created_at', { ascending: false })
+      if (error) throw error
+      const rows = await Promise.all((data || []).map(async (order) => {
+        const { data: product, error: productError } = await supabase.from('products').select('product_type, price').eq('id', order.product_id).single()
+        if (productError) throw productError
+        return { ...order, product: product || undefined } as BuyerPreOrder
+      }))
+      setBuyerPreOrders(rows)
+    } catch (error) { console.error(error); setBuyerPreOrders([]) }
+  }, [user?.id])
+
   const submitSourcingRequest = async () => {
     if (!user) {
       requireAuth('enviar um pedido de sourcing')
@@ -421,11 +446,11 @@ const Profile = () => {
       setLoading(false)
       return
     }
-    if (userProfile?.user_type === 'comprador') { fetchFichasRecebimento(); fetchSourcingRequests(); fetchBuyerStats() }
+    if (userProfile?.user_type === 'comprador') { fetchFichasRecebimento(); fetchSourcingRequests(); fetchBuyerStats(); fetchBuyerPreOrders() }
     else { fetchUserProducts(); fetchReceivedOrders() }
     if (userProfile?.user_type === 'agente') fetchAgentStats()
     setLoading(false)
-  }, [user, userProfile, isGuest, fetchAgentStats, fetchBuyerStats, fetchFichasRecebimento, fetchReceivedOrders, fetchSourcingRequests, fetchUserProducts])
+  }, [user, userProfile, isGuest, fetchAgentStats, fetchBuyerStats, fetchBuyerPreOrders, fetchFichasRecebimento, fetchReceivedOrders, fetchSourcingRequests, fetchUserProducts])
 
   useEffect(() => {
     if (!authenticatedUserId || isGuest) {
@@ -574,6 +599,7 @@ const Profile = () => {
 
   const tabs = [
     { id: 'products', label: isComprador ? t('profile.myFichas') : t('profile.myProducts'), icon: isComprador ? <ClipboardList size={15}/> : <Package size={15}/> },
+    ...(isComprador ? [{ id: 'orders', label: 'Minhas pré-compras', icon: <ShoppingCart size={15}/>, badge: buyerPreOrders.filter(o => o.status === 'pending').length }] : []),
     ...(isComprador ? [{ id: 'sourcing', label: t('profile.sourcing'), icon: <Search size={15}/> }] : []),
     ...(isAgricultor || isAgente ? [{ id: 'orders', label: t('profile.receivedOrders'), icon: <ShoppingCart size={15}/>, badge: receivedOrders.filter(o => o.status === 'pending').length }] : []),
     ...(isAgente ? [{ id: 'referrals', label: t('profile.myReferrals'), icon: <Users size={15}/> }] : []),
@@ -861,6 +887,28 @@ const Profile = () => {
                 empty={<EmptyState icon={<Search size={26} color={T.faint}/>} message={t('sourcing.noRequests')} />}
               />
             </div>
+          )}
+
+          {/* ── Buyer Pre-orders ── */}
+          {activeTab === 'orders' && isComprador && (
+            <OrdersTable
+              columns={[
+                { key: 'produto', label: 'Produto', render: r => <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}><span style={{ fontWeight: 700, color: T.ink }}>{r.product?.product_type || 'Produto'}</span><StatusPill status={r.status} /></div> },
+                { key: 'qtd', label: 'Quantidade', align: 'right', render: r => <span style={{ fontWeight: 700, color: T.g600 }}>{r.quantity.toLocaleString('pt-AO')} kg</span> },
+                { key: 'valor', label: 'Total', align: 'right', render: r => `${Number(r.total_price || 0).toLocaleString('pt-AO')} Kz` },
+                { key: 'pagamento', label: 'Pagamento', render: r => <span style={{ fontSize: 12, fontWeight: 600, color: r.payment_status === 'paid' ? T.g600 : T.faint }}>{r.payment_status === 'paid' ? 'Pago' : r.status === 'accepted' ? 'A aguardar pagamento' : 'Não iniciado'}</span> },
+                { key: 'prazo', label: 'Reserva', render: r => {
+                  if (r.status !== 'pending' || !r.reservation_expires_at) return <span style={{ color: T.faint, fontSize: 12 }}>—</span>
+                  const expired = new Date(r.reservation_expires_at).getTime() <= Date.now()
+                  return <span style={{ color: expired ? '#DC2626' : T.faint, fontSize: 12, fontWeight: 600 }}>{expired ? 'Expirada' : `Até ${new Date(r.reservation_expires_at).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}`}</span>
+                } },
+                { key: 'data', label: 'Data', render: r => formatDate(r.created_at) },
+              ]}
+              rows={buyerPreOrders}
+              keyField={r => r.id}
+              accent={r => r.status === 'pending' ? T.goldL : r.status === 'accepted' ? T.g400 : r.status === 'rejected' ? '#EF4444' : T.faint}
+              empty={<EmptyState icon={<ShoppingCart size={26} color={T.faint}/>} message="Ainda não tens pré-compras." sub="As pré-compras enviadas aparecerão aqui e serão actualizadas quando o fornecedor responder." />}
+            />
           )}
 
           {/* ── Received Orders ── */}
