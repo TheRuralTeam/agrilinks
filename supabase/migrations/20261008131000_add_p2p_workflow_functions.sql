@@ -178,3 +178,47 @@ grant execute on function public.submit_p2p_payment_proof(uuid,text,text) to aut
 grant execute on function public.confirm_p2p_payment_received(uuid,text) to authenticated;
 grant execute on function public.admin_complete_p2p_order(uuid,text) to authenticated;
 grant execute on function public.open_p2p_dispute(uuid,text) to authenticated;
+
+create or replace function public.set_p2p_beneficiary_availability(p_status text) returns boolean
+language plpgsql security definer set search_path=public as $$
+begin
+ if auth.uid() is null then raise exception 'AUTH_REQUIRED'; end if;
+ if p_status not in ('online','busy','offline') then raise exception 'INVALID_AVAILABILITY'; end if;
+ update p2p_beneficiaries set availability_status=p_status,updated_at=now() where user_id=auth.uid() and status='active';
+ if not found then raise exception 'BENEFICIARY_NOT_ACTIVE'; end if;
+ return true;
+end $$;
+revoke all on function public.set_p2p_beneficiary_availability(text) from public,anon;
+grant execute on function public.set_p2p_beneficiary_availability(text) to authenticated;
+
+-- Reforça os limites diário/mensal no matching.
+create or replace function public.create_p2p_order(p_pre_order_id uuid,p_payment_channel text) returns uuid
+language plpgsql security definer set search_path=public as $$
+declare v_order_id uuid; v_buyer uuid; v_amount numeric; v_count integer:=0; v_b record;
+begin
+ if auth.uid() is null then raise exception 'AUTH_REQUIRED'; end if;
+ if p_payment_channel not in ('bank_transfer','multicaixa_express','unitel_money','afrimoney','paypay') then raise exception 'INVALID_PAYMENT_CHANNEL'; end if;
+ select buyer_id,total_price into v_buyer,v_amount from pre_orders where id=p_pre_order_id and status='accepted' and coalesce(payment_status,'unpaid')<>'paid' for update;
+ if not found then raise exception 'PRE_ORDER_NOT_READY'; end if;
+ if v_buyer<>auth.uid() then raise exception 'FORBIDDEN'; end if;
+ if v_amount is null or v_amount<=0 then raise exception 'INVALID_PAYMENT_AMOUNT'; end if;
+ if exists(select 1 from p2p_orders where pre_order_id=p_pre_order_id and status not in ('cancelled','expired','rejected','refunded')) then raise exception 'P2P_ORDER_ALREADY_EXISTS'; end if;
+ insert into p2p_orders(buyer_id,pre_order_id,amount,currency,payment_channel,status,expires_at) values(auth.uid(),p_pre_order_id,v_amount,'AOA',p_payment_channel,'matching',now()+interval '15 minutes') returning id into v_order_id;
+ for v_b in
+   select b.id beneficiary_id,coalesce(r.score,0) score,b.completion_rate,b.average_completion_seconds
+   from p2p_beneficiaries b join p2p_beneficiary_accounts a on a.beneficiary_id=b.id and a.channel=p_payment_channel and a.active and a.verified_at is not null
+   left join p2p_reputation r on r.beneficiary_id=b.id
+   where b.status='active' and b.availability_status='online' and b.user_id<>auth.uid()
+     and (b.per_transaction_limit=0 or b.per_transaction_limit>=v_amount)
+     and (a.max_amount=0 or a.max_amount>=v_amount)
+     and (select count(*) from p2p_orders o where o.beneficiary_id=b.id and o.status in ('accepted','payment_pending','payment_submitted','payment_detected','under_review'))<b.simultaneous_limit
+     and (b.daily_limit=0 or coalesce((select sum(o.amount) from p2p_orders o where o.beneficiary_id=b.id and o.created_at>=date_trunc('day',now()) and o.status not in ('cancelled','expired','rejected','refunded')),0)+v_amount<=b.daily_limit)
+     and (b.monthly_limit=0 or coalesce((select sum(o.amount) from p2p_orders o where o.beneficiary_id=b.id and o.created_at>=date_trunc('month',now()) and o.status not in ('cancelled','expired','rejected','refunded')),0)+v_amount<=b.monthly_limit)
+   order by coalesce(r.score,0) desc,b.completion_rate desc,b.average_completion_seconds asc,b.updated_at asc limit 5
+ loop
+   insert into p2p_matches(p2p_order_id,beneficiary_id,score) values(v_order_id,v_b.beneficiary_id,(v_b.score*0.7)+(v_b.completion_rate*0.3)); v_count:=v_count+1;
+ end loop;
+ if v_count>0 then update p2p_orders set status='offered',updated_at=now() where id=v_order_id; end if;
+ insert into p2p_transaction_events(p2p_order_id,event_type,to_status,actor_id,metadata) values(v_order_id,'p2p.order.created',case when v_count>0 then 'offered' else 'matching' end,auth.uid(),jsonb_build_object('matches',v_count,'channel',p_payment_channel));
+ return v_order_id;
+end $$;
