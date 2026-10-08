@@ -603,22 +603,32 @@ const AdminDashboard = () => {
       return;
     }
 
-    const previous = notifications.find((notification) => notification.id === id);
-    if (!previous || previous.read) return;
-
-    const { error } = await supabase
-      .from("notifications")
-      .update({ read: true })
-      .eq("id", id);
-
-    if (error) {
-      console.error("Erro ao marcar notificação como lida:", error);
-      toast.error("Não foi possível atualizar a notificação.");
+    if (!currentUserId) {
+      toast.error("Não foi possível identificar a sessão administrativa actual.");
       return;
     }
 
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  }, [hasPermission, isSupportAgent, notifications]);
+    const previous = notifications.find((notification) => notification.id === id);
+    if (!previous || previous.read || previous.user_id !== currentUserId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("id", id)
+        .eq("user_id", currentUserId)
+        .select("id")
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) throw new Error("O servidor não confirmou a actualização desta notificação.");
+
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    } catch (error) {
+      console.error("Erro ao marcar notificação como lida:", error);
+      toast.error(error instanceof Error ? error.message : "Não foi possível actualizar a notificação.");
+    }
+  }, [currentUserId, hasPermission, isSupportAgent, notifications]);
 
   const requestRemovePreOrder = useCallback((order: Order) => {
     if (!hasPermission("manage_orders") && !isSupportAgent) {
