@@ -479,7 +479,7 @@ const Profile = () => {
     try {
       const { error } = await supabase.from('sourcing_requests').insert({ user_id: user.id, product_name: sourcingForm.product_name, quantity: parseFloat(sourcingForm.quantity), delivery_date: sourcingForm.delivery_date, description: sourcingForm.description || null })
       if (error) throw error
-      await supabase.rpc('create_admin_notifications', { p_type: 'sourcing', p_title: 'Novo Pedido de Sourcing', p_message: `Comprador solicitou: ${sourcingForm.quantity}kg de ${sourcingForm.product_name}`, p_metadata: { user_id: user.id, product_name: sourcingForm.product_name } })
+      // A notificação administrativa é criada pelo trigger da base de dados após o INSERT.
       toast({ title: t('sourcing.requestSent'), description: t('sourcing.requestSentMessage') })
       setSourcingForm({ product_name: '', quantity: '', delivery_date: '', description: '' })
       setShowSourcingForm(false)
