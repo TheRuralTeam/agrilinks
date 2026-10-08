@@ -151,6 +151,38 @@ $;
 REVOKE ALL ON FUNCTION public.release_marketplace_reservation(uuid,boolean) FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.consume_marketplace_reservation() FROM PUBLIC,anon,authenticated;
 
+CREATE OR REPLACE FUNCTION public.get_marketplace_checkout_summary(p_pre_order_id uuid)
+RETURNS TABLE(pre_order_id uuid, product_total numeric, freight_total numeric, total numeric, currency text, payment_ready boolean, reason text)
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='public'
+AS $
+DECLARE
+  v_order public.pre_orders%ROWTYPE;
+  v_freight numeric:=0;
+  v_provider_ready boolean:=false;
+BEGIN
+  SELECT * INTO v_order FROM public.pre_orders WHERE id=p_pre_order_id AND user_id=auth.uid();
+  IF NOT FOUND THEN RAISE EXCEPTION 'ORDER_NOT_FOUND' USING ERRCODE='P0002'; END IF;
+  IF v_order.status <> 'accepted' THEN
+    RETURN QUERY SELECT v_order.id,v_order.total_price,0::numeric,v_order.total_price,'AOA'::text,false,'WAITING_SELLER_ACCEPTANCE'::text;
+    RETURN;
+  END IF;
+  SELECT COALESCE(fl.offered_price,fl.driver_offered_price,0) INTO v_freight
+  FROM public.freight_loads fl WHERE fl.pre_order_id=v_order.id ORDER BY fl.created_at DESC LIMIT 1;
+  SELECT EXISTS (
+    SELECT 1 FROM public.payment_providers pp
+    WHERE pp.enabled=true AND COALESCE(pp.test_mode,false)=false
+  ) INTO v_provider_ready;
+  RETURN QUERY SELECT v_order.id,v_order.total_price,v_freight,v_order.total_price+v_freight,'AOA'::text,
+    (v_freight>0 AND v_provider_ready),
+    CASE WHEN v_freight<=0 THEN 'WAITING_FREIGHT_QUOTE'
+         WHEN NOT v_provider_ready THEN 'WAITING_PAYMENT_PROVIDER'
+         ELSE 'READY' END;
+END;
+$;
+
+REVOKE ALL ON FUNCTION public.get_marketplace_checkout_summary(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.get_marketplace_checkout_summary(uuid) TO authenticated;
+
 CREATE OR REPLACE FUNCTION public.notify_pre_order_status_change()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path='public'
 AS $$
