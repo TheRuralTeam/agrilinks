@@ -153,3 +153,8 @@ grant execute on function public.get_marketplace_transaction_receipt(uuid) to au
 revoke all on function public.log_pre_order_transaction_event() from public,anon,authenticated;
 revoke all on function public.log_order_transaction_event() from public,anon,authenticated;
 revoke all on function public.log_freight_transaction_event() from public,anon,authenticated;
+
+insert into public.order_transaction_events(pre_order_id,event_type,to_status,actor_id,metadata,created_at)
+select po.id,'pre_order_created',po.status,po.user_id,jsonb_build_object('source','historical_backfill','derived_from','pre_orders.created_at'),po.created_at from public.pre_orders po where not exists (select 1 from public.order_transaction_events e where e.pre_order_id=po.id and e.event_type='pre_order_created');
+insert into public.order_transaction_events(pre_order_id,freight_load_id,event_type,to_status,actor_id,metadata,created_at)
+select f.pre_order_id,f.id,'freight_created',f.status,f.created_by,jsonb_build_object('source','historical_backfill','derived_from','freight_loads.created_at'),f.created_at from public.freight_loads f where f.pre_order_id is not null and not exists (select 1 from public.order_transaction_events e where e.freight_load_id=f.id and e.event_type='freight_created');
