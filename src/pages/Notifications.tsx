@@ -181,6 +181,20 @@ const Notifications = () => {
         </div>
       </header>
 
+      {!pushNotifications.isSupported && pushNotifications.supportMessage && (
+        <div className="max-w-3xl mx-auto px-4 pt-4">
+          <Card style={{ background: T.white, border: `1px solid ${T.rule}`, borderRadius: 16 }}>
+            <CardContent className="p-4 flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" style={{ color: T.gold }} />
+              <div className="min-w-0">
+                <h3 className="font-bold text-sm" style={{ color: T.ink }}>Configurar notificações neste dispositivo</h3>
+                <p className="text-xs mt-1 leading-relaxed" style={{ color: T.muted }}>{pushNotifications.supportMessage}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {pushNotifications.isSupported && !pushNotifications.isSubscribed && (
         <div className="max-w-3xl mx-auto px-4 pt-4">
           <Card style={{ background: `linear-gradient(135deg, ${T.g900}, ${T.g600})`, border: 'none', borderRadius: 16 }}>
