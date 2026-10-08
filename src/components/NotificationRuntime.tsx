@@ -114,7 +114,17 @@ export default function NotificationRuntime() {
             duration: 7000,
             action: {
               label: "Abrir",
-              onClick: () => navigate(targetPath),
+              onClick: () => {
+                void (async () => {
+                  const { error } = await supabase
+                    .from("notifications")
+                    .update({ read: true })
+                    .eq("id", notification.id)
+                    .eq("user_id", user.id);
+                  if (error) console.error("Não foi possível marcar a notificação como lida:", error);
+                  navigate(targetPath);
+                })();
+              },
             },
           });
         },
