@@ -194,3 +194,13 @@ export async function createP2POrder(preOrderId: string, channel: P2PPaymentChan
   if (error) throw error
   return data as string
 }
+
+
+export async function adminCompleteP2POrder(orderId: string, note?: string) {
+  const { data, error } = await supabase.rpc('admin_complete_p2p_order', {
+    p_p2p_order_id: orderId,
+    p_note: note ?? null,
+  })
+  if (error) throw error
+  return data as string
+}
