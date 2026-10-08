@@ -150,3 +150,6 @@ begin
 end $$;
 revoke all on function public.get_marketplace_transaction_receipt(uuid) from public,anon;
 grant execute on function public.get_marketplace_transaction_receipt(uuid) to authenticated;
+revoke all on function public.log_pre_order_transaction_event() from public,anon,authenticated;
+revoke all on function public.log_order_transaction_event() from public,anon,authenticated;
+revoke all on function public.log_freight_transaction_event() from public,anon,authenticated;
