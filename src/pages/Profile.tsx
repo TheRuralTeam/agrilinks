@@ -405,6 +405,34 @@ const Profile = () => {
     } catch (error) { console.error(error); setBuyerPreOrders([]) }
   }, [user?.id])
 
+  const fetchBuyerFreightQuotes = React.useCallback(async () => {
+    if (!user?.id) { setBuyerFreightQuotes([]); return }
+    try {
+      const { data, error } = await supabase.from('freight_loads')
+        .select('id, pre_order_id, product_name, weight_kg, origin_label, destination_label, driver_offered_price, currency, driver_quote_status, route_distance_km, route_duration_minutes, status, created_at')
+        .eq('driver_quote_status', 'pending_buyer_approval')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      setBuyerFreightQuotes((data || []) as BuyerFreightQuote[])
+    } catch (error) { console.error(error); setBuyerFreightQuotes([]) }
+  }, [user?.id])
+
+  const respondToFreightQuote = async (freightLoadId: string, approved: boolean) => {
+    if (!user?.id) { requireAuth('responder a uma proposta de transporte'); return }
+    setFreightQuoteBusyId(freightLoadId)
+    try {
+      const { error } = await supabase.rpc('respond_to_freight_quote', {
+        p_freight_load_id: freightLoadId,
+        p_approved: approved,
+      })
+      if (error) throw error
+      toast({ title: approved ? 'Preço de transporte aprovado.' : 'Proposta de transporte recusada.' })
+      await fetchBuyerFreightQuotes()
+    } catch (error: any) {
+      toast({ title: 'Não foi possível responder à proposta', description: error.message, variant: 'destructive' } as any)
+    } finally { setFreightQuoteBusyId(null) }
+  }
+
   const submitSourcingRequest = async () => {
     if (!user) {
       requireAuth('enviar um pedido de sourcing')
