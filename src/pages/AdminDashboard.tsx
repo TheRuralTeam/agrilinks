@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../integrations/supabase/client";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -280,6 +280,7 @@ const COLORS = ['#22c55e', '#f59e0b', '#ef4444', '#3b82f6'];
 // --- Componente Principal ---
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [orders, setOrders] = useState<Order[]>([]);
   const [updatingOrders, setUpdatingOrders] = useState<Set<string>>(() => new Set());
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -300,7 +301,17 @@ const AdminDashboard = () => {
   const [allReferrals, setAllReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>("dashboard");
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const requestedTab = new URLSearchParams(location.search).get("tab");
+    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries"]);
+    return requestedTab && supportedTabs.has(requestedTab as TabType) ? requestedTab as TabType : "dashboard";
+  });
+
+  useEffect(() => {
+    const requestedTab = new URLSearchParams(location.search).get("tab");
+    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries"]);
+    if (requestedTab && supportedTabs.has(requestedTab as TabType)) setActiveTab(requestedTab as TabType);
+  }, [location.search]);
   const [notificationModalOpen, setNotificationModalOpen] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
   const [notificationTitle, setNotificationTitle] = useState("");
