@@ -79,7 +79,9 @@ const Notifications = () => {
         .from('notifications')
         .update({ read: true })
         .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .select('id')
+        .maybeSingle();
       if (error) throw error;
       setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
       return true;
