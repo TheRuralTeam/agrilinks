@@ -425,7 +425,6 @@ export default function P2PBeneficiaryPage() {
                     {buyerProofOrderId === order.id ? <div className="mt-3 space-y-2"><Input value={buyerProofReference} onChange={(e)=>setBuyerProofReference(e.target.value)} placeholder="Referência da transferência" /><div className="flex gap-2"><Button onClick={submitBuyerProof} disabled={!buyerProofReference.trim() || busy===order.id}>Comunicar pagamento</Button><Button variant="outline" onClick={()=>setBuyerProofOrderId(null)}>Cancelar</Button></div></div> : <Button className="mt-3" onClick={()=>setBuyerProofOrderId(order.id)}>Já efectuei o pagamento</Button>}
                   </div>
                 )}
-              </div>
               {historyOrderId === order.id && (
                 <div className="mt-3 border-t pt-3">
                   <p className="mb-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">Histórico da operação</p>
@@ -444,6 +443,7 @@ export default function P2PBeneficiaryPage() {
                   </div>
                 </div>
               )}
+              </div>
             ))}
           </CardContent>
         </Card>
