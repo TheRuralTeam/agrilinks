@@ -140,6 +140,7 @@ CREATE TRIGGER notify_pre_order_status_change
 AFTER UPDATE OF status ON public.pre_orders
 FOR EACH ROW EXECUTE FUNCTION public.notify_pre_order_status_change();
 
+REVOKE ALL ON FUNCTION public.notify_pre_order_status_change() FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON FUNCTION public.respond_to_pre_order(uuid,text) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.respond_to_pre_order(uuid,text) TO authenticated;
 REVOKE ALL ON FUNCTION public.admin_update_pre_order_status(uuid,text) FROM PUBLIC,anon;
