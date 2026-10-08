@@ -141,12 +141,13 @@ const OpenRoute = ({ children, allowIncomplete = true }: { children: React.React
   return <>{children}</>;
 };
 
-const PermissionRoute = ({ children, permissions, requireAll = false }: { children: React.ReactNode; permissions: AdminPermission[]; requireAll?: boolean }) => {
-  const { user, loading, isAdmin, isRootAdmin, isSuperRoot, hasAnyPermission, hasAllPermissions } = useAuth();
+const PermissionRoute = ({ children, permissions, requireAll = false, allowSupportAgent = false }: { children: React.ReactNode; permissions: AdminPermission[]; requireAll?: boolean; allowSupportAgent?: boolean }) => {
+  const { user, loading, isAdmin, isRootAdmin, isSuperRoot, isSupportAgent, hasAnyPermission, hasAllPermissions } = useAuth();
   if (loading) return <Loader />;
   if (!user) return <Navigate to="/login" replace />;
   if (!isAdmin && !isRootAdmin && !isSuperRoot) return <Navigate to="/app" replace />;
-  const allowed = requireAll ? hasAllPermissions(permissions) : hasAnyPermission(permissions);
+  const allowedByPermission = requireAll ? hasAllPermissions(permissions) : hasAnyPermission(permissions);
+  const allowed = allowedByPermission || (allowSupportAgent && isSupportAgent);
   if (!allowed) return <Navigate to="/app" replace />;
   return <>{children}</>;
 };
@@ -307,7 +308,7 @@ const AppRoutes = () => {
         <Route
           path="/admindashboard/pedidos/lixeira"
           element={
-            <PermissionRoute permissions={['manage_orders']}>
+            <PermissionRoute permissions={['manage_orders']} allowSupportAgent>
               <AdminOrderTrash />
             </PermissionRoute>
           }
