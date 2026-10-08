@@ -942,6 +942,30 @@ const Profile = () => {
             />
           )}
 
+          {activeTab === 'orders' && isComprador && buyerFreightQuotes.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+              {buyerFreightQuotes.map((quote) => (
+                <section key={quote.id} style={{ background: T.white, border: `1px solid ${T.rule}`, borderRadius: 14, padding: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: T.ink }}>{quote.product_name}</div>
+                      <div style={{ marginTop: 4, fontSize: 12, color: T.muted }}>{quote.origin_label} → {quote.destination_label}</div>
+                      <div style={{ marginTop: 5, fontSize: 12, color: T.faint }}>{Number(quote.weight_kg).toLocaleString('pt-AO')} kg · {quote.route_distance_km != null ? Number(quote.route_distance_km).toFixed(1) + ' km' : 'rota indisponível'} · {quote.route_duration_minutes != null ? Math.round(quote.route_duration_minutes / 60) + ' h estimadas' : 'tempo indisponível'}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: T.g600 }}>{quote.driver_offered_price == null ? '—' : Number(quote.driver_offered_price).toLocaleString('pt-AO') + ' ' + (quote.currency || 'Kz')}</div>
+                      <div style={{ marginTop: 3, fontSize: 11, color: T.gold, fontWeight: 700 }}>A aguardar a tua decisão</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 13, flexWrap: 'wrap' }}>
+                    <IconBtn icon={<Trash2 size={13} strokeWidth={1.75}/>} title={freightQuoteBusyId === quote.id ? 'A processar…' : 'Recusar transporte'} danger onClick={() => { if (freightQuoteBusyId !== quote.id) void respondToFreightQuote(quote.id, false) }} />
+                    <IconBtn icon={<CheckCircle size={13} strokeWidth={1.75}/>} title={freightQuoteBusyId === quote.id ? 'A processar…' : 'Aprovar transporte'} onClick={() => { if (freightQuoteBusyId !== quote.id) void respondToFreightQuote(quote.id, true) }} />
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+
           {/* ── Received Orders ── */}
           {activeTab === 'orders' && (isAgricultor || isAgente) && (
             <OrdersTable
