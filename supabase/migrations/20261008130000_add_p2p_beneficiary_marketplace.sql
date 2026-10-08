@@ -106,6 +106,7 @@ drop policy if exists "P2P beneficiaries view own or admin" on public.p2p_benefi
 create policy "P2P beneficiaries view own or admin" on public.p2p_beneficiaries for select to authenticated using ((select auth.uid())=user_id or public.is_root_admin((select auth.uid())) or public.has_role((select auth.uid()),'admin'::app_role));
 drop policy if exists "P2P accounts view owner or admin" on public.p2p_beneficiary_accounts;
 drop policy if exists "P2P accounts view owner or admin" on public.p2p_beneficiary_accounts;
+drop policy if exists "P2P accounts view owner buyer or admin" on public.p2p_beneficiary_accounts;
 create policy "P2P accounts view owner buyer or admin" on public.p2p_beneficiary_accounts for select to authenticated using (exists(select 1 from public.p2p_beneficiaries b where b.id=p2p_beneficiary_accounts.beneficiary_id and (b.user_id=(select auth.uid()) or public.is_root_admin((select auth.uid())) or public.has_role((select auth.uid()),'admin'::app_role))) or exists(select 1 from public.p2p_orders o where o.beneficiary_account_id=p2p_beneficiary_accounts.id and o.buyer_id=(select auth.uid())));
 drop policy if exists "P2P orders view participants or admin" on public.p2p_orders;
 drop policy if exists "P2P orders view participants or admin" on public.p2p_orders;
