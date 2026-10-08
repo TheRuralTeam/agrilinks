@@ -68,6 +68,7 @@ import DeliveryTracking from "../components/admin/DeliveryTracking";
 import WorkSessionTimer from "../components/admin/WorkSessionTimer";
 import MarketPricesManager from "../components/admin/MarketPricesManager";
 import { downloadFichaRecebimentoPdf } from "../lib/fichaRecebimentoPdf";
+import { downloadMarketplaceTransactionReceipt } from "../features/orders/transactionReceipts";
 
 import { useWorkSession } from "../hooks/useWorkSession";
 import {
@@ -1216,6 +1217,9 @@ const AdminDashboard = () => {
                   <div className="sm:col-span-2"><span className="text-xs text-gray-500">ID do cliente</span><p className="font-medium break-all">{selectedOrder.user_id}</p></div>
                 </div>
                 <div className="flex flex-col-reverse gap-2 border-t border-[#E5EDE6] pt-4 sm:flex-row sm:justify-end">
+                  <Button variant="outline" onClick={() => { if (selectedOrder) void downloadMarketplaceTransactionReceipt(selectedOrder.id) }}>
+                    <FileText className="mr-2 h-4 w-4" /> Comprovante PDF
+                  </Button>
                   <Button variant="ghost" onClick={() => setSelectedOrder(null)}>Fechar</Button>
                   {(hasPermission("manage_orders") || isSupportAgent) && !["accepted", "completed", "concluida"].includes(selectedOrder.status) && (
                     <Button variant="destructive" onClick={() => requestRemovePreOrder(selectedOrder)} disabled={updatingOrders.has(selectedOrder.id)}>
