@@ -118,7 +118,13 @@ self.addEventListener('push', (event) => {
       if (activeClients.length > 0) {
         activeClients.forEach((client) => client.postMessage({
           type: 'PUSH_NOTIFICATION',
-          notification: notificationData,
+          notification: {
+            id: notificationData?.data?.notification_id || notificationData?.data?.id,
+            title: notificationData.title,
+            message: notificationData.body,
+            type: notificationData?.data?.type || 'system',
+            metadata: notificationData?.data || {},
+          },
         }));
         return;
       }
