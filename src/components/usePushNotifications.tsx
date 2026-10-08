@@ -180,13 +180,14 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
       // Reutilizar a subscrição se já estiver vinculada à chave actual.
       let subscription = await registration.pushManager.getSubscription();
       if (subscription && !arePushKeysEqual(subscription.options.applicationServerKey, convertedVapidKey)) {
-        await subscription.unsubscribe();
+        // Primeiro remover o registo do servidor; só depois invalidar a subscrição local.
         const { error: deleteError } = await supabase
           .from('push_subscriptions')
           .delete()
           .eq('user_id', user.id)
           .eq('endpoint', subscription.endpoint);
         if (deleteError) throw deleteError;
+        await subscription.unsubscribe();
         subscription = null;
       }
 
