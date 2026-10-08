@@ -377,22 +377,36 @@ const AdminDashboard = () => {
   }, [isRootAdmin, userPermissions]);
 
   useEffect(() => {
+    if (!currentUserId) return;
     void fetchAllData();
     const interval = setInterval(() => {
       void fetchAllData(true);
     }, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [currentUserId]);
 
   useEffect(() => {
+    if (!currentUserId) return;
     const channel = supabase
-      .channel("notifications")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload) => {
-        setNotifications((prev) => [payload.new as Notification, ...prev]);
-      })
+      .channel(`admin-notifications-${currentUserId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${currentUserId}`,
+        },
+        (payload) => {
+          setNotifications((prev) => {
+            const incoming = payload.new as Notification;
+            return prev.some((item) => item.id === incoming.id) ? prev : [incoming, ...prev];
+          });
+        },
+      )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+    return () => { void supabase.removeChannel(channel); };
+  }, [currentUserId]);
 
   const fetchAllData = async (silent = false) => {
     // Atualizações periódicas não devem desmontar o painel nem interromper a interação.
@@ -402,7 +416,7 @@ const AdminDashboard = () => {
         supabase.from("products").select("*").order("created_at", { ascending: false }),
         supabase.from("users").select("*").order("created_at", { ascending: false }),
         supabase.from("transactions").select("*").order("created_at", { ascending: false }),
-        supabase.from("notifications").select("*").order("created_at", { ascending: false }),
+        supabase.from("notifications").select("*").eq("user_id", currentUserId).order("created_at", { ascending: false }),
         supabase.from("fichas_recebimento").select("*").order("created_at", { ascending: false }),
         supabase.from("sourcing_requests").select("*").order("created_at", { ascending: false }),
         supabase.rpc("get_top_agents_by_referrals", { limit_count: 3 }),
@@ -466,7 +480,7 @@ const AdminDashboard = () => {
   };
 
   const sendNotification = useCallback(async () => {
-    if (!hasPermission("manage_support")) {
+    if (!hasPermission("manage_support") && !isSuperRoot) {
       toast.error("Não tem permissão para enviar notificações.");
       return;
     }
@@ -493,7 +507,7 @@ const AdminDashboard = () => {
       console.error("Erro ao enviar notificação administrativa:", error);
       toast.error(error instanceof Error ? error.message : "Não foi possível enviar a notificação.");
     }
-  }, [hasPermission, targetUser, notificationMessage, notificationTitle, notificationType]);
+  }, [hasPermission, isSuperRoot, targetUser, notificationMessage, notificationTitle, notificationType]);
 
   const handleDelete = useCallback((table: string, id: string) => {
     setAdminDeleteTarget({ table, ids: [id] });
@@ -1571,7 +1585,7 @@ const AdminDashboard = () => {
                   <button onClick={() => setFilterStatus("unread")} className={`px-3 py-1.5 text-xs ${filterStatus === "unread" ? "bg-primary text-white" : "bg-white text-gray-600"}`}>Não Lidas</button>
                   <button onClick={() => setFilterStatus("read")} className={`px-3 py-1.5 text-xs ${filterStatus === "read" ? "bg-primary text-white" : "bg-white text-gray-600"}`}>Lidas</button>
                 </div>
-                {hasPermission("manage_support") && (
+                {(hasPermission("manage_support") || isSuperRoot) && (
                   <Button size="sm" onClick={() => setNotificationModalOpen(true)}>
                     <Send className="h-4 w-4 mr-1" /> Enviar
                   </Button>
