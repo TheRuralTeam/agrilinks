@@ -33,6 +33,7 @@ import {
 } from '../features/p2p/p2pService'
 import { supabase } from '../integrations/supabase/client'
 import { downloadP2PTransactionReceipt, fetchP2PTransactionHistory, type P2PHistoryEvent } from '../features/p2p/p2pReceipts'
+import { downloadMarketplaceTransactionReceipt } from '../features/orders/transactionReceipts'
 
 const channels: { id: P2PPaymentChannel; label: string }[] = [
   { id: 'unitel_money', label: 'UNITEL Money' },
@@ -249,6 +250,16 @@ export default function P2PBeneficiaryPage() {
     }
   }
 
+  const downloadCompleteReceipt = async (preOrderId: string) => {
+    setBusy(`order-pdf:${preOrderId}`)
+    try {
+      await downloadMarketplaceTransactionReceipt(preOrderId)
+      toast({ title: 'Comprovante completo gerado', description: 'O PDF inclui pagamento, pedido, logística e histórico disponível.' })
+    } catch (error: any) {
+      toast({ title: 'Comprovante completo indisponível', description: error?.message ?? 'Não foi possível gerar o documento.', variant: 'destructive' })
+    } finally { setBusy(null) }
+  }
+
   const downloadReceipt = async (orderId: string) => {
     setBusy(`pdf:${orderId}`)
     try {
@@ -400,7 +411,10 @@ export default function P2PBeneficiaryPage() {
                       {historyOrderId === order.id ? 'Ocultar histórico' : 'Histórico'}
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => void downloadReceipt(order.id)} disabled={busy === `pdf:${order.id}`}>
-                      {busy === `pdf:${order.id}` ? 'A gerar…' : 'Comprovante PDF'}
+                      {busy === `pdf:${order.id}` ? 'A gerar…' : 'Comprovante P2P'}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => void downloadCompleteReceipt(order.pre_order_id)} disabled={busy === `order-pdf:${order.pre_order_id}`}>
+                      {busy === `order-pdf:${order.pre_order_id}` ? 'A gerar…' : 'Comprovante completo'}
                     </Button>
                   </div>
                 </div>
