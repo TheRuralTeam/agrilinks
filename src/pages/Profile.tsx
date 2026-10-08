@@ -70,6 +70,12 @@ interface BuyerPreOrder {
   payment_status: string | null; reservation_expires_at: string | null
   product?: { product_type: string; price: number }
 }
+interface BuyerFreightQuote {
+  id: string; pre_order_id: string; product_name: string; weight_kg: number
+  origin_label: string; destination_label: string; driver_offered_price: number | null
+  currency: string; driver_quote_status: string; route_distance_km: number | null
+  route_duration_minutes: number | null; status: string; created_at: string
+}
 interface SourcingRequest {
   id: string; product_name: string; quantity: number; delivery_date: string
   description: string | null; status: string; admin_notes: string | null; created_at: string
