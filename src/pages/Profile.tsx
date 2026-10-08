@@ -23,6 +23,7 @@ import type { WalletBalance } from '../features/wallet/walletDomain'
 import { WalletSummaryCard } from '../features/wallet/WalletSummaryCard'
 import { respondToPreOrder } from '../features/orders/adminPreOrderService'
 import agrilinkLogo from '../assets/agrilink-logo.png'
+import { downloadMarketplaceTransactionReceipt } from '../features/orders/transactionReceipts'
 
 /* ─── Design tokens ──────────────────────────────────────────────────────────
    Mesma fonte de verdade da landing (../lib/brand). Os campos abaixo com
@@ -290,6 +291,7 @@ const Profile = () => {
   const [buyerPreOrders, setBuyerPreOrders] = useState<BuyerPreOrder[]>([])
   const [buyerFreightQuotes, setBuyerFreightQuotes] = useState<BuyerFreightQuote[]>([])
   const [freightQuoteBusyId, setFreightQuoteBusyId] = useState<string | null>(null)
+  const [receiptBusyId, setReceiptBusyId] = useState<string | null>(null)
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null)
   const [walletBalanceOwnerId, setWalletBalanceOwnerId] = useState<string | null>(null)
   const [walletLoading, setWalletLoading] = useState(false)
@@ -424,6 +426,19 @@ const Profile = () => {
       setBuyerFreightQuotes((data || []) as BuyerFreightQuote[])
     } catch (error) { console.error(error); setBuyerFreightQuotes([]) }
   }, [user?.id])
+
+  const downloadTransactionReceipt = async (preOrderId: string) => {
+    if (receiptBusyId) return
+    setReceiptBusyId(preOrderId)
+    try {
+      await downloadMarketplaceTransactionReceipt(preOrderId)
+      toast({ title: 'Comprovante gerado', description: 'O PDF foi gerado a partir do histórico transacional desta operação.' })
+    } catch (error: any) {
+      toast({ title: 'Não foi possível gerar o comprovante', description: error?.message || 'A operação não está disponível para o teu perfil.', variant: 'destructive' } as any)
+    } finally {
+      setReceiptBusyId(null)
+    }
+  }
 
   const respondToFreightQuote = async (freightLoadId: string, approved: boolean) => {
     if (!user?.id) { requireAuth('responder a uma proposta de transporte'); return }
@@ -946,6 +961,13 @@ const Profile = () => {
               rows={buyerPreOrders}
               keyField={r => r.id}
               accent={r => r.status === 'pending' ? T.goldL : r.status === 'accepted' ? T.g400 : r.status === 'rejected' ? '#EF4444' : T.faint}
+              actions={r => (
+                <IconBtn
+                  icon={<FileSignature size={13} strokeWidth={1.75}/>}
+                  title={receiptBusyId === r.id ? 'A gerar comprovante…' : 'Histórico e comprovante PDF'}
+                  onClick={() => { if (receiptBusyId !== r.id) void downloadTransactionReceipt(r.id) }}
+                />
+              )}
               empty={<EmptyState icon={<ShoppingCart size={26} color={T.faint}/>} message="Ainda não tens pré-compras." sub="As pré-compras enviadas aparecerão aqui e serão actualizadas quando o fornecedor responder." />}
             />
           )}
@@ -1003,14 +1025,13 @@ const Profile = () => {
               rows={receivedOrders}
               keyField={r => r.id}
               accent={r => r.status === 'pending' ? T.goldL : r.status === 'accepted' ? T.g400 : '#EF4444'}
-              actions={r => r.status === 'pending' ? (
+              actions={r => (
                 <>
-                  <IconBtn icon={<CheckCircle size={13} strokeWidth={1.75}/>} title={t('profile.accept')} onClick={() => acceptOrder(r.id)} />
-                  <IconBtn icon={<Trash2 size={13} strokeWidth={1.75}/>} title={t('profile.reject')} danger onClick={() => rejectOrder(r.id)} />
+                  {r.status === 'pending' && <IconBtn icon={<CheckCircle size={13} strokeWidth={1.75}/>} title={t('profile.accept')} onClick={() => acceptOrder(r.id)} />}
+                  {r.status === 'pending' && <IconBtn icon={<Trash2 size={13} strokeWidth={1.75}/>} title={t('profile.reject')} danger onClick={() => rejectOrder(r.id)} />}
                   <IconBtn icon={<Phone size={13} strokeWidth={1.75}/>} title={t('profile.contact')} onClick={() => contactBuyer(r)} />
+                  <IconBtn icon={<FileSignature size={13} strokeWidth={1.75}/>} title={receiptBusyId === r.id ? 'A gerar comprovante…' : 'Histórico e comprovante PDF'} onClick={() => { if (receiptBusyId !== r.id) void downloadTransactionReceipt(r.id) }} />
                 </>
-              ) : (
-                <IconBtn icon={<Phone size={13} strokeWidth={1.75}/>} title={t('profile.contact')} onClick={() => contactBuyer(r)} />
               )}
               empty={<EmptyState icon={<ShoppingCart size={26} color={T.faint}/>} message={t('profile.noOrdersReceived')} sub={t('profile.ordersWillAppear')} />}
             />
