@@ -76,7 +76,7 @@ const Notifications = () => {
   const markAsRead = useCallback(async (id: string) => {
     if (!user?.id) return false;
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('id', id)
@@ -84,6 +84,7 @@ const Notifications = () => {
         .select('id')
         .maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error('O servidor não confirmou a leitura da notificação.');
       setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
       return true;
     } catch (error) {
@@ -101,14 +102,17 @@ const Notifications = () => {
   const markAllAsRead = useCallback(async () => {
     if (!user) return;
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('user_id', user.id)
-        .eq('read', false);
+        .eq('read', false)
+        .select('id');
       if (error) throw error;
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      toast.success('Todas as notificações foram marcadas como lidas.');
+      const updatedIds = new Set((data ?? []).map((row) => row.id));
+      setNotifications((prev) => prev.map((n) => updatedIds.has(n.id) ? { ...n, read: true } : n));
+      if (updatedIds.size > 0) toast.success('Todas as notificações foram marcadas como lidas.');
+      else toast.info('Não havia notificações por actualizar.');
     } catch (error) {
       console.error('Erro ao marcar todas como lidas:', error);
       toast.error('Não foi possível marcar todas as notificações como lidas.');
@@ -118,12 +122,15 @@ const Notifications = () => {
   const deleteNotification = useCallback(async (id: string) => {
     if (!user) return;
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('notifications')
         .delete()
         .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .select('id')
+        .maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error('O servidor não confirmou a remoção da notificação.');
       setNotifications((prev) => prev.filter((n) => n.id !== id));
       toast.success('Notificação eliminada.');
     } catch (error) {
