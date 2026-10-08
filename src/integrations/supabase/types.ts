@@ -2065,6 +2065,10 @@ export type Database = {
       }
     }
     Functions: {
+      register_push_subscription: {
+        Args: { p_endpoint: string; p_auth_key: string; p_p256dh_key: string }
+        Returns: boolean
+      }
       admin_approve_product: {
         Args: { p_product_id: string }
         Returns: boolean
