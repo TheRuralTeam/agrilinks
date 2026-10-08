@@ -377,8 +377,10 @@ const AdminDashboard = () => {
   }, [isRootAdmin, userPermissions]);
 
   useEffect(() => {
-    fetchAllData();
-    const interval = setInterval(fetchAllData, 30000);
+    void fetchAllData();
+    const interval = setInterval(() => {
+      void fetchAllData(true);
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -392,8 +394,9 @@ const AdminDashboard = () => {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const fetchAllData = async () => {
-    setLoading(true);
+  const fetchAllData = async (silent = false) => {
+    // Atualizações periódicas não devem desmontar o painel nem interromper a interação.
+    if (!silent) setLoading(true);
     try {
       const [prodRes, usersRes, transRes, notRes, fichasRes, sourcingRes, topAgentsRes, referralsRes, ordersRes] = await Promise.all([
         supabase.from("products").select("*").order("created_at", { ascending: false }),
@@ -406,13 +409,28 @@ const AdminDashboard = () => {
         supabase.from("agent_referrals").select("*").order("created_at", { ascending: false }),
         supabase.from("pre_orders").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
       ]);
-      setProducts(prodRes.data || []);
-      setUsers(usersRes.data || []);
-      setTransactions(transRes.data || []);
-      setNotifications(notRes.data || []);
-      setFichas(fichasRes.data || []);
-      setSourcingRequests(sourcingRes.data || []);
-      setTopAgents(topAgentsRes.data || []);
+      // Preservar os dados actuais quando uma consulta falha; não transformar falhas
+      // temporárias de rede/RLS em listas vazias no painel.
+      if (prodRes.error) console.error("Erro ao carregar produtos:", prodRes.error);
+      else setProducts(prodRes.data || []);
+
+      if (usersRes.error) console.error("Erro ao carregar utilizadores:", usersRes.error);
+      else setUsers(usersRes.data || []);
+
+      if (transRes.error) console.error("Erro ao carregar transações:", transRes.error);
+      else setTransactions(transRes.data || []);
+
+      if (notRes.error) console.error("Erro ao carregar notificações:", notRes.error);
+      else setNotifications(notRes.data || []);
+
+      if (fichasRes.error) console.error("Erro ao carregar fichas:", fichasRes.error);
+      else setFichas(fichasRes.data || []);
+
+      if (sourcingRes.error) console.error("Erro ao carregar pedidos de sourcing:", sourcingRes.error);
+      else setSourcingRequests(sourcingRes.data || []);
+
+      if (topAgentsRes.error) console.error("Erro ao carregar agentes:", topAgentsRes.error);
+      else setTopAgents(topAgentsRes.data || []);
       if (ordersRes.error) {
         console.error("Erro ao carregar pedidos:", ordersRes.error);
         toast.error("Não foi possível carregar os pedidos.");
@@ -443,7 +461,7 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
