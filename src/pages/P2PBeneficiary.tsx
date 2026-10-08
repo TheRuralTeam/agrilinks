@@ -12,6 +12,7 @@ import { useAuth } from '../contexts/AuthContext'
 import {
   acceptP2PMatch,
   confirmP2PPaymentReceived,
+  adminCompleteP2POrder,
   createP2POrder,
   fetchP2PPaymentAccount,
   setP2PBeneficiaryAvailability,
@@ -72,6 +73,7 @@ export default function P2PBeneficiaryPage() {
   const [matches, setMatches] = useState<P2PMatch[]>([])
   const [orders, setOrders] = useState<P2POrder[]>([])
   const [adminApplications, setAdminApplications] = useState<P2PApplication[]>([])
+  const [adminReviewOrders, setAdminReviewOrders] = useState<P2POrder[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
   const [legalName, setLegalName] = useState('')
@@ -119,6 +121,9 @@ export default function P2PBeneficiaryPage() {
           .order('created_at', { ascending: true })
         if (error) throw error
         setAdminApplications((data ?? []) as P2PApplication[])
+        const { data: reviewOrders, error: reviewError } = await supabase.from('p2p_orders').select('*').in('status', ['payment_detected','under_review','disputed']).order('created_at', { ascending: true })
+        if (reviewError) throw reviewError
+        setAdminReviewOrders((reviewOrders ?? []) as P2POrder[])
       }
     } catch (error: any) {
       toast({ title: 'P2P', description: error?.message ?? 'Não foi possível carregar o módulo.', variant: 'destructive' })
@@ -237,6 +242,17 @@ export default function P2PBeneficiaryPage() {
     } finally {
       setBusy(null)
     }
+  }
+
+  const completeAdminOrder = async (orderId: string) => {
+    setBusy(orderId)
+    try {
+      await adminCompleteP2POrder(orderId)
+      toast({ title: 'Pagamento validado', description: 'A operação P2P foi concluída e a pré-compra ficou marcada como paga.' })
+      await refresh()
+    } catch (error: any) {
+      toast({ title: 'Validação falhou', description: error?.message ?? 'A operação não pode ser concluída neste estado.', variant: 'destructive' })
+    } finally { setBusy(null) }
   }
 
   const reviewApplication = async (item: P2PApplication, decision: 'approved' | 'rejected') => {
@@ -422,7 +438,15 @@ export default function P2PBeneficiaryPage() {
                 <div><p className="font-medium">{item.legal_name}</p><p className="text-xs text-muted-foreground">{item.phone ?? 'Sem telefone'} · {item.requested_channels.join(', ')}</p></div>
                 <div className="flex gap-2"><Button onClick={() => reviewApplication(item,'approved')} disabled={busy===item.id}>Aprovar</Button><Button variant="outline" onClick={() => reviewApplication(item,'rejected')} disabled={busy===item.id}>Rejeitar</Button></div>
               </div>
+            ))}          <div className="mt-6 border-t pt-5">
+            <p className="mb-3 text-sm font-medium">Operações que aguardam validação</p>
+            {adminReviewOrders.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma operação aguarda revisão.</p> : adminReviewOrders.map((order) => (
+              <div key={order.id} className="mb-2 flex flex-col gap-3 rounded-md border p-4 md:flex-row md:items-center md:justify-between">
+                <div><p className="font-medium">{money(order.amount, order.currency)}</p><p className="text-xs text-muted-foreground">#{order.id.slice(0,8)} · {statusLabel[order.status] ?? order.status} · referência: {order.transfer_reference ?? 'não informada'}</p></div>
+                {order.status !== 'disputed' && <Button onClick={() => void completeAdminOrder(order.id)} disabled={busy === order.id}>Validar e concluir</Button>}
+              </div>
             ))}
+          </div>
           </CardContent>
         </Card>
       )}
