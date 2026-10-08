@@ -125,6 +125,22 @@ export async function fetchMyP2POrders(beneficiaryId?: string) {
   return (data ?? []) as P2POrder[]
 }
 
+export async function fetchP2PPaymentAccount(accountId: string) {
+  const { data, error } = await supabase
+    .from('p2p_beneficiary_accounts')
+    .select('id,beneficiary_id,channel,account_identifier,account_holder,currency,instructions,max_amount,active,verified_at')
+    .eq('id', accountId)
+    .maybeSingle()
+  if (error) throw error
+  return data as P2PAccount | null
+}
+
+export async function setP2PBeneficiaryAvailability(status: 'online' | 'busy' | 'offline') {
+  const { data, error } = await supabase.rpc('set_p2p_beneficiary_availability', { p_status: status })
+  if (error) throw error
+  return data as boolean
+}
+
 export async function fetchMyP2PMatches(beneficiaryId: string) {
   const { data, error } = await supabase
     .from('p2p_matches')
