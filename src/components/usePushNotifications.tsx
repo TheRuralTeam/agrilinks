@@ -42,7 +42,8 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     const userAgent = navigator.userAgent;
     const isIOS = /iPad|iPhone|iPod/i.test(userAgent) ||
       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+    const isStandalone = (typeof window.matchMedia === 'function' &&
+      window.matchMedia('(display-mode: standalone)').matches) ||
       (navigator as Navigator & { standalone?: boolean }).standalone === true;
     const iosNeedsInstall = isIOS && !isStandalone;
     const supported = hasPushApis && isSecure && !iosNeedsInstall;
@@ -145,7 +146,7 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     try {
       // Pedir permissão
       if (Notification.permission === 'denied') {
-        setError('Permissão para notificações foi negada');
+        setError('As notificações estão bloqueadas pelo navegador. Abra as permissões do site AgriLink nas definições do navegador, permita notificações e tente novamente.');
         setIsLoading(false);
         return;
       }
