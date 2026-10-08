@@ -30,6 +30,7 @@ const Support = lazy(() => import("./pages/Support"));
 const PublishProduct = lazy(() => import("./pages/PublishProduct"));
 const MarketData = lazy(() => import("./pages/MarketData"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminOrderTrash = lazy(() => import("./components/admin/AdminOrderTrash"));
 const FichaRecebimento = lazy(() => import("./pages/FichaRecebimento"));
 const CriarContratoFuturos = lazy(() => import("./pages/CriarContratoFuturos"));
 const ContratosFuturos = lazy(() => import("./pages/ContratosFuturos"));
@@ -300,6 +301,14 @@ const AppRoutes = () => {
           element={
             <PermissionRoute permissions={['view_analytics']}>
               <AdminDashboard />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="/admindashboard/pedidos/lixeira"
+          element={
+            <PermissionRoute permissions={['manage_orders']}>
+              <AdminOrderTrash />
             </PermissionRoute>
           }
         />
