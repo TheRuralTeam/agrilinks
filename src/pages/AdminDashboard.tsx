@@ -708,27 +708,42 @@ const AdminDashboard = () => {
   }, [hasPermission]);
 
   const toggleUserVerification = useCallback(async (userId: string, currentVerified: boolean) => {
+    if (!hasPermission("manage_users")) {
+      toast.error("Não tem permissão para gerir a verificação de utilizadores.");
+      return;
+    }
+
+    const targetUser = users.find((user) => user.id === userId);
+    if (!targetUser || Boolean(targetUser.verified) !== currentVerified) {
+      toast.error("Os dados do utilizador mudaram. Atualize a lista e tente novamente.");
+      return;
+    }
+
+    const verifiedAt = currentVerified ? null : new Date().toISOString();
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("users")
-        .update({ 
-          verified: !currentVerified,
-          verified_at: !currentVerified ? new Date().toISOString() : null
-        })
-        .eq("id", userId);
-      
+        .update({ verified: !currentVerified, verified_at: verifiedAt })
+        .eq("id", userId)
+        .select("id, verified, verified_at")
+        .maybeSingle();
+
       if (error) throw error;
-      
-      setUsers((prev) => prev.map((u) => 
-        u.id === userId ? { ...u, verified: !currentVerified, verified_at: !currentVerified ? new Date().toISOString() : null } : u
-      ));
-      
-      toast.success(!currentVerified ? "Usuário verificado com sucesso!" : "Verificação removida");
+      if (!data) {
+        throw new Error("O servidor não confirmou a alteração. Verifique as permissões de acesso.");
+      }
+
+      setUsers((prev) => prev.map((user) => (
+        user.id === userId
+          ? { ...user, verified: data.verified, verified_at: data.verified_at }
+          : user
+      )));
+      toast.success(data.verified ? "Utilizador verificado com sucesso." : "Verificação removida.");
     } catch (error) {
       console.error("Erro ao atualizar verificação:", error);
-      toast.error("Erro ao atualizar status de verificação");
+      toast.error(error instanceof Error ? error.message : "Não foi possível atualizar a verificação.");
     }
-  }, []);
+  }, [hasPermission, users]);
 
   const generateMarketAnalysis = useCallback(async () => {
     if (products.length === 0) {
