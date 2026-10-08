@@ -57,7 +57,6 @@ const statusLabel: Record<string, string> = {
   payment_pending: 'A aguardar pagamento',
   payment_submitted: 'Pagamento comunicado',
   payment_detected: 'Pagamento recebido',
-  under_review: 'Em revisão',
   completed: 'Concluída',
   disputed: 'Em disputa',
   expired: 'Expirada',
