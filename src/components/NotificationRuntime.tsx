@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { getNotificationTargetPath } from "../lib/notificationNavigation";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../integrations/supabase/client";
 
@@ -35,6 +37,7 @@ function playBell(context: AudioContext) {
 
 export default function NotificationRuntime() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const audioContextRef = useRef<AudioContext | null>(null);
   const seen = useRef(new Set<string>());
 
@@ -76,6 +79,7 @@ export default function NotificationRuntime() {
             title?: string | null;
             message?: string | null;
             type?: string | null;
+            metadata?: Record<string, unknown> | null;
           };
 
           if (!notification.id || seen.current.has(notification.id)) return;
@@ -86,15 +90,32 @@ export default function NotificationRuntime() {
           }
 
           if (!audioContextRef.current) audioContextRef.current = getAudioContext();
-          if (audioContextRef.current && audioContextRef.current.state === "running") {
-            playBell(audioContextRef.current);
+          if (audioContextRef.current) {
+            if (audioContextRef.current.state === "suspended") {
+              await audioContextRef.current.resume().catch(() => undefined);
+            }
+            if (audioContextRef.current.state === "running") {
+              playBell(audioContextRef.current);
+            }
           }
 
-          if ("vibrate" in navigator) navigator.vibrate([120, 80, 120]);
+          if ("vibrate" in navigator) {
+            try { navigator.vibrate([120, 80, 120]); } catch { /* vibration is optional */ }
+          }
+
+          const targetPath = getNotificationTargetPath({
+            id: notification.id,
+            type: notification.type || "system",
+            metadata: notification.metadata,
+          });
 
           toast(notification.title || "Nova notificação", {
             description: notification.message || "Tem uma nova atualização na AgriLink.",
-            duration: 5000,
+            duration: 7000,
+            action: {
+              label: "Abrir",
+              onClick: () => navigate(targetPath),
+            },
           });
         },
       )
@@ -103,7 +124,7 @@ export default function NotificationRuntime() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, navigate]);
 
   useEffect(() => () => {
     const context = audioContextRef.current;
