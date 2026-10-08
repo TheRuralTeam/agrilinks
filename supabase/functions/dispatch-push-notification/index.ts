@@ -38,12 +38,12 @@ function resolveNotificationPath(type: string, metadata: Record<string, unknown>
 
   if ((normalizedType === "message" || normalizedType === "chat") && conversationId) return `/messages/${encodeURIComponent(conversationId)}`;
   if (normalizedType === "message" || normalizedType === "chat") return "/listamensagens";
-  if (normalizedType.startsWith("pre_order") || normalizedType.includes("order")) {
-    return orderId ? `/dashboard?order=${encodeURIComponent(orderId)}` : "/dashboard";
-  }
+  if (normalizedType.startsWith("pre_order") || normalizedType.includes("order")) return "/perfil?tab=orders";
   if (normalizedType.includes("ficha") && fichaId) return `/ficharecebimento?ficha=${encodeURIComponent(fichaId)}`;
-  if (normalizedType.includes("product")) return productId ? `/app?product=${encodeURIComponent(productId)}` : "/app";
-  if (normalizedType === "referral" || normalizedType.includes("agent")) return "/dashboard";
+  if (normalizedType === "product_approval" || normalizedType === "verification_admin") return "/admindashboard";
+  if (normalizedType.includes("product")) return "/perfil?tab=products";
+  if (normalizedType.includes("sourcing")) return "/perfil?tab=sourcing";
+  if (normalizedType === "referral" || normalizedType.includes("agent")) return "/perfil?tab=referrals";
   if (normalizedType === "support") return "/suporte";
   return "/notificacoes";
 }
