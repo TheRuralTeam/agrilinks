@@ -31,7 +31,6 @@ export function getNotificationTargetPath(notification: AgriLinkNotificationTarg
 
   const type = notification.type.toLowerCase();
   const conversationId = value("conversation_id", "conversationId");
-  const fichaId = value("ficha_id", "fichaId");
 
   if (type === "message" && conversationId) return `/messages/${encodeURIComponent(conversationId)}`;
   if (type === "message" || type === "chat") return "/listamensagens";
