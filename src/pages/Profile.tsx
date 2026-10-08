@@ -14,7 +14,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useGuestGate } from '../contexts/GuestGateContext'
 import { GUEST_PROFILE, getGuestData, getGuestProfile } from '../lib/guestSession'
 import { supabase } from '../integrations/supabase/client'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from '../hooks/use-toast'
 import { getProfileDisplayName, getProfileRoleLabel, resolveAvatarUrl } from '../lib/profileDisplay'
 import { sanitizePublicProfile, isNeutralPublicView } from '../lib/publicData'
@@ -283,12 +283,19 @@ const Profile = () => {
     [realProfile, isGuest]
   )
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [activeTab, setActiveTab] = useState(() => {
     const requestedTab = new URLSearchParams(window.location.search).get('tab')
     const supportedTabs = new Set(['products', 'orders', 'sourcing', 'referrals', 'statistics'])
     return requestedTab && supportedTabs.has(requestedTab) ? requestedTab : 'products'
   })
+
+  useEffect(() => {
+    const requestedTab = new URLSearchParams(location.search).get('tab')
+    const supportedTabs = new Set(['products', 'orders', 'sourcing', 'referrals', 'statistics'])
+    if (requestedTab && supportedTabs.has(requestedTab)) setActiveTab(requestedTab)
+  }, [location.search])
   const [userProducts, setUserProducts] = useState<UserProduct[]>([])
   const [fichasRecebimento, setFichasRecebimento] = useState<FichaRecebimento[]>([])
   const [receivedOrders, setReceivedOrders] = useState<ReceivedOrder[]>([])
