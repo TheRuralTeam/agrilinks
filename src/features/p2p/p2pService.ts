@@ -116,11 +116,7 @@ export async function fetchMyP2PAccounts(beneficiaryId: string) {
 }
 
 export async function fetchMyP2POrders(beneficiaryId?: string) {
-  const { data, error } = await supabase
-    .from('p2p_orders')
-    .select('id,buyer_id,pre_order_id,beneficiary_id,beneficiary_account_id,amount,currency,payment_channel,status,transfer_reference,expires_at,created_at')
-    .order('created_at', { ascending: false })
-    .limit(50)
+  const { data, error } = await supabase.rpc('get_my_p2p_operations')
   if (error) throw error
   return (data ?? []) as P2POrder[]
 }
