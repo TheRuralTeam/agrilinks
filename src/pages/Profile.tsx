@@ -476,11 +476,11 @@ const Profile = () => {
       setLoading(false)
       return
     }
-    if (userProfile?.user_type === 'comprador') { fetchFichasRecebimento(); fetchSourcingRequests(); fetchBuyerStats(); fetchBuyerPreOrders() }
+    if (userProfile?.user_type === 'comprador') { fetchFichasRecebimento(); fetchSourcingRequests(); fetchBuyerStats(); fetchBuyerPreOrders(); fetchBuyerFreightQuotes() }
     else { fetchUserProducts(); fetchReceivedOrders() }
     if (userProfile?.user_type === 'agente') fetchAgentStats()
     setLoading(false)
-  }, [user, userProfile, isGuest, fetchAgentStats, fetchBuyerStats, fetchBuyerPreOrders, fetchFichasRecebimento, fetchReceivedOrders, fetchSourcingRequests, fetchUserProducts])
+  }, [user, userProfile, isGuest, fetchAgentStats, fetchBuyerStats, fetchBuyerPreOrders, fetchFichasRecebimento, fetchReceivedOrders, fetchSourcingRequests, fetchUserProducts, fetchBuyerFreightQuotes])
 
   useEffect(() => {
     if (!authenticatedUserId || isGuest) {
