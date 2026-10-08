@@ -491,8 +491,21 @@ export default function P2PBeneficiaryPage() {
                     <Badge variant="outline">{statusLabel[order.status] ?? order.status}</Badge>
                   </div>
                   {order.status === 'payment_pending' && <><p className="mt-3 text-sm text-muted-foreground">A aguardar que o comprador envie o pagamento para os dados verificados da operação.</p>{order.beneficiary_account_id && <Button variant="outline" className="mt-3" onClick={() => void loadPaymentAccount(order.beneficiary_account_id!)}>Ver dados do recebimento</Button>}{paymentAccount?.id === order.beneficiary_account_id && <div className="mt-3 rounded-md border p-3 text-sm"><p className="font-medium">{paymentAccount.account_holder}</p><p>{paymentAccount.account_identifier}</p><p className="text-muted-foreground">{paymentAccount.instructions ?? 'Utilize apenas os dados apresentados nesta operação.'}</p></div>}</>}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button variant="outline" onClick={() => void showHistory(order.id)}>{historyOrderId === order.id ? 'Ocultar histórico' : 'Histórico'}</Button>
+                    <Button variant="outline" onClick={() => void downloadReceipt(order.id)} disabled={busy === `pdf:${order.id}`}>{busy === `pdf:${order.id}` ? 'A gerar…' : 'Comprovante P2P'}</Button>
+                    <Button variant="outline" onClick={() => void downloadCompleteReceipt(order.pre_order_id)} disabled={busy === `order-pdf:${order.pre_order_id}`}>{busy === `order-pdf:${order.pre_order_id}` ? 'A gerar…' : 'Comprovante completo'}</Button>
+                  </div>
                   {order.status === 'payment_submitted' && <Button className="mt-3" onClick={() => confirmReceived(order.id)} disabled={busy === order.id}><CheckCircle2 className="mr-2 h-4 w-4" /> Confirmar recebimento</Button>}
                   {['payment_submitted','payment_detected'].includes(order.status) && <Button variant="outline" className="ml-2 mt-3" onClick={() => setDisputeOrderId(order.id)}>Abrir disputa</Button>}
+                  {historyOrderId === order.id && (
+                    <div className="mt-3 border-t pt-3">
+                      <p className="mb-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">Histórico da operação</p>
+                      <div className="space-y-2">
+                        {historyEvents.map((event) => <div key={event.event_id} className="rounded-md border p-3 text-sm"><div className="flex justify-between gap-3"><span className="font-medium">{event.event_type}</span><Badge variant="outline">{event.actor_role}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{new Date(event.created_at).toLocaleString('pt-AO')}</p></div>)}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </CardContent>
@@ -516,7 +529,12 @@ export default function P2PBeneficiaryPage() {
             {adminReviewOrders.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma operação aguarda revisão.</p> : adminReviewOrders.map((order) => (
               <div key={order.id} className="mb-2 flex flex-col gap-3 rounded-md border p-4 md:flex-row md:items-center md:justify-between">
                 <div><p className="font-medium">{money(order.amount, order.currency)}</p><p className="text-xs text-muted-foreground">#{order.id.slice(0,8)} · {statusLabel[order.status] ?? order.status} · referência: {order.transfer_reference ?? 'não informada'}</p></div>
-                {order.status !== 'disputed' && <Button onClick={() => void completeAdminOrder(order.id)} disabled={busy === order.id}>Validar e concluir</Button>}
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={() => void showHistory(order.id)}>{historyOrderId === order.id ? 'Ocultar histórico' : 'Histórico'}</Button>
+                  <Button variant="outline" onClick={() => void downloadCompleteReceipt(order.pre_order_id)} disabled={busy === `order-pdf:${order.pre_order_id}`}>{busy === `order-pdf:${order.pre_order_id}` ? 'A gerar…' : 'Comprovante PDF'}</Button>
+                  {order.status !== 'disputed' && <Button onClick={() => void completeAdminOrder(order.id)} disabled={busy === order.id}>Validar e concluir</Button>}
+                </div>
+                {historyOrderId === order.id && <div className="mt-3 border-t pt-3 text-sm"><p className="mb-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">Histórico da operação</p>{historyEvents.map((event) => <div key={event.event_id} className="border-b py-2"><div className="flex justify-between"><span>{event.event_type}</span><Badge variant="outline">{event.actor_role}</Badge></div><p className="text-xs text-muted-foreground">{new Date(event.created_at).toLocaleString('pt-AO')}</p></div>)}</div>}
               </div>
             ))}
           </div>
