@@ -1053,9 +1053,11 @@ const AdminDashboard = () => {
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5 text-primary" /> Pedidos ({orders.length})
               </CardTitle>
-              <Button variant="outline" size="sm" onClick={() => navigate("/admindashboard/pedidos/lixeira")}>
-                <Trash2 className="h-4 w-4 mr-2" /> Lixeira · 15 dias
-              </Button>
+              {(hasPermission("manage_orders") || isSupportAgent) && (
+                <Button variant="outline" size="sm" onClick={() => navigate("/admindashboard/pedidos/lixeira")}>
+                  <Trash2 className="h-4 w-4 mr-2" /> Lixeira · 15 dias
+                </Button>
+              )}
             </div>
             </CardHeader>
             <CardContent className="overflow-x-auto">
