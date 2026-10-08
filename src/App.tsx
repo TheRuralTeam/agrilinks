@@ -43,7 +43,8 @@ const PublicProductLocation = lazy(() => import("./pages/PublicProductLocation")
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const MeusContratos = lazy(() => import("./pages/MeusContratos"));
 const ProximasCargas = lazy(() => import("./pages/ProximasCargas"));
-const FreightLoadScan = lazy(() => import("./pages/FreightLoadScan"));\nconst P2PBeneficiary = lazy(() => import("./pages/P2PBeneficiary"));
+const FreightLoadScan = lazy(() => import("./pages/FreightLoadScan"));
+const P2PBeneficiary = lazy(() => import("./pages/P2PBeneficiary"));
 
 const queryClient = new QueryClient();
 
