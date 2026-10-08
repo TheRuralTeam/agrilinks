@@ -501,7 +501,7 @@ const ProximasCargas = () => {
       toast.error(error?.message || 'Não foi possível actualizar.');
       return;
     }
-    if (next.status === 'delivered' && sharingLocationFor === load.id) stopLocationSharing();
+    if (nextStatus === 'delivered' && sharingLocationFor === load.id) stopLocationSharing();
     fetchLoads();
   };
 
