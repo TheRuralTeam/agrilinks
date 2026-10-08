@@ -27,7 +27,7 @@ as $$
   );
 $$;
 
-revoke all on function public.p2p_actor_can_view_order(uuid, uuid) from public;
+revoke all on function public.p2p_actor_can_view_order(uuid, uuid) from public, anon;
 grant execute on function public.p2p_actor_can_view_order(uuid, uuid) to authenticated;
 
 drop policy if exists "P2P orders view participants or admin" on public.p2p_orders;
