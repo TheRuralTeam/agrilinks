@@ -38,12 +38,13 @@ export function getNotificationTargetPath(notification: AgriLinkNotificationTarg
   if (type.startsWith("pre_order") || type.includes("order")) {
     return "/perfil?tab=orders";
   }
-  if (type.includes("ficha") && fichaId) return `/ficharecebimento?ficha=${encodeURIComponent(fichaId)}`;
-  if (type === "product_approval" || type === "verification_admin") return "/admindashboard";
-  if (type === "product" || type.includes("product")) {
-    return "/perfil?tab=products";
-  }
-  if (type === "sourcing" || type.includes("sourcing")) return "/perfil?tab=sourcing";
+  if (type.includes("ficha")) return "/ficharecebimento";
+  if (type === "product_approval") return "/admindashboard?tab=products";
+  if (type === "verification_admin") return "/admindashboard?tab=users";
+  if (type === "product" || type.includes("product")) return "/perfil?tab=products";
+  if (type === "sourcing") return "/admindashboard?tab=sourcing";
+  if (type.includes("sourcing")) return "/perfil?tab=sourcing";
+  if (type === "contract") return "/contratos-futuros";
   if (type === "referral" || type.includes("agent")) return "/perfil?tab=referrals";
   if (type === "verification") return "/perfil";
   if (type === "support") return "/suporte";
