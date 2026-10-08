@@ -422,12 +422,18 @@ const ProximasCargas = () => {
               : null,
           recorded_at: new Date().toISOString(),
         };
-        const { error } = await supabase
-          .from('freight_load_locations')
-          .upsert(location, { onConflict: 'freight_load_id' });
+        const { error } = await supabase.rpc('record_freight_load_location', {
+          p_freight_load_id: load.id,
+          p_latitude: location.latitude,
+          p_longitude: location.longitude,
+          p_accuracy_m: location.accuracy_m,
+          p_speed_mps: location.speed_mps,
+          p_heading_deg: location.heading_deg,
+          p_record_history: true,
+        });
         if (error) {
           toast.error(
-            'Não foi possível partilhar a localização. Verifique a ligação ou a migração do GPS.'
+            'Não foi possível partilhar a localização. Verifique a ligação ou o estado do transporte.'
           );
           stopLocationSharing();
           return;
