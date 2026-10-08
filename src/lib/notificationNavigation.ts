@@ -30,7 +30,7 @@ export function getNotificationTargetPath(notification: AgriLinkNotificationTarg
   };
 
   const type = notification.type.toLowerCase();
-  const conversationId = value("conversation_id", "conversationId", "conversation_id");
+  const conversationId = value("conversation_id", "conversationId");
   const productId = value("product_id", "productId");
   const orderId = value("pre_order_id", "order_id", "preOrderId");
   const fichaId = value("ficha_id", "fichaId");
@@ -38,13 +38,15 @@ export function getNotificationTargetPath(notification: AgriLinkNotificationTarg
   if (type === "message" && conversationId) return `/messages/${encodeURIComponent(conversationId)}`;
   if (type === "message" || type === "chat") return "/listamensagens";
   if (type.startsWith("pre_order") || type.includes("order")) {
-    return orderId ? `/dashboard?order=${encodeURIComponent(orderId)}` : "/dashboard";
+    return "/perfil?tab=orders";
   }
   if (type.includes("ficha") && fichaId) return `/ficharecebimento?ficha=${encodeURIComponent(fichaId)}`;
+  if (type === "product_approval" || type === "verification_admin") return "/admindashboard";
   if (type === "product" || type.includes("product")) {
-    return productId ? `/app?product=${encodeURIComponent(productId)}` : "/app";
+    return "/perfil?tab=products";
   }
-  if (type === "referral" || type.includes("agent")) return "/dashboard";
+  if (type === "sourcing" || type.includes("sourcing")) return "/perfil?tab=sourcing";
+  if (type === "referral" || type.includes("agent")) return "/perfil?tab=referrals";
   if (type === "support") return "/suporte";
 
   return "/notificacoes";
