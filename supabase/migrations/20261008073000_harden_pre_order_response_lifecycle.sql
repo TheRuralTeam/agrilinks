@@ -115,6 +115,42 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.release_marketplace_reservation(p_order_id uuid,p_expired boolean DEFAULT false)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $
+DECLARE v_order public.pre_orders%ROWTYPE;
+BEGIN
+  SELECT * INTO v_order FROM public.pre_orders WHERE id=p_order_id FOR UPDATE;
+  IF NOT FOUND OR NOT v_order.stock_reserved THEN RETURN; END IF;
+  UPDATE public.products
+  SET quantity=quantity+v_order.quantity,
+      reserved_quantity=greatest(coalesce(reserved_quantity,0)-v_order.quantity,0),
+      status=CASE WHEN status='removed' AND quantity+v_order.quantity>0 THEN 'active' ELSE status END,
+      updated_at=now()
+  WHERE id=v_order.product_id;
+  UPDATE public.pre_orders
+  SET stock_reserved=false,reservation_expires_at=NULL,
+      status=case when p_expired then 'expired' else status end,updated_at=now()
+  WHERE id=p_order_id;
+END;
+$;
+
+CREATE OR REPLACE FUNCTION public.consume_marketplace_reservation()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $
+BEGIN
+  IF NEW.status IN ('accepted','completed') AND OLD.status NOT IN ('accepted','completed') AND NEW.stock_reserved THEN
+    UPDATE public.products
+    SET reserved_quantity=greatest(coalesce(reserved_quantity,0)-NEW.quantity,0),updated_at=now()
+    WHERE id=NEW.product_id AND coalesce(reserved_quantity,0)>=NEW.quantity;
+    IF NOT FOUND THEN RAISE EXCEPTION 'STOCK_RESERVATION_COMMIT_FAILED'; END IF;
+    NEW.stock_reserved:=false; NEW.reservation_expires_at:=NULL;
+  END IF;
+  RETURN NEW;
+END;
+$;
+
+REVOKE ALL ON FUNCTION public.release_marketplace_reservation(uuid,boolean) FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.consume_marketplace_reservation() FROM PUBLIC,anon,authenticated;
+
 CREATE OR REPLACE FUNCTION public.notify_pre_order_status_change()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path='public'
 AS $$
