@@ -184,6 +184,8 @@ const StatusPill = ({ status }: { status: string }) => {
     pending:    { bg: 'rgba(44, 134, 59, 0.06)', color: '#2c863b', label: 'Pendente' },
     accepted:   { bg: T.g50,     color: T.g600,    label: 'Aceite' },
     rejected:   { bg: '#FEF2F2', color: '#DC2626',  label: 'Rejeitado' },
+    expired:    { bg: '#FEF2F2', color: '#DC2626',  label: 'Expirado' },
+    cancelled:  { bg: '#F3F4F6', color: '#6B7280',  label: 'Cancelado' },
     completed:  { bg: T.g50,     color: T.g600,    label: 'Concluído' },
     processing: { bg: 'rgba(44, 134, 59, 0.06)', color: '#2c863b', label: 'A processar' },
   }
