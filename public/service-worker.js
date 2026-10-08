@@ -123,9 +123,15 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       const targetPath = event.notification?.data?.path;
-      const targetUrl = targetPath && typeof targetPath === 'string'
-        ? new URL(targetPath, self.location.origin).toString()
-        : self.location.origin + '/notificacoes';
+      let targetUrl = self.location.origin + '/notificacoes';
+      if (typeof targetPath === 'string' && targetPath.startsWith('/') && !targetPath.startsWith('//') && !targetPath.includes('\\\\')) {
+        try {
+          const parsedTarget = new URL(targetPath, self.location.origin);
+          if (parsedTarget.origin === self.location.origin) targetUrl = parsedTarget.toString();
+        } catch {
+          // Mantém o destino interno seguro quando o caminho recebido é inválido.
+        }
+      }
       for (const client of clientList) {
         if (client.url === targetUrl && 'focus' in client) return client.focus();
       }
