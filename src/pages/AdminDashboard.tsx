@@ -288,8 +288,6 @@ const AdminDashboard = () => {
   const [orderRemovalTarget, setOrderRemovalTarget] = useState<Order | null>(null);
   const [adminDeleteTarget, setAdminDeleteTarget] = useState<{ table: string; ids: string[] } | null>(null);
   const [adminDeleteLoading, setAdminDeleteLoading] = useState(false);
-  const [orderTrash, setOrderTrash] = useState<Order[]>([]);
-  const [showOrderTrash, setShowOrderTrash] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -555,12 +553,6 @@ const AdminDashboard = () => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   }, []);
 
-  const loadOrderTrash = useCallback(async () => {
-    const { data, error } = await supabase.from("pre_orders").select("*").not("deleted_at", "is", null).order("deleted_until", { ascending: true });
-    if (error) { toast.error("Não foi possível carregar a lixeira."); return; }
-    setOrderTrash(data || []);
-  }, []);
-
   const requestRemovePreOrder = useCallback((order: Order) => {
     if (!hasPermission("manage_orders") && !isSupportAgent) {
       toast.error("Sem permissão para remover pedidos.");
@@ -582,7 +574,6 @@ const AdminDashboard = () => {
       });
       if (error) throw error;
       setOrders((prev) => prev.filter((item) => item.id !== order.id));
-      await loadOrderTrash();
       toast.success("Pedido movido para a lixeira por 15 dias.");
     } catch (error) {
       console.error("Erro ao remover pedido:", error);
@@ -594,7 +585,7 @@ const AdminDashboard = () => {
         return next;
       });
     }
-  }, [orderRemovalTarget, loadOrderTrash]);
+  }, [orderRemovalTarget]);
 
   const updateOrderStatus = useCallback(async (orderId: string, newStatus: AdminPreOrderStatus) => {
     if (!isSupportAgent && !hasPermission("manage_orders")) {
@@ -1062,7 +1053,7 @@ const AdminDashboard = () => {
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5 text-primary" /> Pedidos ({orders.length})
               </CardTitle>
-              <Button variant="outline" size="sm" onClick={async () => { setShowOrderTrash(true); await loadOrderTrash(); }}>
+              <Button variant="outline" size="sm" onClick={() => navigate("/admindashboard/pedidos/lixeira")}>
                 <Trash2 className="h-4 w-4 mr-2" /> Lixeira · 15 dias
               </Button>
             </div>
@@ -1229,21 +1220,6 @@ const AdminDashboard = () => {
                 </div>
               </div>;
             })()}
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={showOrderTrash} onOpenChange={setShowOrderTrash}>
-          <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
-            <DialogHeader><DialogTitle>Histórico de lixo · 15 dias</DialogTitle></DialogHeader>
-            <div className="space-y-2">
-              {orderTrash.length === 0 ? <p className="py-8 text-center text-sm text-gray-500">A lixeira está vazia.</p> : orderTrash.map(order => {
-                const remaining = order.deleted_until ? Math.max(0, Math.ceil((new Date(order.deleted_until).getTime() - Date.now()) / 86400000)) : 0;
-                return <button key={order.id} onClick={() => setSelectedOrder(order)} className="w-full text-left rounded-xl border border-gray-100 p-3 hover:bg-gray-50">
-                  <div className="font-semibold text-sm">{order.quantity} kg · {getAdminPreOrderStatusLabel(order.status)}</div>
-                  <div className="text-xs text-gray-500 mt-1">Expira em {remaining} dia(s)</div>
-                </button>;
-              })}
-            </div>
           </DialogContent>
         </Dialog>
 
