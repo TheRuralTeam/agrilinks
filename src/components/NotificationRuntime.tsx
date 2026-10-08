@@ -1,9 +1,17 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { getNotificationTargetPath } from "../lib/notificationNavigation";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../integrations/supabase/client";
+import { getNotificationTargetPath } from "../lib/notificationNavigation";
+
+type IncomingNotification = {
+  id: string;
+  title?: string | null;
+  message?: string | null;
+  type?: string | null;
+  metadata?: Record<string, unknown> | null;
+};
 
 function getAudioContext() {
   const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -12,7 +20,7 @@ function getAudioContext() {
 
 function playBell(context: AudioContext) {
   try {
-    if (context.state === "suspended") return;
+    if (context.state !== "running") return;
     const now = context.currentTime;
     const master = context.createGain();
     master.gain.setValueAtTime(0.0001, now);
@@ -20,8 +28,7 @@ function playBell(context: AudioContext) {
     master.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
     master.connect(context.destination);
 
-    const frequencies = [880, 1175];
-    frequencies.forEach((frequency, index) => {
+    [880, 1175].forEach((frequency, index) => {
       const oscillator = context.createOscillator();
       oscillator.type = index === 0 ? "sine" : "triangle";
       oscillator.frequency.setValueAtTime(frequency, now + index * 0.045);
@@ -31,7 +38,7 @@ function playBell(context: AudioContext) {
       oscillator.stop(now + 0.5);
     });
   } catch {
-    // Notification persistence/toast continues when browser audio is unavailable.
+    // Notificações, toast e navegação continuam mesmo se o áudio não estiver disponível.
   }
 }
 
@@ -52,13 +59,59 @@ export default function NotificationRuntime() {
     window.addEventListener("pointerdown", unlock, { capture: true });
     window.addEventListener("keydown", unlock, { capture: true });
     window.addEventListener("touchstart", unlock, { capture: true });
-
     return () => {
       window.removeEventListener("pointerdown", unlock, true);
       window.removeEventListener("keydown", unlock, true);
       window.removeEventListener("touchstart", unlock, true);
     };
   }, []);
+
+  const handleIncomingNotification = useCallback(async (notification: IncomingNotification) => {
+    if (!user?.id || !notification.id || seen.current.has(notification.id)) return;
+
+    seen.current.add(notification.id);
+    if (seen.current.size > 200) {
+      const first = seen.current.values().next().value;
+      if (first) seen.current.delete(first);
+    }
+
+    if (!audioContextRef.current) audioContextRef.current = getAudioContext();
+    if (audioContextRef.current) {
+      if (audioContextRef.current.state === "suspended") {
+        await audioContextRef.current.resume().catch(() => undefined);
+      }
+      if (audioContextRef.current.state === "running") playBell(audioContextRef.current);
+    }
+
+    if ("vibrate" in navigator) {
+      try { navigator.vibrate([120, 80, 120]); } catch { /* vibration is optional */ }
+    }
+
+    const targetPath = getNotificationTargetPath({
+      id: notification.id,
+      type: notification.type || "system",
+      metadata: notification.metadata,
+    });
+
+    toast(notification.title || "Nova notificação", {
+      description: notification.message || "Tem uma nova actualização na AgriLink.",
+      duration: 7000,
+      action: {
+        label: "Abrir",
+        onClick: () => {
+          void (async () => {
+            const { error } = await supabase
+              .from("notifications")
+              .update({ read: true })
+              .eq("id", notification.id)
+              .eq("user_id", user.id);
+            if (error) console.error("Não foi possível marcar a notificação como lida:", error);
+            navigate(targetPath);
+          })();
+        },
+      },
+    });
+  }, [navigate, user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -73,60 +126,8 @@ export default function NotificationRuntime() {
           table: "notifications",
           filter: `user_id=eq.${user.id}`,
         },
-        async (payload) => {
-          const notification = payload.new as {
-            id: string;
-            title?: string | null;
-            message?: string | null;
-            type?: string | null;
-            metadata?: Record<string, unknown> | null;
-          };
-
-          if (!notification.id || seen.current.has(notification.id)) return;
-          seen.current.add(notification.id);
-          if (seen.current.size > 200) {
-            const first = seen.current.values().next().value;
-            if (first) seen.current.delete(first);
-          }
-
-          if (!audioContextRef.current) audioContextRef.current = getAudioContext();
-          if (audioContextRef.current) {
-            if (audioContextRef.current.state === "suspended") {
-              await audioContextRef.current.resume().catch(() => undefined);
-            }
-            if (audioContextRef.current.state === "running") {
-              playBell(audioContextRef.current);
-            }
-          }
-
-          if ("vibrate" in navigator) {
-            try { navigator.vibrate([120, 80, 120]); } catch { /* vibration is optional */ }
-          }
-
-          const targetPath = getNotificationTargetPath({
-            id: notification.id,
-            type: notification.type || "system",
-            metadata: notification.metadata,
-          });
-
-          toast(notification.title || "Nova notificação", {
-            description: notification.message || "Tem uma nova atualização na AgriLink.",
-            duration: 7000,
-            action: {
-              label: "Abrir",
-              onClick: () => {
-                void (async () => {
-                  const { error } = await supabase
-                    .from("notifications")
-                    .update({ read: true })
-                    .eq("id", notification.id)
-                    .eq("user_id", user.id);
-                  if (error) console.error("Não foi possível marcar a notificação como lida:", error);
-                  navigate(targetPath);
-                })();
-              },
-            },
-          });
+        (payload) => {
+          void handleIncomingNotification(payload.new as IncomingNotification);
         },
       )
       .subscribe();
@@ -134,7 +135,20 @@ export default function NotificationRuntime() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [user, navigate]);
+  }, [user, handleIncomingNotification]);
+
+  // Quando a app está visível, o Service Worker encaminha o push para este runtime
+  // em vez de mostrar um segundo alerta do sistema para a mesma notificação.
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const onServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data?.type === "PUSH_NOTIFICATION" && event.data.notification) {
+        void handleIncomingNotification(event.data.notification as IncomingNotification);
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", onServiceWorkerMessage);
+    return () => navigator.serviceWorker.removeEventListener("message", onServiceWorkerMessage);
+  }, [handleIncomingNotification]);
 
   useEffect(() => () => {
     const context = audioContextRef.current;
