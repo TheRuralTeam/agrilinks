@@ -284,7 +284,11 @@ const Profile = () => {
   )
   const navigate = useNavigate()
 
-  const [activeTab, setActiveTab] = useState('products')
+  const [activeTab, setActiveTab] = useState(() => {
+    const requestedTab = new URLSearchParams(window.location.search).get('tab')
+    const supportedTabs = new Set(['products', 'orders', 'sourcing', 'referrals', 'statistics'])
+    return requestedTab && supportedTabs.has(requestedTab) ? requestedTab : 'products'
+  })
   const [userProducts, setUserProducts] = useState<UserProduct[]>([])
   const [fichasRecebimento, setFichasRecebimento] = useState<FichaRecebimento[]>([])
   const [receivedOrders, setReceivedOrders] = useState<ReceivedOrder[]>([])
