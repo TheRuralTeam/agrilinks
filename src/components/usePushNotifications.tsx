@@ -12,6 +12,7 @@ interface PushSubscriptionJSON {
 
 interface UsePushNotificationsReturn {
   isSupported: boolean;
+  supportMessage: string | null;
   isSubscribed: boolean;
   isLoading: boolean;
   error: string | null;
@@ -26,66 +27,110 @@ interface UsePushNotificationsReturn {
 export const usePushNotifications = (): UsePushNotificationsReturn => {
   const { user } = useAuth();
   const [isSupported, setIsSupported] = useState(false);
+  const [supportMessage, setSupportMessage] = useState<string | null>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Verificar suporte
+  // Detectar suporte real, incluindo a exigência de instalação no ecrã principal do iOS.
   useEffect(() => {
-    const supported =
+    const hasPushApis =
       'serviceWorker' in navigator &&
       'PushManager' in window &&
       'Notification' in window;
+    const isSecure = window.isSecureContext;
+    const userAgent = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/i.test(userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+      (navigator as Navigator & { standalone?: boolean }).standalone === true;
+    const iosNeedsInstall = isIOS && !isStandalone;
+    const supported = hasPushApis && isSecure && !iosNeedsInstall;
 
     setIsSupported(supported);
-    setIsLoading(false);
-
-    if (!supported) {
-      console.warn('Push Notifications não suportadas neste navegador');
+    if (!isSecure) {
+      setSupportMessage('As notificações push exigem HTTPS. Abra a AgriLink pelo endereço seguro https://www.agrilink.ao.');
+    } else if (iosNeedsInstall) {
+      setSupportMessage('No iPhone/iPad, abra a AgriLink no Safari, toque em Partilhar e escolha “Adicionar ao ecrã principal”. Depois, abra a aplicação pelo novo ícone e active as notificações.');
+    } else if (!hasPushApis) {
+      setSupportMessage('Este navegador não disponibiliza notificações push. Actualize o navegador ou experimente Chrome/Edge no Android/desktop ou Safari numa versão compatível.');
+    } else {
+      setSupportMessage(null);
     }
+    setIsLoading(false);
   }, []);
 
-  // Verificar se já está subscrito
+  // Confirmar a subscrição local E sincronizá-la com o servidor para a conta actual.
   useEffect(() => {
-    if (!isSupported || !user) return;
+    let cancelled = false;
 
     const checkSubscription = async () => {
+      if (!isSupported || !user?.id) {
+        setIsSubscribed(false);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
       try {
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.getSubscription();
         if (!subscription) {
-          setIsSubscribed(false);
+          if (!cancelled) setIsSubscribed(false);
           return;
         }
 
         const configuredKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-        if (configuredKey) {
-          const expectedKey = urlBase64ToUint8Array(configuredKey);
-          if (!arePushKeysEqual(subscription.options.applicationServerKey, expectedKey)) {
-            await subscription.unsubscribe();
+        if (!configuredKey) {
+          if (!cancelled) {
             setIsSubscribed(false);
-            const { error: deleteError } = await supabase
-              .from('push_subscriptions')
-              .delete()
-              .eq('user_id', user.id)
-              .eq('endpoint', subscription.endpoint);
-            if (deleteError) throw deleteError;
-            setIsSubscribed(false);
-            setError('A chave de notificações foi actualizada. Active novamente as notificações para registar este dispositivo.');
-            return;
+            setError('A chave pública VAPID não está configurada neste deployment; não é possível confirmar a entrega push.');
           }
+          return;
         }
 
-        setError(null);
-        setIsSubscribed(true);
+        const expectedKey = urlBase64ToUint8Array(configuredKey);
+        if (!arePushKeysEqual(subscription.options.applicationServerKey, expectedKey)) {
+          const { error: deleteError } = await supabase
+            .from('push_subscriptions')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('endpoint', subscription.endpoint);
+          if (deleteError) throw deleteError;
+          await subscription.unsubscribe();
+          if (!cancelled) {
+            setIsSubscribed(false);
+            setError('A chave de notificações foi actualizada. Active novamente as notificações para registar este dispositivo.');
+          }
+          return;
+        }
+
+        const subscriptionJSON = subscription.toJSON() as PushSubscriptionJSON;
+        const { error: registerError } = await supabase.rpc('register_push_subscription', {
+          p_endpoint: subscriptionJSON.endpoint,
+          p_auth_key: subscriptionJSON.keys.auth,
+          p_p256dh_key: subscriptionJSON.keys.p256dh,
+        });
+        if (registerError) throw registerError;
+
+        if (!cancelled) {
+          setError(null);
+          setIsSubscribed(true);
+        }
       } catch (err) {
-        console.error('Erro ao verificar subscrição:', err);
-        setError('Não foi possível validar a subscrição de notificações deste dispositivo.');
+        console.error('Erro ao validar/registar subscrição:', err);
+        if (!cancelled) {
+          setIsSubscribed(false);
+          setError('Não foi possível confirmar o registo deste dispositivo no servidor. Tente activar novamente as notificações.');
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
     };
 
-    checkSubscription();
-  }, [isSupported, user]);
+    void checkSubscription();
+    return () => { cancelled = true; };
+  }, [isSupported, user?.id]);
 
   // Subscrever a notificações push
   const subscribe = useCallback(async () => {
@@ -155,15 +200,11 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
       // Guardar a subscrição associada ao utilizador e ao endpoint deste dispositivo.
       const subscriptionJSON = subscription.toJSON() as PushSubscriptionJSON;
 
-      const { error: dbError } = await supabase
-        .from('push_subscriptions')
-        .upsert({
-          user_id: user.id,
-          endpoint: subscriptionJSON.endpoint,
-          auth_key: subscriptionJSON.keys.auth,
-          p256dh_key: subscriptionJSON.keys.p256dh,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id,endpoint' });
+      const { error: dbError } = await supabase.rpc('register_push_subscription', {
+        p_endpoint: subscriptionJSON.endpoint,
+        p_auth_key: subscriptionJSON.keys.auth,
+        p_p256dh_key: subscriptionJSON.keys.p256dh,
+      });
 
       if (dbError) throw dbError;
 
@@ -218,6 +259,7 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
 
   return {
     isSupported,
+    supportMessage,
     isSubscribed,
     isLoading,
     error,
