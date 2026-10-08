@@ -567,9 +567,27 @@ const AdminDashboard = () => {
   }, []);
 
   const markNotificationAsRead = useCallback(async (id: string) => {
-    await supabase.from("notifications").update({ read: true }).eq("id", id);
+    if (!hasPermission("manage_support") && !isSupportAgent) {
+      toast.error("Não tem permissão para gerir notificações.");
+      return;
+    }
+
+    const previous = notifications.find((notification) => notification.id === id);
+    if (!previous || previous.read) return;
+
+    const { error } = await supabase
+      .from("notifications")
+      .update({ read: true })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Erro ao marcar notificação como lida:", error);
+      toast.error("Não foi possível atualizar a notificação.");
+      return;
+    }
+
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  }, []);
+  }, [hasPermission, isSupportAgent, notifications]);
 
   const requestRemovePreOrder = useCallback((order: Order) => {
     if (!hasPermission("manage_orders") && !isSupportAgent) {
@@ -634,6 +652,17 @@ const AdminDashboard = () => {
   }, [hasPermission, isSupportAgent]);
 
   const updateSourcingStatus = useCallback(async (id: string, newStatus: string, adminNotes?: string) => {
+    if (!hasPermission("manage_sourcing")) {
+      toast.error("Não tem permissão para gerir pedidos de sourcing.");
+      return;
+    }
+
+    const allowedStatuses = new Set(["pending", "in_progress", "completed", "rejected"]);
+    if (!allowedStatuses.has(newStatus)) {
+      toast.error("Estado de sourcing inválido.");
+      return;
+    }
+
     const updateData: { status: string; admin_notes?: string } = { status: newStatus };
     if (adminNotes !== undefined) updateData.admin_notes = adminNotes;
     
@@ -644,7 +673,7 @@ const AdminDashboard = () => {
     } else {
       toast.error("Erro ao atualizar pedido");
     }
-  }, []);
+  }, [hasPermission]);
 
   const changeUserType = useCallback(async (userId: string, userType: User["user_type"]) => {
     if (!userType || !hasPermission("manage_users")) {
