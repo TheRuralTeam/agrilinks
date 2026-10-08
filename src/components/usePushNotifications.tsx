@@ -63,6 +63,7 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
           const expectedKey = urlBase64ToUint8Array(configuredKey);
           if (!arePushKeysEqual(subscription.options.applicationServerKey, expectedKey)) {
             await subscription.unsubscribe();
+            setIsSubscribed(false);
             const { error: deleteError } = await supabase
               .from('push_subscriptions')
               .delete()
