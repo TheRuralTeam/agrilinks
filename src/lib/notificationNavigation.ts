@@ -31,8 +31,6 @@ export function getNotificationTargetPath(notification: AgriLinkNotificationTarg
 
   const type = notification.type.toLowerCase();
   const conversationId = value("conversation_id", "conversationId");
-  const productId = value("product_id", "productId");
-  const orderId = value("pre_order_id", "order_id", "preOrderId");
   const fichaId = value("ficha_id", "fichaId");
 
   if (type === "message" && conversationId) return `/messages/${encodeURIComponent(conversationId)}`;
@@ -47,6 +45,7 @@ export function getNotificationTargetPath(notification: AgriLinkNotificationTarg
   }
   if (type === "sourcing" || type.includes("sourcing")) return "/perfil?tab=sourcing";
   if (type === "referral" || type.includes("agent")) return "/perfil?tab=referrals";
+  if (type === "verification") return "/perfil";
   if (type === "support") return "/suporte";
 
   return "/notificacoes";
