@@ -23,6 +23,7 @@ import type { WalletBalance } from '../features/wallet/walletDomain'
 import { WalletSummaryCard } from '../features/wallet/WalletSummaryCard'
 import { respondToPreOrder } from '../features/orders/adminPreOrderService'
 import agrilinkLogo from '../assets/agrilink-logo.png'
+import { downloadMarketplaceTransactionReceipt } from '../features/orders/transactionReceipts'
 
 /* ─── Design tokens ──────────────────────────────────────────────────────────
    Mesma fonte de verdade da landing (../lib/brand). Os campos abaixo com
@@ -59,8 +60,22 @@ interface FichaRecebimento {
 interface ReceivedOrder {
   id: string; product_id: string; user_id: string; quantity: number
   location: string; status: string; created_at: string
+  unit_price?: number | null; payment_status?: string | null
   product?: { product_type: string; price: number }
   buyer?: { full_name: string; phone: string; email?: string }
+}
+interface BuyerPreOrder {
+  id: string; product_id: string; quantity: number; location: string
+  status: string; created_at: string; updated_at: string
+  unit_price: number | null; total_price: number | null
+  payment_status: string | null; reservation_expires_at: string | null
+  product?: { product_type: string; price: number }
+}
+interface BuyerFreightQuote {
+  id: string; pre_order_id: string; product_name: string; weight_kg: number
+  origin_label: string; destination_label: string; driver_offered_price: number | null
+  currency: string; driver_quote_status: string; route_distance_km: number | null
+  route_duration_minutes: number | null; status: string; created_at: string
 }
 interface SourcingRequest {
   id: string; product_name: string; quantity: number; delivery_date: string
@@ -176,6 +191,8 @@ const StatusPill = ({ status }: { status: string }) => {
     pending:    { bg: 'rgba(44, 134, 59, 0.06)', color: '#2c863b', label: 'Pendente' },
     accepted:   { bg: T.g50,     color: T.g600,    label: 'Aceite' },
     rejected:   { bg: '#FEF2F2', color: '#DC2626',  label: 'Rejeitado' },
+    expired:    { bg: '#FEF2F2', color: '#DC2626',  label: 'Expirado' },
+    cancelled:  { bg: '#F3F4F6', color: '#6B7280',  label: 'Cancelado' },
     completed:  { bg: T.g50,     color: T.g600,    label: 'Concluído' },
     processing: { bg: 'rgba(44, 134, 59, 0.06)', color: '#2c863b', label: 'A processar' },
   }
@@ -271,6 +288,10 @@ const Profile = () => {
   const [userProducts, setUserProducts] = useState<UserProduct[]>([])
   const [fichasRecebimento, setFichasRecebimento] = useState<FichaRecebimento[]>([])
   const [receivedOrders, setReceivedOrders] = useState<ReceivedOrder[]>([])
+  const [buyerPreOrders, setBuyerPreOrders] = useState<BuyerPreOrder[]>([])
+  const [buyerFreightQuotes, setBuyerFreightQuotes] = useState<BuyerFreightQuote[]>([])
+  const [freightQuoteBusyId, setFreightQuoteBusyId] = useState<string | null>(null)
+  const [receiptBusyId, setReceiptBusyId] = useState<string | null>(null)
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null)
   const [walletBalanceOwnerId, setWalletBalanceOwnerId] = useState<string | null>(null)
   const [walletLoading, setWalletLoading] = useState(false)
@@ -378,6 +399,63 @@ const Profile = () => {
     } catch (error) { console.error(error) }
   }, [user?.id])
 
+  const fetchBuyerPreOrders = React.useCallback(async () => {
+    if (!user?.id) { setBuyerPreOrders([]); return }
+    try {
+      const { data, error } = await supabase.from('pre_orders')
+        .select('id, product_id, quantity, location, status, created_at, updated_at, unit_price, total_price, payment_status, reservation_expires_at')
+        .eq('user_id', user.id).is('deleted_at', null).order('created_at', { ascending: false })
+      if (error) throw error
+      const rows = await Promise.all((data || []).map(async (order) => {
+        const { data: product, error: productError } = await supabase.from('products').select('product_type, price').eq('id', order.product_id).single()
+        if (productError) throw productError
+        return { ...order, product: product || undefined } as BuyerPreOrder
+      }))
+      setBuyerPreOrders(rows)
+    } catch (error) { console.error(error); setBuyerPreOrders([]) }
+  }, [user?.id])
+
+  const fetchBuyerFreightQuotes = React.useCallback(async () => {
+    if (!user?.id) { setBuyerFreightQuotes([]); return }
+    try {
+      const { data, error } = await supabase.from('freight_loads')
+        .select('id, pre_order_id, product_name, weight_kg, origin_label, destination_label, driver_offered_price, currency, driver_quote_status, route_distance_km, route_duration_minutes, status, created_at')
+        .eq('driver_quote_status', 'pending_buyer_approval')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      setBuyerFreightQuotes((data || []) as BuyerFreightQuote[])
+    } catch (error) { console.error(error); setBuyerFreightQuotes([]) }
+  }, [user?.id])
+
+  const downloadTransactionReceipt = async (preOrderId: string) => {
+    if (receiptBusyId) return
+    setReceiptBusyId(preOrderId)
+    try {
+      await downloadMarketplaceTransactionReceipt(preOrderId)
+      toast({ title: 'Comprovante gerado', description: 'O PDF foi gerado a partir do histórico transacional desta operação.' })
+    } catch (error: any) {
+      toast({ title: 'Não foi possível gerar o comprovante', description: error?.message || 'A operação não está disponível para o teu perfil.', variant: 'destructive' } as any)
+    } finally {
+      setReceiptBusyId(null)
+    }
+  }
+
+  const respondToFreightQuote = async (freightLoadId: string, approved: boolean) => {
+    if (!user?.id) { requireAuth('responder a uma proposta de transporte'); return }
+    setFreightQuoteBusyId(freightLoadId)
+    try {
+      const { error } = await supabase.rpc('respond_to_freight_quote', {
+        p_freight_load_id: freightLoadId,
+        p_approved: approved,
+      })
+      if (error) throw error
+      toast({ title: approved ? 'Preço de transporte aprovado.' : 'Proposta de transporte recusada.' })
+      await fetchBuyerFreightQuotes()
+    } catch (error: any) {
+      toast({ title: 'Não foi possível responder à proposta', description: error.message, variant: 'destructive' } as any)
+    } finally { setFreightQuoteBusyId(null) }
+  }
+
   const submitSourcingRequest = async () => {
     if (!user) {
       requireAuth('enviar um pedido de sourcing')
@@ -421,11 +499,11 @@ const Profile = () => {
       setLoading(false)
       return
     }
-    if (userProfile?.user_type === 'comprador') { fetchFichasRecebimento(); fetchSourcingRequests(); fetchBuyerStats() }
+    if (userProfile?.user_type === 'comprador') { fetchFichasRecebimento(); fetchSourcingRequests(); fetchBuyerStats(); fetchBuyerPreOrders(); fetchBuyerFreightQuotes() }
     else { fetchUserProducts(); fetchReceivedOrders() }
     if (userProfile?.user_type === 'agente') fetchAgentStats()
     setLoading(false)
-  }, [user, userProfile, isGuest, fetchAgentStats, fetchBuyerStats, fetchFichasRecebimento, fetchReceivedOrders, fetchSourcingRequests, fetchUserProducts])
+  }, [user, userProfile, isGuest, fetchAgentStats, fetchBuyerStats, fetchBuyerPreOrders, fetchFichasRecebimento, fetchReceivedOrders, fetchSourcingRequests, fetchUserProducts, fetchBuyerFreightQuotes])
 
   useEffect(() => {
     if (!authenticatedUserId || isGuest) {
@@ -568,12 +646,14 @@ const Profile = () => {
   )
 
   /* ── TABS config ── */
+  // Fluxos logísticos do comprador devem permanecer ligados ao backend; não usar estado visual fictício.
   const isComprador = userProfile?.user_type === 'comprador'
   const isAgente = userProfile?.user_type === 'agente'
   const isAgricultor = userProfile?.user_type === 'agricultor'
 
   const tabs = [
     { id: 'products', label: isComprador ? t('profile.myFichas') : t('profile.myProducts'), icon: isComprador ? <ClipboardList size={15}/> : <Package size={15}/> },
+    ...(isComprador ? [{ id: 'orders', label: 'Minhas pré-compras', icon: <ShoppingCart size={15}/>, badge: buyerPreOrders.filter(o => o.status === 'pending').length }] : []),
     ...(isComprador ? [{ id: 'sourcing', label: t('profile.sourcing'), icon: <Search size={15}/> }] : []),
     ...(isAgricultor || isAgente ? [{ id: 'orders', label: t('profile.receivedOrders'), icon: <ShoppingCart size={15}/>, badge: receivedOrders.filter(o => o.status === 'pending').length }] : []),
     ...(isAgente ? [{ id: 'referrals', label: t('profile.myReferrals'), icon: <Users size={15}/> }] : []),
@@ -863,6 +943,59 @@ const Profile = () => {
             </div>
           )}
 
+          {/* ── Buyer Pre-orders ── */}
+          {activeTab === 'orders' && isComprador && (
+            <OrdersTable
+              columns={[
+                { key: 'produto', label: 'Produto', render: r => <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}><span style={{ fontWeight: 700, color: T.ink }}>{r.product?.product_type || 'Produto'}</span><StatusPill status={r.status} /></div> },
+                { key: 'qtd', label: 'Quantidade', align: 'right', render: r => <span style={{ fontWeight: 700, color: T.g600 }}>{r.quantity.toLocaleString('pt-AO')} kg</span> },
+                { key: 'valor', label: 'Total', align: 'right', render: r => `${Number(r.total_price || 0).toLocaleString('pt-AO')} Kz` },
+                { key: 'pagamento', label: 'Pagamento', render: r => <span style={{ fontSize: 12, fontWeight: 600, color: r.payment_status === 'paid' ? T.g600 : T.faint }}>{r.payment_status === 'paid' ? 'Pago' : r.status === 'accepted' ? 'A aguardar pagamento' : 'Não iniciado'}</span> },
+                { key: 'prazo', label: 'Reserva', render: r => {
+                  if (r.status !== 'pending' || !r.reservation_expires_at) return <span style={{ color: T.faint, fontSize: 12 }}>—</span>
+                  const expired = new Date(r.reservation_expires_at).getTime() <= Date.now()
+                  return <span style={{ color: expired ? '#DC2626' : T.faint, fontSize: 12, fontWeight: 600 }}>{expired ? 'Expirada' : `Até ${new Date(r.reservation_expires_at).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}`}</span>
+                } },
+                { key: 'data', label: 'Data', render: r => formatDate(r.created_at) },
+              ]}
+              rows={buyerPreOrders}
+              keyField={r => r.id}
+              accent={r => r.status === 'pending' ? T.goldL : r.status === 'accepted' ? T.g400 : r.status === 'rejected' ? '#EF4444' : T.faint}
+              actions={r => (
+                <IconBtn
+                  icon={<FileSignature size={13} strokeWidth={1.75}/>}
+                  title={receiptBusyId === r.id ? 'A gerar comprovante…' : 'Histórico e comprovante PDF'}
+                  onClick={() => { if (receiptBusyId !== r.id) void downloadTransactionReceipt(r.id) }}
+                />
+              )}
+              empty={<EmptyState icon={<ShoppingCart size={26} color={T.faint}/>} message="Ainda não tens pré-compras." sub="As pré-compras enviadas aparecerão aqui e serão actualizadas quando o fornecedor responder." />}
+            />
+          )}
+
+          {activeTab === 'orders' && isComprador && buyerFreightQuotes.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+              {buyerFreightQuotes.map((quote) => (
+                <section key={quote.id} style={{ background: T.white, border: `1px solid ${T.rule}`, borderRadius: 14, padding: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: T.ink }}>{quote.product_name}</div>
+                      <div style={{ marginTop: 4, fontSize: 12, color: T.muted }}>{quote.origin_label} → {quote.destination_label}</div>
+                      <div style={{ marginTop: 5, fontSize: 12, color: T.faint }}>{Number(quote.weight_kg).toLocaleString('pt-AO')} kg · {quote.route_distance_km != null ? Number(quote.route_distance_km).toFixed(1) + ' km' : 'rota indisponível'} · {quote.route_duration_minutes != null ? Math.round(quote.route_duration_minutes / 60) + ' h estimadas' : 'tempo indisponível'}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: T.g600 }}>{quote.driver_offered_price == null ? '—' : Number(quote.driver_offered_price).toLocaleString('pt-AO') + ' ' + (quote.currency || 'Kz')}</div>
+                      <div style={{ marginTop: 3, fontSize: 11, color: T.gold, fontWeight: 700 }}>A aguardar a tua decisão</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 13, flexWrap: 'wrap' }}>
+                    <IconBtn icon={<Trash2 size={13} strokeWidth={1.75}/>} title={freightQuoteBusyId === quote.id ? 'A processar…' : 'Recusar transporte'} danger onClick={() => { if (freightQuoteBusyId !== quote.id) void respondToFreightQuote(quote.id, false) }} />
+                    <IconBtn icon={<CheckCircle size={13} strokeWidth={1.75}/>} title={freightQuoteBusyId === quote.id ? 'A processar…' : 'Aprovar transporte'} onClick={() => { if (freightQuoteBusyId !== quote.id) void respondToFreightQuote(quote.id, true) }} />
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+
           {/* ── Received Orders ── */}
           {activeTab === 'orders' && (isAgricultor || isAgente) && (
             <OrdersTable
@@ -892,14 +1025,13 @@ const Profile = () => {
               rows={receivedOrders}
               keyField={r => r.id}
               accent={r => r.status === 'pending' ? T.goldL : r.status === 'accepted' ? T.g400 : '#EF4444'}
-              actions={r => r.status === 'pending' ? (
+              actions={r => (
                 <>
-                  <IconBtn icon={<CheckCircle size={13} strokeWidth={1.75}/>} title={t('profile.accept')} onClick={() => acceptOrder(r.id)} />
-                  <IconBtn icon={<Trash2 size={13} strokeWidth={1.75}/>} title={t('profile.reject')} danger onClick={() => rejectOrder(r.id)} />
+                  {r.status === 'pending' && <IconBtn icon={<CheckCircle size={13} strokeWidth={1.75}/>} title={t('profile.accept')} onClick={() => acceptOrder(r.id)} />}
+                  {r.status === 'pending' && <IconBtn icon={<Trash2 size={13} strokeWidth={1.75}/>} title={t('profile.reject')} danger onClick={() => rejectOrder(r.id)} />}
                   <IconBtn icon={<Phone size={13} strokeWidth={1.75}/>} title={t('profile.contact')} onClick={() => contactBuyer(r)} />
+                  <IconBtn icon={<FileSignature size={13} strokeWidth={1.75}/>} title={receiptBusyId === r.id ? 'A gerar comprovante…' : 'Histórico e comprovante PDF'} onClick={() => { if (receiptBusyId !== r.id) void downloadTransactionReceipt(r.id) }} />
                 </>
-              ) : (
-                <IconBtn icon={<Phone size={13} strokeWidth={1.75}/>} title={t('profile.contact')} onClick={() => contactBuyer(r)} />
               )}
               empty={<EmptyState icon={<ShoppingCart size={26} color={T.faint}/>} message={t('profile.noOrdersReceived')} sub={t('profile.ordersWillAppear')} />}
             />

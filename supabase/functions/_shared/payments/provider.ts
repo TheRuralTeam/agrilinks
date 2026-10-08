@@ -16,9 +16,39 @@ export interface CreateCheckoutInput {
   returnUrl: string;
 }
 
+export interface PaymentProviderCapabilities {
+  checkout: boolean;
+  statusQuery: boolean;
+  refunds: boolean;
+  webhookVerification: boolean;
+  supportedCurrencies: readonly string[];
+}
+
 export interface ProviderCheckout {
   providerReference: string;
   checkoutUrl?: string;
+  qrCodePayload?: string;
+}
+
+export interface ProviderPaymentStatusResult {
+  providerReference: string;
+  status: ProviderPaymentStatus;
+  amount: string;
+  currency: string;
+}
+
+export interface ProviderRefundInput {
+  paymentIntentId: string;
+  providerReference: string;
+  idempotencyKey: string;
+  amount: string;
+  currency: string;
+  reason?: string;
+}
+
+export interface ProviderRefundResult {
+  providerReference: string;
+  status: "pending" | "succeeded" | "failed";
 }
 
 export interface VerifiedPaymentWebhook {
@@ -34,8 +64,11 @@ export interface VerifiedPaymentWebhook {
 export interface PaymentProviderAdapter {
   readonly id: string;
   readonly checkoutHosts: readonly string[];
+  readonly capabilities: PaymentProviderCapabilities;
   createCheckout(input: CreateCheckoutInput): Promise<ProviderCheckout>;
   verifyWebhook(request: Request): Promise<VerifiedPaymentWebhook>;
+  getPaymentStatus?(providerReference: string): Promise<ProviderPaymentStatusResult>;
+  refundPayment?(input: ProviderRefundInput): Promise<ProviderRefundResult>;
 }
 
 export class PaymentProviderRegistry {
@@ -61,6 +94,10 @@ export class PaymentProviderRegistry {
     return this.providers.has(providerId);
   }
 
+  getCapabilities(providerId: string): PaymentProviderCapabilities {
+    return this.getProvider(providerId).capabilities;
+  }
+
   async createCheckout(providerId: string, input: CreateCheckoutInput): Promise<ProviderCheckout> {
     if (!/^[0-9a-f-]{36}$/i.test(input.idempotencyKey)) {
       throw new Error("Invalid payment idempotency key");
@@ -75,6 +112,30 @@ export class PaymentProviderRegistry {
       await provider.createCheckout({ ...input, amount }),
       provider.checkoutHosts,
     );
+  }
+
+  async getPaymentStatus(providerId: string, providerReference: string): Promise<ProviderPaymentStatusResult> {
+    const provider = this.getProvider(providerId);
+    if (!provider.capabilities.statusQuery || !provider.getPaymentStatus) {
+      throw new Error("Payment provider does not support status queries");
+    }
+    if (!providerReference || providerReference.length > 255) {
+      throw new Error("Invalid provider reference");
+    }
+    return provider.getPaymentStatus(providerReference);
+  }
+
+  async refundPayment(providerId: string, input: ProviderRefundInput): Promise<ProviderRefundResult> {
+    const provider = this.getProvider(providerId);
+    if (!provider.capabilities.refunds || !provider.refundPayment) {
+      throw new Error("Payment provider does not support refunds");
+    }
+    if (!/^[0-9a-f-]{36}$/i.test(input.idempotencyKey)) {
+      throw new Error("Invalid refund idempotency key");
+    }
+    const amount = normalizePaymentAmount(input.amount);
+    if (!/^[A-Z]{3}$/.test(input.currency)) throw new Error("Invalid refund currency");
+    return provider.refundPayment({ ...input, amount });
   }
 
   async verifyWebhook(providerId: string, request: Request): Promise<VerifiedPaymentWebhook> {

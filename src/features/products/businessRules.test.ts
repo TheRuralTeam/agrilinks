@@ -1,58 +1,82 @@
 import { describe, it, expect } from 'vitest'
 import { validateProductSubmission, validatePreOrderSubmission } from './businessRules'
 
-describe('product and order business rules', () => {
-  it('accepts a valid product submission', () => {
-    const result = validateProductSubmission({
-      product_type: 'Milho',
-      quantity: 500,
-      harvest_date: '2030-06-15',
-      price: 1800,
-      province_id: 'luanda',
-      municipality_id: 'kilamba',
-      logistics_access: 'sim',
-      photos: ['a.jpg', 'b.jpg', 'c.jpg'],
-      category: 'grãos',
-    })
+const validProduct = {
+  product_type: 'Milho',
+  quantity: 1000,
+  harvest_date: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString(),
+  price: 500000,
+  province_id: 'luanda',
+  municipality_id: 'viana',
+  logistics_access: 'sim' as const,
+  photos: ['a.jpg', 'b.jpg', 'c.jpg'],
+  category: 'Cereais',
+}
 
-    expect(result.valid).toBe(true)
+describe('AgriLink business rules — publication', () => {
+  it('accepts a valid product and valid Angola province/municipality pair', () => {
+    expect(validateProductSubmission(validProduct)).toEqual({ valid: true })
   })
 
-  it('rejects product publication with invalid quantities or stale harvest date', () => {
+  it('rejects a municipality that does not belong to the selected province', () => {
     expect(() =>
       validateProductSubmission({
-        product_type: 'Milho',
-        quantity: 0,
-        harvest_date: '2026-09-05',
-        price: 1800,
+        ...validProduct,
         province_id: 'luanda',
-        municipality_id: 'kilamba',
-        logistics_access: 'sim',
-        photos: ['a.jpg', 'b.jpg', 'c.jpg'],
-        category: 'grãos',
+        municipality_id: 'huambo',
       }),
-    ).toThrow(/maior que zero|30 dias|colheita/i)
+    ).toThrow('não pertence à província')
   })
 
-  it('rejects a pre-order when the product is not active or quantity exceeds stock', () => {
+  it('requires at least three product photos', () => {
     expect(() =>
+      validateProductSubmission({
+        ...validProduct,
+        photos: ['a.jpg', 'b.jpg'],
+      }),
+    ).toThrow('pelo menos 3 imagens')
+  })
+})
+
+describe('AgriLink business rules — pre-order', () => {
+  const product = {
+    id: 'product-1',
+    status: 'active',
+    quantity: 100,
+    user_id: 'farmer-1',
+    price: 5000,
+  }
+
+  it('calculates the order total from the product price and requested quantity', () => {
+    expect(
       validatePreOrderSubmission({
-        product: { id: 'p1', status: 'inactive', quantity: 50, user_id: 'seller-1', price: 1200 },
+        product,
         buyer_id: 'buyer-1',
-        quantity: 60,
-        location: 'Talatona',
+        quantity: 10,
+        location: 'Viana',
       }),
-    ).toThrow(/não disponível|maior que o stock/i)
+    ).toEqual({ valid: true, total_price: 50000 })
   })
 
-  it('rejects a buyer from ordering their own product', () => {
+  it('rejects buying your own product', () => {
     expect(() =>
       validatePreOrderSubmission({
-        product: { id: 'p1', status: 'active', quantity: 50, user_id: 'same-user', price: 1200 },
-        buyer_id: 'same-user',
+        product,
+        buyer_id: 'farmer-1',
         quantity: 10,
-        location: 'Talatona',
+        location: 'Viana',
       }),
-    ).toThrow(/próprio|não pode/i)
+    ).toThrow('próprio produto')
+  })
+
+  it('rejects quantities above available stock', () => {
+    expect(() =>
+      validatePreOrderSubmission({
+        product,
+        buyer_id: 'buyer-1',
+        quantity: 101,
+        location: 'Viana',
+      }),
+    ).toThrow('stock disponível')
   })
 })

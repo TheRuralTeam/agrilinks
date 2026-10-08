@@ -135,6 +135,23 @@ const PublishProduct = () => {
       return;
     }
 
+    if (
+      !location ||
+      !Number.isFinite(location.lat) ||
+      !Number.isFinite(location.lng) ||
+      location.lat < -90 ||
+      location.lat > 90 ||
+      location.lng < -180 ||
+      location.lng > 180
+    ) {
+      toast({
+        title: "Localização obrigatória",
+        description: "Marque no mapa a localização de origem do produto antes de publicar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       validateProductSubmission({
         product_type: formData.product_type,

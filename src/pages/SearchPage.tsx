@@ -197,15 +197,38 @@ const SearchPage = () => {
 
     try {
       const quantity = Number(orderData.quantity || 0)
-      if (!Number.isFinite(quantity) || quantity <= 0) throw new Error('Informe uma quantidade válida.')
-      if (!orderData.location.trim()) throw new Error('Informe o local de entrega.')
 
-      let destination: { lat: string; lon: string }
+      validatePreOrderSubmission({
+        product: {
+          id: selectedProduct.id,
+          status: selectedProduct.status,
+          quantity: selectedProduct.quantity,
+          user_id: selectedProduct.user_id,
+          price: selectedProduct.price,
+        },
+        buyer_id: user.id,
+        quantity,
+        location: orderData.location,
+      })
+
+      let destination: { lat: string; lon: string } | null
       try {
         destination = await geocodeAngolaLocation(orderData.location)
       } catch (geocodeError) {
         console.warn('[AgriLink] Geocoding da entrega falhou.', geocodeError)
         throw new Error('Não foi possível localizar o ponto de entrega. Informe uma localização mais específica e tente novamente.')
+      }
+
+      if (
+        !destination ||
+        !Number.isFinite(Number(destination.lat)) ||
+        !Number.isFinite(Number(destination.lon)) ||
+        Number(destination.lat) < -90 ||
+        Number(destination.lat) > 90 ||
+        Number(destination.lon) < -180 ||
+        Number(destination.lon) > 180
+      ) {
+        throw new Error('O ponto de entrega não foi localizado com coordenadas válidas. Informe uma localização mais específica e tente novamente.')
       }
 
       const idempotencyKey = crypto.randomUUID()
@@ -232,7 +255,18 @@ const SearchPage = () => {
       const reservation = Array.isArray(data) ? data[0] : data
       if (!reservation) throw new Error('Não foi possível criar a reserva.')
 
-      toast.success('Produto reservado por 15 minutos. Pode continuar para o pagamento.')
+      const expiresAt = reservation.reservation_expires_at
+        ? new Date(reservation.reservation_expires_at).toLocaleTimeString('pt-AO', {
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : null
+
+      toast.success(
+        expiresAt
+          ? `Pré-compra enviada. A disponibilidade fica reservada até às ${expiresAt}.`
+          : 'Pré-compra enviada. A disponibilidade foi reservada temporariamente.'
+      )
       setPreOrderModalOpen(false)
       setSelectedProduct(null)
 
@@ -253,8 +287,7 @@ const SearchPage = () => {
 
   const hasActiveFilters = selectedProvince || selectedCategory !== 'all' || sortBy !== 'recent' || searchTerm
 
-  const TAX_RATE = 0
-  const totalPrice = selectedProduct ? orderData.quantity * selectedProduct.price * (1 + TAX_RATE) : 0
+  const totalPrice = selectedProduct ? orderData.quantity * selectedProduct.price : 0
 
   return (
     <div className="min-h-screen bg-[#F7F9F7] pb-20">
@@ -556,12 +589,8 @@ const SearchPage = () => {
                 <span>Subtotal:</span>
                 <span className="font-medium">{(orderData.quantity * (selectedProduct?.price || 0)).toLocaleString()} Kz</span>
               </div>
-              <div className="flex justify-between text-sm text-[#B07D0A]">
-                <span>Taxa de Serviço (10%):</span>
-                <span className="font-medium">{(orderData.quantity * (selectedProduct?.price || 0) * TAX_RATE).toLocaleString()} Kz</span>
-              </div>
               <div className="flex justify-between font-bold text-xl pt-3 border-t border-black/[0.06] text-[#2c863b]">
-                <span>Total Estimado:</span>
+                <span>Valor do produto:</span>
                 <span>{totalPrice.toLocaleString()} Kz</span>
               </div>
             </div>
@@ -571,7 +600,7 @@ const SearchPage = () => {
               Cancelar
             </Button>
             <Button onClick={handlePreOrderSubmit} className="bg-[#2c863b] hover:bg-[#256e32] text-white rounded-full">
-              Confirmar Pré-Compra
+              Enviar Pré-Compra
             </Button>
           </DialogFooter>
         </DialogContent>
