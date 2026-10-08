@@ -32,6 +32,7 @@ import {
   type P2POrder,
 } from '../features/p2p/p2pService'
 import { supabase } from '../integrations/supabase/client'
+import { downloadP2PTransactionReceipt, fetchP2PTransactionHistory, type P2PHistoryEvent } from '../features/p2p/p2pReceipts'
 
 const channels: { id: P2PPaymentChannel; label: string }[] = [
   { id: 'unitel_money', label: 'UNITEL Money' },
@@ -88,6 +89,9 @@ export default function P2PBeneficiaryPage() {
   const [buyerProofReference, setBuyerProofReference] = useState('')
   const [disputeOrderId, setDisputeOrderId] = useState<string | null>(null)
   const [disputeReason, setDisputeReason] = useState('')
+  const [historyOrderId, setHistoryOrderId] = useState<string | null>(null)
+  const [historyEvents, setHistoryEvents] = useState<P2PHistoryEvent[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   const refresh = async () => {
     setLoading(true)
@@ -228,6 +232,35 @@ export default function P2PBeneficiaryPage() {
     }
   }
 
+  const showHistory = async (orderId: string) => {
+    if (historyOrderId === orderId) {
+      setHistoryOrderId(null)
+      setHistoryEvents([])
+      return
+    }
+    setHistoryLoading(true)
+    try {
+      setHistoryEvents(await fetchP2PTransactionHistory(orderId))
+      setHistoryOrderId(orderId)
+    } catch (error: any) {
+      toast({ title: 'Histórico indisponível', description: error?.message ?? 'Não foi possível carregar o histórico.', variant: 'destructive' })
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  const downloadReceipt = async (orderId: string) => {
+    setBusy(`pdf:${orderId}`)
+    try {
+      await downloadP2PTransactionReceipt(orderId)
+      toast({ title: 'Comprovante gerado', description: 'O PDF foi preparado com o histórico da operação.' })
+    } catch (error: any) {
+      toast({ title: 'Comprovante indisponível', description: error?.message ?? 'Não foi possível gerar o PDF.', variant: 'destructive' })
+    } finally {
+      setBusy(null)
+    }
+  }
+
   const submitDispute = async () => {
     if (!disputeOrderId || !disputeReason.trim()) return
     setBusy(disputeOrderId)
@@ -355,13 +388,21 @@ export default function P2PBeneficiaryPage() {
 
       {buyerP2POrders.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-base">Meus pagamentos P2P</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Minhas operações P2P</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {buyerP2POrders.map((order) => (
               <div key={order.id} className="rounded-md border p-4">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div><p className="font-medium">{money(order.amount, order.currency)}</p><p className="text-xs text-muted-foreground">#{order.id.slice(0,8)} · {statusLabel[order.status] ?? order.status}</p></div>
-                  <Badge variant="outline">{statusLabel[order.status] ?? order.status}</Badge>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline">{statusLabel[order.status] ?? order.status}</Badge>
+                    <Button variant="outline" size="sm" onClick={() => void showHistory(order.id)} disabled={historyLoading && historyOrderId !== order.id}>
+                      {historyOrderId === order.id ? 'Ocultar histórico' : 'Histórico'}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => void downloadReceipt(order.id)} disabled={busy === `pdf:${order.id}`}>
+                      {busy === `pdf:${order.id}` ? 'A gerar…' : 'Comprovante PDF'}
+                    </Button>
+                  </div>
                 </div>
                 {order.status === 'payment_pending' && order.beneficiary_account_id && (
                   <div className="mt-3 rounded-md border p-3 text-sm">
@@ -371,6 +412,24 @@ export default function P2PBeneficiaryPage() {
                   </div>
                 )}
               </div>
+              {historyOrderId === order.id && (
+                <div className="mt-3 border-t pt-3">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">Histórico da operação</p>
+                  <div className="space-y-2">
+                    {historyEvents.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Ainda não existem eventos registados.</p>
+                    ) : historyEvents.map((event) => (
+                      <div key={event.event_id} className="flex flex-col gap-1 rounded-md border p-3 text-sm md:flex-row md:items-center md:justify-between">
+                        <div>
+                          <p className="font-medium">{event.event_type}</p>
+                          <p className="text-xs text-muted-foreground">{new Date(event.created_at).toLocaleString('pt-AO')}</p>
+                        </div>
+                        <Badge variant="outline">{event.actor_role}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             ))}
           </CardContent>
         </Card>
