@@ -2110,6 +2110,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_send_notification: {
+        Args: {
+          p_message: string
+          p_metadata?: Json
+          p_title: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       create_notification: {
         Args: {
           p_message: string
