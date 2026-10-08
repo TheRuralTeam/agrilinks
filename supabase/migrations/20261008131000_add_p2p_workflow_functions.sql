@@ -53,11 +53,11 @@ end $$;
 
 create or replace function public.create_p2p_order(p_pre_order_id uuid,p_payment_channel text) returns uuid
 language plpgsql security definer set search_path=public as $$
-declare v_order_id uuid; v_buyer uuid; v_amount numeric; v_count integer:=0; v_b record;
+declare v_order_id uuid; v_buyer uuid; v_amount numeric; v_payment_status text; v_count integer:=0; v_b record;
 begin
  if auth.uid() is null then raise exception 'AUTH_REQUIRED'; end if;
  if p_payment_channel not in ('bank_transfer','multicaixa_express','unitel_money','afrimoney','paypay') then raise exception 'INVALID_PAYMENT_CHANNEL'; end if;
- select buyer_id,total_price,payment_status into v_buyer,v_amount,strict v_buyer from pre_orders where id=p_pre_order_id and status='accepted' for update;
+ select buyer_id,total_price,payment_status into v_buyer,v_amount,v_payment_status from pre_orders where id=p_pre_order_id and status='accepted' for update;
  if v_buyer<>auth.uid() then raise exception 'FORBIDDEN'; end if;
  if v_amount is null or v_amount<=0 then raise exception 'INVALID_PAYMENT_AMOUNT'; end if;
  if coalesce((select payment_status from pre_orders where id=p_pre_order_id),'unpaid')='paid' then raise exception 'ALREADY_PAID'; end if;
