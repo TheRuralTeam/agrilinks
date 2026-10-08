@@ -288,6 +288,8 @@ const Profile = () => {
   const [fichasRecebimento, setFichasRecebimento] = useState<FichaRecebimento[]>([])
   const [receivedOrders, setReceivedOrders] = useState<ReceivedOrder[]>([])
   const [buyerPreOrders, setBuyerPreOrders] = useState<BuyerPreOrder[]>([])
+  const [buyerFreightQuotes, setBuyerFreightQuotes] = useState<BuyerFreightQuote[]>([])
+  const [freightQuoteBusyId, setFreightQuoteBusyId] = useState<string | null>(null)
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null)
   const [walletBalanceOwnerId, setWalletBalanceOwnerId] = useState<string | null>(null)
   const [walletLoading, setWalletLoading] = useState(false)
