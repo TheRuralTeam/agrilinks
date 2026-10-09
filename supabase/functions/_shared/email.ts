@@ -89,7 +89,7 @@ export function buildBrandEmailTemplate({
     : "";
 
   const secondaryMarkup = secondaryText
-    ? `<p style="margin:18px 0 0;color:#526158;font-size:13px;line-height:21px;">${secondaryText}</p>`
+    ? `<p style="margin:18px 0 0;color:#526158;font-size:13px;line-height:21px;">${escapeHtml(secondaryText)}</p>`
     : "";
 
   return `<!doctype html>
