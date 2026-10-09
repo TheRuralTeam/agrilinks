@@ -36,10 +36,10 @@ const FarmerFormWithAuth = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (date && date < addDays(new Date(), 30)) {
+    if (!date || date < addDays(new Date(), 30)) {
       toast({
         title: "Erro de validação",
-        description: "Só pode publicar produtos com previsão mínima de 30 dias antes da colheita",
+        description: "Indique uma data de colheita com pelo menos 30 dias de antecedência.",
         variant: "destructive",
       });
       return;
