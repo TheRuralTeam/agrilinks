@@ -1,17 +1,7 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-import { buildBrandEmailTemplate, escapeHtml } from "../_shared/email.ts";
-import {
-  buildResendSenderOptions,
-  normalizeEmailForDelivery,
-  sendWithFallback,
-} from "../_shared/resend.ts";
-import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { z } from "npm:zod@3.23.8";
+import { buildBrandEmailTemplate, escapeHtml, sendResendEmail } from "../_shared/email.ts";
+import { corsHeaders, jsonResponse } from "../_shared/http.ts";
 
 const BodySchema = z.object({
   user_id: z.string().uuid().optional(),
@@ -19,261 +9,164 @@ const BodySchema = z.object({
   full_name: z.string().trim().min(1).max(120).optional(),
 });
 
-const escapeHtml = (value: string) =>
-  value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+const RATE_LIMIT_WINDOW_SECONDS = 15 * 60;
+const EMAIL_MAX_REQUESTS = 3;
+const IP_MAX_REQUESTS = 20;
 
-serve(async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: corsHeaders,
-    });
+const sha256 = async (value: string) => {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+};
+
+const getClientIp = (req: Request) =>
+  req.headers.get("cf-connecting-ip")?.trim()
+  || req.headers.get("x-real-ip")?.trim()
+  || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+  || "unknown";
+
+const consumeRateLimit = async (supabaseUrl: string, serviceKey: string, bucketKey: string, maxRequests: number) => {
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_api_rate_limit`, {
+    method: "POST",
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      p_bucket_key: bucketKey,
+      p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
+      p_max_requests: maxRequests,
+    }),
+  });
+
+  if (!response.ok) {
+    console.error("Limite de envio OTP indisponível:", response.status);
+    throw new Error("Não foi possível validar o limite de envio.");
   }
 
+  return (await response.json()) === true;
+};
+
+const createOtpCode = () => {
+  const range = 0x100000000;
+  const ceiling = Math.floor(range / 1_000_000) * 1_000_000;
+  const values = new Uint32Array(1);
+  do {
+    crypto.getRandomValues(values);
+  } while (values[0] >= ceiling);
+  return String(values[0] % 1_000_000).padStart(6, "0");
+};
+
+Deno.serve(async (req: Request): Promise<Response> => {
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
+  if (req.method !== "POST") return jsonResponse({ error: "Método não permitido." }, 405);
+
   try {
-    let body: unknown;
+    const parsed = BodySchema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) return jsonResponse({ error: "Dados inválidos para verificação do email." }, 400);
 
-    try {
-      body = await req.json();
-    } catch (err) {
-      console.error("send-otp-email: JSON inválido no request body:", err);
-      return new Response(
-        JSON.stringify({ error: "JSON inválido no request body." }),
-        {
-          status: 400,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        },
-      );
-    }
-
-    const parsed = BodySchema.safeParse(body);
-
-    if (!parsed.success) {
-      console.error("Dados inválidos:", parsed.error);
-      return new Response(
-        JSON.stringify({ error: "Dados inválidos para envio do código." }),
-        {
-          status: 400,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        },
-      );
-    }
-
-    const email = normalizeEmailForDelivery(parsed.data.email);
-
+    const email = parsed.data.email.trim().toLowerCase();
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceKey) throw new Error("Configuração interna indisponível.");
 
-    if (!supabaseUrl) throw new Error("SUPABASE_URL não configurada.");
-    if (!serviceRoleKey) throw new Error("SUPABASE_SERVICE_ROLE_KEY não configurada.");
-    if (!resendApiKey) throw new Error("RESEND_API_KEY não configurada.");
-
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
-
-    let userId = parsed.data.user_id;
-    let fullName = parsed.data.full_name?.trim() || "Utilizador AgriLink";
-
-    if (!userId) {
-      console.log("user_id não fornecido. Procurando utilizador pelo email:", email);
-
-      const { data: userRow, error: userError } = await supabase
-        .from("users")
-        .select("id, full_name, email")
-        .ilike("email", email)
-        .maybeSingle();
-
-      if (userError) {
-        console.error("Erro ao procurar utilizador:", userError);
-        return new Response(
-          JSON.stringify({ error: "Erro ao procurar a conta.", details: userError.message }),
-          {
-            status: 500,
-            headers: {
-              "Content-Type": "application/json",
-              ...corsHeaders,
-            },
-          },
-        );
-      }
-
-      if (!userRow?.id) {
-        console.error("Nenhuma conta encontrada para:", email);
-        return new Response(
-          JSON.stringify({ error: "Conta não encontrada para este email." }),
-          {
-            status: 404,
-            headers: {
-              "Content-Type": "application/json",
-              ...corsHeaders,
-            },
-          },
-        );
-      }
-
-      userId = userRow.id;
-      fullName = userRow.full_name || fullName;
-      console.log("Utilizador encontrado:", userId);
+    const emailHash = await sha256(`otp:email:${email}`);
+    const ipHash = await sha256(`otp:ip:${getClientIp(req)}`);
+    const emailAllowed = await consumeRateLimit(supabaseUrl, serviceKey, `auth:otp:email:${emailHash}`, EMAIL_MAX_REQUESTS);
+    const ipAllowed = await consumeRateLimit(supabaseUrl, serviceKey, `auth:otp:ip:${ipHash}`, IP_MAX_REQUESTS);
+    if (!emailAllowed || !ipAllowed) {
+      return jsonResponse({
+        success: false,
+        error: "Atingiste o limite de pedidos de código. Tenta novamente mais tarde.",
+      }, 429);
     }
 
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 1000 * 60 * 15).toISOString();
+    const supabase = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
 
-    const { error: invalidatePrevCodesError } = await supabase
+    const { data: userRow, error: userError } = await supabase
+      .from("users")
+      .select("id, full_name, email")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (userError) {
+      console.error("Falha ao validar a conta para OTP:", userError.message);
+      throw new Error("Não foi possível processar o pedido de verificação.");
+    }
+
+    // Não revelar se um endereço está registado nem aceitar um user_id associado a outro email.
+    if (!userRow?.id || (parsed.data.user_id && parsed.data.user_id !== userRow.id)) {
+      return jsonResponse({
+        success: true,
+        message: "Se a conta estiver registada, receberás um código de verificação por email.",
+      });
+    }
+
+    const fullName = escapeHtml(userRow.full_name || parsed.data.full_name || "Utilizador AgriLink");
+    const otpCode = createOtpCode();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+    const { error: invalidateError } = await supabase
       .from("email_verification_codes")
       .update({ verified: true })
       .eq("email", email)
       .eq("verified", false);
 
-    if (invalidatePrevCodesError) {
-      console.error("Erro ao invalidar códigos anteriores:", invalidatePrevCodesError);
-      return new Response(
-        JSON.stringify({ error: "Não foi possível preparar a verificação do email." }),
-        {
-          status: 500,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        },
-      );
+    if (invalidateError) {
+      console.error("Falha ao invalidar códigos OTP anteriores:", invalidateError.message);
+      throw new Error("Não foi possível preparar a verificação do email.");
     }
 
-    const { error: insertOtpError } = await supabase
-      .from("email_verification_codes")
-      .insert({
-        user_id: userId,
-        email,
-        code: otpCode,
-        expires_at: expiresAt,
-        verified: false,
-      });
-
-    if (insertOtpError) {
-      console.error("Erro ao guardar o código OTP:", insertOtpError);
-      return new Response(
-        JSON.stringify({ error: "Não foi possível guardar o código de verificação." }),
-        {
-          status: 500,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders,
-          },
-        },
-      );
-    }
-
-    console.log("OTP gerado e guardado para:", email, "expira em:", expiresAt);
-
-    const safeFullName = escapeHtml(fullName);
-    const senderOptions = buildResendSenderOptions(
-      "AgriLink <no-reply@agrilink.ao>",
-      "AgriLink <onboarding@resend.dev>",
-    );
-
-    const resendSender = async (payload: any) => {
-      const response = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const text = await response.text();
-      let data: any = {};
-
-      try {
-        data = text ? JSON.parse(text) : {};
-      } catch {
-        data = { message: text || "Resend email delivery failed" };
-      }
-
-      if (!response.ok) {
-        return {
-          error: new Error(data?.message || `Resend request failed (${response.status})`),
-          data: null,
-        };
-      }
-
-      return { error: null, data };
-    };
-
-    const emailHtml = buildBrandEmailTemplate({
-      title: "Código de verificação — AgriLink",
-      preheader: "O seu código de verificação da AgriLink.",
-      headline: "Confirme o seu email",
-      bodyHtml: `
-        <p style="margin:0 0 16px;">Olá ${safeFullName},</p>
-        <p style="margin:0 0 22px;">Introduza o código abaixo para confirmar o seu endereço de email.</p>
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px;">
-          <tr><td align="center" style="padding:20px 12px;background:#f1f7f0;border:1px solid #dce9dc;border-radius:6px;color:#176b3a;font-family:Arial,Helvetica,sans-serif;font-size:32px;line-height:40px;font-weight:700;letter-spacing:8px;">${otpCode}</td></tr>
-        </table>
-        <p style="margin:0 0 12px;font-size:13px;line-height:21px;color:#526158;">O código é válido durante 15 minutos.</p>
-        <p style="margin:0;font-size:13px;line-height:21px;color:#526158;">Se não pediste este código, ignora este email.</p>
-      `,
+    const { error: insertError } = await supabase.from("email_verification_codes").insert({
+      user_id: userRow.id,
+      email,
+      code: otpCode,
+      expires_at: expiresAt,
+      verified: false,
     });
 
-    const delivery = await sendWithFallback(
-      resendSender,
-      (from) => ({
-        from,
-        reply_to: "contacto@agrilink.ao",
-        to: [email],
-        subject: "O seu código de verificação — AgriLink",
-        html: emailHtml,
-      }),
-      senderOptions.candidates,
-      3,
-      500,
-    );
-
-    if (!delivery.ok) {
-      console.error("Erro ao enviar email:", delivery.error);
-      throw new Error("Erro ao enviar email: " + (delivery.error?.message || String(delivery.error)));
+    if (insertError) {
+      console.error("Falha ao guardar código OTP:", insertError.message);
+      throw new Error("Não foi possível preparar a verificação do email.");
     }
 
-    console.log("Email enviado com sucesso para:", email, "Email ID:", delivery.data?.id, "via:", delivery.sender);
+    const html = buildBrandEmailTemplate({
+      title: "Código de verificação — AgriLink",
+      preheader: "O código para confirmar o teu email na AgriLink.",
+      headline: "Confirma o teu email",
+      bodyHtml: [
+        `<p style="margin:0 0 16px;">Olá ${fullName},</p>`,
+        '<p style="margin:0 0 22px;">Introduz o código abaixo para confirmar o teu endereço de email.</p>',
+        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px;"><tr><td align="center" style="padding:20px 12px;background:#f1f7f0;border:1px solid #dce9dc;border-radius:6px;color:#176b3a;font-family:Arial,Helvetica,sans-serif;font-size:32px;line-height:40px;font-weight:700;letter-spacing:8px;">${otpCode}</td></tr></table>`,
+        '<p style="margin:0 0 12px;font-size:13px;line-height:21px;color:#526158;">O código é válido durante 15 minutos.</p>',
+        '<p style="margin:0;font-size:13px;line-height:21px;color:#526158;">Se não pediste este código, ignora este email.</p>',
+      ].join(""),
+    });
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Código enviado para " + email,
-        user_id: userId,
-        full_name: fullName,
-      }),
-      {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          ...corsHeaders,
-        },
-      },
-    );
+    try {
+      await sendResendEmail({
+        to: email,
+        subject: "Código de verificação — AgriLink",
+        html,
+        from: "AgriLink <no-reply@agrilink.ao>",
+        replyTo: "contacto@agrilink.ao",
+      });
+    } catch (sendError) {
+      await supabase.from("email_verification_codes")
+        .update({ verified: true })
+        .eq("email", email)
+        .eq("code", otpCode);
+      throw sendError;
+    }
+
+    return jsonResponse({
+      success: true,
+      message: "Se a conta estiver registada, receberás um código de verificação por email.",
+    });
   } catch (error) {
-    console.error("Erro na função send-otp-email:", error);
-    return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : "Erro interno do servidor.",
-      }),
-      {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-          ...corsHeaders,
-        },
-      },
-    );
+    console.error("send-otp-email falhou:", error instanceof Error ? error.message : "erro desconhecido");
+    return jsonResponse({ error: "Não foi possível enviar o código de verificação. Tenta novamente mais tarde." }, 500);
   }
 });
