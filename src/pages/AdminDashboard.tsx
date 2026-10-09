@@ -1405,45 +1405,55 @@ const AdminDashboard = () => {
                         </TableCell>
                         <TableCell className="text-sm text-gray-500">{new Date(product.created_at).toLocaleDateString("pt-BR")}</TableCell>
                         <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><MoreVertical className="h-4 w-4" /></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {(product as any).status === 'pending_approval' && (
-                                <>
-                                  <DropdownMenuItem
-                                    onClick={async () => {
-                                      const { error } = await supabase.rpc('admin_approve_product', { p_product_id: product.id });
-                                      if (error) return toast.error(error.message);
-                                      setProducts((prev) => prev.map((p: any) => p.id === product.id ? { ...p, status: 'active' } : p));
-                                      toast.success('Produto aprovado e visível no feed');
-                                    }}
-                                    className="text-green-700"
-                                  >
-                                    <CheckCircle className="h-4 w-4 mr-2" /> Aprovar
+                          {(hasPermission("manage_products") || hasPermission("manage_support") || isSuperRoot) && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={`Acções do produto ${product.product_type || product.id}`}>
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {hasPermission("manage_products") && (product as any).status === 'pending_approval' && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={async () => {
+                                        if (!hasPermission("manage_products")) return toast.error("Não tem permissão para aprovar produtos.");
+                                        const { error } = await supabase.rpc('admin_approve_product', { p_product_id: product.id });
+                                        if (error) return toast.error(error.message);
+                                        setProducts((prev) => prev.map((p: any) => p.id === product.id ? { ...p, status: 'active' } : p));
+                                        toast.success('Produto aprovado e visível no feed');
+                                      }}
+                                      className="text-green-700"
+                                    >
+                                      <CheckCircle className="h-4 w-4 mr-2" /> Aprovar
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={async () => {
+                                        if (!hasPermission("manage_products")) return toast.error("Não tem permissão para rejeitar produtos.");
+                                        const { error } = await supabase.rpc('admin_reject_product', { p_product_id: product.id });
+                                        if (error) return toast.error(error.message);
+                                        setProducts((prev) => prev.map((p: any) => p.id === product.id ? { ...p, status: 'rejected' } : p));
+                                        toast.success('Produto rejeitado');
+                                      }}
+                                      className="text-amber-700"
+                                    >
+                                      <XCircle className="h-4 w-4 mr-2" /> Rejeitar
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                {(hasPermission("manage_support") || isSuperRoot) && (
+                                  <DropdownMenuItem onClick={() => { setTargetUser(product.user_id); setNotificationModalOpen(true); }}>
+                                    <Bell className="h-4 w-4 mr-2" /> Notificar
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={async () => {
-                                      const { error } = await supabase.rpc('admin_reject_product', { p_product_id: product.id });
-                                      if (error) return toast.error(error.message);
-                                      setProducts((prev) => prev.map((p: any) => p.id === product.id ? { ...p, status: 'rejected' } : p));
-                                      toast.success('Produto rejeitado');
-                                    }}
-                                    className="text-amber-700"
-                                  >
-                                    <XCircle className="h-4 w-4 mr-2" /> Rejeitar
+                                )}
+                                {hasPermission("manage_products") && (
+                                  <DropdownMenuItem onClick={() => handleDelete("products", product.id)} className="text-red-600">
+                                    <Trash2 className="h-4 w-4 mr-2" /> Apagar
                                   </DropdownMenuItem>
-                                </>
-                              )}
-                              <DropdownMenuItem onClick={() => { setTargetUser(product.user_id); setNotificationModalOpen(true); }}>
-                                <Bell className="h-4 w-4 mr-2" /> Notificar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDelete("products", product.id)} className="text-red-600">
-                                <Trash2 className="h-4 w-4 mr-2" /> Apagar
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
@@ -1742,18 +1752,24 @@ const AdminDashboard = () => {
                           <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><MoreVertical className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={!hasPermission("manage_sourcing")} aria-label={`Acções do pedido de sourcing ${req.id}`}>
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuItem onClick={() => updateSourcingStatus(req.id, "in_progress")}>
-                                  <Clock className="h-4 w-4 mr-2 text-amber-500" /> Em Progresso
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => updateSourcingStatus(req.id, "completed")}>
-                                  <Check className="h-4 w-4 mr-2 text-green-500" /> Concluído
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => updateSourcingStatus(req.id, "cancelled")}>
-                                  <X className="h-4 w-4 mr-2 text-red-500" /> Cancelado
-                                </DropdownMenuItem>
+                                {hasPermission("manage_sourcing") && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => updateSourcingStatus(req.id, "in_progress")}>
+                                      <Clock className="h-4 w-4 mr-2 text-amber-500" /> Em Progresso
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => updateSourcingStatus(req.id, "completed")}>
+                                      <Check className="h-4 w-4 mr-2 text-green-500" /> Concluído
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => updateSourcingStatus(req.id, "rejected")}>
+                                      <X className="h-4 w-4 mr-2 text-red-500" /> Rejeitar pedido
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                                  <DropdownMenuItem onClick={() => {
                                    setSourcingNoteTarget(req);
                                    setSourcingNote(req.admin_notes || "");
