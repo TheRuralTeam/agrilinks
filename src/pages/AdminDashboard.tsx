@@ -781,7 +781,7 @@ const AdminDashboard = () => {
     }
     setChangingUserType((prev) => new Set(prev).add(userId));
     try {
-      const enumMap: Record<string, string> = {
+      const enumMap: Record<string, 'agricultor' | 'comprador' | 'agente' | 'motorista'> = {
         agricultor: "agricultor",
         comprador: "comprador",
         agente: "agente",
