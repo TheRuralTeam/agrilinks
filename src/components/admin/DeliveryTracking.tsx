@@ -524,7 +524,7 @@ const DeliveryTracking: React.FC<DeliveryTrackingProps> = ({ currentUserId }) =>
                                 </p>
                               </div>
                               <Badge variant="outline" className="ml-auto">
-                                {new Date(order.created_at).toLocaleDateString("pt-BR")}
+                                {order.created_at ? new Date(order.created_at).toLocaleDateString("pt-BR") : "Data indisponível"}
                               </Badge>
                             </div>
 
