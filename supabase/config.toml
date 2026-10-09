@@ -56,3 +56,31 @@ content_path = "./supabase/templates/invite.html"
 [auth.email.template.reauthentication]
 subject = "Confirme a sua identidade — AgriLink"
 content_path = "./supabase/templates/reauthentication.html"
+
+[auth.email.notification.password_changed]
+subject = "A palavra-passe da sua conta foi alterada"
+content_path = "./supabase/templates/password_changed_notification.html"
+
+[auth.email.notification.email_changed]
+subject = "O email da sua conta foi alterado"
+content_path = "./supabase/templates/email_changed_notification.html"
+
+[auth.email.notification.phone_changed]
+subject = "O telefone da sua conta foi alterado"
+content_path = "./supabase/templates/phone_changed_notification.html"
+
+[auth.email.notification.mfa_factor_enrolled]
+subject = "Foi adicionado um método de verificação à sua conta"
+content_path = "./supabase/templates/mfa_factor_enrolled_notification.html"
+
+[auth.email.notification.mfa_factor_unenrolled]
+subject = "Foi removido um método de verificação da sua conta"
+content_path = "./supabase/templates/mfa_factor_unenrolled_notification.html"
+
+[auth.email.notification.identity_linked]
+subject = "Foi associado um método de acesso à sua conta"
+content_path = "./supabase/templates/identity_linked_notification.html"
+
+[auth.email.notification.identity_unlinked]
+subject = "Foi removido um método de acesso da sua conta"
+content_path = "./supabase/templates/identity_unlinked_notification.html"
