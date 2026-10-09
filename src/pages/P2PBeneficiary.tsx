@@ -137,7 +137,7 @@ export default function P2PBeneficiaryPage() {
   }, [user?.id, canReview])
 
   useEffect(() => {
-    if (user) void refresh()
+    if (user?.id) void refresh()
   }, [user?.id, canReview, refresh])
 
   const activeOrders = useMemo(
