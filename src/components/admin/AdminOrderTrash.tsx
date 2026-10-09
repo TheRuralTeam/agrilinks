@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Clock3, Eye, RefreshCw, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, Clock3, Eye, RefreshCw, RotateCcw, Search, Trash2 } from "lucide-react";
 import { supabase } from "../../integrations/supabase/client";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -73,6 +73,7 @@ const AdminOrderTrash = () => {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [restoringOrderId, setRestoringOrderId] = useState<string | null>(null);
 
   const loadTrash = useCallback(async (silent = false) => {
     if (silent) setRefreshing(true);
@@ -104,6 +105,30 @@ const AdminOrderTrash = () => {
       setRefreshing(false);
     }
   }, []);
+
+  const restoreOrder = useCallback(async (order: TrashOrder) => {
+    if (!order.deleted_until || getDaysRemaining(order.deleted_until) === 0) {
+      toast.error("O prazo de recuperação deste registo já terminou.");
+      return;
+    }
+
+    setRestoringOrderId(order.id);
+    try {
+      const { error } = await supabase.rpc("admin_restore_pre_order", {
+        p_order_id: order.id,
+      });
+      if (error) throw error;
+
+      toast.success("Registo retirado da lixeira com sucesso.");
+      setSelectedOrder((current) => current?.id === order.id ? null : current);
+      await loadTrash(true);
+    } catch (error) {
+      console.error("Erro ao restaurar registo da lixeira:", error);
+      toast.error("Não foi possível restaurar o registo. Verifique as permissões, o prazo e o estado financeiro.");
+    } finally {
+      setRestoringOrderId(null);
+    }
+  }, [loadTrash]);
 
   useEffect(() => {
     void loadTrash();
@@ -235,10 +260,22 @@ const AdminOrderTrash = () => {
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => setSelectedOrder(order)}>
-                              <Eye className="h-4 w-4" />
-                              Detalhes
-                            </Button>
+                            <div className="flex flex-wrap justify-end gap-2">
+                              <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => setSelectedOrder(order)}>
+                                <Eye className="h-4 w-4" />
+                                Detalhes
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5"
+                                disabled={!order.deleted_until || days === 0 || restoringOrderId === order.id}
+                                onClick={() => void restoreOrder(order)}
+                              >
+                                <RotateCcw className={`h-4 w-4 ${restoringOrderId === order.id ? "animate-spin" : ""}`} />
+                                Restaurar
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
