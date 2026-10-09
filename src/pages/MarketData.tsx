@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
-import { TrendingUp, TrendingDown, ShoppingCart, DollarSign, RefreshCw, AlertCircle, ArrowLeft, BarChart3 } from "lucide-react";
+import { TrendingUp, TrendingDown, ShoppingCart, DollarSign, RefreshCw, AlertCircle, ArrowLeft, BarChart3, Satellite } from "lucide-react";
 import Loader from "../components/ui/Loader";
 import { Button } from "../components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -230,6 +230,16 @@ const MarketData = () => {
                 </p>
               </div>
             </div>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/agro-inteligencia")}
+              className="shrink-0 gap-2"
+              aria-label="Abrir AgroInteligência"
+              title="Previsão meteorológica agrícola"
+            >
+              <Satellite className="h-4 w-4" />
+              <span className="hidden lg:inline">AgroClima</span>
+            </Button>
             <Button 
               onClick={handleRefresh}
               disabled={analyzing}
