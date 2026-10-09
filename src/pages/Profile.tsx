@@ -658,7 +658,7 @@ const Profile = () => {
     } catch (error) { console.error(error) }
   }
 
-  const formatDate = (d: string) => new Date(d).toLocaleDateString('pt-AO')
+  const formatDate = (d: string | null | undefined) => d ? new Date(d).toLocaleDateString('pt-AO') : 'Data indisponível'
   const activeProducts = userProducts.filter(p => p.status === 'active').length
   const totalComments = userProducts.reduce((s, p) => s + (productStats[p.id]?.comments || 0), 0)
   const totalLikes = userProducts.reduce((s, p) => s + (productStats[p.id]?.likes || 0), 0)
