@@ -88,6 +88,7 @@ const PerfilComprador = () => {
   }, [user?.id])
 
   const fetchOrders = React.useCallback(async () => {
+    if (!user?.id) { setOrders([]); return }
     try {
       const { data, error } = await supabase
         .from('orders')
@@ -95,7 +96,7 @@ const PerfilComprador = () => {
           *,
           product:products!orders_product_id_fkey(product_type, farmer_name, photos)
         `)
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
       
       if (error) throw error
@@ -127,16 +128,17 @@ const PerfilComprador = () => {
   }
 
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user?.id) { toast({ title: 'Entre na sua conta para alterar a foto.' }); return }
     try {
       setAvatarLoading(true)
       const file = event.target.files?.[0]
       if (!file) return
       const fileExt = file.name.split('.').pop()
-      const fileName = `${user?.id}-${Date.now()}.${fileExt}`
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`
       const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file, { upsert: true })
       if (uploadError) throw uploadError
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
-      await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', user?.id)
+      await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', user.id)
     } catch (error) {
       console.error(error)
     } finally {
@@ -166,14 +168,14 @@ const PerfilComprador = () => {
   }
 
   const handleCancelOrder = async () => {
-    if (!selectedOrderId) return
+    if (!selectedOrderId || !user?.id) return
 
     try {
       const { error } = await supabase
         .from('orders')
         .update({ status: 'cancelled' })
         .eq('id', selectedOrderId)
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
 
       if (error) throw error
 
