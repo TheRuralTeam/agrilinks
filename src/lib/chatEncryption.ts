@@ -6,6 +6,7 @@ const KEY_VERSION = 1;
 const ENVELOPE_PREFIX = "agrilink-e2ee:";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
+const keyInitialization = new Map<string, Promise<JsonWebKey>>();
 
 type StoredKeyPair = { userId: string; privateKey: CryptoKey; publicKey: JsonWebKey };
 type MessageEnvelope = {
@@ -40,11 +41,13 @@ async function readStoredKeyPair(userId: string): Promise<StoredKeyPair | null> 
   const db = await openKeyDatabase();
   return new Promise((resolve, reject) => {
     const request = db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).get(userId);
-    request.onsuccess = () => resolve((request.result as StoredKeyPair | undefined) ?? null);
-    request.onerror = () => reject(request.error ?? new Error("Não foi possível ler a chave local."));
     request.onsuccess = () => {
       db.close();
       resolve((request.result as StoredKeyPair | undefined) ?? null);
+    };
+    request.onerror = () => {
+      db.close();
+      reject(request.error ?? new Error("Não foi possível ler a chave local."));
     };
   });
 }
@@ -99,7 +102,7 @@ async function deriveAesKey(privateKey: CryptoKey, peerPublicJwk: JsonWebKey, co
   );
 }
 
-export async function ensureChatEncryptionKey(userId: string): Promise<JsonWebKey> {
+async function initializeChatEncryptionKey(userId: string): Promise<JsonWebKey> {
   const existing = await readStoredKeyPair(userId);
   if (existing) {
     await publishPublicKey(userId, existing.publicKey);
@@ -115,6 +118,19 @@ export async function ensureChatEncryptionKey(userId: string): Promise<JsonWebKe
   await storeKeyPair({ userId, privateKey: pair.privateKey, publicKey });
   await publishPublicKey(userId, publicKey);
   return publicKey;
+}
+
+export async function ensureChatEncryptionKey(userId: string): Promise<JsonWebKey> {
+  const existingInitialization = keyInitialization.get(userId);
+  if (existingInitialization) return existingInitialization;
+
+  const initialization = initializeChatEncryptionKey(userId);
+  keyInitialization.set(userId, initialization);
+  try {
+    return await initialization;
+  } finally {
+    if (keyInitialization.get(userId) === initialization) keyInitialization.delete(userId);
+  }
 }
 
 async function publishPublicKey(userId: string, publicKey: JsonWebKey): Promise<void> {
