@@ -215,8 +215,8 @@ const Registration = () => {
       return false;
     }
     if (currentStep === 2) {
-      if (password.length < 6) {
-        setErrorMessage('A senha deve ter pelo menos 6 caracteres.');
+      if (password.length < 8) {
+        setErrorMessage('A palavra-passe deve ter pelo menos 8 caracteres.');
         return false;
       }
       if (password !== confirmPassword) {
