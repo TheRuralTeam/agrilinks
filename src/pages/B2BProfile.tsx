@@ -1,13 +1,12 @@
- import React, { useState, useEffect } from 'react';
- import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
- import { Button } from '../components/ui/button';
+import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
- import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
- import { ArrowLeft, Building2, Briefcase, History } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react';
  import { supabase } from '../integrations/supabase/client';
  import { useAuth } from '../contexts/AuthContext';
  import { toast } from 'sonner';
@@ -48,6 +47,14 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
    const [loading, setLoading] = useState(true);
    const [companyData, setCompanyData] = useState<CompanyData | null>(null);
    const [products, setProducts] = useState<PortfolioProduct[]>([]);
+  const [rfqOpen, setRfqOpen] = useState(false);
+  const [rfqLoading, setRfqLoading] = useState(false);
+  const [rfqForm, setRfqForm] = useState({
+    productName: '',
+    quantity: '',
+    deliveryDate: '',
+    description: '',
+  });
  
   const trustMetrics = null;
 
@@ -190,8 +197,55 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
    };
  
    const handleRFQ = () => {
-     toast.info('Funcionalidade de RFQ em desenvolvimento');
-   };
+    if (!user?.id) {
+      toast.error('Faça login para enviar uma solicitação de cotação.');
+      return;
+    }
+    setRfqForm({ productName: '', quantity: '', deliveryDate: '', description: '' });
+    setRfqOpen(true);
+  };
+
+  const submitRFQ = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!user?.id) {
+      toast.error('A sua sessão expirou. Entre novamente para continuar.');
+      return;
+    }
+
+    const productName = rfqForm.productName.trim();
+    const quantity = Number(rfqForm.quantity);
+    if (!productName || !Number.isFinite(quantity) || quantity <= 0 || !rfqForm.deliveryDate) {
+      toast.error('Indique o produto, uma quantidade válida e a data de entrega.');
+      return;
+    }
+
+    setRfqLoading(true);
+    try {
+      const details = [
+        `Perfil consultado: ${companyData?.name || 'Empresa'}`,
+        rfqForm.description.trim() ? `Necessidade: ${rfqForm.description.trim()}` : '',
+      ].filter(Boolean).join('\\n\\n');
+
+      const { error } = await supabase.from('sourcing_requests').insert({
+        user_id: user.id,
+        product_name: productName,
+        quantity,
+        delivery_date: rfqForm.deliveryDate,
+        description: details || null,
+        status: 'pending',
+      });
+      if (error) throw error;
+
+      toast.success('Solicitação de cotação enviada à equipa AgriLink.');
+      setRfqOpen(false);
+      setRfqForm({ productName: '', quantity: '', deliveryDate: '', description: '' });
+    } catch (error) {
+      console.error('Erro ao enviar solicitação de cotação:', error);
+      toast.error(error instanceof Error ? error.message : 'Não foi possível enviar a solicitação.');
+    } finally {
+      setRfqLoading(false);
+    }
+  };
  
    const handleViewProduct = (productId: string) => {
      navigate(`/app`);
