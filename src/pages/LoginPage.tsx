@@ -476,38 +476,6 @@ const LoginPage = () => {
             Explorar como convidado
           </button>
 
-          {/* Cartão: entrar como visitante */}
-          <Link
-            to="/"
-            className="guest-btn"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '14px 16px',
-              borderRadius: 16,
-              border: `1px dashed ${T.goldBorder}`,
-              backgroundColor: 'rgba(201,146,42,0.06)',
-              textDecoration: 'none',
-              marginBottom: 20,
-            }}
-          >
-            <div style={{
-              width: 36, height: 36, borderRadius: 999, flexShrink: 0,
-              backgroundColor: T.goldPale,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <Compass style={{ color: T.gold, width: 17, height: 17 }} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 12.5, fontWeight: 700, color: T.ink, margin: 0 }}>
-                Prefere só olhar por agora?
-              </p>
-              <p style={{ fontSize: 11.5, color: T.muted, margin: '2px 0 0', fontWeight: 500 }}>
-                Podes entrar como visitante e criar a tua conta mais tarde, sem problema.
-              </p>
-            </div>
-            <ArrowRight style={{ color: T.gold, width: 16, height: 16, flexShrink: 0 }} />
-          </Link>
-
           <p style={{ textAlign: 'center', marginTop: 24, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.faint }}>
             © 2025 AgriLink Lda · Segurança Garantida
           </p>
