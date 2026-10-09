@@ -253,14 +253,6 @@ const trackDestIcon = L.divIcon({
   iconAnchor: [8, 8],
 });
 
-const movingDotIcon = (color: string) =>
-  L.divIcon({
-    html: `<div style="width:16px;height:16px;background:${color};border:3px solid white;border-radius:50%;"></div>`,
-    className: '',
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
-  });
-
 /* ─── Micro components ──────────────────────────────────────────────────────── */
 const Label = ({ children }: { children: React.ReactNode }) => (
   <span
@@ -661,7 +653,6 @@ const StatsPanel: React.FC<{ count: number; avgPrice: number; totalQuantity: num
    ════════════════════════════════════════════════════════════════════════════ */
 const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
   const mapInstanceRef = useRef<L.Map | null>(null);
-  const animRef = useRef<number | null>(null);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -704,8 +695,6 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
   // Rotas calculadas (substituem os refs imperativos de polyline)
   const [allRoutes, setAllRoutes] = useState<Record<string, RouteInfo>>({});
   const [selectedRoute, setSelectedRoute] = useState<[number, number][] | null>(null);
-  const [trackRoute, setTrackRoute] = useState<[number, number][] | null>(null);
-  const [movingDotPos, setMovingDotPos] = useState<[number, number] | null>(null);
 
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; zoom: number } | null>(null);
 
@@ -992,55 +981,20 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
     };
   }, [selectedProduct, userLocation, isOnline]);
 
-  /* ── Rastreabilidade: produto rastreado → utilizador (com ponto animado) ── */
+  /* ── Rastreabilidade: mostrar apenas a última posição GPS registada ── */
   useEffect(() => {
-    if (animRef.current) {
-      cancelAnimationFrame(animRef.current);
-      animRef.current = null;
+    if (!trackedProduct) return;
+    const freight = freightLoads.find((load) => load.product_id === trackedProduct.id);
+    const liveLocation = freight ? freightLocations[freight.id] : undefined;
+    const target = liveLocation
+      ? [liveLocation.latitude, liveLocation.longitude] as [number, number]
+      : trackedProduct.location_lat != null && trackedProduct.location_lng != null
+        ? [trackedProduct.location_lat, trackedProduct.location_lng] as [number, number]
+        : null;
+    if (target && mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo(target, 13, { duration: 0.8 });
     }
-    if (!trackedProduct || !trackedProduct.location_lat || !trackedProduct.location_lng || !isOnline) {
-      if (!isOnline) return;
-      setTrackRoute(null);
-      setMovingDotPos(null);
-      return;
-    }
-    const origin: [number, number] = [trackedProduct.location_lat, trackedProduct.location_lng];
-    const destination: [number, number] = userLocation ? [userLocation[1], userLocation[0]] : [-8.838333, 13.234444];
-
-    let cancelled = false;
-    (async () => {
-      const { coords } = await fetchRoadRouteFull(origin, destination);
-      if (cancelled) return;
-      setTrackRoute(coords);
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.fitBounds(L.latLngBounds(coords), { padding: [80, 80] });
-      }
-
-      let segIdx = 0;
-      let t = 0;
-      const animate = () => {
-        if (cancelled) return;
-        if (segIdx >= coords.length - 1) segIdx = 0;
-        const from = coords[segIdx];
-        const to = coords[segIdx + 1];
-        if (from && to) {
-          t += 0.008;
-          if (t >= 1) {
-            t = 0;
-            segIdx++;
-          }
-          setMovingDotPos([from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t]);
-        }
-        animRef.current = requestAnimationFrame(animate);
-      };
-      animate();
-    })();
-
-    return () => {
-      cancelled = true;
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-    };
-  }, [trackedProduct, userLocation, isOnline]);
+  }, [trackedProduct, freightLoads, freightLocations]);
 
   const clickProductInList = useCallback((p: Product) => {
     setSelectedProduct(p);
@@ -1202,21 +1156,17 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
             </>
           )}
 
-          {/* Rastreabilidade */}
-          {trackRoute && (
-            <>
-              <Polyline positions={trackRoute} pathOptions={{ color: T.g400, weight: 8, opacity: 0.18 }} />
-              <Polyline
-                positions={trackRoute}
-                pathOptions={{ color: T.g700, weight: 3, opacity: 0.85, dashArray: '10 6' }}
-              />
-              <Marker
-                position={userLocation ? [userLocation[1], userLocation[0]] : [-8.838333, 13.234444]}
-                icon={trackDestIcon}
-              />
-              {movingDotPos && <Marker position={movingDotPos} icon={movingDotIcon(T.goldL)} />}
-            </>
-          )}
+          {/* Rastreabilidade: marcador baseado exclusivamente no último GPS persistido */}
+          {trackedProduct && (() => {
+            const freight = freightLoads.find((load) => load.product_id === trackedProduct.id);
+            const location = freight ? freightLocations[freight.id] : undefined;
+            if (!location) return null;
+            return (
+              <Marker position={[location.latitude, location.longitude]} icon={trackDestIcon}>
+                <Tooltip direction="top">Última posição GPS registada</Tooltip>
+              </Marker>
+            );
+          })()}
         </MapContainer>
       </div>
 
@@ -1791,12 +1741,12 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
               const location = freight ? freightLocations[freight.id] : undefined;
               const hasLiveLocation = Boolean(location);
               const isDelivered = freight?.status === 'delivered' || Boolean(freight?.delivered_at);
-              const isInTransit = ['in_transit', 'em_transito', 'accepted', 'accepted_by_driver'].includes(freight?.status || '');
+              const isInTransit = ['in_transit', 'em_transito'].includes(freight?.status || '');
               const eta = freight?.route_duration_minutes != null ? formatDuration(freight.route_duration_minutes * 60) : null;
               const steps = [
                 { state: 'done', icon: <Leaf size={13} />, color: T.g600, title: 'Colhido', date: new Date(trackedProduct.harvest_date).toLocaleDateString('pt-AO'), sub: `Machamba · ${trackedProduct.farmer_name}` },
                 { state: freight ? 'done' : 'pending', icon: <User size={13} />, color: freight ? T.g600 : T.faint, title: 'Recolhido pelo Agente', date: freight ? 'Operação registada' : 'Ainda não registado', sub: freight?.origin_label || 'Sem frete associado a este produto' },
-                { state: isDelivered ? 'done' : isInTransit ? 'active' : 'pending', icon: <Package size={13} />, color: isDelivered || isInTransit ? T.goldL : T.faint, title: 'Em Trânsito', date: isInTransit ? (eta ? `ETA da rota: ${eta}` : 'ETA indisponível') : isDelivered ? 'Concluído' : 'Aguardando transporte', sub: hasLiveLocation ? 'Localização GPS do motorista recebida' : 'Sem localização GPS registada' },
+                { state: isDelivered ? 'done' : isInTransit ? 'active' : 'pending', icon: <Package size={13} />, color: isDelivered || isInTransit ? T.goldL : T.faint, title: 'Em Trânsito', date: isInTransit ? (eta ? `Duração prevista da rota: ${eta}` : 'Duração da rota indisponível') : isDelivered ? 'Concluído' : 'Aguardando transporte', sub: hasLiveLocation ? 'Localização GPS do motorista recebida' : 'Sem localização GPS registada' },
                 { state: isDelivered ? 'done' : 'pending', icon: <CheckCircle size={13} />, color: isDelivered ? T.g600 : T.faint, title: 'Entrega', date: isDelivered && freight?.delivered_at ? new Date(freight.delivered_at).toLocaleString('pt-AO') : 'Ainda não concluída', sub: freight?.destination_label || 'Destino não registado' },
               ];
               return steps.map((s, i) => (
@@ -1872,7 +1822,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
             { label: 'Produtos', value: filteredProducts.length, color: T.blue, icon: <Package size={12} /> },
             {
               label: 'Em Trânsito',
-              value: freightLoads.filter((load) => ['in_transit', 'em_transito', 'accepted', 'accepted_by_driver'].includes(load.status)).length,
+              value: freightLoads.filter((load) => ['in_transit', 'em_transito'].includes(load.status)).length,
               color: T.goldL,
               icon: <TrendingUp size={12} />,
             },
