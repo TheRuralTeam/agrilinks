@@ -22,7 +22,7 @@ const EmailConfirmation = () => {
 
   // Conta já libertada: não faz sentido ficar nesta etapa
   useEffect(() => {
-    if (user && (Boolean(user.email_confirmed_at) || userProfile?.email_verified === true)) {
+    if (user && Boolean(user.email_confirmed_at)) {
       refreshProfile();
       navigate("/app", { replace: true });
     }
