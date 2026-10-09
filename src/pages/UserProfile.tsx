@@ -26,7 +26,7 @@ interface UserData {
   municipality_id: string | null;
   created_at: string | null;
   phone?: string | null;
-  agent_code?: string;
+  agent_code?: string | null;
   verified?: boolean;
 }
 
@@ -360,7 +360,7 @@ const UserProfile = () => {
         }}>
           <h3 style={{ fontFamily: FONT, fontSize: 14, fontWeight: 700, color: T.ink, margin: '0 0 4px' }}>Informações</h3>
           <InfoRow icon={<MapPin size={14} color={T.g600}/>} label="Localização" value={`${userData.province_id}${userData.municipality_id ? ', ' + userData.municipality_id : ''}`}/>
-          <InfoRow icon={<Calendar size={14} color={T.g600}/>} label="Membro desde" value={new Date(userData.created_at).toLocaleDateString('pt-AO', { month: 'long', year: 'numeric' })}/>
+          <InfoRow icon={<Calendar size={14} color={T.g600}/>} label="Membro desde" value={userData.created_at ? new Date(userData.created_at).toLocaleDateString('pt-AO', { month: 'long', year: 'numeric' }) : 'Data não disponível'}/>
           {userData.user_type === 'agente' && userData.agent_code && (
             <InfoRow icon={<Verified size={14} color="#7C3AED"/>} label="Código de Agente" value={userData.agent_code} accent="#7C3AED"/>
           )}
