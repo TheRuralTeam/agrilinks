@@ -1,6 +1,6 @@
 import React, { FormEvent, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Loader2, LockKeyhole, Mail, Phone, ArrowRight, CheckCircle2, Sprout, ShoppingCart, ClipboardCheck, Truck, ChevronLeft } from "lucide-react";
+import { Eye, EyeOff, Loader2, LockKeyhole, Mail, Phone, ArrowRight, CheckCircle2, Sprout, ShoppingCart, UserRound, PencilLine, Truck, ChevronLeft } from "lucide-react";
 import agrilinkLogo from "../assets/agrilink-logo.png";
 import { useAuth } from "../contexts/AuthContext";
 import { sendConfirmationEmail } from "../features/auth/email";
@@ -199,14 +199,14 @@ const Login = () => {
                       {([
                         { id: "agricultor", title: "Agricultor / Fornecedor", detail: "Publicar produtos e gerir ofertas", Icon: Sprout },
                         { id: "comprador", title: "Comprador", detail: "Procurar produtos e fazer pedidos", Icon: ShoppingCart },
-                        { id: "agente", title: "Agente AgriLink", detail: "Apoiar fornecedores e operações", Icon: ClipboardCheck },
+                        { id: "agente", title: "Agente AgriLink", detail: "Apoiar fornecedores e operações", Icon: UserRound },
                         { id: "motorista", title: "Motorista", detail: "Receber serviços de transporte", Icon: Truck },
                       ] as const).map(({ id, title, detail, Icon }) => {
                         const selected = userType === id;
                         return (
                           <button key={id} type="button" aria-pressed={selected} onClick={() => setUserType(id)}
                             className={`group flex min-h-[112px] items-start gap-3 rounded-2xl border p-4 text-left transition duration-150 focus:outline-none focus:ring-4 focus:ring-[#4B8A55]/15 ${selected ? "border-[#367644] bg-[#F0F7F0] ring-1 ring-[#367644]" : "border-[#DDE6DE] bg-white hover:border-[#9BBBA0] hover:bg-[#FAFCFA]"}`}>
-                            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${selected ? "bg-[#2F6F3A] text-white" : "bg-[#F0F4F0] text-[#527458]"}`}><Icon size={19} strokeWidth={1.8} /></span>
+                            <span className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${selected ? "bg-[#2F6F3A] text-white" : "bg-[#F0F4F0] text-[#527458]"}`}><Icon size={19} strokeWidth={1.8} />{id === "agente" && <PencilLine size={10} strokeWidth={2} className="absolute -bottom-1 -right-1 rounded-sm bg-white p-[1px] text-[#527458]" aria-hidden="true" />}</span>
                             <span className="min-w-0 flex-1">
                               <span className="block text-sm font-bold text-[#223326]">{title}</span>
                               <span className="mt-1 block text-xs leading-5 text-[#718071]">{detail}</span>
