@@ -51,7 +51,7 @@ const MeusContratos = () => {
 
       const ids = Array.from(new Set(list.flatMap(c => [c.buyer_id, c.supplier_id, c.driver_id, c.agent_id]).filter(Boolean))) as string[]
       if (ids.length) {
-        const { data: users } = await supabase.from('users').select('id, full_name').in('id', ids)
+        const { data: users } = await supabase.from('public_user_profiles' as any).select('id, full_name').in('id', ids)
         setNames(Object.fromEntries((users || []).map(u => [u.id, u.full_name])))
       }
       setLoading(false)
