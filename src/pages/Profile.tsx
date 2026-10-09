@@ -389,7 +389,7 @@ const Profile = () => {
       if (prodError) throw prodError
       if (!userProductIds || userProductIds.length === 0) { setReceivedOrders([]); return }
       const productIds = userProductIds.map(p => p.id)
-      const { data: orders, error: ordersError } = await supabase.from('pre_orders').select('id, product_id, user_id, quantity, location, status, stock_fully_requested, created_at, updated_at, unit_price, payment_status').in('product_id', productIds).is('deleted_at', null).order('created_at', { ascending: false })
+      const { data: orders, error: ordersError } = await supabase.from('pre_orders').select('id, product_id, user_id, quantity, location, status, stock_fully_requested, created_at, updated_at, unit_price, total_price, reservation_expires_at, payment_status').in('product_id', productIds).is('deleted_at', null).order('created_at', { ascending: false })
       if (ordersError) throw ordersError
       const ordersWithDetails = await Promise.all((orders || []).map(async (order) => {
         const { data: product } = await supabase.from('products').select('product_type, price').eq('id', order.product_id).single()
