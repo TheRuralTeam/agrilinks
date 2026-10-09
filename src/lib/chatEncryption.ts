@@ -136,7 +136,7 @@ export async function ensureChatEncryptionKey(userId: string): Promise<JsonWebKe
 async function publishPublicKey(userId: string, publicKey: JsonWebKey): Promise<void> {
   const { error } = await supabase.from("chat_encryption_keys").upsert({
     user_id: userId,
-    public_key: publicKey,
+    public_key: JSON.parse(JSON.stringify(publicKey)),
     key_version: KEY_VERSION,
     updated_at: new Date().toISOString(),
   }, { onConflict: "user_id" });
@@ -194,7 +194,7 @@ export async function decryptChatMessage(
   currentUserId: string,
 ): Promise<string> {
   if (!storedContent?.startsWith(ENVELOPE_PREFIX)) {
-    return storedContent ? "[Mensagem antiga — enviada antes da encriptação]" : "";
+    return storedContent ? `[Mensagem antiga — não cifrada] ${storedContent}` : "";
   }
 
   try {
