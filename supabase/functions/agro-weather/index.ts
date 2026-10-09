@@ -31,7 +31,6 @@ const HOURLY_VARIABLES = [
   "precipitation",
   "rain",
   "wind_speed_10m",
-  "et0_fao_evapotranspiration",
 ].join(",");
 
 const DAILY_VARIABLES = [
