@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, Compass, X, Sprout, ShoppingCart, UserRound, PencilLine, Truck, CheckCircle2, ChevronLeft } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { sendMagicLink, sendPasswordResetEmail, sendConfirmationEmail } from '../features/auth/email'
+import { sendMagicLink, sendPasswordResetEmail } from '../features/auth/email'
 import agrilinkLogo from '../assets/agrilink-logo.png'
 // Imagem partilhada com o ecrã de Cadastro para manter a mesma identidade visual.
 // Para trocar por vídeo: substituir o <img> do painel esquerdo por um <video autoPlay muted loop playsInline>.
@@ -61,7 +61,7 @@ const LoginPage = () => {
   const [errorMsg, setErrorMsg] = useState('')
   const [googleLoading, setGoogleLoading] = useState(false)
 
-  const { login, registerSimple, signInWithGoogle } = useAuth()
+  const { login, registerSimple, resendSignupConfirmation, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const requestedPath = (location.state as { from?: unknown } | null)?.from
@@ -121,7 +121,8 @@ const LoginPage = () => {
           error.message.includes('User not confirmed') ||
           error.message.includes('Email not confirmed')
         ) {
-          await sendMagicLink({ email, next: redirectTo })
+          const { error: resendError } = await resendSignupConfirmation(email)
+          if (resendError) throw resendError
           setErrorMsg('A sua conta ainda não foi confirmada. Enviámos um novo link de confirmação para o seu email.')
         } else {
           setErrorMsg('Credenciais inválidas. Verifique e tente novamente.')
@@ -155,7 +156,8 @@ const LoginPage = () => {
     if (!email.trim() || resendLoading) { if (!email.trim()) toast({ title: 'Atenção', description: 'Insira o email usado no cadastro.' }); return }
     setResendLoading(true)
     try {
-      await sendConfirmationEmail({ email: email.trim().toLowerCase(), next: '/app' })
+      const { error } = await resendSignupConfirmation(email);
+      if (error) throw error
       toast({ title: 'Confirmação enviada', description: 'Verifique a caixa de entrada e a pasta de spam.' })
     } catch (err: any) {
       toast({ title: 'Não foi possível enviar', description: err?.message || 'Tente novamente mais tarde.', variant: 'destructive' })
