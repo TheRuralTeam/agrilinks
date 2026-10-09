@@ -34,3 +34,19 @@ content_path = "./supabase/templates/confirmation.html"
 [auth.email.template.recovery]
 subject = "Recuperar a palavra-passe — AgriLink"
 content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.magic_link]
+subject = "Aceda à AgriLink — link de acesso"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.email_change]
+subject = "Confirme a alteração do email — AgriLink"
+content_path = "./supabase/templates/email_change.html"
+
+[auth.email.template.invite]
+subject = "Convite para a AgriLink"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.reauthentication]
+subject = "Confirme a sua identidade — AgriLink"
+content_path = "./supabase/templates/reauthentication.html"
