@@ -76,10 +76,10 @@ export function buildBrandEmailTemplate({
 }) {
   const ctaMarkup = ctaText && ctaHref
     ? `
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 24px 0 18px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:28px 0 12px;">
         <tr>
-          <td align="center">
-            <a href="${escapeHtml(ctaHref)}" style="display:inline-block;background:#14532d;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:10px;font-size:14px;font-weight:700;">
+          <td align="left">
+            <a href="${escapeHtml(ctaHref)}" style="display:inline-block;background:#176b3a;color:#ffffff;text-decoration:none;padding:13px 22px;border-radius:6px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;font-weight:700;">
               ${escapeHtml(ctaText)}
             </a>
           </td>
@@ -89,7 +89,7 @@ export function buildBrandEmailTemplate({
     : "";
 
   const secondaryMarkup = secondaryText
-    ? `<p style="margin:0 0 12px;color:#4b5563;font-size:14px;line-height:22px;">${secondaryText}</p>`
+    ? `<p style="margin:18px 0 0;color:#526158;font-size:13px;line-height:21px;">${secondaryText}</p>`
     : "";
 
   return `<!doctype html>
@@ -100,35 +100,35 @@ export function buildBrandEmailTemplate({
     <meta name="x-apple-disable-message-reformatting" />
     <title>${escapeHtml(title)}</title>
   </head>
-  <body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#111827;">
-    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
-      ${escapeHtml(preheader)}
-    </div>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f3f4f6;padding:32px 12px;">
+  <body style="margin:0;padding:0;background:#f4f7f3;font-family:Arial,Helvetica,sans-serif;color:#1b2b20;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${escapeHtml(preheader)}</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7f3;padding:32px 12px;">
       <tr>
         <td align="center">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:620px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e5e7eb;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background:#ffffff;border:1px solid #e1e9e1;border-radius:8px;overflow:hidden;">
             <tr>
-              <td style="padding:22px 28px 0;">
-                <div style="font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:#166534;font-weight:700;">AgriLink</div>
+              <td style="padding:26px 30px 22px;border-bottom:1px solid #e7eee7;">
+                <img src="https://raw.githubusercontent.com/TheRuralTeam/agrilinks/main/src/assets/LogoAgriLinkOfficiallNoBackground.png" width="154" alt="AgriLink" style="display:block;width:154px;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;" />
               </td>
             </tr>
             <tr>
-              <td style="padding:18px 28px 0;">
-                <h1 style="margin:0;font-size:28px;line-height:1.3;color:#111827;">${escapeHtml(headline)}</h1>
+              <td style="padding:30px 30px 8px;">
+                <h1 style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:25px;line-height:1.32;font-weight:700;letter-spacing:-0.35px;color:#173d27;">${escapeHtml(headline)}</h1>
               </td>
             </tr>
             <tr>
-              <td style="padding:20px 28px 6px;">
-                <div style="font-size:16px;line-height:26px;color:#374151;">${bodyHtml}</div>
+              <td style="padding:14px 30px 30px;">
+                <div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:25px;color:#35463a;">${bodyHtml}</div>
                 ${secondaryMarkup}
                 ${ctaMarkup}
               </td>
             </tr>
             <tr>
-              <td style="padding:18px 28px 28px;border-top:1px solid #e5e7eb;font-size:12px;line-height:20px;color:#6b7280;">
-                AgriLink · contacto@agrilink.ao<br />
-                Este e-mail foi enviado automaticamente. Não responda a esta mensagem.
+              <td style="padding:18px 30px;background:#f7faf6;border-top:1px solid #e7eee7;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#68776b;">
+                <strong style="font-weight:700;color:#245c37;">AgriLink</strong><br />
+                <a href="https://agrilink.ao" style="color:#245c37;text-decoration:none;">agrilink.ao</a>
+                <span style="padding:0 5px;color:#a3afa5;">|</span>
+                <a href="mailto:contacto@agrilink.ao" style="color:#245c37;text-decoration:none;">contacto@agrilink.ao</a>
               </td>
             </tr>
           </table>
@@ -138,7 +138,6 @@ export function buildBrandEmailTemplate({
   </body>
 </html>`;
 }
-
 export async function sendResendEmail({
   to,
   subject,
