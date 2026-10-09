@@ -88,7 +88,7 @@ interface Product {
   price: number;
   logistics_access: string;
   user_id: string;
-  created_at: string;
+  created_at: string | null;
 }
 
 interface User {
@@ -100,7 +100,7 @@ interface User {
   created_at?: string | null;
   verified?: boolean;
   verified_at?: string | null;
-  is_root_admin?: boolean;
+  is_root_admin?: boolean | null;
 }
 
 interface Order {
@@ -110,7 +110,7 @@ interface Order {
   quantity: number;
   location: string;
   status: string;
-  created_at: string;
+  created_at: string | null;
   updated_at?: string | null;
   destination_lat?: number | null;
   destination_lng?: number | null;
@@ -154,7 +154,7 @@ interface Ficha {
   telefone?: string | null;
   descricao_final?: string | null;
   observacoes?: string | null;
-  created_at: string;
+  created_at: string | null;
   updated_at?: string | null;
 }
 
