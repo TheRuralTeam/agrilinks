@@ -14,6 +14,7 @@ const Login = () => {
   const [mode, setMode] = useState<"login" | "signup">(initialSignup ? "signup" : "login");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [userType, setUserType] = useState<"agricultor" | "agente" | "comprador" | "motorista">("comprador");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -53,6 +54,7 @@ const Login = () => {
         email: email.trim().toLowerCase(),
         phone: phone.trim(),
         password,
+        user_type: userType,
       });
       if (error) {
         toast.error(error.message || "Não foi possível criar a conta.");
@@ -125,7 +127,7 @@ const Login = () => {
                   ? "Enviámos a confirmação para o seu email. Abra a mensagem e confirme a conta antes de iniciar sessão."
                   : mode === "login"
                     ? "Entre para gerir produtos, pedidos, logística e as suas operações."
-                    : "Registo rápido com email, telefone e senha. O administrador poderá definir o seu tipo de utilizador posteriormente."}
+                    : "Preencha os seus dados e escolha como pretende utilizar a AgriLink."}
               </p>
             </div>
 
@@ -191,6 +193,18 @@ const Login = () => {
                     </div>
                   </label>
 
+
+                  {mode === "signup" && (
+                    <label className="block">
+                      <span className="mb-2 block text-xs font-extrabold uppercase tracking-wide text-[#657367]">Que tipo de utilizador pretende ser?</span>
+                      <select value={userType} onChange={(e) => setUserType(e.target.value as "agricultor" | "agente" | "comprador" | "motorista")} className="h-12 w-full rounded-2xl border border-[#DDE6DE] bg-white px-4 text-sm outline-none focus:border-[#4B8A55] focus:ring-4 focus:ring-[#4B8A55]/10" required>
+                        <option value="agricultor">Agricultor / Fornecedor — publicar produtos agrícolas</option>
+                        <option value="comprador">Comprador — procurar e comprar produtos</option>
+                        <option value="agente">Agente AgriLink — apoiar fornecedores e operações</option>
+                        <option value="motorista">Motorista — realizar transportes e entregas</option>
+                      </select>
+                    </label>
+                  )}
                   {mode === "login" && (
                     <div className="flex justify-end">
                       <Link to="/reset-password" className="text-xs font-bold text-[#3E7C48] hover:underline">Esqueci a senha</Link>
