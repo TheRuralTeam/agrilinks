@@ -40,7 +40,7 @@ Deno.serve(async (request: Request) => {
   const cors = handleCors(request);
   if (cors) return cors;
 
-  const token = /^Bearer\\s+(.+)$/i.exec(request.headers.get("authorization") ?? "")?.[1];
+  const token = /^Bearer\s+(.+)$/i.exec(request.headers.get("authorization") ?? "")?.[1];
   if (!token) return jsonResponse({ error: "Authentication required" }, 401);
 
   const { data: auth, error: authError } = await supabase.auth.getUser(token);
@@ -219,7 +219,7 @@ Deno.serve(async (request: Request) => {
   const returnUrl = Deno.env.get("PAYMENT_RETURN_URL");
   if (!returnUrl) return jsonResponse({ error: "Payment return URL is not configured" }, 503);
 
-  let created;
+  let created: Awaited<ReturnType<typeof paymentProviderRegistry.createCheckout>>;
   try {
     created = await paymentProviderRegistry.createCheckout(input.provider_id, {
       intentId: intent.id,
