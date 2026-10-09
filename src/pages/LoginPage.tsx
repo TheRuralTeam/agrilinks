@@ -303,7 +303,7 @@ const LoginPage = () => {
                 <h2 id="signup-profile-title" style={{ margin: '8px 0 6px', fontSize: 23, lineHeight: 1.25, fontWeight: 800, color: T.ink }}>Como pretende utilizar a AgriLink?</h2>
                 <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65, color: T.muted }}>Selecione o perfil que corresponde à sua actividade. A escolha ajuda-nos a configurar a experiência mais adequada.</p>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 10 }}>
                 {([
                   { id: 'agricultor', title: 'Agricultor / Fornecedor', detail: 'Publicar produtos e gerir ofertas', Icon: Sprout },
                   { id: 'comprador', title: 'Comprador', detail: 'Encontrar produtos e fazer pedidos', Icon: ShoppingCart },
@@ -332,7 +332,7 @@ const LoginPage = () => {
               </div>
             </div>
             {authMode === 'signup' ? (
-              <>{
+              <>
                 <div style={{ padding: '12px 14px', borderRadius: 13, border: `1px solid ${T.gBorder}`, background: T.g50, marginBottom: 2 }}>
                   <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.muted }}>Etapa 2 de 2 · Dados da conta</p>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 5 }}>
@@ -340,7 +340,6 @@ const LoginPage = () => {
                     <button type="button" onClick={() => setSignupStep('profile')} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: 0, border: 'none', background: 'none', color: T.g600, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}><ChevronLeft size={14} /> Alterar</button>
                   </div>
                 </div>
-              </>
                 <div>
                   <FieldLabel>Telefone</FieldLabel>
                   <div style={{ position: 'relative' }}>
