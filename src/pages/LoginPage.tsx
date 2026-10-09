@@ -52,6 +52,7 @@ const LoginPage = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const [phone, setPhone] = useState('')
+  const [userType, setUserType] = useState<'agricultor' | 'agente' | 'comprador' | 'motorista'>('comprador')
   const [signupSuccess, setSignupSuccess] = useState(false)
   const [signupLoading, setSignupLoading] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
@@ -92,7 +93,7 @@ const LoginPage = () => {
       }
       setSignupLoading(true)
       try {
-        const { error } = await registerSimple({ email, phone, password })
+        const { error } = await registerSimple({ email, phone, password, user_type: userType })
         if (error) {
           setErrorMsg(error.message || 'Não foi possível criar a conta.')
           return
@@ -244,7 +245,7 @@ const LoginPage = () => {
               {authMode === 'login' ? 'Bem-vindo de volta' : 'Criar conta AgriLink'}
             </h1>
             <p style={{ fontSize: 14, color: T.muted, margin: '8px 0 0', fontWeight: 500 }}>
-              {authMode === 'login' ? 'Acede à tua conta para gerir os teus negócios.' : 'Começa com os dados essenciais. O resto do perfil será definido depois.'}
+              {authMode === 'login' ? 'Acede à tua conta para gerir os teus negócios.' : 'Preenche os teus dados e escolhe como pretendes utilizar a AgriLink.'}
             </p>
           </div>
 
@@ -304,6 +305,16 @@ const LoginPage = () => {
                       {showPassword ? <EyeOff style={{ color: T.muted, width: 17 }} /> : <Eye style={{ color: T.muted, width: 17 }} />}
                     </button>
                   </div>
+                </div>
+
+                <div>
+                  <FieldLabel>Que tipo de utilizador pretendes ser?</FieldLabel>
+                  <select value={userType} onChange={(e) => setUserType(e.target.value as 'agricultor' | 'agente' | 'comprador' | 'motorista')} required style={{ height: 50, width: '100%', borderRadius: 14, border: '1px solid ' + T.rule, backgroundColor: T.white, color: T.ink, fontSize: 14, padding: '0 14px', outline: 'none' }}>
+                    <option value="agricultor">Agricultor / Fornecedor — publicar produtos agrícolas</option>
+                    <option value="comprador">Comprador — procurar e comprar produtos</option>
+                    <option value="agente">Agente AgriLink — apoiar fornecedores e operações</option>
+                    <option value="motorista">Motorista — realizar transportes e entregas</option>
+                  </select>
                 </div>
                 <button type="submit" disabled={signupLoading} className="login-btn" style={{ width: '100%', height: 52, borderRadius: 999, border: 'none', background: signupLoading ? T.muted : T.g600, color: T.white, fontSize: 15, fontWeight: 700 }}>
                   {signupLoading ? 'A criar conta…' : 'Criar conta'}
