@@ -431,7 +431,7 @@ const AdminDashboard = () => {
       void fetchAllData(true);
     }, 30000);
     return () => clearInterval(interval);
-  }, [currentUserId]);
+  }, [currentUserId, fetchAllData]);
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -456,7 +456,7 @@ const AdminDashboard = () => {
     return () => { void supabase.removeChannel(channel); };
   }, [currentUserId]);
 
-  const fetchAllData = async (silent = false) => {
+  const fetchAllData = useCallback(async (silent = false) => {
     // Atualizações periódicas não devem desmontar o painel nem interromper a interação.
     if (!silent) setLoading(true);
     try {
@@ -525,7 +525,7 @@ const AdminDashboard = () => {
     } finally {
       if (!silent) setLoading(false);
     }
-  };
+  }, [currentUserId]);
 
   const sendNotification = useCallback(async () => {
     if (!hasPermission("manage_support") && !isSuperRoot) {
