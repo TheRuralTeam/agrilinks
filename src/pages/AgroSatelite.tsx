@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import type { FormEvent } from "react";
 import { CalendarDays, Cloud, ExternalLink, Image as ImageIcon, MapPin, RefreshCw, Satellite } from "lucide-react";
 import SimpleLeafletMap from "@/components/SimpleLeafletMap";
@@ -200,8 +201,8 @@ export default function AgroSatelite() {
 
           {result.scenes.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {result.scenes.map((scene) => (
-                <Card key={scene.id ?? scene.acquiredAt ?? Math.random()} className="overflow-hidden">
+              {result.scenes.map((scene, index) => (
+                <Card key={scene.id ?? scene.acquiredAt ?? `scene-${index}`} className="overflow-hidden">
                   {scene.thumbnailUrl ? (
                     <img src={scene.thumbnailUrl} alt={`Pré-visualização da cena ${scene.id ?? "Sentinel-2"}`} className="h-44 w-full bg-muted object-cover" loading="lazy" referrerPolicy="no-referrer" />
                   ) : (
