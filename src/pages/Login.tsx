@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2, LockKeyhole, Mail, Phone, ArrowRight, CheckCircle2 } from "lucide-react";
 import agrilinkLogo from "../assets/agrilink-logo.png";
 import { useAuth } from "../contexts/AuthContext";
+import { sendConfirmationEmail } from "../features/auth/email";
 import { toast } from "sonner";
 
 const Login = () => {
@@ -19,6 +20,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmationPending, setConfirmationPending] = useState(false);
+  const [resendingConfirmation, setResendingConfirmation] = useState(false);
 
   useEffect(() => {
     setMode(initialSignup ? "signup" : "login");
@@ -65,6 +67,19 @@ const Login = () => {
       toast.success("Conta criada. Verifique o seu email para confirmar o acesso.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleResendSignupConfirmation = async () => {
+    if (!email.trim() || resendingConfirmation) return;
+    setResendingConfirmation(true);
+    try {
+      await sendConfirmationEmail({ email: email.trim().toLowerCase(), next: "/app" });
+      toast.success("Novo email de confirmação enviado. Verifique também a pasta de spam.");
+    } catch (error: any) {
+      toast.error(error?.message || "Não foi possível enviar o email de confirmação. Tente novamente mais tarde.");
+    } finally {
+      setResendingConfirmation(false);
     }
   };
 
@@ -140,10 +155,18 @@ const Login = () => {
                   <div>
                     <p className="font-bold">Confirmação pendente</p>
                     <p className="mt-1 text-sm leading-6 text-[#657367]">
-                      Depois de confirmar o email, volte aqui e faça login normalmente.
+                      O cadastro só fica concluído depois de confirmar este endereço. Abra o link enviado para <strong>{email.trim().toLowerCase()}</strong>; depois, volte aqui para entrar. Verifique também a pasta de spam.
                     </p>
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleResendSignupConfirmation}
+                  disabled={resendingConfirmation}
+                  className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[#DDE9DE] bg-white px-5 text-sm font-extrabold text-[#2F6F3A] disabled:opacity-60"
+                >
+                  {resendingConfirmation ? "A enviar confirmação..." : "Reenviar email de confirmação"}
+                </button>
                 <button
                   type="button"
                   onClick={() => { setConfirmationPending(false); switchMode("login"); }}
