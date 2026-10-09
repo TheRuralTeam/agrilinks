@@ -15,8 +15,7 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
  import Loader from '../components/ui/Loader';
  
  import { CompanyHeader, CompanyTier, UserType } from '../components/b2b/CompanyHeader';
- import { TrustMetrics } from '../components/b2b/TrustMetrics';
- import { BuyerProfile } from '../components/b2b/BuyerProfile';
+  import { BuyerProfile } from '../components/b2b/BuyerProfile';
  import { SupplierPortfolio, PortfolioProduct } from '../components/b2b/SupplierPortfolio';
  import { AboutCompany } from '../components/b2b/AboutCompany';
  import { ActionButtons } from '../components/b2b/ActionButtons';
@@ -56,8 +55,6 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
     description: '',
   });
  
-  const trustMetrics = null;
-
   const buyerProfileData = {
     categories: [] as string[],
     monthlyVolume: '',
@@ -325,11 +322,9 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
                annualRevenue={companyData.annualRevenue}
              />
 
-             {trustMetrics ? <TrustMetrics {...trustMetrics} /> : (
-               <div className="rounded-xl border border-dashed border-border bg-muted/20 p-6 text-center text-sm text-muted-foreground">
-                 Ainda não existem métricas públicas publicadas para este perfil.
-               </div>
-             )}
+             <div className="rounded-xl border border-dashed border-border bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+               Ainda não existem métricas públicas publicadas para este perfil.
+             </div>
            </TabsContent>
  
            {/* Commercial Tab */}
