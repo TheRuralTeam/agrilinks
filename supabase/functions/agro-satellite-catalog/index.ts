@@ -86,12 +86,12 @@ serve(async (req: Request) => {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/geo+json, application/json" },
       body: JSON.stringify({
-        collections: ["sentinel-2-l2a"],
+        collections: [collection],
         bbox,
         datetime,
         limit: 10,
         sortby: [{ field: "properties.datetime", direction: "desc" }],
-        query: { "eo:cloud_cover": { lte: cloudCoverMax } },
+        ...(collection === "sentinel-2-l2a" ? { query: { "eo:cloud_cover": { lte: cloudCoverMax } } } : {}),
       }),
       signal: AbortSignal.timeout(12_000),
     });
