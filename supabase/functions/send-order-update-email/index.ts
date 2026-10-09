@@ -2,6 +2,7 @@ import { z } from "npm:zod@3.23.8";
 import { jsonResponse } from "../_shared/http.ts";
 import {
   buildBrandEmailTemplate,
+  escapeHtml,
   normalizeEmail,
   safeRedirect,
   sendResendEmail,
@@ -34,7 +35,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     const email = normalizeEmail(parsed.data.email);
-    const customerName = parsed.data.customer_name?.trim() || "Cliente";
+    const customerName = escapeHtml(parsed.data.customer_name?.trim() || "Cliente");
     const redirectTo = safeRedirect(parsed.data.redirect_to, "https://agrilink.ao/app");
 
     const html = buildBrandEmailTemplate({
@@ -43,12 +44,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
       headline: `Encomenda ${parsed.data.order_id}`,
       bodyHtml: `
         <p style="margin:0 0 12px;">Olá ${customerName},</p>
-        <p style="margin:0 0 12px;">O estado da sua encomenda foi atualizado para: <strong>${parsed.data.status}</strong>.</p>
-        <p style="margin:0 0 12px;">${parsed.data.message}</p>
+        <p style="margin:0 0 12px;">O estado da sua encomenda foi atualizado para: <strong>${escapeHtml(parsed.data.status)}</strong>.</p>
+        <p style="margin:0 0 12px;">${escapeHtml(parsed.data.message).replace(/\n/g, "<br />")}</p>
       `,
       ctaText: "Consultar encomenda",
       ctaHref: redirectTo,
-      secondaryText: "Se tiver alguma dúvida, responda a este e-mail ou contacte a nossa equipa.",
+      secondaryText: "Se precisar de ajuda com esta encomenda, contacte contacto@agrilink.ao.",
     });
 
     const result = await sendResendEmail({
