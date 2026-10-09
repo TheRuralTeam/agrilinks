@@ -3,7 +3,7 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
-const invoke = vi.fn();
+const resendSignupConfirmation = vi.fn();
 const toastSpy = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
@@ -14,7 +14,13 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 vi.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => ({ user: null, userProfile: null, logout: vi.fn() }),
+  useAuth: () => ({
+    user: null,
+    userProfile: null,
+    logout: vi.fn(),
+    refreshProfile: vi.fn(),
+    resendSignupConfirmation: (...args: any[]) => resendSignupConfirmation(...args),
+  }),
 }));
 
 vi.mock('@/hooks/use-toast', () => ({ toast: (...args: any[]) => toastSpy(...args) }));
@@ -33,9 +39,9 @@ const renderPage = () => {
 
 describe('Fluxo de confirmação por email', () => {
   beforeEach(() => {
-    invoke.mockReset();
+    resendSignupConfirmation.mockReset();
     toastSpy.mockReset();
-    invoke.mockResolvedValue({ data: { success: true, expires_in_minutes: 60 }, error: null });
+    resendSignupConfirmation.mockResolvedValue({ error: null });
   });
   afterEach(() => vi.useRealTimers());
 
@@ -46,11 +52,8 @@ describe('Fluxo de confirmação por email', () => {
     await screen.findByDisplayValue('teste@agrilink.ao');
     await user.click(screen.getByRole('button', { name: /enviar link de confirmação/i }));
 
-    await waitFor(() => expect(invoke).toHaveBeenCalledTimes(1));
-    const [fnName, options] = invoke.mock.calls[0];
-    expect(fnName).toBe('send-confirmation-email');
-    expect(options.body.email).toBe('teste@agrilink.ao');
-    expect(options.body.redirect_to).toContain('/auth/callback?next=%2Fapp');
+    await waitFor(() => expect(resendSignupConfirmation).toHaveBeenCalledTimes(1));
+    expect(resendSignupConfirmation).toHaveBeenCalledWith('teste@agrilink.ao');
   });
 
   it('mostra a mensagem de link enviado com expiração de 1 hora', async () => {
@@ -69,7 +72,7 @@ describe('Fluxo de confirmação por email', () => {
     renderPage();
 
     await user.click(await screen.findByRole('button', { name: /enviar link de confirmação/i }));
-    await waitFor(() => expect(invoke).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(resendSignupConfirmation).toHaveBeenCalledTimes(1));
 
     const resend = await screen.findByRole('button', { name: /Reenviar link em 60s/i });
     expect(resend).toBeDisabled();
@@ -90,11 +93,11 @@ describe('Fluxo de confirmação por email', () => {
     expect(ready).not.toBeDisabled();
 
     await user.click(ready);
-    await waitFor(() => expect(invoke).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(resendSignupConfirmation).toHaveBeenCalledTimes(2));
   });
 
   it('mostra erro quando o envio do email falha', async () => {
-    invoke.mockResolvedValue({ data: null, error: new Error('Erro ao enviar email') });
+    resendSignupConfirmation.mockResolvedValue({ error: new Error('Erro ao enviar email') });
     const user = userEvent.setup();
     renderPage();
 
