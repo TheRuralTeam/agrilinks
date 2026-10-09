@@ -13,6 +13,7 @@ function provider(id: string): PaymentProviderAdapter {
   return {
     id,
     checkoutHosts: [],
+    capabilities: { checkout: true, statusQuery: false, refunds: false, webhookVerification: true, supportedCurrencies: ['AOA'] },
     createCheckout: async () => ({ providerReference: 'reference' }),
     verifyWebhook: async () => {
       throw new Error('Not used in registry tests')
