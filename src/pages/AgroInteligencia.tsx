@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { FormEvent } from "react";
 import {
   CloudRain,
   Droplets,
@@ -88,7 +89,7 @@ export default function AgroInteligencia() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const getForecast = async (event: React.FormEvent<HTMLFormElement>) => {
+  const getForecast = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
 
@@ -98,7 +99,7 @@ export default function AgroInteligencia() {
       setError("Introduza uma latitude e longitude válidas.");
       return;
     }
-    if (lat < -18.05 || lat > -4.37 || lon < 11.66 || lon > 24.09) {
+    if (lat < -18.05 || lat > -4.2 || lon < 11.5 || lon > 24.1) {
       setError("Esta versão piloto aceita coordenadas dentro dos limites geográficos aproximados de Angola.");
       return;
     }
