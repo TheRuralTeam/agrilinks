@@ -21,6 +21,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../integrations/supabase/client";
 import { useToast } from "../hooks/use-toast";
 import Loader from "../components/ui/Loader";
+import { decryptChatMessage, encryptChatMessage, ensureChatEncryptionKey } from "../lib/chatEncryption";
 
 // --- Branding Tokens ---
 import { T } from '../lib/brand';
@@ -234,6 +235,7 @@ const Messages = () => {
       try {
         const { data, error } = await supabase.from("conversations").select("*").eq("id", id).single();
         if (error || !data) throw error;
+        await ensureChatEncryptionKey(user.id);
         setConversation(data as Conversation);
       } catch (err) {
         console.error("Erro ao carregar conversa:", err);
@@ -249,13 +251,15 @@ const Messages = () => {
     setIsLoading(true);
     const fetchMessages = async () => {
       try {
+        await ensureChatEncryptionKey(user.id);
         const { data, error } = await supabase.from("messages").select("*").eq("conversation_id", id).order("created_at", { ascending: true });
         if (error) throw error;
         if (data) {
-          const formattedMsgs = data.map(msg => ({
+          const formattedMsgs = await Promise.all(data.map(async (msg) => ({
             ...msg,
+            content: await decryptChatMessage(msg.content, id, user.id),
             files: msg.files ? (Array.isArray(msg.files) ? msg.files : []) : []
-          })) as Message[];
+          }))) as Message[];
           setMessages(formattedMsgs);
           const unread = formattedMsgs.filter(m => m.receiver_id === user.id && !m.read);
           if (unread.length > 0) {
@@ -273,11 +277,18 @@ const Messages = () => {
     const channel = supabase.channel(`conversation-${id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${id}` },
         (payload) => {
-          const newMsg = payload.new as Message;
-          setMessages((prev) => [...prev, newMsg]);
-          if (newMsg.sender_id !== user.id) {
-            supabase.from("messages").update({ read: true }).eq("id", newMsg.id);
-          }
+          const rawMessage = payload.new as Message;
+          void (async () => {
+            const newMsg: Message = {
+              ...rawMessage,
+              content: await decryptChatMessage(rawMessage.content, id, user.id),
+              files: rawMessage.files ? (Array.isArray(rawMessage.files) ? rawMessage.files : []) : [],
+            };
+            setMessages((prev) => prev.some((message) => message.id === newMsg.id) ? prev : [...prev, newMsg]);
+            if (newMsg.sender_id !== user.id) {
+              await supabase.from("messages").update({ read: true }).eq("id", newMsg.id);
+            }
+          })().catch((error) => console.error("Não foi possível processar a mensagem recebida:", error));
         }
       ).subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -319,22 +330,28 @@ const Messages = () => {
           if (data) filesData.push({ url: data.signedUrl, name: file.name, size: file.size });
         }
       }
-      const messageContent = newMessage.trim() || (filesData.length > 0 ? `📎 ${filesData.length} arquivo(s)` : "");
+      const plainContent = newMessage.trim() || (filesData.length > 0 ? `📎 ${filesData.length} arquivo(s)` : "");
+      const encryptedContent = await encryptChatMessage(plainContent, id, user.id, conversation.participant_id);
       const { data, error } = await supabase.from("messages").insert([{
         conversation_id: id, sender_id: user.id, receiver_id: conversation.participant_id,
-        content: messageContent, read: false, files: filesData.length > 0 ? filesData : undefined
+        content: encryptedContent, read: false, files: filesData.length > 0 ? filesData : undefined
       }]).select().single();
       if (error) throw error;
       setSentMessageIds((prev) => new Set([...prev, data.id]));
-      await supabase.from("conversations").update({ last_message: messageContent, last_timestamp: new Date().toISOString() }).eq("id", id);
+      await supabase.from("conversations").update({ last_message: "🔒 Mensagem encriptada", last_timestamp: new Date().toISOString() }).eq("id", id);
       setNewMessage("");
       setSelectedFiles([]);
     } catch (err) {
-      console.error("Erro ao enviar:", err);
+      console.error("Erro ao enviar mensagem segura:", err);
+      toast({
+        title: "Não foi possível enviar a mensagem",
+        description: err instanceof Error ? err.message : "Verifique a ligação e tente novamente.",
+        variant: "destructive",
+      });
     } finally {
       setIsSending(false);
     }
-  }, [user, conversation, id, newMessage, selectedFiles]);
+  }, [user, conversation, id, newMessage, selectedFiles, toast]);
 
   const groupedMessages = useMemo(() => {
     const groups: { messages: Message[]; sender: string }[] = [];
