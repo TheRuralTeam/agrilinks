@@ -163,11 +163,13 @@ export async function sendResendEmail({
   replyTo?: string;
 }) {
   const apiKey = getRequiredEnv("RESEND_API_KEY");
-  const sender = (Deno.env.get("RESEND_FROM") || from).trim();
-  const senderAddress = sender.match(/<([^>]+)>/)?.[1]?.trim() || sender;
-  if (!/@(?:[a-z0-9-]+\.)*agrilink\.ao$/i.test(senderAddress)) {
+  const configuredSender = (Deno.env.get("RESEND_FROM") || from).trim();
+  const senderAddress = configuredSender.match(/<([^>]+)>/)?.[1]?.trim() || configuredSender;
+  if (!/^[^\s<>@]+@(?:[a-z0-9-]+\.)*agrilink\.ao$/i.test(senderAddress)) {
     throw new Error("O remetente de email deve utilizar o domínio oficial agrilink.ao.");
   }
+  // O nome apresentado ao destinatário mantém-se sempre AgriLink, mesmo que RESEND_FROM contenha outro nome.
+  const sender = `AgriLink <${senderAddress}>`;
   const payload = JSON.stringify({
     from: sender,
     to: [to],
