@@ -177,22 +177,22 @@ const AppRoutes = () => {
         <Route
           path="/agro-satelite"
           element={
-            <OpenRoute>
+            <ProtectedRoute>
               <AppLayout>
                 <AgroSatelite />
               </AppLayout>
-            </OpenRoute>
+            </ProtectedRoute>
           }
         />
 
         <Route
           path="/agro-inteligencia"
           element={
-            <OpenRoute>
+            <ProtectedRoute>
               <AppLayout>
                 <AgroInteligencia />
               </AppLayout>
-            </OpenRoute>
+            </ProtectedRoute>
           }
         />
 
