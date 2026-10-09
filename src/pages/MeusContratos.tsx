@@ -44,9 +44,14 @@ const MeusContratos = () => {
   useEffect(() => {
     const load = async () => {
       if (!user) { setLoading(false); return }
-      const { data } = supabase.from('digital_contracts')
+      const { data, error } = await supabase.from('digital_contracts')
         .select('*')
         .order('created_at', { ascending: false })
+      if (error) {
+        console.error('Erro ao carregar contratos:', error);
+        setLoading(false);
+        return;
+      }
       const list = (data || []) as Contract[]
       setContracts(list)
 
