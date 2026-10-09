@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../integrations/supabase/client";
-import { sendConfirmationEmail, buildAuthRedirectUrl } from '../features/auth/email'
+
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { CheckCircle2, MailCheck } from "lucide-react";
@@ -15,7 +14,7 @@ const RESEND_COOLDOWN = 60;
 
 const EmailConfirmation = () => {
   const navigate = useNavigate();
-  const { user, userProfile, logout, refreshProfile } = useAuth();
+  const { user, userProfile, logout, refreshProfile, resendSignupConfirmation } = useAuth();
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -40,15 +39,11 @@ const EmailConfirmation = () => {
     const loadEmail = async () => {
       const query = new URLSearchParams(window.location.search);
       const queryEmail = query.get("email");
-      if (queryEmail) {
-        setEmail(queryEmail);
-        return;
-      }
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user?.email) setEmail(data.session.user.email);
+      if (queryEmail) setEmail(queryEmail);
+      else if (user?.email) setEmail(user.email);
     };
     loadEmail();
-  }, []);
+  }, [user?.email]);
 
   const handleSend = async () => {
     const cleanEmail = email.trim().toLowerCase();
@@ -67,12 +62,8 @@ const EmailConfirmation = () => {
     setSending(true);
 
     try {
-      console.log("[AgriLink] Enviando confirmação por email:", {
-        email: cleanEmail,
-        redirect_to: buildAuthRedirectUrl('/app'),
-      });
-
-      await sendConfirmationEmail({ email: cleanEmail, next: '/app' });
+      const { error } = await resendSignupConfirmation(cleanEmail);
+      if (error) throw error;
 
       setSent(true);
       setCountdown(RESEND_COOLDOWN);
@@ -83,7 +74,7 @@ const EmailConfirmation = () => {
           "Verifique a caixa de entrada e a pasta de spam do seu email.",
       });
     } catch (err: any) {
-      console.error("[AgriLink] Falha ao enviar magic link:", err);
+      console.error("[AgriLink] Falha ao reenviar confirmação de conta:", err);
 
       toast({
         title: "Erro ao enviar link",
