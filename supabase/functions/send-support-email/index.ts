@@ -2,6 +2,7 @@ import { z } from "npm:zod@3.23.8";
 import { jsonResponse } from "../_shared/http.ts";
 import {
   buildBrandEmailTemplate,
+  escapeHtml,
   normalizeEmail,
   sendResendEmail,
 } from "../_shared/email.ts";
@@ -31,9 +32,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     const fromEmail = normalizeEmail(parsed.data.email);
-    const phone = parsed.data.phone?.trim() || "Não informado";
-    const message = parsed.data.message.trim();
-    const name = parsed.data.name.trim();
+    const phone = escapeHtml(parsed.data.phone?.trim() || "Não indicado");
+    const message = escapeHtml(parsed.data.message.trim()).replace(/\n/g, "<br />");
+    const name = escapeHtml(parsed.data.name.trim());
 
     const html = buildBrandEmailTemplate({
       title: "Nova mensagem de suporte — AgriLink",
@@ -41,12 +42,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
       headline: "Nova mensagem de suporte",
       bodyHtml: `
         <p style="margin:0 0 12px;"><strong>Nome:</strong> ${name}</p>
-        <p style="margin:0 0 12px;"><strong>Email:</strong> ${fromEmail}</p>
+        <p style="margin:0 0 12px;"><strong>Email:</strong> ${escapeHtml(fromEmail)}</p>
         <p style="margin:0 0 12px;"><strong>Telefone:</strong> ${phone}</p>
         <p style="margin:0 0 12px;"><strong>Mensagem:</strong></p>
-        <p style="margin:0 0 12px;">${message.replace(/\n/g, "<br />")}</p>
+        <p style="margin:0 0 12px;">${message}</p>
       `,
-      secondaryText: "Esta mensagem foi gerada automaticamente pelo formulário de suporte da plataforma.",
+      secondaryText: "Mensagem recebida através do formulário de contacto da AgriLink.",
     });
 
     const result = await sendResendEmail({
