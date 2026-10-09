@@ -520,21 +520,41 @@ const AdminDashboard = () => {
     }
   }, [hasPermission, isSuperRoot, targetUser, notificationMessage, notificationTitle, notificationType]);
 
+  const canDeleteAdminRecords = useCallback((table: string) => {
+    if (table === "users") return hasPermission("manage_users");
+    if (table === "products") return hasPermission("manage_products");
+    if (table === "fichas_recebimento") return hasPermission("manage_orders") || hasPermission("manage_support");
+    return false;
+  }, [hasPermission]);
+
   const handleDelete = useCallback((table: string, id: string) => {
+    if (!canDeleteAdminRecords(table)) {
+      toast.error("Não tem permissão para remover este tipo de registo.");
+      return;
+    }
     setAdminDeleteTarget({ table, ids: [id] });
-  }, []);
+  }, [canDeleteAdminRecords]);
 
   const handleBulkDelete = useCallback((table: string, ids: Set<string>) => {
+    if (!canDeleteAdminRecords(table)) {
+      toast.error("Não tem permissão para remover este tipo de registo.");
+      return;
+    }
     if (ids.size === 0) {
-      toast.error("Nenhum item selecionado");
+      toast.error("Nenhum item seleccionado.");
       return;
     }
     setAdminDeleteTarget({ table, ids: Array.from(ids) });
-  }, []);
+  }, [canDeleteAdminRecords]);
 
   const confirmAdminDelete = useCallback(async () => {
     const target = adminDeleteTarget;
     if (!target || adminDeleteLoading) return;
+    if (!canDeleteAdminRecords(target.table)) {
+      setAdminDeleteTarget(null);
+      toast.error("A sua permissão para remover este registo não está activa.");
+      return;
+    }
     setAdminDeleteLoading(true);
     try {
       const ids = target.ids;
@@ -571,7 +591,7 @@ const AdminDashboard = () => {
     } finally {
       setAdminDeleteLoading(false);
     }
-  }, [adminDeleteTarget, adminDeleteLoading]);
+  }, [adminDeleteTarget, adminDeleteLoading, canDeleteAdminRecords]);
 
   const toggleSelectUser = useCallback((id: string) => {
     setSelectedUsers(prev => {
@@ -1346,7 +1366,7 @@ const AdminDashboard = () => {
                 <Package className="h-5 w-5 text-primary" /> Produtos ({filteredProducts.length})
               </CardTitle>
               <div className="flex items-center gap-2">
-                {selectedProducts.size > 0 && (
+                {hasPermission("manage_products") && selectedProducts.size > 0 && (
                   <Button size="sm" variant="destructive" className="gap-1" onClick={() => handleBulkDelete("products", selectedProducts)}>
                     <Trash2 className="h-4 w-4" /> Apagar ({selectedProducts.size})
                   </Button>
@@ -1472,7 +1492,7 @@ const AdminDashboard = () => {
                 <Users className="h-5 w-5 text-primary" /> Usuários ({filteredUsers.length})
               </CardTitle>
               <div className="flex items-center gap-2">
-                {selectedUsers.size > 0 && (
+                {hasPermission("manage_users") && selectedUsers.size > 0 && (
                   <Button size="sm" variant="destructive" className="gap-1" onClick={() => handleBulkDelete("users", selectedUsers)}>
                     <Trash2 className="h-4 w-4" /> Apagar ({selectedUsers.size})
                   </Button>
@@ -1508,6 +1528,7 @@ const AdminDashboard = () => {
                       <TableCell>
                         <Checkbox
                           checked={selectedUsers.has(user.id)}
+                          disabled={!hasPermission("manage_users")}
                           onCheckedChange={() => toggleSelectUser(user.id)}
                         />
                       </TableCell>
@@ -1699,9 +1720,9 @@ const AdminDashboard = () => {
     <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-primary" onClick={(e) => { e.stopPropagation(); void downloadFichaRecebimentoPdf({ ...f, user_name: users.find(u => u.id === f.user_id)?.full_name, user_phone: users.find(u => u.id === f.user_id)?.phone, user_email: users.find(u => u.id === f.user_id)?.email }); }} aria-label="Baixar ficha em PDF">
       <Download className="h-4 w-4" />
     </Button>
-    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-600" onClick={(e) => { e.stopPropagation(); handleDelete("fichas_recebimento", f.id); }}>
+    {(hasPermission("manage_orders") || hasPermission("manage_support")) && <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-600" onClick={(e) => { e.stopPropagation(); handleDelete("fichas_recebimento", f.id); }}>
       <Trash2 className="h-4 w-4" />
-    </Button>
+    </Button>}
   </div>
 </TableCell>
                     </TableRow>
