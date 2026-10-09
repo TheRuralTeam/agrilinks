@@ -307,43 +307,7 @@ const AdminDashboard = () => {
     return requestedTab && supportedTabs.has(requestedTab as TabType) ? requestedTab as TabType : "dashboard";
   });
 
-  const canOpenAdminTab = useCallback((tab: TabType) => {
-    switch (tab) {
-      case "products":
-        return hasPermission("manage_products");
-      case "users":
-        return hasPermission("manage_users");
-      case "sourcing":
-        return hasPermission("manage_sourcing");
-      case "market":
-      case "referrals":
-        return hasPermission("view_analytics");
-      case "admins":
-        return isRootAdmin || hasPermission("manage_admins");
-      case "deliveries":
-        return isSupportAgent || hasPermission("manage_orders");
-      case "orders":
-        return isSupportAgent || hasPermission("manage_orders");
-      default:
-        return true;
-    }
-  }, [hasPermission, isRootAdmin, isSupportAgent]);
 
-  useEffect(() => {
-    if (!currentUserId) return;
-    const requestedTab = new URLSearchParams(location.search).get("tab");
-    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries"]);
-    if (!requestedTab || !supportedTabs.has(requestedTab as TabType)) return;
-
-    const tab = requestedTab as TabType;
-    if (canOpenAdminTab(tab)) {
-      setActiveTab(tab);
-    } else {
-      setActiveTab("dashboard");
-      toast.error("O seu perfil não tem permissão para abrir esta secção administrativa.");
-      navigate(location.pathname, { replace: true });
-    }
-  }, [currentUserId, location.pathname, location.search, canOpenAdminTab, navigate]);
   const [notificationModalOpen, setNotificationModalOpen] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
   const [notificationTitle, setNotificationTitle] = useState("");
@@ -418,6 +382,44 @@ const AdminDashboard = () => {
   const hasPermission = useCallback((permission: AdminPermission) => {
     return isRootAdmin || userPermissions.includes(permission);
   }, [isRootAdmin, userPermissions]);
+
+  const canOpenAdminTab = useCallback((tab: TabType) => {
+    switch (tab) {
+      case "products":
+        return hasPermission("manage_products");
+      case "users":
+        return hasPermission("manage_users");
+      case "sourcing":
+        return hasPermission("manage_sourcing");
+      case "market":
+      case "referrals":
+        return hasPermission("view_analytics");
+      case "admins":
+        return isRootAdmin || hasPermission("manage_admins");
+      case "deliveries":
+        return isSupportAgent || hasPermission("manage_orders");
+      case "orders":
+        return isSupportAgent || hasPermission("manage_orders");
+      default:
+        return true;
+    }
+  }, [hasPermission, isRootAdmin, isSupportAgent]);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    const requestedTab = new URLSearchParams(location.search).get("tab");
+    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries"]);
+    if (!requestedTab || !supportedTabs.has(requestedTab as TabType)) return;
+
+    const tab = requestedTab as TabType;
+    if (canOpenAdminTab(tab)) {
+      setActiveTab(tab);
+    } else {
+      setActiveTab("dashboard");
+      toast.error("O seu perfil não tem permissão para abrir esta secção administrativa.");
+      navigate(location.pathname, { replace: true });
+    }
+  }, [currentUserId, location.pathname, location.search, canOpenAdminTab, navigate]);
 
   useEffect(() => {
     if (!currentUserId) return;
