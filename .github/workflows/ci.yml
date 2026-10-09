@@ -25,6 +25,9 @@ jobs:
       - name: Run lint
         run: npm run lint
 
+      - name: Verificar tipos TypeScript
+        run: npm run type-check:strict
+
       - name: Run tests
         run: npm test -- --run
 
