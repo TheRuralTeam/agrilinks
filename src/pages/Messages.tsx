@@ -235,7 +235,6 @@ const Messages = () => {
       try {
         const { data, error } = await supabase.from("conversations").select("*").eq("id", id).single();
         if (error || !data) throw error;
-        await ensureChatEncryptionKey(user.id);
         setConversation(data as Conversation);
       } catch (err) {
         console.error("Erro ao carregar conversa:", err);
