@@ -426,9 +426,10 @@ const ProximasCargas = () => {
           p_freight_load_id: load.id,
           p_latitude: location.latitude,
           p_longitude: location.longitude,
-          p_accuracy_m: location.accuracy_m,
-          p_speed_mps: location.speed_mps,
-          p_heading_deg: location.heading_deg,
+          // A função SQL aceita estes metadados como NULL quando o dispositivo não os fornece.
+          p_accuracy_m: location.accuracy_m as number,
+          p_speed_mps: location.speed_mps as number,
+          p_heading_deg: location.heading_deg as number,
           p_record_history: true,
         });
         if (error) {
@@ -464,7 +465,8 @@ const ProximasCargas = () => {
       const { error } = await supabase.rpc('submit_freight_quote', {
         p_freight_load_id: load.id,
         p_price_method: 'suggested',
-        p_manual_price: null,
+        // O preço manual é NULL no método sugerido; a função SQL aceita este valor.
+        p_manual_price: null as unknown as number,
         p_route_distance_km: route.distanceKm,
         p_route_duration_minutes: route.durationMinutes,
       });
