@@ -48,16 +48,27 @@ async function buildJobEmail(job: any) {
       : template === "auth-signup"
         ? "Confirme a sua conta"
         : "Confirme o seu email";
+    const authBody = template === "auth-recovery"
+      ? `<p style="margin:0 0 12px;">Olá ${fullName},</p><p style="margin:0 0 12px;">Recebemos um pedido para redefinir a palavra-passe da sua conta AgriLink. Utilize o botão abaixo para continuar.</p><p style="margin:0;">Se não pediu esta alteração, ignore esta mensagem.</p>`
+      : template === "auth-signup" && effectiveType === "signup"
+        ? `<p style="margin:0 0 12px;">Olá ${fullName},</p><p style="margin:0;">Para activar a sua conta AgriLink, confirme o seu endereço de email através do botão abaixo.</p>`
+        : `<p style="margin:0 0 12px;">Olá ${fullName},</p><p style="margin:0 0 12px;">Utilize o botão abaixo para entrar na sua conta AgriLink.</p><p style="margin:0;">Se não pediu este acesso, ignore esta mensagem.</p>`;
+    const authPreheader = template === "auth-recovery"
+      ? "Pedido de recuperação da palavra-passe da sua conta AgriLink."
+      : template === "auth-signup" && effectiveType === "signup"
+        ? "Confirme o seu endereço de email para activar a conta AgriLink."
+        : "Aceda à sua conta AgriLink através de um link seguro.";
+
     return buildBrandEmailTemplate({
       title: job.subject,
-      preheader: job.subject,
+      preheader: authPreheader,
       headline,
-      bodyHtml: `<p style="margin:0 0 12px;">Olá ${fullName},</p><p style="margin:0 0 12px;">Use o botão abaixo para concluir o pedido associado à sua conta AgriLink.</p>`,
+      bodyHtml: authBody,
       ctaText: template === "auth-recovery"
-        ? "Redefinir password"
-        : effectiveType === "magiclink" && template === "auth-signup"
+        ? "Redefinir palavra-passe"
+        : effectiveType === "magiclink"
           ? "Entrar na AgriLink"
-          : "Confirmar o meu email",
+          : "Confirmar endereço de email",
       ctaHref: actionUrl.toString(),
     });
   }
