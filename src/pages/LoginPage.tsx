@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
-import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, Compass, X } from 'lucide-react'
+import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, Compass, X, Sprout, ShoppingCart, ClipboardCheck, Truck, CheckCircle2, ChevronLeft } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { sendMagicLink, sendPasswordResetEmail, sendConfirmationEmail } from '../features/auth/email'
 import agrilinkLogo from '../assets/agrilink-logo.png'
@@ -53,6 +53,7 @@ const LoginPage = () => {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const [phone, setPhone] = useState('')
   const [userType, setUserType] = useState<'agricultor' | 'agente' | 'comprador' | 'motorista'>('comprador')
+  const [signupStep, setSignupStep] = useState<'profile' | 'details'>('profile')
   const [signupSuccess, setSignupSuccess] = useState(false)
   const [signupLoading, setSignupLoading] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
@@ -295,6 +296,32 @@ const LoginPage = () => {
                 Voltar ao login
               </button>
             </div>
+          ) : authMode === 'signup' && signupStep === 'profile' ? (
+            <section aria-labelledby="signup-profile-title" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <div>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.g600 }}>Etapa 1 de 2 · Perfil de utilização</p>
+                <h2 id="signup-profile-title" style={{ margin: '8px 0 6px', fontSize: 23, lineHeight: 1.25, fontWeight: 800, color: T.ink }}>Como pretende utilizar a AgriLink?</h2>
+                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65, color: T.muted }}>Selecione o perfil que corresponde à sua actividade. A escolha ajuda-nos a configurar a experiência mais adequada.</p>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+                {([
+                  { id: 'agricultor', title: 'Agricultor / Fornecedor', detail: 'Publicar produtos e gerir ofertas', Icon: Sprout },
+                  { id: 'comprador', title: 'Comprador', detail: 'Encontrar produtos e fazer pedidos', Icon: ShoppingCart },
+                  { id: 'agente', title: 'Agente AgriLink', detail: 'Apoiar fornecedores e operações', Icon: ClipboardCheck },
+                  { id: 'motorista', title: 'Motorista', detail: 'Prestar serviços de transporte', Icon: Truck },
+                ] as const).map(({ id, title, detail, Icon }) => {
+                  const selected = userType === id;
+                  return <button key={id} type="button" aria-pressed={selected} onClick={() => setUserType(id)} style={{ minHeight: 132, padding: 14, borderRadius: 15, border: `1px solid ${selected ? T.g600 : T.rule}`, background: selected ? T.g50 : T.white, textAlign: 'left', cursor: 'pointer', boxShadow: selected ? '0 0 0 2px rgba(48,111,58,0.10)' : 'none', transition: 'border-color 160ms ease, background 160ms ease' }}>
+                    <span style={{ width: 36, height: 36, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 11, background: selected ? T.g600 : '#F0F4F0', color: selected ? T.white : T.g600 }}><Icon size={18} strokeWidth={1.8} /></span>
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginTop: 12 }}><strong style={{ fontSize: 12, lineHeight: 1.4, color: T.ink }}>{title}</strong>{selected && <CheckCircle2 size={15} color={T.g600} style={{ flexShrink: 0 }} />}</span>
+                    <span style={{ display: 'block', marginTop: 5, fontSize: 11, lineHeight: 1.5, color: T.muted }}>{detail}</span>
+                  </button>
+                })}
+              </div>
+              <button type="button" onClick={() => setSignupStep('details')} style={{ width: '100%', height: 48, borderRadius: 12, border: 'none', background: T.g600, color: T.white, fontSize: 14, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9 }}>
+                Continuar como {userType === 'agricultor' ? 'Agricultor / Fornecedor' : userType === 'comprador' ? 'Comprador' : userType === 'agente' ? 'Agente AgriLink' : 'Motorista'} <ArrowRight size={16} />
+              </button>
+            </section>
           ) : (
           <form onSubmit={handleSubmit} className="field-group" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             <div>
@@ -305,7 +332,15 @@ const LoginPage = () => {
               </div>
             </div>
             {authMode === 'signup' ? (
-              <>
+              <>{
+                <div style={{ padding: '12px 14px', borderRadius: 13, border: `1px solid ${T.gBorder}`, background: T.g50, marginBottom: 2 }}>
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.muted }}>Etapa 2 de 2 · Dados da conta</p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 5 }}>
+                    <strong style={{ fontSize: 13, color: T.g600 }}>{userType === 'agricultor' ? 'Agricultor / Fornecedor' : userType === 'comprador' ? 'Comprador' : userType === 'agente' ? 'Agente AgriLink' : 'Motorista'}</strong>
+                    <button type="button" onClick={() => setSignupStep('profile')} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: 0, border: 'none', background: 'none', color: T.g600, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}><ChevronLeft size={14} /> Alterar</button>
+                  </div>
+                </div>
+              </>
                 <div>
                   <FieldLabel>Telefone</FieldLabel>
                   <div style={{ position: 'relative' }}>
@@ -323,15 +358,7 @@ const LoginPage = () => {
                   </div>
                 </div>
 
-                <div>
-                  <FieldLabel>Que tipo de utilizador pretendes ser?</FieldLabel>
-                  <select value={userType} onChange={(e) => setUserType(e.target.value as 'agricultor' | 'agente' | 'comprador' | 'motorista')} required style={{ height: 50, width: '100%', borderRadius: 14, border: '1px solid ' + T.rule, backgroundColor: T.white, color: T.ink, fontSize: 14, padding: '0 14px', outline: 'none' }}>
-                    <option value="agricultor">Agricultor / Fornecedor — publicar produtos agrícolas</option>
-                    <option value="comprador">Comprador — procurar e comprar produtos</option>
-                    <option value="agente">Agente AgriLink — apoiar fornecedores e operações</option>
-                    <option value="motorista">Motorista — realizar transportes e entregas</option>
-                  </select>
-                </div>
+
                 <button type="submit" disabled={signupLoading} className="login-btn" style={{ width: '100%', height: 52, borderRadius: 999, border: 'none', background: signupLoading ? T.muted : T.g600, color: T.white, fontSize: 15, fontWeight: 700 }}>
                   {signupLoading ? 'A criar conta…' : 'Criar conta'}
                 </button>
@@ -417,7 +444,7 @@ const LoginPage = () => {
 
           </>)}
           {authMode === 'login' ? (
-            <button className="register-btn" onClick={() => { setAuthMode('signup'); setErrorMsg(''); setPassword(''); }} style={{ width:'100%', height:50, borderRadius:999, border: `1px solid ${T.goldBorder}`, background:T.goldPale, color:T.ink, fontSize:14, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:16 }}>
+            <button className="register-btn" onClick={() => { setAuthMode('signup'); setSignupStep('profile'); setErrorMsg(''); setPassword(''); }} style={{ width:'100%', height:50, borderRadius:999, border: `1px solid ${T.goldBorder}`, background:T.goldPale, color:T.ink, fontSize:14, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:16 }}>
               <UserPlus style={{ color:T.gold, width:17, height:17 }} /> Criar Nova Conta
             </button>
           ) : (
