@@ -1,10 +1,12 @@
--- Endurece a autorização das mensagens: remetente e destinatário têm de pertencer
--- à conversa; clientes só podem alterar o estado de leitura, nunca o conteúdo.
+-- Endurece a autorização do chat e impede novas mensagens em texto simples.
 begin;
 
 drop policy if exists "Users can send messages" on public.messages;
 drop policy if exists "Users can update received messages" on public.messages;
 drop policy if exists "Users can view their messages" on public.messages;
+drop policy if exists "Participantes podem ler as suas mensagens" on public.messages;
+drop policy if exists "Participante envia apenas para o outro participante" on public.messages;
+drop policy if exists "Destinatário só marca as próprias mensagens como lidas" on public.messages;
 
 create policy "Participantes podem ler as suas mensagens"
   on public.messages for select to authenticated
@@ -46,6 +48,19 @@ revoke insert, update, delete on public.messages from authenticated;
 grant select, insert on public.messages to authenticated;
 grant update (read) on public.messages to authenticated;
 
--- A política de actualização acima é adicionalmente limitada por privilégio SQL:
--- a API não pode alterar content, sender_id, receiver_id, conversation_id nem files.
+-- CHECK NOT VALID preserva mensagens históricas, mas exige cifragem em novas inserções
+-- e em qualquer actualização de conteúdo de uma linha.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'messages_content_must_be_encrypted'
+      and conrelid = 'public.messages'::regclass
+  ) then
+    alter table public.messages
+      add constraint messages_content_must_be_encrypted
+      check (content like 'agrilink-e2ee:%') not valid;
+  end if;
+end $$;
+
 commit;
