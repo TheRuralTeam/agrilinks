@@ -29,6 +29,39 @@ const ALLOWED_HOSTS = [
 const DEFAULT_REDIRECT =
   "https://agrilink.ao/auth/callback?next=/app";
 
+const RATE_LIMIT_WINDOW_SECONDS = 15 * 60;
+const EMAIL_MAX_REQUESTS = 3;
+const IP_MAX_REQUESTS = 20;
+
+const sha256 = async (value: string) => {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+};
+
+const getClientIp = (req: Request) =>
+  req.headers.get("cf-connecting-ip")?.trim()
+  || req.headers.get("x-real-ip")?.trim()
+  || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+  || "unknown";
+
+const consumeRateLimit = async (bucketKey: string, maxRequests: number) => {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/consume_api_rate_limit`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY || "",
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY || ""}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      p_bucket_key: bucketKey,
+      p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
+      p_max_requests: maxRequests,
+    }),
+  });
+  if (!response.ok) throw new Error("Não foi possível validar o limite de envio.");
+  return (await response.json()) === true;
+};
+
 /**
  * Verifica se a URL de redirect pertence a um domínio autorizado.
  */
@@ -173,6 +206,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
       parsed.data.redirect_to,
     );
     const authType = parsed.data.type ?? "magiclink";
+
+    const emailHash = await sha256(`magic-link:email:${email}`);
+    const ipHash = await sha256(`magic-link:ip:${getClientIp(req)}`);
+    const emailAllowed = await consumeRateLimit(`auth:magic-link:email:${emailHash}`, EMAIL_MAX_REQUESTS);
+    const ipAllowed = await consumeRateLimit(`auth:magic-link:ip:${ipHash}`, IP_MAX_REQUESTS);
+    if (!emailAllowed || !ipAllowed) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: "Atingiste o limite de pedidos de link. Tenta novamente mais tarde.",
+      }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     /**
      * Cliente administrativo.
