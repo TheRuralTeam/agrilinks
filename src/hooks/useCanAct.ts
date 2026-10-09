@@ -1,4 +1,5 @@
 import { useAuth } from '../contexts/AuthContext'
+import { useNavigate } from 'react-router-dom'
 import { useGuestGate } from '../contexts/GuestGateContext'
 import { toast } from 'sonner'
 import { requiresLoginForAction } from '../lib/accessPolicy'
@@ -10,6 +11,7 @@ import { requiresLoginForAction } from '../lib/accessPolicy'
  * - Apenas utilizadores com e-mail confirmado podem executar acções.
  */
 export const useCanAct = () => {
+  const navigate = useNavigate()
   const { user, userProfile } = useAuth()
   const { requireAuth } = useGuestGate()
 
