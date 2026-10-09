@@ -1,6 +1,6 @@
 import React, { FormEvent, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Loader2, LockKeyhole, Mail, Phone, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, LockKeyhole, Mail, Phone, ArrowRight, CheckCircle2, Sprout, ShoppingCart, ClipboardCheck, Truck, ChevronLeft } from "lucide-react";
 import agrilinkLogo from "../assets/agrilink-logo.png";
 import { useAuth } from "../contexts/AuthContext";
 import { sendConfirmationEmail } from "../features/auth/email";
@@ -16,6 +16,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [userType, setUserType] = useState<"agricultor" | "agente" | "comprador" | "motorista">("comprador");
+  const [signupStep, setSignupStep] = useState<"profile" | "details">("profile");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -28,6 +29,7 @@ const Login = () => {
 
   const switchMode = (next: "login" | "signup") => {
     setMode(next);
+    if (next === "signup") setSignupStep("profile");
     navigate(next === "signup" ? "/login?mode=signup" : "/login", { replace: true });
   };
 
@@ -186,7 +188,49 @@ const Login = () => {
                   </button>
                 </div>
 
+                {mode === "signup" && signupStep === "profile" ? (
+                  <section aria-labelledby="profile-step-title" className="space-y-5">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#54815A]">Etapa 1 de 2 · Perfil</p>
+                      <h3 id="profile-step-title" className="mt-2 text-xl font-extrabold tracking-tight text-[#1A2A1D]">Como pretende utilizar a AgriLink?</h3>
+                      <p className="mt-2 text-sm leading-6 text-[#68766A]">Escolha o perfil que melhor descreve a sua actividade. Usaremos esta escolha para preparar a sua experiência na plataforma.</p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {([
+                        { id: "agricultor", title: "Agricultor / Fornecedor", detail: "Publicar produtos e gerir ofertas", Icon: Sprout },
+                        { id: "comprador", title: "Comprador", detail: "Procurar produtos e fazer pedidos", Icon: ShoppingCart },
+                        { id: "agente", title: "Agente AgriLink", detail: "Apoiar fornecedores e operações", Icon: ClipboardCheck },
+                        { id: "motorista", title: "Motorista", detail: "Receber serviços de transporte", Icon: Truck },
+                      ] as const).map(({ id, title, detail, Icon }) => {
+                        const selected = userType === id;
+                        return (
+                          <button key={id} type="button" aria-pressed={selected} onClick={() => setUserType(id)}
+                            className={`group flex min-h-[112px] items-start gap-3 rounded-2xl border p-4 text-left transition duration-150 focus:outline-none focus:ring-4 focus:ring-[#4B8A55]/15 ${selected ? "border-[#367644] bg-[#F0F7F0] ring-1 ring-[#367644]" : "border-[#DDE6DE] bg-white hover:border-[#9BBBA0] hover:bg-[#FAFCFA]"}`}>
+                            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${selected ? "bg-[#2F6F3A] text-white" : "bg-[#F0F4F0] text-[#527458]"}`}><Icon size={19} strokeWidth={1.8} /></span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-sm font-bold text-[#223326]">{title}</span>
+                              <span className="mt-1 block text-xs leading-5 text-[#718071]">{detail}</span>
+                            </span>
+                            <span className={`mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${selected ? "border-[#2F6F3A] bg-[#2F6F3A]" : "border-[#C7D2C8]"}`}>{selected && <CheckCircle2 size={13} className="text-white" />}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button type="button" onClick={() => setSignupStep("details")} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#2F6F3A] px-5 text-sm font-bold text-white transition hover:bg-[#245A2E] focus:outline-none focus:ring-4 focus:ring-[#4B8A55]/20">
+                      Continuar com {userType === "agricultor" ? "Agricultor / Fornecedor" : userType === "comprador" ? "Comprador" : userType === "agente" ? "Agente AgriLink" : "Motorista"} <ArrowRight size={16} />
+                    </button>
+                  </section>
+                ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  {mode === "signup" && (
+                    <div className="mb-5 rounded-xl border border-[#E0E9E0] bg-[#F7FAF7] p-3">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#718071]">Etapa 2 de 2 · Dados da conta</p>
+                      <div className="mt-1 flex items-center justify-between gap-3">
+                        <p className="text-sm font-bold text-[#2B5732]">{userType === "agricultor" ? "Agricultor / Fornecedor" : userType === "comprador" ? "Comprador" : userType === "agente" ? "Agente AgriLink" : "Motorista"}</p>
+                        <button type="button" onClick={() => setSignupStep("profile")} className="inline-flex items-center gap-1 text-xs font-semibold text-[#2F6F3A] hover:underline"><ChevronLeft size={14} /> Alterar perfil</button>
+                      </div>
+                    </div>
+                  )}
                   {mode === "signup" && (
                     <label className="block">
                       <span className="mb-2 block text-xs font-extrabold uppercase tracking-wide text-[#657367]">Telefone</span>
@@ -217,17 +261,6 @@ const Login = () => {
                   </label>
 
 
-                  {mode === "signup" && (
-                    <label className="block">
-                      <span className="mb-2 block text-xs font-extrabold uppercase tracking-wide text-[#657367]">Que tipo de utilizador pretende ser?</span>
-                      <select value={userType} onChange={(e) => setUserType(e.target.value as "agricultor" | "agente" | "comprador" | "motorista")} className="h-12 w-full rounded-2xl border border-[#DDE6DE] bg-white px-4 text-sm outline-none focus:border-[#4B8A55] focus:ring-4 focus:ring-[#4B8A55]/10" required>
-                        <option value="agricultor">Agricultor / Fornecedor — publicar produtos agrícolas</option>
-                        <option value="comprador">Comprador — procurar e comprar produtos</option>
-                        <option value="agente">Agente AgriLink — apoiar fornecedores e operações</option>
-                        <option value="motorista">Motorista — realizar transportes e entregas</option>
-                      </select>
-                    </label>
-                  )}
                   {mode === "login" && (
                     <div className="flex justify-end">
                       <Link to="/reset-password" className="text-xs font-bold text-[#3E7C48] hover:underline">Esqueci a senha</Link>
@@ -239,17 +272,18 @@ const Login = () => {
                     {!submitting && <ArrowRight className="h-4 w-4" />}
                   </button>
                 </form>
+                )}
 
-                <div className="my-6 flex items-center gap-3">
+                {mode === "login" && <div className="my-6 flex items-center gap-3">
                   <div className="h-px flex-1 bg-[#E5ECE5]" />
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[#98A298]">ou</span>
                   <div className="h-px flex-1 bg-[#E5ECE5]" />
-                </div>
+                </div>}
 
-                <button type="button" onClick={handleGoogle} disabled={submitting} className="flex h-12 w-full items-center justify-center gap-3 rounded-2xl border border-[#DDE6DE] bg-white text-sm font-extrabold text-[#26352A] transition hover:bg-[#F7FAF7] disabled:opacity-60">
+                {mode === "login" && <button type="button" onClick={handleGoogle} disabled={submitting} className="flex h-12 w-full items-center justify-center gap-3 rounded-2xl border border-[#DDE6DE] bg-white text-sm font-extrabold text-[#26352A] transition hover:bg-[#F7FAF7] disabled:opacity-60">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full border border-[#E4E8E4] text-xs font-black">G</span>
                   Continuar com Google
-                </button>
+                </button>}
               </>
             )}
 
