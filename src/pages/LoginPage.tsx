@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
-import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, Compass, X, Sprout, ShoppingCart, ClipboardCheck, Truck, CheckCircle2, ChevronLeft } from 'lucide-react'
+import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, Compass, X, Sprout, ShoppingCart, UserRound, PencilLine, Truck, CheckCircle2, ChevronLeft } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { sendMagicLink, sendPasswordResetEmail, sendConfirmationEmail } from '../features/auth/email'
 import agrilinkLogo from '../assets/agrilink-logo.png'
@@ -307,12 +307,12 @@ const LoginPage = () => {
                 {([
                   { id: 'agricultor', title: 'Agricultor / Fornecedor', detail: 'Publicar produtos e gerir ofertas', Icon: Sprout },
                   { id: 'comprador', title: 'Comprador', detail: 'Encontrar produtos e fazer pedidos', Icon: ShoppingCart },
-                  { id: 'agente', title: 'Agente AgriLink', detail: 'Apoiar fornecedores e operações', Icon: ClipboardCheck },
+                  { id: 'agente', title: 'Agente AgriLink', detail: 'Apoiar fornecedores e operações', Icon: UserRound },
                   { id: 'motorista', title: 'Motorista', detail: 'Prestar serviços de transporte', Icon: Truck },
                 ] as const).map(({ id, title, detail, Icon }) => {
                   const selected = userType === id;
                   return <button key={id} type="button" aria-pressed={selected} onClick={() => setUserType(id)} style={{ minHeight: 132, padding: 14, borderRadius: 15, border: `1px solid ${selected ? T.g600 : T.rule}`, background: selected ? T.g50 : T.white, textAlign: 'left', cursor: 'pointer', boxShadow: selected ? '0 0 0 2px rgba(48,111,58,0.10)' : 'none', transition: 'border-color 160ms ease, background 160ms ease' }}>
-                    <span style={{ width: 36, height: 36, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 11, background: selected ? T.g600 : '#F0F4F0', color: selected ? T.white : T.g600 }}><Icon size={18} strokeWidth={1.8} /></span>
+                    <span style={{ width: 36, height: 36, position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 11, background: selected ? T.g600 : '#F0F4F0', color: selected ? T.white : T.g600 }}><Icon size={18} strokeWidth={1.8} />{id === 'agente' && <PencilLine size={10} strokeWidth={2.2} style={{ position: 'absolute', right: -3, bottom: -3, padding: 1, borderRadius: 3, background: T.white, color: T.g600 }} aria-hidden="true" />}</span>
                     <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginTop: 12 }}><strong style={{ fontSize: 12, lineHeight: 1.4, color: T.ink }}>{title}</strong>{selected && <CheckCircle2 size={15} color={T.g600} style={{ flexShrink: 0 }} />}</span>
                     <span style={{ display: 'block', marginTop: 5, fontSize: 11, lineHeight: 1.5, color: T.muted }}>{detail}</span>
                   </button>
