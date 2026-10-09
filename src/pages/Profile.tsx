@@ -593,11 +593,11 @@ const Profile = () => {
       setAvatarLoading(true)
       const file = event.target.files?.[0]; if (!file) return
       const fileExt = file.name.split('.').pop()
-      const fileName = `${user?.id}/avatar.${fileExt}`
+      const fileName = `${user.id}/avatar.${fileExt}`
       const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file, { upsert: true })
       if (uploadError) throw uploadError
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
-      await supabase.from('users').update({ avatar_url: publicUrl, updated_at: new Date().toISOString() }).eq('id', user?.id)
+      await supabase.from('users').update({ avatar_url: publicUrl, updated_at: new Date().toISOString() }).eq('id', user.id)
     } catch (error: any) { toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' }) }
     finally { setAvatarLoading(false) }
   }
