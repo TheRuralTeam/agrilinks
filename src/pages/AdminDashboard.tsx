@@ -322,6 +322,7 @@ const AdminDashboard = () => {
   const [isSuperRoot, setIsSuperRoot] = useState(false);
   const [isSupportAgent, setIsSupportAgent] = useState(false);
   const [userPermissions, setUserPermissions] = useState<AdminPermission[]>([]);
+  const [adminPermissionsLoaded, setAdminPermissionsLoaded] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   // Work session tracking for support agents
@@ -373,6 +374,8 @@ const AdminDashboard = () => {
           setUserPermissions(permissions.map((p) => p.permission as AdminPermission));
         }
       }
+
+      setAdminPermissionsLoaded(true);
     };
     
     checkAdminStatus();
@@ -406,7 +409,7 @@ const AdminDashboard = () => {
   }, [hasPermission, isRootAdmin, isSupportAgent]);
 
   useEffect(() => {
-    if (!currentUserId) return;
+    if (!currentUserId || !adminPermissionsLoaded) return;
     const requestedTab = new URLSearchParams(location.search).get("tab");
     const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries"]);
     if (!requestedTab || !supportedTabs.has(requestedTab as TabType)) return;
@@ -419,7 +422,7 @@ const AdminDashboard = () => {
       toast.error("O seu perfil não tem permissão para abrir esta secção administrativa.");
       navigate(location.pathname, { replace: true });
     }
-  }, [currentUserId, location.pathname, location.search, canOpenAdminTab, navigate]);
+  }, [currentUserId, adminPermissionsLoaded, location.pathname, location.search, canOpenAdminTab, navigate]);
 
   useEffect(() => {
     if (!currentUserId) return;
