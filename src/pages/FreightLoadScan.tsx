@@ -94,12 +94,12 @@ const FreightLoadScan = () => {
   }, [authLoading, token, user]);
 
   if (authLoading || loading) {
-    return <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: T.bg }}><Loader /></div>;
+    return <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: T.canvas }}><Loader /></div>;
   }
 
   if (message || !data) {
     return (
-      <div style={{ minHeight: '100vh', background: T.bg, padding: 18, fontFamily: FONT }}>
+      <div style={{ minHeight: '100vh', background: T.canvas, padding: 18, fontFamily: FONT }}>
         <div style={{ maxWidth: 560, margin: '60px auto', background: T.white, border: `1px solid ${T.rule}`, borderRadius: 20, padding: 28, textAlign: 'center' }}>
           <AlertTriangle size={34} color={T.gold} />
           <h1 style={{ color: T.ink, fontSize: 20, margin: '14px 0 8px' }}>Acesso não autorizado</h1>
@@ -113,7 +113,7 @@ const FreightLoadScan = () => {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: T.bg, padding: 16, fontFamily: FONT }}>
+    <div style={{ minHeight: '100vh', background: T.canvas, padding: 16, fontFamily: FONT }}>
       <div style={{ maxWidth: 680, margin: '0 auto' }}>
         <button onClick={() => navigate(-1)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: 'none', background: 'transparent', color: T.mid, fontFamily: FONT, fontWeight: 700, cursor: 'pointer', marginBottom: 12 }}>
           <ArrowLeft size={16} /> Voltar
