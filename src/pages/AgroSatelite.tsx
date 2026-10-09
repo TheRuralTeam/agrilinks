@@ -114,7 +114,6 @@ export default function AgroSatelite() {
           </CardHeader>
           <CardContent className="space-y-3">
             <SimpleLeafletMap
-              key={`${center.lat.toFixed(4)}-${center.lng.toFixed(4)}`}
               center={center}
               zoom={11}
               height={330}
