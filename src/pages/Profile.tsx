@@ -563,8 +563,13 @@ const Profile = () => {
       return
     }
     try {
-      const { email: _authEmail, ...editableProfile } = profileData
-      const { error } = await supabase.from('users').update({ ...editableProfile, updated_at: new Date().toISOString() }).eq('id', user.id)
+      const { error } = await supabase.from('users').update({
+        full_name: profileData.full_name,
+        phone: profileData.phone,
+        province_id: profileData.province_id,
+        municipality_id: profileData.municipality_id,
+        updated_at: new Date().toISOString(),
+      }).eq('id', user.id)
       if (error) throw error
       toast({ title: 'Perfil actualizado com sucesso.' })
       setEditMode(false)
