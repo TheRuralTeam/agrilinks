@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
 import Loader from '../components/ui/Loader';
-import Loader from '../components/ui/Loader';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { ProductCard, Product } from '../components/ProductCard';
