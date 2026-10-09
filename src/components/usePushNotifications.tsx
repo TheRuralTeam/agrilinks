@@ -236,15 +236,18 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
       const subscription = await registration.pushManager.getSubscription();
 
       if (subscription) {
-        await subscription.unsubscribe();
-
-        // Remover do banco de dados
+        // Primeiro confirmar a remoção no servidor; se falhar, manter a subscrição local activa.
         const { error: deleteError } = await supabase
           .from('push_subscriptions')
           .delete()
           .eq('user_id', user.id)
           .eq('endpoint', subscription.endpoint);
         if (deleteError) throw deleteError;
+
+        const unsubscribed = await subscription.unsubscribe();
+        if (!unsubscribed) {
+          throw new Error('O navegador não confirmou a desactivação das notificações neste dispositivo.');
+        }
 
         setIsSubscribed(false);
         console.log('Desinscrição de notificações push com sucesso');
