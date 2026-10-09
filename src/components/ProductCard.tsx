@@ -364,7 +364,7 @@ interface Comment {
 export interface Product {
   id: string; product_type: string; description?: string | null; quantity: number
   harvest_date: string; price: number; province_id: string; municipality_id: string
-  farmer_name: string; contact: string; photos: string[] | null
+  farmer_name: string; contact?: string; photos: string[] | null
   status: string; created_at: string | null; user_id: string
   location_lat?: number | null; location_lng?: number | null
   category?: string | null
