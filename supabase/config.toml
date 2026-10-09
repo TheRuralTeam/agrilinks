@@ -26,3 +26,11 @@ verify_jwt = false
 
 [functions.create-marketplace-payment-intent]
 verify_jwt = true
+
+[auth.email.template.confirmation]
+subject = "Confirme a sua conta — AgriLink"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Recuperar a palavra-passe — AgriLink"
+content_path = "./supabase/templates/recovery.html"
