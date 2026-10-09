@@ -61,7 +61,10 @@ serve(async (req: Request) => {
     if (!inAngola(latitude, longitude)) {
       return jsonResponse({ error: "Esta versão piloto aceita coordenadas dentro dos limites geográficos aproximados de Angola." }, 422);
     }
-    if (collection !== "sentinel-2-l2a" && collection !== "sentinel-1-grd") {\n      return jsonResponse({ error: "A coleção deve ser sentinel-2-l2a ou sentinel-1-grd." }, 400);\n    }\n    if (!isNumber(cloudCoverMax) || cloudCoverMax < 0 || cloudCoverMax > 80) {
+    if (collection !== "sentinel-2-l2a" && collection !== "sentinel-1-grd") {
+      return jsonResponse({ error: "A coleção deve ser sentinel-2-l2a ou sentinel-1-grd." }, 400);
+    }
+    if (!isNumber(cloudCoverMax) || cloudCoverMax < 0 || cloudCoverMax > 80) {
       return jsonResponse({ error: "O limite de cobertura de nuvens deve estar entre 0 e 80%." }, 400);
     }
     if (!isNumber(daysBack) || !Number.isInteger(daysBack) || daysBack < 1 || daysBack > 180) {
