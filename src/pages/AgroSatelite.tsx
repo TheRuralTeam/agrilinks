@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+type SatelliteCollection = "sentinel-2-l2a" | "sentinel-1-grd";
+
 type SatelliteScene = {
   id: string | null;
   acquiredAt: string | null;
@@ -23,6 +25,7 @@ type SatelliteScene = {
 
 type CatalogResponse = {
   provider: string;
+  collection: SatelliteCollection;
   catalogUrl: string;
   searchedAt: string;
   location: { latitude: number; longitude: number };
@@ -46,6 +49,7 @@ function formatDate(value: string | null): string {
 export default function AgroSatelite() {
   const [latitude, setLatitude] = useState("-8.8390");
   const [longitude, setLongitude] = useState("13.2894");
+  const [collection, setCollection] = useState<SatelliteCollection>("sentinel-2-l2a");
   const [daysBack, setDaysBack] = useState("90");
   const [cloudCoverMax, setCloudCoverMax] = useState("35");
   const [result, setResult] = useState<CatalogResponse | null>(null);
@@ -69,7 +73,7 @@ export default function AgroSatelite() {
     setLoading(true);
     try {
       const { data, error: invokeError } = await supabase.functions.invoke("agro-satellite-catalog", {
-        body: { latitude: lat, longitude: lon, daysBack: Number(daysBack), cloudCoverMax: Number(cloudCoverMax) },
+        body: { latitude: lat, longitude: lon, collection, daysBack: Number(daysBack), cloudCoverMax: Number(cloudCoverMax) },
       });
       if (invokeError) throw invokeError;
       if (!data || !Array.isArray(data.scenes) || !data.provider) {
@@ -141,6 +145,16 @@ export default function AgroSatelite() {
           <CardContent>
             <form className="space-y-4" onSubmit={searchScenes}>
               <div className="space-y-2">
+                <Label htmlFor="sat-collection">Tipo de satélite</Label>
+                <Select value={collection} onValueChange={(value) => setCollection(value as SatelliteCollection)}>
+                  <SelectTrigger id="sat-collection"><SelectValue placeholder="Selecionar satélite" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sentinel-2-l2a">Sentinel-2 — ótico (vegetação)</SelectItem>
+                    <SelectItem value="sentinel-1-grd">Sentinel-1 — radar (nuvens)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="sat-days">Período histórico</Label>
                 <Select value={daysBack} onValueChange={setDaysBack}>
                   <SelectTrigger id="sat-days"><SelectValue placeholder="Selecionar período" /></SelectTrigger>
@@ -153,7 +167,7 @@ export default function AgroSatelite() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="sat-cloud">Cobertura máxima de nuvens</Label>
-                <Select value={cloudCoverMax} onValueChange={setCloudCoverMax}>
+                <Select value={cloudCoverMax} onValueChange={setCloudCoverMax} disabled={collection === "sentinel-1-grd"}>
                   <SelectTrigger id="sat-cloud"><SelectValue placeholder="Selecionar cobertura" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="10">10% — mais restritivo</SelectItem>
@@ -164,9 +178,10 @@ export default function AgroSatelite() {
                   </SelectContent>
                 </Select>
               </div>
+              {collection === "sentinel-1-grd" && <p className="text-xs text-muted-foreground">O radar Sentinel-1 não usa o filtro de cobertura de nuvens.</p>}
               <Button type="submit" disabled={loading} className="w-full">
                 <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                {loading ? "A pesquisar catálogo..." : "Pesquisar imagens Sentinel-2"}
+                {loading ? "A pesquisar catálogo..." : collection === "sentinel-1-grd" ? "Pesquisar cenas Sentinel-1" : "Pesquisar imagens Sentinel-2"}
               </Button>
             </form>
             <div className="mt-4 rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
@@ -191,9 +206,9 @@ export default function AgroSatelite() {
         <section className="space-y-4" aria-live="polite">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-xl font-semibold">Cenas encontradas: {result.count}</h2>
+              <h2 className="text-xl font-semibold">{result.collection === "sentinel-1-grd" ? "Cenas Sentinel-1 encontradas" : "Cenas Sentinel-2 encontradas"}: {result.count}</h2>
               <p className="text-sm text-muted-foreground">
-                {result.location.latitude.toFixed(5)}, {result.location.longitude.toFixed(5)} · Últimos {result.search.daysBack} dias · Nuvens até {result.search.cloudCoverMax}%
+                {result.location.latitude.toFixed(5)}, {result.location.longitude.toFixed(5)} · Últimos {result.search.daysBack} dias{result.collection === "sentinel-2-l2a" ? ` · Nuvens até ${result.search.cloudCoverMax}%` : " · Radar: nuvens não aplicável"}
               </p>
             </div>
             <p className="text-xs text-muted-foreground">Pesquisa em {formatDate(result.searchedAt)} · {result.provider}</p>
@@ -215,7 +230,7 @@ export default function AgroSatelite() {
                     <CardDescription>{formatDate(scene.acquiredAt)}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2 text-sm">
-                    <p className="flex items-center gap-2"><Cloud className="h-4 w-4 text-primary" />Cobertura de nuvens: {scene.cloudCover === null ? "Não indicada" : `${Math.round(scene.cloudCover)}%`}</p>
+                    <p className="flex items-center gap-2"><Cloud className="h-4 w-4 text-primary" />{result.collection === "sentinel-1-grd" ? "Observação por radar" : `Cobertura de nuvens: ${scene.cloudCover === null ? "Não indicada" : `${Math.round(scene.cloudCover)}%`}`}</p>
                     <p className="text-muted-foreground">{scene.platform} · {scene.processingLevel}</p>
                     {scene.previewUrl && (
                       <a href={scene.previewUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 underline underline-offset-4">
