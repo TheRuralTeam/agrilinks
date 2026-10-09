@@ -393,7 +393,7 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
        <ActionButtons
          onChat={handleStartChat}
          onRFQ={handleRFQ}
-         phone={companyData.phone}
+         phone={companyData.phone ?? undefined}
        />
      </div>
    );
