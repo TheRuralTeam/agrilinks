@@ -267,7 +267,7 @@ const Messages = () => {
 
     let active = true;
     const presenceChannel = supabase.channel(`chat-presence:${id}`, {
-      config: { presence: { key: user.id } },
+      config: { presence: { key: user.id }, private: true },
     });
 
     const refreshPresence = () => {
