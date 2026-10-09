@@ -655,11 +655,6 @@ const AdminDashboard = () => {
   }, []);
 
   const markNotificationAsRead = useCallback(async (id: string) => {
-    if (!hasPermission("manage_support") && !isSupportAgent) {
-      toast.error("Não tem permissão para gerir notificações.");
-      return;
-    }
-
     if (!currentUserId) {
       toast.error("Não foi possível identificar a sessão administrativa actual.");
       return;
@@ -685,7 +680,7 @@ const AdminDashboard = () => {
       console.error("Erro ao marcar notificação como lida:", error);
       toast.error(error instanceof Error ? error.message : "Não foi possível actualizar a notificação.");
     }
-  }, [currentUserId, hasPermission, isSupportAgent, notifications]);
+  }, [currentUserId, notifications]);
 
   const requestRemovePreOrder = useCallback((order: Order) => {
     if (!hasPermission("manage_orders") && !isSupportAgent) {
@@ -969,9 +964,11 @@ const AdminDashboard = () => {
           <SidebarItem active={activeTab === "dashboard"} onClick={() => { setActiveTab("dashboard"); setMenuOpen(false); }} icon={<Activity className="h-4 w-4" />}>
             Dashboard
           </SidebarItem>
-          <SidebarItem active={activeTab === "orders"} onClick={() => { setActiveTab("orders"); setMenuOpen(false); }} icon={<ShoppingCart className="h-4 w-4" />}>
-            Pedidos
-          </SidebarItem>
+          {(isSupportAgent || hasPermission("manage_orders")) && (
+            <SidebarItem active={activeTab === "orders"} onClick={() => { setActiveTab("orders"); setMenuOpen(false); }} icon={<ShoppingCart className="h-4 w-4" />}>
+              Pedidos
+            </SidebarItem>
+          )}
           {hasPermission("manage_products") && (
             <SidebarItem active={activeTab === "products"} onClick={() => { setActiveTab("products"); setMenuOpen(false); }} icon={<Package className="h-4 w-4" />}>
               Produtos
