@@ -55,6 +55,7 @@ const LoginPage = () => {
   const [userType, setUserType] = useState<'agricultor' | 'agente' | 'comprador' | 'motorista'>('comprador')
   const [signupStep, setSignupStep] = useState<'profile' | 'details'>('profile')
   const [signupSuccess, setSignupSuccess] = useState(false)
+  const [confirmationEmailSent, setConfirmationEmailSent] = useState(true)
   const [signupLoading, setSignupLoading] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
   const [resendLoading, setResendLoading] = useState(false)
@@ -92,13 +93,18 @@ const LoginPage = () => {
         setErrorMsg('Preencha email, telefone e senha.')
         return
       }
+      if (password.length < 8) {
+        setErrorMsg('A palavra-passe deve ter pelo menos 8 caracteres.')
+        return
+      }
       setSignupLoading(true)
       try {
-        const { error } = await registerSimple({ email, phone, password, user_type: userType })
+        const { error, data } = await registerSimple({ email, phone, password, user_type: userType })
         if (error) {
           setErrorMsg(error.message || 'Não foi possível criar a conta.')
           return
         }
+        setConfirmationEmailSent(data?.confirmation_sent === true)
         setSignupSuccess(true)
       } finally {
         setSignupLoading(false)
@@ -289,7 +295,7 @@ const LoginPage = () => {
               </div>
               <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 800 }}>Confirma o teu email</h2>
               <p style={{ margin: 0, fontSize: 14, color: T.muted, lineHeight: 1.6 }}>
-                O cadastro só fica concluído depois de confirmares o email <strong>{email}</strong>. Abre o link recebido para ativar a conta e, depois, inicia sessão. Verifica também a pasta de spam.
+                {confirmationEmailSent ? <>O cadastro só fica concluído depois de confirmares o email <strong>{email}</strong>. Abre o link recebido para activar a conta e, depois, inicia sessão. Verifica também a pasta de spam.</> : <>A conta foi criada, mas o email de confirmação ainda não foi enviado. Usa o botão abaixo para pedir um novo link para <strong>{email}</strong>.</>}
               </p>
               <button type="button" onClick={handleResendSignupConfirmation} disabled={resendLoading} style={{ marginTop: 18, width: '100%', height: 46, borderRadius: 999, border: `1px solid ${T.goldBorder}`, background: T.goldPale, color: T.ink, fontWeight: 700, opacity: resendLoading ? 0.6 : 1 }}>
                 {resendLoading ? 'A enviar confirmação...' : 'Reenviar email de confirmação'}
