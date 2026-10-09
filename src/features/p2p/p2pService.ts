@@ -75,11 +75,12 @@ export async function submitP2PBeneficiaryApplication(input: {
   channels: P2PPaymentChannel[]
   notes?: string
 }) {
+  if (!input.phone?.trim()) throw new Error('O telefone é obrigatório para solicitar a aprovação P2P.')
   const { data, error } = await supabase.rpc('submit_p2p_beneficiary_application', {
     p_legal_name: input.legalName,
-    p_phone: input.phone ?? null,
+    p_phone: input.phone.trim(),
     p_requested_channels: input.channels,
-    p_notes: input.notes ?? null,
+    ...(input.notes !== undefined ? { p_notes: input.notes } : {}),
   })
   if (error) throw error
   return data as string
@@ -157,7 +158,7 @@ export async function acceptP2PMatch(matchId: string) {
 export async function confirmP2PPaymentReceived(orderId: string, note?: string) {
   const { data, error } = await supabase.rpc('confirm_p2p_payment_received', {
     p_p2p_order_id: orderId,
-    p_note: note ?? null,
+    ...(note !== undefined ? { p_note: note } : {}),
   })
   if (error) throw error
   return data as string
