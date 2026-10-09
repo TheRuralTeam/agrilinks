@@ -22,10 +22,10 @@ interface UserData {
   full_name: string;
   avatar_url: string | null;
   user_type: 'agricultor' | 'comprador' | 'agente' | 'motorista' | null;
-  province_id: string;
-  municipality_id: string;
-  created_at: string;
-  phone?: string;
+  province_id: string | null;
+  municipality_id: string | null;
+  created_at: string | null;
+  phone?: string | null;
   agent_code?: string;
   verified?: boolean;
 }
@@ -112,6 +112,11 @@ const UserProfile = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchUserData = React.useCallback(async () => {
+    if (!id) {
+      setUserData(null);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
 
