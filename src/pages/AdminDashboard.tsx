@@ -640,6 +640,12 @@ const AdminDashboard = () => {
   }, [hasPermission, isSupportAgent]);
 
   const confirmRemovePreOrder = useCallback(async () => {
+    if (!hasPermission("manage_orders") && !isSupportAgent) {
+      setOrderRemovalTarget(null);
+      toast.error("Não tem permissão para remover pedidos.");
+      return;
+    }
+
     const order = orderRemovalTarget;
     if (!order) return;
     setOrderRemovalTarget(null);
@@ -662,7 +668,7 @@ const AdminDashboard = () => {
         return next;
       });
     }
-  }, [orderRemovalTarget]);
+  }, [hasPermission, isSupportAgent, orderRemovalTarget]);
 
   const updateOrderStatus = useCallback(async (orderId: string, newStatus: AdminPreOrderStatus) => {
     if (!isSupportAgent && !hasPermission("manage_orders")) {
@@ -1208,39 +1214,43 @@ const AdminDashboard = () => {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
-                              aria-label="Mover pedido para a lixeira"
-                              title="Mover para lixeira por 15 dias"
-                              onClick={(e) => { e.stopPropagation(); requestRemovePreOrder(order); }}
-                              disabled={updatingOrders.has(order.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 w-8 p-0 text-green-600"
-                              aria-label="Aceitar pedido"
-                              title="Aceitar pedido"
-                              onClick={(e) => { e.stopPropagation(); updateOrderStatus(order.id, "accepted"); }}
-                              disabled={updatingOrders.has(order.id) || isAdminPreOrderStatusFinal(order.status) || order.status === "accepted"}
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 w-8 p-0 text-amber-600"
-                              aria-label="Voltar pedido para pendente"
-                              title="Voltar para pendente"
-                              onClick={(e) => { e.stopPropagation(); updateOrderStatus(order.id, "pending"); }}
-                              disabled={updatingOrders.has(order.id) || isAdminPreOrderStatusFinal(order.status) || order.status === "pending" || order.status === "aguardando"}
-                            >
-                              <Clock className="h-4 w-4" />
-                            </Button>
+                            {(hasPermission("manage_orders") || isSupportAgent) && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
+                                  aria-label="Mover pedido para a lixeira"
+                                  title="Mover para lixeira por 15 dias"
+                                  onClick={(e) => { e.stopPropagation(); requestRemovePreOrder(order); }}
+                                  disabled={updatingOrders.has(order.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0 text-green-600"
+                                  aria-label="Aceitar pedido"
+                                  title="Aceitar pedido"
+                                  onClick={(e) => { e.stopPropagation(); updateOrderStatus(order.id, "accepted"); }}
+                                  disabled={updatingOrders.has(order.id) || isAdminPreOrderStatusFinal(order.status) || order.status === "accepted"}
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0 text-amber-600"
+                                  aria-label="Voltar pedido para pendente"
+                                  title="Voltar para pendente"
+                                  onClick={(e) => { e.stopPropagation(); updateOrderStatus(order.id, "pending"); }}
+                                  disabled={updatingOrders.has(order.id) || isAdminPreOrderStatusFinal(order.status) || order.status === "pending" || order.status === "aguardando"}
+                                >
+                                  <Clock className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
