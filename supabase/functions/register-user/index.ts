@@ -133,20 +133,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const safeName = escapeHtml(input.full_name.trim());
     const html = buildBrandEmailTemplate({
-      title: "Confirma a tua conta — AgriLink",
-      preheader: "Confirma o teu endereço de email para activar a conta AgriLink.",
-      headline: "Confirma a tua conta",
-      bodyHtml: `<p style="margin:0 0 14px;">Olá ${safeName},</p><p style="margin:0;">Confirma o teu endereço de email para activar a tua conta AgriLink e começar a utilizar a plataforma.</p>`,
-      ctaText: "Confirmar a conta",
+      title: "Confirme a sua conta — AgriLink",
+      preheader: "Confirme o seu endereço de email para activar a conta AgriLink.",
+      headline: "Confirme a sua conta",
+      bodyHtml: `<p style="margin:0 0 14px;">Olá ${safeName},</p><p style="margin:0;">Confirme o seu endereço de email para activar a sua conta AgriLink e começar a utilizar a plataforma.</p>`,
+      ctaText: "Confirmar endereço de email",
       ctaHref: actionUrl.toString(),
-      secondaryText: "Se não criaste esta conta, ignora esta mensagem.",
+      secondaryText: "Se não criou esta conta, ignore esta mensagem.",
     });
 
     let confirmationSent = true;
     try {
       await sendResendEmail({
         to: email,
-        subject: "Confirma a tua conta — AgriLink",
+        subject: "Confirme a sua conta — AgriLink",
         html,
         from: "AgriLink <no-reply@agrilink.ao>",
         replyTo: "contacto@agrilink.ao",
