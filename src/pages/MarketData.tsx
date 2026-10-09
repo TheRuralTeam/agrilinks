@@ -240,6 +240,16 @@ const MarketData = () => {
               <Satellite className="h-4 w-4" />
               <span className="hidden lg:inline">AgroClima</span>
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/agro-satelite")}
+              className="shrink-0 gap-2"
+              aria-label="Abrir pesquisa de satélites"
+              title="Imagens Sentinel-2"
+            >
+              <Satellite className="h-4 w-4" />
+              <span className="hidden xl:inline">Satélites</span>
+            </Button>
             <Button 
               onClick={handleRefresh}
               disabled={analyzing}
