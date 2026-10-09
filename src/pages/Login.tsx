@@ -20,6 +20,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmationPending, setConfirmationPending] = useState(false);
+  const [confirmationEmailSent, setConfirmationEmailSent] = useState(true);
   const [resendingConfirmation, setResendingConfirmation] = useState(false);
 
   useEffect(() => {
@@ -53,7 +54,11 @@ const Login = () => {
         toast.error("Email, telefone e senha são obrigatórios.");
         return;
       }
-      const { error } = await registerSimple({
+      if (password.length < 8) {
+        toast.error("A palavra-passe deve ter pelo menos 8 caracteres.");
+        return;
+      }
+      const { error, data } = await registerSimple({
         email: email.trim().toLowerCase(),
         phone: phone.trim(),
         password,
@@ -64,8 +69,13 @@ const Login = () => {
         return;
       }
 
+      setConfirmationEmailSent(data?.confirmation_sent === true);
       setConfirmationPending(true);
-      toast.success("Conta criada. Verifique o seu email para confirmar o acesso.");
+      if (data?.confirmation_sent) {
+        toast.success("Conta criada. Verifique o seu email para confirmar o acesso.");
+      } else {
+        toast.error("A conta foi criada, mas o email não foi enviado. Pode pedir um novo link nesta página.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -141,7 +151,9 @@ const Login = () => {
               </h2>
               <p className="mt-3 text-sm leading-6 text-[#657367]">
                 {confirmationPending
-                  ? "Enviámos a confirmação para o seu email. Abra a mensagem e confirme a conta antes de iniciar sessão."
+                  ? confirmationEmailSent
+                    ? "Enviámos a confirmação para o seu email. Abra a mensagem e confirme a conta antes de iniciar sessão."
+                    : "A conta foi criada, mas o email ainda não foi enviado. Use a opção abaixo para pedir um novo link."
                   : mode === "login"
                     ? "Entre para gerir produtos, pedidos, logística e as suas operações."
                     : "Preencha os seus dados e escolha como pretende utilizar a AgriLink."}
@@ -157,7 +169,9 @@ const Login = () => {
                   <div>
                     <p className="font-bold">Confirmação pendente</p>
                     <p className="mt-1 text-sm leading-6 text-[#657367]">
-                      O cadastro só fica concluído depois de confirmar este endereço. Abra o link enviado para <strong>{email.trim().toLowerCase()}</strong>; depois, volte aqui para entrar. Verifique também a pasta de spam.
+                      {confirmationEmailSent
+                        ? <>O cadastro só fica concluído depois de confirmar este endereço. Abra o link enviado para <strong>{email.trim().toLowerCase()}</strong>; depois, volte aqui para entrar. Verifique também a pasta de spam.</>
+                        : <>Ainda não enviámos o link para <strong>{email.trim().toLowerCase()}</strong>. Use o botão abaixo para tentar novamente.</>}
                     </p>
                   </div>
                 </div>
