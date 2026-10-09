@@ -238,109 +238,89 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  const register = async (userData: RegisterData) => {
-    const { user_type, province_id, municipality_id, full_name, identity_document, phone, password, email, referred_by_agent_id } = userData
-    
-    if (!email) {
-      return { error: { message: 'Email é obrigatório' } }
-    }
-    
+  const createAccountWithAgriLinkEmail = async (payload: Record<string, unknown>) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: buildAuthRedirectUrl('/app'),
-          data: {
-            full_name,
-            user_type,
-            province_id,
-            municipality_id,
-            identity_document,
-            phone,
-            load_capacity_kg: (userData as any).load_capacity_kg ?? null,
-            referred_by_agent_code: referred_by_agent_id?.trim().toUpperCase() || null
-          }
-        }
-      })
-
-      if (error) return { error, data: null }
-
-      if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-        return { error: { message: 'Este email já está registrado. Faça login ou reenvie o código de confirmação.' }, data: null }
+      const { data, error } = await supabase.functions.invoke('register-user', { body: payload })
+      if (error) {
+        const details = error?.context ? await error.context.json().catch(() => null) : null
+        return { error: { message: details?.error || error.message || 'Não foi possível criar a conta.' }, data: null }
       }
-
-      // Triggers automáticos criam: perfil, carteira, código agente, referral
-
-      return { error: null, data }
-    } catch (err: any) {
-      console.error('Erro no registro:', err)
-      return { error: err, data: null }
+      if (!data?.success || !data?.user?.id) {
+        return { error: { message: data?.error || 'Não foi possível criar a conta.' }, data: null }
+      }
+      return {
+        error: null,
+        data: {
+          user: data.user,
+          session: null,
+          confirmation_sent: data.confirmation_sent === true,
+          message: data.message,
+        },
+      }
+    } catch (error: any) {
+      return { error: { message: error?.message || 'Não foi possível contactar o serviço de registo.' }, data: null }
     }
+  }
+
+  const register = async (userData: RegisterData) => {
+    const email = userData.email.trim().toLowerCase()
+    const password = userData.password
+    if (!email) return { error: { message: 'Email é obrigatório.' }, data: null }
+    if (!password || password.length < 8) {
+      return { error: { message: 'A palavra-passe deve ter pelo menos 8 caracteres.' }, data: null }
+    }
+
+    return createAccountWithAgriLinkEmail({
+      email,
+      password,
+      full_name: userData.full_name.trim(),
+      phone: userData.phone?.trim() || '',
+      user_type: userData.user_type,
+      identity_document: userData.identity_document?.trim() || null,
+      province_id: userData.province_id || null,
+      municipality_id: userData.municipality_id || null,
+      load_capacity_kg: userData.load_capacity_kg ?? null,
+      referred_by_agent_code: userData.referred_by_agent_id?.trim().toUpperCase() || null,
+    })
   }
 
   const registerSimple = async ({ email, phone, password, user_type }: { email: string; phone: string; password: string; user_type: 'agricultor' | 'agente' | 'comprador' | 'motorista' }) => {
     const normalizedEmail = email.trim().toLowerCase()
     const normalizedPhone = phone.trim()
     if (!normalizedEmail || !normalizedPhone || !password || !user_type) {
-      return { error: { message: 'Email, telefone, senha e tipo de utilizador são obrigatórios.' }, data: null }
+      return { error: { message: 'Email, telefone, palavra-passe e tipo de utilizador são obrigatórios.' }, data: null }
     }
     if (!['agricultor', 'agente', 'comprador', 'motorista'].includes(user_type)) {
       return { error: { message: 'Seleccione um tipo de utilizador válido.' }, data: null }
     }
     if (password.length < 8) {
-      return { error: { message: 'A senha deve ter pelo menos 8 caracteres.' }, data: null }
+      return { error: { message: 'A palavra-passe deve ter pelo menos 8 caracteres.' }, data: null }
     }
 
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: normalizedEmail,
-        password,
-        options: {
-          emailRedirectTo: buildAuthRedirectUrl('/app'),
-          data: {
-            phone: normalizedPhone,
-            // O tipo escolhido no registo é guardado no perfil pelo trigger handle_new_user.
-            user_type,
-          },
-        },
-      })
-      if (error) return { error, data: null }
-      if (data?.session) {
-        await supabase.auth.signOut({ scope: 'local' })
-        return { error: { message: 'O servidor não exigiu a confirmação do email. Por segurança, o cadastro não pode continuar até a confirmação por email estar activa nas definições do Supabase Auth.' }, data: null }
-      }
-      if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-        return { error: { message: 'Este email já está registado. Faça login ou reenvie a confirmação.' }, data: null }
-      }
-      return { error: null, data }
-    } catch (error: any) {
-      return { error, data: null }
-    }
+    const emailName = normalizedEmail.split('@')[0] || ''
+    const fullName = emailName.length >= 2 ? emailName : 'Utilizador AgriLink'
+    return createAccountWithAgriLinkEmail({
+      email: normalizedEmail,
+      phone: normalizedPhone,
+      password,
+      full_name: fullName,
+      user_type,
+    })
   }
 
   const registerWithOtp = async ({ full_name, email, phone }: { full_name: string; email: string; phone: string }) => {
     const normalizedEmail = email.trim().toLowerCase()
-    if (!normalizedEmail || !full_name.trim() || !phone.trim()) {
+    const normalizedName = full_name.trim()
+    const normalizedPhone = phone.trim()
+    if (!normalizedEmail || normalizedName.length < 2 || !normalizedPhone) {
       return { error: { message: 'Nome, email e telefone são obrigatórios.' }, data: null }
     }
 
-    try {
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email: normalizedEmail,
-        options: {
-          shouldCreateUser: true,
-          emailRedirectTo: buildAuthRedirectUrl('/app'),
-          data: {
-            full_name: full_name.trim(),
-            phone: phone.trim(),
-          },
-        },
-      })
-      return { error, data }
-    } catch (error: any) {
-      return { error, data: null }
-    }
+    return createAccountWithAgriLinkEmail({
+      email: normalizedEmail,
+      full_name: normalizedName,
+      phone: normalizedPhone,
+    })
   }
 
   const signInWithGoogle = async (next = '/app') => {
