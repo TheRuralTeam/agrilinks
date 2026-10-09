@@ -1,5 +1,8 @@
 project_id = "oqcrfqtlfqwrxxmsjpaf"
 
+[functions.agro-weather]
+verify_jwt = true
+
 [functions.send-magic-link]
 verify_jwt = false
 
