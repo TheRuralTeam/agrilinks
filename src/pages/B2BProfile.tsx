@@ -37,7 +37,7 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
    foundedYear?: number;
    employees?: string;
    annualRevenue?: string;
-   phone?: string;
+   phone?: string | null;
  }
  
  const B2BProfile = () => {
