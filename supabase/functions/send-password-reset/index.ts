@@ -82,7 +82,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       body: JSON.stringify({
         dedupe_key: `auth:recovery:${email}:${Math.floor(Date.now() / 60000)}`,
         recipient: email,
-        subject: "Recuperar a password — AgriLink",
+        subject: "Recuperar a palavra-passe — AgriLink",
         template: "auth-recovery",
         priority: 100,
         payload: { redirect_to: redirectTo, email },
