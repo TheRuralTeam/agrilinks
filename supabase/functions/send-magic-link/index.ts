@@ -292,7 +292,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         dedupe_key: `auth:${authType}:${email}:${Math.floor(Date.now() / 60000)}`,
         recipient: email,
         subject,
-        template: authType === "recovery" ? "auth-recovery" : "auth-magic-link",
+        template: authType === "recovery" ? "auth-recovery" : authType === "signup" ? "auth-signup" : "auth-magic-link",
         priority: 100,
         payload: { email, full_name: fullName, redirect_to: redirectTo, auth_type: authType },
       }),
