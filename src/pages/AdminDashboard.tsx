@@ -1510,6 +1510,7 @@ const AdminDashboard = () => {
                     <TableHead className="w-10">
                       <Checkbox
                         checked={filteredUsers.length > 0 && selectedUsers.size === filteredUsers.length}
+                        disabled={!hasPermission("manage_users")}
                         onCheckedChange={() => toggleSelectAllUsers(filteredUsers)}
                       />
                     </TableHead>
@@ -1568,28 +1569,36 @@ const AdminDashboard = () => {
                       </TableCell>
                       <TableCell className="text-sm text-gray-500">{user.created_at ? new Date(user.created_at).toLocaleDateString("pt-BR") : "-"}</TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><MoreVertical className="h-4 w-4" /></Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {user.verified ? (
-                              <DropdownMenuItem onClick={() => toggleUserVerification(user.id, true)} className="text-amber-600">
-                                <ShieldX className="h-4 w-4 mr-2" /> Remover Verificação
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem onClick={() => toggleUserVerification(user.id, false)} className="text-primary">
-                                <ShieldCheck className="h-4 w-4 mr-2" /> Verificar Usuário
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => { setTargetUser(user.id); setNotificationModalOpen(true); }}>
-                              <Bell className="h-4 w-4 mr-2" /> Notificar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete("users", user.id)} className="text-red-600">
-                              <Trash2 className="h-4 w-4 mr-2" /> Apagar
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        {(hasPermission("manage_users") || hasPermission("manage_support") || isSuperRoot) && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={`Acções do utilizador ${user.full_name}`}>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {hasPermission("manage_users") && (user.verified ? (
+                                <DropdownMenuItem onClick={() => toggleUserVerification(user.id, true)} className="text-amber-600">
+                                  <ShieldX className="h-4 w-4 mr-2" /> Remover Verificação
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem onClick={() => toggleUserVerification(user.id, false)} className="text-primary">
+                                  <ShieldCheck className="h-4 w-4 mr-2" /> Verificar Utilizador
+                                </DropdownMenuItem>
+                              ))}
+                              {(hasPermission("manage_support") || isSuperRoot) && (
+                                <DropdownMenuItem onClick={() => { setTargetUser(user.id); setNotificationModalOpen(true); }}>
+                                  <Bell className="h-4 w-4 mr-2" /> Notificar
+                                </DropdownMenuItem>
+                              )}
+                              {hasPermission("manage_users") && (
+                                <DropdownMenuItem onClick={() => handleDelete("users", user.id)} className="text-red-600">
+                                  <Trash2 className="h-4 w-4 mr-2" /> Apagar
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
