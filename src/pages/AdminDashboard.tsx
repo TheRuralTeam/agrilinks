@@ -1782,7 +1782,7 @@ const AdminDashboard = () => {
                           <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={!hasPermission("manage_sourcing")} aria-label={`Acções do pedido de sourcing ${req.id}`}>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={!hasPermission("manage_sourcing") && !hasPermission("manage_support") && !isSuperRoot} aria-label={`Acções do pedido de sourcing ${req.id}`}>
                                   <MoreVertical className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -1800,15 +1800,19 @@ const AdminDashboard = () => {
                                     </DropdownMenuItem>
                                   </>
                                 )}
-                                 <DropdownMenuItem onClick={() => {
-                                   setSourcingNoteTarget(req);
-                                   setSourcingNote(req.admin_notes || "");
-                                 }}>
-                                  <MessageSquare className="h-4 w-4 mr-2" /> Adicionar Notas
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => { setTargetUser(req.user_id); setNotificationModalOpen(true); }}>
-                                  <Bell className="h-4 w-4 mr-2" /> Notificar Cliente
-                                </DropdownMenuItem>
+                                 {hasPermission("manage_sourcing") && (
+                                  <DropdownMenuItem onClick={() => {
+                                    setSourcingNoteTarget(req);
+                                    setSourcingNote(req.admin_notes || "");
+                                  }}>
+                                    <MessageSquare className="h-4 w-4 mr-2" /> Adicionar Notas
+                                  </DropdownMenuItem>
+                                )}
+                                {(hasPermission("manage_support") || isSuperRoot) && (
+                                  <DropdownMenuItem onClick={() => { setTargetUser(req.user_id); setNotificationModalOpen(true); }}>
+                                    <Bell className="h-4 w-4 mr-2" /> Notificar Cliente
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
