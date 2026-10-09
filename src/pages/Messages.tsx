@@ -272,9 +272,7 @@ const Messages = () => {
 
     const refreshPresence = () => {
       const presenceState = presenceChannel.presenceState();
-      const peerIsPresent = Object.values(presenceState).some((entries) =>
-        entries.some((entry: { user_id?: string }) => entry.user_id === otherParticipantId)
-      );
+      const peerIsPresent = Object.prototype.hasOwnProperty.call(presenceState, otherParticipantId);
       if (active) setIsOnline(peerIsPresent);
     };
 
