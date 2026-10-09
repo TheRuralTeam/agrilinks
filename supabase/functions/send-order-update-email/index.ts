@@ -12,8 +12,8 @@ import {
 const BodySchema = z.object({
   email: z.string().trim().email().max(255),
   customer_name: z.string().trim().min(2).max(120).optional(),
-  order_id: z.string().trim().min(1).max(120),
-  status: z.string().trim().min(2).max(120),
+  order_id: z.string().trim().min(1).max(120).refine((value) => !/[\r\n]/.test(value)),
+  status: z.string().trim().min(2).max(120).refine((value) => !/[\r\n]/.test(value)),
   message: z.string().trim().min(5).max(2500),
   redirect_to: z.string().trim().url().max(500).optional(),
 });
@@ -68,7 +68,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     const authorization = req.headers.get("authorization") || "";
-    const token = authorization.replace(/^Bearer\\s+/i, "").trim();
+    const token = authorization.replace(/^Bearer\s+/i, "").trim();
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!token || !supabaseUrl || !serviceKey) {
