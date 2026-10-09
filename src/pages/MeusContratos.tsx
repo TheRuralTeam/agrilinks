@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useGuestGate } from '../contexts/GuestGateContext'
 import { generateContractPdf } from '../lib/contractPdf'
 import { T, FONT } from '../lib/brand'
+import Loader from '../components/ui/Loader'
 
 interface Contract {
   id: string
@@ -43,7 +44,7 @@ const MeusContratos = () => {
   useEffect(() => {
     const load = async () => {
       if (!user) { setLoading(false); return }
-      const { data } = await (supabase.from('digital_contracts' as any) as any)
+      const { data } = supabase.from('digital_contracts')
         .select('*')
         .order('created_at', { ascending: false })
       const list = (data || []) as Contract[]
@@ -51,8 +52,8 @@ const MeusContratos = () => {
 
       const ids = Array.from(new Set(list.flatMap(c => [c.buyer_id, c.supplier_id, c.driver_id, c.agent_id]).filter(Boolean))) as string[]
       if (ids.length) {
-        const { data: users } = await supabase.from('public_user_profiles' as any).select('id, full_name').in('id', ids)
-        setNames(Object.fromEntries((users || []).map(u => [u.id, u.full_name])))
+        const { data: users } = await supabase.from('users_public').select('id, full_name').in('id', ids)
+        setNames(Object.fromEntries((users || []).filter((u) => u.id && u.full_name).map((u) => [u.id as string, u.full_name as string])))
       }
       setLoading(false)
     }
@@ -122,11 +123,13 @@ const MeusContratos = () => {
                   {c.status === 'approved' && (
                     <button
                       onClick={() => generateContractPdf({
-                        ...c,
-                        buyer_name: c.buyer_id ? names[c.buyer_id] : null,
-                        supplier_name: c.supplier_id ? names[c.supplier_id] : null,
-                        driver_name: c.driver_id ? names[c.driver_id] : null,
-                        agent_name: c.agent_id ? names[c.agent_id] : null,
+                        id: c.id,
+                        buyer: c.buyer_id ? names[c.buyer_id] ?? null : null,
+                        seller: c.supplier_id ? names[c.supplier_id] ?? null : null,
+                        product: c.product_name,
+                        quantity: c.quantity,
+                        price: c.price,
+                        delivery_terms: c.delivery_terms,
                       })}
                       style={{
                         marginTop: 14, width: '100%', padding: '11px 16px', borderRadius: 12,
