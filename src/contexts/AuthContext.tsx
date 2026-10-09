@@ -3,7 +3,7 @@ import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../integrations/supabase/client'
 import { User as UserProfile, RegisterData } from '../types/database'
 import { toast } from '../hooks/use-toast'
-import { buildAuthRedirectUrl, sendConfirmationEmail, sendPasswordResetEmail } from '../features/auth/email'
+import { buildAuthRedirectUrl, sendPasswordResetEmail } from '../features/auth/email'
 import { AdminPermission, isAdminPermission } from '../features/auth/authorization'
 
 interface AuthContextType {
@@ -26,6 +26,7 @@ interface AuthContextType {
   logout: () => Promise<void>
   verifyEmail: (token: string) => Promise<{ error: any }>
   resendVerification: () => Promise<{ error: any }>
+  resendSignupConfirmation: (email: string) => Promise<{ error: any }>
   resetPassword: (email: string) => Promise<{ error: any }>
   refreshProfile: () => Promise<void>
 }
@@ -210,6 +211,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error }
       }
 
+      // Defesa adicional: nenhuma sessão deve permanecer activa sem email confirmado.
+      if (data?.user && !data.user.email_confirmed_at) {
+        await supabase.auth.signOut({ scope: 'local' })
+        return { error: { message: 'Email ainda não confirmado. Abra o link enviado para a sua caixa de entrada antes de iniciar sessão.' } }
+      }
+
       // Se login bem-sucedido, sincronizar email_verified na tabela public.users
       if (data?.user) {
         try {
@@ -306,6 +313,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         },
       })
       if (error) return { error, data: null }
+      if (data?.session) {
+        await supabase.auth.signOut({ scope: 'local' })
+        return { error: { message: 'O servidor não exigiu a confirmação do email. Por segurança, o cadastro não pode continuar até a confirmação por email estar activa nas definições do Supabase Auth.' }, data: null }
+      }
       if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
         return { error: { message: 'Este email já está registado. Faça login ou reenvie a confirmação.' }, data: null }
       }
@@ -384,22 +395,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error: null }
   }
 
-  const resendVerification = async () => {
-    const email = user?.email
-    if (!email) {
-      return { error: { message: 'Email do utilizador não está disponível no momento.' } }
+  const resendSignupConfirmation = async (email: string) => {
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!normalizedEmail || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(normalizedEmail)) {
+      return { error: { message: 'Introduza um endereço de email válido.' } }
     }
 
     try {
-      await sendConfirmationEmail({
-        email,
-        full_name: userProfile?.full_name || email,
-        next: '/app',
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: normalizedEmail,
+        options: { emailRedirectTo: buildAuthRedirectUrl('/app') },
       })
-      return { error: null }
+      return { error }
     } catch (error: any) {
       return { error }
     }
+  }
+
+  const resendVerification = async () => {
+    const email = user?.email
+    if (!email) return { error: { message: 'Email do utilizador não está disponível no momento.' } }
+    return resendSignupConfirmation(email)
   }
 
   const resetPassword = async (email: string) => {
@@ -431,6 +448,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
     verifyEmail,
     resendVerification,
+    resendSignupConfirmation,
     resetPassword,
     refreshProfile: async () => {
       const { data } = await supabase.auth.getUser()
