@@ -50,7 +50,7 @@ const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)'
 interface UserProduct {
   id: string; product_type: string; quantity: number; harvest_date: string
   price: number; province_id: string; municipality_id: string
-  status: 'active' | 'inactive' | 'removed'; created_at: string
+  status: 'active' | 'inactive' | 'removed'; created_at: string | null
   views?: number; interests?: number
 }
 interface FichaRecebimento {
@@ -59,8 +59,9 @@ interface FichaRecebimento {
 }
 interface ReceivedOrder {
   id: string; product_id: string; user_id: string; quantity: number
-  location: string; status: string; created_at: string
-  unit_price?: number | null; payment_status?: string | null
+  location: string; status: string; created_at: string | null
+  unit_price?: number | null; total_price: number; payment_status?: string | null
+  reservation_expires_at: string | null; stockFullyRequested: boolean
   product?: { product_type: string; price: number }
   buyer?: { full_name: string; phone: string; email?: string }
 }
@@ -344,8 +345,9 @@ const Profile = () => {
   const [submittingSourcing, setSubmittingSourcing] = useState(false)
 
   const fetchUserProducts = React.useCallback(async () => {
+    if (!user?.id) { setUserProducts([]); return }
     try {
-      const { data, error } = await supabase.from('products').select('*').eq('user_id', user?.id).order('created_at', { ascending: false })
+      const { data, error } = await supabase.from('products').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
       if (error) throw error
       const statsMap: { [productId: string]: { likes: number; comments: number } } = {}
       for (const product of (data || [])) {
@@ -359,16 +361,18 @@ const Profile = () => {
   }, [user?.id])
 
   const fetchFichasRecebimento = React.useCallback(async () => {
+    if (!user?.id) { setFichasRecebimento([]); return }
     try {
-      const { data, error } = await supabase.from('fichas_recebimento' as any).select('*').eq('user_id', user?.id).order('created_at', { ascending: false })
+      const { data, error } = await supabase.from('fichas_recebimento' as any).select('*').eq('user_id', user.id).order('created_at', { ascending: false })
       if (error) throw error
       setFichasRecebimento((data || []) as any)
     } catch (error) { console.error(error) }
   }, [user?.id])
 
   const fetchAgentStats = React.useCallback(async () => {
+    if (!user?.id) { setAgentStats({ totalReferrals: 0, totalPoints: 0, recentReferrals: [] }); return }
     try {
-      const { data, error } = await supabase.rpc('get_agent_referral_stats', { agent_user_id: user?.id })
+      const { data, error } = await supabase.rpc('get_agent_referral_stats', { agent_user_id: user.id })
       if (error) throw error
       if (data && data.length > 0) {
         const s = data[0]
@@ -378,8 +382,9 @@ const Profile = () => {
   }, [user?.id])
 
   const fetchReceivedOrders = React.useCallback(async () => {
+    if (!user?.id) { setReceivedOrders([]); return }
     try {
-      const { data: userProductIds, error: prodError } = await supabase.from('products').select('id').eq('user_id', user?.id)
+      const { data: userProductIds, error: prodError } = await supabase.from('products').select('id').eq('user_id', user.id)
       if (prodError) throw prodError
       if (!userProductIds || userProductIds.length === 0) { setReceivedOrders([]); return }
       const productIds = userProductIds.map(p => p.id)
@@ -397,17 +402,19 @@ const Profile = () => {
   }, [user?.id])
 
   const fetchSourcingRequests = React.useCallback(async () => {
+    if (!user?.id) { setSourcingRequests([]); return }
     try {
-      const { data, error } = await supabase.from('sourcing_requests').select('*').eq('user_id', user?.id).order('created_at', { ascending: false })
+      const { data, error } = await supabase.from('sourcing_requests').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
       if (error) throw error
       setSourcingRequests(data || [])
     } catch (error) { console.error(error) }
   }, [user?.id])
 
   const fetchBuyerStats = React.useCallback(async () => {
+    if (!user?.id) { setBuyerStats({ completedOrders: 0, favoriteProducts: 0 }); return }
     try {
-      const { count: completedCount } = await supabase.from('pre_orders').select('*', { count: 'exact', head: true }).eq('user_id', user?.id).in('status', ['completed', 'accepted'])
-      const { count: likesCount } = await supabase.from('product_likes').select('*', { count: 'exact', head: true }).eq('user_id', user?.id)
+      const { count: completedCount } = await supabase.from('pre_orders').select('*', { count: 'exact', head: true }).eq('user_id', user.id).in('status', ['completed', 'accepted'])
+      const { count: likesCount } = await supabase.from('product_likes').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
       setBuyerStats({ completedOrders: completedCount || 0, favoriteProducts: likesCount || 0 })
     } catch (error) { console.error(error) }
   }, [user?.id])
