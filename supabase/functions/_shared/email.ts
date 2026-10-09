@@ -154,7 +154,7 @@ export async function sendResendEmail({
   const apiKey = getRequiredEnv("RESEND_API_KEY");
   const sender = (Deno.env.get("RESEND_FROM") || from).trim();
   const senderAddress = sender.match(/<([^>]+)>/)?.[1]?.trim() || sender;
-  if (!/@(?:[a-z0-9-]+\\.)*agrilink\\.ao$/i.test(senderAddress)) {
+  if (!/@(?:[a-z0-9-]+\.)*agrilink\.ao$/i.test(senderAddress)) {
     throw new Error("O remetente de email deve utilizar o domínio oficial agrilink.ao.");
   }
   const payload = JSON.stringify({
