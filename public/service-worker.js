@@ -17,7 +17,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(
-      keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      keys.filter((key) => key.startsWith('agrilink-') && key !== CACHE_NAME).map((key) => caches.delete(key))
     ))
   );
   self.clients.claim();
@@ -26,15 +26,18 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
-  if (!request.url.startsWith(self.location.origin)) return;
+  if (new URL(request.url).origin !== self.location.origin) return;
 
   // Navegação: sempre rede primeiro (evita servir HTML antigo com scripts inexistentes)
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy));
+          // Só guardar páginas válidas; não substituir o shell offline por erros HTTP.
+          if (response.ok && response.type === 'basic') {
+            const copy = response.clone();
+            event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy)));
+          }
           return response;
         })
         .catch(async () => (await caches.match('/index.html')) || caches.match('/'))
@@ -52,8 +55,10 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const cloned = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
+          if (response.ok && response.type === 'basic' && !response.headers.get('Cache-Control')?.toLowerCase().includes('no-store')) {
+            const cloned = response.clone();
+            event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned)));
+          }
           return response;
         })
         .catch(() => caches.match(request))
@@ -66,8 +71,10 @@ self.addEventListener('fetch', (event) => {
       if (cached) return cached;
       return fetch(request)
         .then((response) => {
-          const cloned = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
+          if (response.ok && response.type === 'basic' && !response.headers.get('Cache-Control')?.toLowerCase().includes('no-store')) {
+            const cloned = response.clone();
+            event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned)));
+          }
           return response;
         })
         .catch(() => cached);
