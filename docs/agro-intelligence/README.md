@@ -49,7 +49,7 @@ Do not enable every source at once. Implement source adapters with common metada
 
 ## Satellite roadmap
 
-1. **Discovery prototype:** Copernicus Data Space Ecosystem STAC catalog; query Sentinel-2 Level-2A by parcel polygon and date window, and filter cloudy scenes.
+1. **Discovery prototype:** Copernicus Data Space Ecosystem STAC catalog; query Sentinel-2 Level-2A optical and Sentinel-1 GRD radar scenes by area and date window. The current pilot uses a small bounding box around a selected point; parcel polygons are a later phase.
 2. **Processing:** calculate NDVI from red/NIR bands using cloud/shadow masks; retain acquisition date, scene ID, processing version, cloud cover and quality flags.
 3. **Storage:** persist parcel geometry and analysis metadata under strict RLS; store generated raster/thumbnail assets separately with controlled access.
 4. **Interpretation:** show vegetation-change trends only when enough valid observations exist. NDVI is a vegetation-vigor indicator, not a direct diagnosis of pests, disease, yield or irrigation need.
