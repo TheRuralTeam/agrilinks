@@ -6,13 +6,6 @@ import { MemoryRouter } from 'react-router-dom';
 const resendSignupConfirmation = vi.fn();
 const toastSpy = vi.fn();
 
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    functions: { invoke: (...args: any[]) => invoke(...args) },
-    auth: { getSession: async () => ({ data: { session: null } }) },
-  },
-}));
-
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({
     user: null,
