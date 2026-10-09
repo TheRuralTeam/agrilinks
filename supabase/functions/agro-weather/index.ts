@@ -54,6 +54,24 @@ function isWithinAngola(latitude: number, longitude: number): boolean {
     && longitude <= ANGOLA_BOUNDS.maxLongitude;
 }
 
+function hasAuthenticatedUser(req: Request): boolean {
+  // Supabase verifies the JWT at the gateway (verify_jwt = true). The anon key
+  // is also a valid JWT, so explicitly require a user token with role=authenticated.
+  const header = req.headers.get("Authorization") ?? "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  const parts = token.split(".");
+  if (parts.length !== 3) return false;
+  try {
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))) as {
+      role?: unknown;
+      sub?: unknown;
+    };
+    return payload.role === "authenticated" && typeof payload.sub === "string" && payload.sub.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 serve(async (req: Request) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
