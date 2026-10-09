@@ -380,8 +380,8 @@ const LoginPage = () => {
                     </button>
                   </div>
                 </div>
-                <button type="submit" disabled={loading} className="login-btn" style={{ width: '100%', height: 52, borderRadius: 999, border: 'none', background: loading ? T.muted : T.g600, color: T.white, fontSize: 15, fontWeight: 700 }}>
-                  Entrar na Plataforma <ArrowRight style={{ width: 18 }} />
+                <button type="submit" disabled={loading} className="login-btn" style={{ width: '100%', height: 52, borderRadius: 16, border: 'none', background: loading ? T.muted : T.g600, color: T.white, fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  {loading ? 'A entrar...' : 'Entrar na Plataforma'}
                 </button>
               </>
             )}
@@ -420,40 +420,50 @@ const LoginPage = () => {
             <div style={{ flex: 1, height: 1, backgroundColor: T.rule }} />
           </div>
 
-          {authMode === 'login' && (<>
-          {/* Google Sign-in */}
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            disabled={googleLoading}
-            style={{
-              width: '100%', height: 50, borderRadius: 999,
-              border: `1px solid ${T.rule}`, backgroundColor: T.white,
-              color: T.ink, fontSize: 14, fontWeight: 700, cursor: googleLoading ? 'not-allowed' : 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-              marginBottom: 14,
-            }}
-          >
-            <svg width="17" height="17" viewBox="0 0 48 48" aria-hidden="true">
-              <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.4-.4-3.5z"/>
-              <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16.1 19 13 24 13c3 0 5.7 1.1 7.8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.4 6.3 14.7z"/>
-              <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.5-5.2l-6.2-5.2c-2 1.4-4.5 2.4-7.3 2.4-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.6 39.5 16.2 44 24 44z"/>
-              <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.6l6.2 5.2c-.4.4 6.7-4.9 6.7-14.8 0-1.2-.1-2.4-.4-3.5z"/>
-            </svg>
-            {googleLoading ? 'A conectar...' : 'Continuar com Google'}
-          </button>
-
-          </>)}
           {authMode === 'login' ? (
-            <button className="register-btn" onClick={() => { setAuthMode('signup'); setSignupStep('profile'); setErrorMsg(''); setPassword(''); }} style={{ width:'100%', height:50, borderRadius:999, border: `1px solid ${T.goldBorder}`, background:T.goldPale, color:T.ink, fontSize:14, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:16 }}>
-              <UserPlus style={{ color:T.gold, width:17, height:17 }} /> Criar Nova Conta
-            </button>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.78fr) minmax(0, 1.22fr)', gap: 12, marginBottom: 16 }}>
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={googleLoading}
+                aria-label={googleLoading ? 'A conectar com Google' : 'Entrar com Google'}
+                title="Entrar com Google"
+                style={{
+                  width: '100%', minWidth: 0, height: 50, borderRadius: 16,
+                  border: `1px solid ${T.rule}`, backgroundColor: T.white,
+                  cursor: googleLoading ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  opacity: googleLoading ? 0.65 : 1,
+                }}
+              >
+                <svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+                  <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.4-.4-3.5z"/>
+                  <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16.1 19 13 24 13c3 0 5.7 1.1 7.8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.4 6.3 14.7z"/>
+                  <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.5-5.2l-6.2-5.2c-2 1.4-4.5 2.4-7.3 2.4-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.6 39.5 16.2 44 24 44z"/>
+                  <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.6l6.2 5.2c-.4.4 6.7-4.9 6.7-14.8 0-1.2-.1-2.4-.4-3.5z"/>
+                </svg>
+              </button>
+              <button
+                type="button"
+                className="register-btn"
+                onClick={() => { setAuthMode('signup'); setSignupStep('profile'); setErrorMsg(''); setPassword(''); }}
+                style={{
+                  width: '100%', minWidth: 0, height: 50, borderRadius: 16,
+                  border: `1px solid ${T.goldBorder}`, background: T.goldPale,
+                  color: T.ink, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  gap: 7, padding: '0 10px', whiteSpace: 'nowrap',
+                }}
+              >
+                <UserPlus style={{ color: T.gold, width: 17, height: 17, flexShrink: 0 }} />
+                Criar conta
+              </button>
+            </div>
           ) : (
             <button className="register-btn" onClick={() => { setAuthMode('login'); setSignupSuccess(false); setErrorMsg(''); }} style={{ width:'100%', height:50, borderRadius:999, border:`1px solid ${T.rule}`, background:T.white, color:T.muted, fontSize:14, fontWeight:700, cursor:'pointer', marginBottom:16 }}>
               Já tenho uma conta
             </button>
           )}
-
 
           <button
             onClick={() => navigate('/app')}
@@ -497,23 +507,6 @@ const LoginPage = () => {
             </div>
             <ArrowRight style={{ color: T.gold, width: 16, height: 16, flexShrink: 0 }} />
           </Link>
-
-          {/* Site link */}
-          <div style={{ textAlign: 'center' }}>
-            <Link
-              to="/site"
-              className="link-btn"
-              style={{
-                fontSize: 11, fontWeight: 700,
-                color: T.g700,
-                textDecoration: 'none',
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-              }}
-            >
-              Site Institucional
-              <ArrowRight style={{ width: 12, height: 12 }} />
-            </Link>
-          </div>
 
           <p style={{ textAlign: 'center', marginTop: 24, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.faint }}>
             © 2025 AgriLink Lda · Segurança Garantida
