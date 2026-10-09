@@ -426,15 +426,6 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (!currentUserId) return;
-    void fetchAllData();
-    const interval = setInterval(() => {
-      void fetchAllData(true);
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [currentUserId, fetchAllData]);
-
-  useEffect(() => {
-    if (!currentUserId) return;
     const channel = supabase
       .channel(`admin-notifications-${currentUserId}`)
       .on(
@@ -526,6 +517,15 @@ const AdminDashboard = () => {
       if (!silent) setLoading(false);
     }
   }, [currentUserId]);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    void fetchAllData();
+    const interval = setInterval(() => {
+      void fetchAllData(true);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [currentUserId, fetchAllData]);
 
   const sendNotification = useCallback(async () => {
     if (!hasPermission("manage_support") && !isSuperRoot) {
