@@ -362,11 +362,12 @@ interface Comment {
   likes_count?: number; is_liked?: boolean; replies?: CommentReply[]
 }
 export interface Product {
-  id: string; product_type: string; description?: string; quantity: number
+  id: string; product_type: string; description?: string | null; quantity: number
   harvest_date: string; price: number; province_id: string; municipality_id: string
   farmer_name: string; contact: string; photos: string[] | null
-  status: 'active' | 'inactive' | 'removed'; created_at: string; user_id: string
-  location_lat?: number; location_lng?: number
+  status: string; created_at: string | null; user_id: string
+  location_lat?: number | null; location_lng?: number | null
+  category?: string | null
   likes_count?: number; is_liked?: boolean; comments?: Comment[]
   user_verified?: boolean
 }
@@ -392,12 +393,12 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [commentsLoaded, setCommentsLoaded] = useState(false)
 
-  const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString('pt-AO', { day: '2-digit', month: 'short' })
+  const formatDate = (d: string | null | undefined) =>
+    d ? new Date(d).toLocaleDateString('pt-AO', { day: '2-digit', month: 'short' }) : 'Data indisponível'
   const formatPrice = (p: number) =>
     p.toLocaleString('pt-AO', { style: 'currency', currency: 'AOA' }).replace('AOA', 'Kz')
 
-  const isNew = (new Date().getTime() - new Date(product.created_at).getTime()) / (1000 * 60 * 60 * 24) < 7
+  const isNew = Boolean(product.created_at) && (new Date().getTime() - new Date(product.created_at as string).getTime()) / (1000 * 60 * 60 * 24) < 7
 
   const toggleComments = async () => {
     const nextVisible = !commentVisible
@@ -684,7 +685,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
               <Calendar size={13} color={T.faint} />
               Colheita: {formatDate(product.harvest_date)}
             </span>
-            {product.location_lat && product.location_lng && (
+            {product.location_lat != null && product.location_lng != null && (
               <button
                 style={styles.locationBtn}
                 onClick={() => setMapModalOpen(true)}
