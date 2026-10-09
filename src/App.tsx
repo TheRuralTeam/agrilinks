@@ -67,7 +67,7 @@ const ProtectedRoute = ({ children, allowIncomplete = true, allowUnverified = fa
   }
 
   // Supabase Auth é a fonte de verdade; o perfil público pode estar alguns ms atrasado.
-  const emailConfirmed = Boolean(user.email_confirmed_at) || userProfile?.email_verified === true;
+  const emailConfirmed = Boolean(user.email_confirmed_at);
   if (!allowUnverified && !emailConfirmed) {
     return <Navigate to="/confirmar-email" replace />;
   }
@@ -133,7 +133,7 @@ const OpenRoute = ({ children, allowIncomplete = true }: { children: React.React
   }
 
   if (user) {
-    const emailConfirmed = Boolean(user.email_confirmed_at) || userProfile?.email_verified === true;
+    const emailConfirmed = Boolean(user.email_confirmed_at);
     if (!emailConfirmed) return <Navigate to="/confirmar-email" replace />;
     if (!allowIncomplete && userProfile && !isProfileComplete(userProfile)) return <Navigate to="/completar-perfil" replace />;
   }
