@@ -51,7 +51,7 @@ export const fetchProductsFeed = async ({
 
   const [{ data: users, error: usersError }, { data: myLikes, error: likesError }] = await Promise.all([
     userIds.length
-      ? supabase.from('public_user_profiles' as any).select('id, full_name, user_type, avatar_url, verified').in('id', userIds)
+      ? supabase.from('users_public').select('id, full_name, user_type, avatar_url').in('id', userIds)
       : Promise.resolve({ data: [] as any[], error: null }),
     userId
       ? supabase.from('product_likes').select('product_id').eq('user_id', userId).in('product_id', productIds)
@@ -68,7 +68,7 @@ export const fetchProductsFeed = async ({
     ...product,
     likes_count: Number(product.likes_count || 0),
     is_liked: likedProductIds.has(product.id),
-    user_verified: userById.get(product.user_id)?.verified || false,
+    user_verified: false,
     comments: [],
   }))
 }
@@ -86,7 +86,7 @@ export const fetchActiveProducts = async (userId?: string, page = 0, limit = 20)
 export const fetchProductById = async (productId: string, userId?: string) => {
   const { data: product, error } = await supabase
     .from('products')
-     .select('id,user_id,product_type,quantity,harvest_date,price,province_id,municipality_id,logistics_access,farmer_name,contact,photos,status,created_at,updated_at,description,location_lat,location_lng,category')
+     .select('id,user_id,product_type,quantity,harvest_date,price,province_id,municipality_id,logistics_access,farmer_name,contact,photos,status,created_at,updated_at,description,location_lat,location_lng,category,likes_count')
     .eq('id', productId)
     .eq('status', 'active')
     .maybeSingle()
@@ -95,7 +95,7 @@ export const fetchProductById = async (productId: string, userId?: string) => {
   if (!product) return null
 
   const [userResult, likesResult] = await Promise.all([
-    supabase.from('public_user_profiles' as any).select('id, full_name, user_type, avatar_url, verified').eq('id', product.user_id).maybeSingle(),
+    supabase.from('users_public').select('id, full_name, user_type, avatar_url').eq('id', product.user_id).maybeSingle(),
     userId
       ? supabase.from('product_likes').select('id').eq('product_id', productId).eq('user_id', userId).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
@@ -107,7 +107,7 @@ export const fetchProductById = async (productId: string, userId?: string) => {
   return {
     ...product,
     farmer_name: product.farmer_name || userResult.data?.full_name || 'Fornecedor',
-    user_verified: userResult.data?.verified || false,
+    user_verified: false,
     likes_count: Number(product.likes_count || 0),
     is_liked: Boolean(likesResult.data),
     comments: [],
