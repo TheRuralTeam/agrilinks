@@ -305,7 +305,7 @@ const Messages = () => {
       void supabase.removeChannel(presenceChannel);
       setIsOnline(null);
     };
-  }, [user?.id, conversation?.id, conversation?.user_id, conversation?.participant_id, conversation?.peer_user_id, id]);
+  }, [user?.id, conversation, id]);
 
   useEffect(() => {
     if (!user || !id) return;
