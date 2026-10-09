@@ -3,7 +3,7 @@ import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../integrations/supabase/client'
 import { User as UserProfile, RegisterData } from '../types/database'
 import { toast } from '../hooks/use-toast'
-import { buildAuthRedirectUrl, sendPasswordResetEmail } from '../features/auth/email'
+import { buildAuthRedirectUrl, sendConfirmationEmail, sendPasswordResetEmail } from '../features/auth/email'
 import { AdminPermission, isAdminPermission } from '../features/auth/authorization'
 
 interface AuthContextType {
@@ -402,12 +402,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: normalizedEmail,
-        options: { emailRedirectTo: buildAuthRedirectUrl('/app') },
-      })
-      return { error }
+      await sendConfirmationEmail({ email: normalizedEmail, next: '/app' })
+      return { error: null }
     } catch (error: any) {
       return { error }
     }
