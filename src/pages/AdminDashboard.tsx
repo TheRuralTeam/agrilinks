@@ -866,7 +866,7 @@ const AdminDashboard = () => {
     }
   }, [products]);
 
-  const get30DayTrend = useCallback((items: Array<{ created_at: string | null | undefined }>) => {
+  const get30DayTrend = useCallback((items: Array<{ created_at?: string | null }>) => {
     const now = Date.now();
     const currentStart = now - 30 * 24 * 60 * 60 * 1000;
     const previousStart = now - 60 * 24 * 60 * 60 * 1000;
