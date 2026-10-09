@@ -101,8 +101,8 @@ export default function AgroSatelite() {
         </div>
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Observação da Terra e satélites</h1>
         <p className="max-w-3xl text-muted-foreground">
-          Pesquise cenas Sentinel-2 Level-2A perto de uma exploração, compare datas de aquisição e filtre por cobertura
-          de nuvens. Esta etapa pesquisa o catálogo; não calcula ainda índices de vegetação.
+          Pesquise cenas ópticas Sentinel-2 ou cenas de radar Sentinel-1 perto de uma exploração. Compare datas
+          de aquisição e, para Sentinel-2, filtre por cobertura de nuvens. Esta etapa pesquisa o catálogo; não calcula ainda índices de vegetação.
         </p>
       </header>
 
