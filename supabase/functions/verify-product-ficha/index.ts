@@ -57,7 +57,8 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !serviceKey) throw new Error('Configuração interna indisponível.');
+    const aiKey = Deno.env.get('LOVABLE_API_KEY');
+    if (!supabaseUrl || !serviceKey || !aiKey) throw new Error('Configuração interna indisponível.');
 
     const authorization = req.headers.get('Authorization') || '';
     const token = authorization.replace(/^Bearer\s+/i, '').trim();
@@ -146,7 +147,7 @@ Responde apenas com JSON válido.`;
 
       const aiResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${Deno.env.get('LOVABLE_API_KEY') || ''}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${aiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'google/gemini-2.5-flash',
           messages: [
