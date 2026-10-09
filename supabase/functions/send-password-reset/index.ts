@@ -7,6 +7,39 @@ const BodySchema = z.object({
   redirect_to: z.string().trim().url().max(500).optional(),
 });
 
+const RATE_LIMIT_WINDOW_SECONDS = 15 * 60;
+const EMAIL_MAX_REQUESTS = 3;
+const IP_MAX_REQUESTS = 20;
+
+const sha256 = async (value: string) => {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+};
+
+const getClientIp = (req: Request) =>
+  req.headers.get("cf-connecting-ip")?.trim()
+  || req.headers.get("x-real-ip")?.trim()
+  || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+  || "unknown";
+
+const consumeRateLimit = async (supabaseUrl: string, serviceKey: string, bucketKey: string, maxRequests: number) => {
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_api_rate_limit`, {
+    method: "POST",
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      p_bucket_key: bucketKey,
+      p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
+      p_max_requests: maxRequests,
+    }),
+  });
+  if (!response.ok) throw new Error("Não foi possível validar o limite de envio.");
+  return (await response.json()) === true;
+};
+
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return jsonResponse({ ok: true }, 200);
@@ -26,8 +59,19 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const email = normalizeEmail(parsed.data.email);
     const redirectTo = safeRedirect(parsed.data.redirect_to, "https://agrilink.ao/auth/callback?next=%2Freset-password");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const [queued, queueOk] = await fetch(`${Deno.env.get("SUPABASE_URL")}/rest/v1/email_outbox`, {
+    if (!supabaseUrl || !serviceKey) throw new Error("Configuração interna indisponível.");
+
+    const emailHash = await sha256(`recovery:email:${email}`);
+    const ipHash = await sha256(`recovery:ip:${getClientIp(req)}`);
+    const emailAllowed = await consumeRateLimit(supabaseUrl, serviceKey, `auth:recovery:email:${emailHash}`, EMAIL_MAX_REQUESTS);
+    const ipAllowed = await consumeRateLimit(supabaseUrl, serviceKey, `auth:recovery:ip:${ipHash}`, IP_MAX_REQUESTS);
+    if (!emailAllowed || !ipAllowed) {
+      return jsonResponse({ success: false, error: "Atingiste o limite de pedidos de recuperação. Tenta novamente mais tarde." }, 429);
+    }
+
+    const [queued, queueOk] = await fetch(`${supabaseUrl}/rest/v1/email_outbox`, {
       method: "POST",
       headers: {
         apikey: serviceKey,
