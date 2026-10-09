@@ -48,19 +48,26 @@ revoke insert, update, delete on public.messages from authenticated;
 grant select, insert on public.messages to authenticated;
 grant update (read) on public.messages to authenticated;
 
--- CHECK NOT VALID preserva mensagens históricas, mas exige cifragem em novas inserções
--- e em qualquer actualização de conteúdo de uma linha.
-do $$
+-- Trigger valida apenas INSERT/UPDATE de content: mensagens antigas continuam legíveis
+-- e podem ser marcadas como lidas sem revalidar conteúdo histórico.
+create or replace function public.enforce_chat_message_encryption()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
 begin
-  if not exists (
-    select 1 from pg_constraint
-    where conname = 'messages_content_must_be_encrypted'
-      and conrelid = 'public.messages'::regclass
-  ) then
-    alter table public.messages
-      add constraint messages_content_must_be_encrypted
-      check (content like 'agrilink-e2ee:%') not valid;
+  if new.content is null or new.content not like 'agrilink-e2ee:%' then
+    raise exception 'As novas mensagens do chat têm de estar cifradas.'
+      using errcode = '23514';
   end if;
-end $$;
+  return new;
+end;
+$$;
+
+revoke all on function public.enforce_chat_message_encryption() from public, anon, authenticated;
+drop trigger if exists enforce_chat_message_encryption on public.messages;
+create trigger enforce_chat_message_encryption
+before insert or update of content on public.messages
+for each row execute function public.enforce_chat_message_encryption();
 
 commit;
