@@ -36,8 +36,14 @@ const consumeRateLimit = async (supabaseUrl: string, serviceKey: string, bucketK
   return (await response.json()) === true;
 };
 
-const safeText = (value: unknown, maxLength = 240) =>
-  typeof value === 'string' ? value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').trim().slice(0, maxLength) : '';
+const safeText = (value: unknown, maxLength = 240) => {
+  if (typeof value !== 'string') return '';
+  const clean = Array.from(value).filter((character) => {
+    const code = character.charCodeAt(0);
+    return code === 9 || code === 10 || code === 13 || (code >= 32 && code !== 127);
+  }).join('');
+  return clean.trim().slice(0, maxLength);
+};
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });
