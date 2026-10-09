@@ -113,8 +113,8 @@ interface User {
   full_name: string;
   email?: string | null;
   user_type?: string | null;
-  is_root_admin?: boolean;
-  is_super_root?: boolean;
+  is_root_admin?: boolean | null;
+  is_super_root?: boolean | null;
 }
 
 interface AdminManagementProps {
