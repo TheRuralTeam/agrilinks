@@ -52,7 +52,7 @@ async function buildJobEmail(job: any) {
       title: job.subject,
       preheader: job.subject,
       headline,
-      bodyHtml: `<p style="margin:0 0 12px;">Olá ${fullName},</p><p style="margin:0 0 12px;">Clique no botão abaixo para continuar na AgriLink.</p>`,
+      bodyHtml: `<p style="margin:0 0 12px;">Olá ${fullName},</p><p style="margin:0 0 12px;">Use o botão abaixo para concluir o pedido associado à sua conta AgriLink.</p>`,
       ctaText: template === "auth-recovery"
         ? "Redefinir password"
         : effectiveType === "magiclink" && template === "auth-signup"
@@ -74,11 +74,11 @@ async function buildJobEmail(job: any) {
 
     return buildBrandEmailTemplate({
       title: job.subject,
-      preheader: "A sua pré-compra foi aceite e o stock solicitado está disponível.",
+      preheader: "O fornecedor confirmou a disponibilidade da sua pré-compra.",
       headline: "Pré-compra aceite",
       bodyHtml: `
         <p style="margin:0 0 14px;">Olá ${fullName},</p>
-        <p style="margin:0 0 18px;">A AgriLink confirma que o fornecedor validou a disponibilidade da quantidade solicitada.</p>
+        <p style="margin:0 0 18px;">O fornecedor confirmou a disponibilidade da quantidade solicitada.</p>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border-spacing:0;width:100%;border:1px solid #dfe7e1;border-radius:14px;overflow:hidden;">
           <tr><td style="padding:12px 14px;background:#f4faf5;font-size:12px;color:#5b6b5e;font-weight:700;">PRODUTO</td><td style="padding:12px 14px;background:#f4faf5;font-size:14px;color:#111714;text-align:right;font-weight:800;">${product}</td></tr>
           <tr><td style="padding:12px 14px;font-size:12px;color:#758a79;">Quantidade disponível</td><td style="padding:12px 14px;font-size:14px;color:#111714;text-align:right;font-weight:700;">${quantity.toLocaleString("pt-AO")} kg</td></tr>
@@ -90,12 +90,12 @@ async function buildJobEmail(job: any) {
       `,
       ctaText: "Abrir a minha pré-compra",
       ctaHref: "https://www.agrilink.ao/app",
-      secondaryText: `Fornecedor: ${supplier}. Consulte a plataforma para acompanhar o próximo passo, pagamento e logística.`,
+      secondaryText: `Fornecedor: ${supplier}. Consulte a AgriLink para acompanhar o pagamento e a entrega.`,
     });
   }
 
   const title = escapeHtml(String(payload.title || job.subject));
-  const message = escapeHtml(String(payload.message || "Tem uma nova notificação na AgriLink."));
+  const message = escapeHtml(String(payload.message || "Consulte a sua conta AgriLink para ver a atualização."));
   return buildBrandEmailTemplate({
     title: job.subject,
     preheader: job.subject,
