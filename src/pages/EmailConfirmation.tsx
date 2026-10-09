@@ -14,7 +14,7 @@ const RESEND_COOLDOWN = 60;
 
 const EmailConfirmation = () => {
   const navigate = useNavigate();
-  const { user, userProfile, logout, refreshProfile, resendSignupConfirmation } = useAuth();
+  const { user, logout, refreshProfile, resendSignupConfirmation } = useAuth();
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -26,7 +26,7 @@ const EmailConfirmation = () => {
       refreshProfile();
       navigate("/app", { replace: true });
     }
-  }, [user, userProfile, navigate, refreshProfile]);
+  }, [user, navigate, refreshProfile]);
 
   useEffect(() => {
     if (countdown > 0) {
