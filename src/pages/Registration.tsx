@@ -10,7 +10,7 @@ import { faTractor, faUserTie, faCartShopping, faTruck } from "@fortawesome/free
 import { getProvincesForCountry, getProvinceLabel, getMunicipalityLabel } from "../data/country-locations";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../integrations/supabase/client";
-import orbisLinkLogo from "../assets/orbislink-logo.png";
+import orbisLinkLogo from "../assets/LogoAgriLinkOfficiallNoBackground.png";
 import autenticar from '../assets/auth1.jpg'
 
 // Imagem partilhada com o ecrã de Login para manter a mesma identidade visual.
