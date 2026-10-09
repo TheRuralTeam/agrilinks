@@ -61,7 +61,7 @@ const ProductSkeleton = () => (
    ════════════════════════════════════════════════════════════════════════════ */
 const AppHome = () => {
   const navigate = useNavigate()
-  const { user, userProfile, isAdmin } = useAuth()
+  const { user, userProfile, isAdmin, refreshProfile } = useAuth()
   const { requireAct } = useCanAct()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -219,8 +219,8 @@ const AppHome = () => {
         p_product_id: selectedProduct.id,
         p_quantity: quantity,
         p_location: orderData.location,
-        p_delivery_lat: destination ? Number(destination.lat) : null,
-        p_delivery_lng: destination ? Number(destination.lon) : null,
+        p_delivery_lat: Number(destination.lat),
+        p_delivery_lng: Number(destination.lon),
         p_idempotency_key: idempotencyKey,
       })
 
