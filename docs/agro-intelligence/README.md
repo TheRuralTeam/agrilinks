@@ -16,7 +16,7 @@ A reliable weather forecast is useful before adding satellite analytics, and can
 
 ## Architecture
 
-- Web/mobile client calls Supabase Edge Functions using the authenticated Supabase session.
+- Web/mobile client calls Supabase Edge Functions using the authenticated Supabase session. Both new endpoints additionally inspect the gateway-verified JWT claims and reject the Supabase anon role; the pages are protected routes.
 - Weather uses `https://customer-api.open-meteo.com/v1/forecast` and requires the Supabase secret `OPEN_METEO_API_KEY`. The free public endpoint is not appropriate to assume for a commercial marketplace. Do not enable the weather feature in a commercial environment until the correct plan, key and terms are confirmed.
 - Satellite catalog search uses the public Copernicus Data Space STAC endpoint; it returns scene metadata and available preview assets, not computed NDVI.
 - Both functions validate coordinates, use fixed upstream URLs and never accept an arbitrary URL from clients.
@@ -31,6 +31,21 @@ A reliable weather forecast is useful before adding satellite analytics, and can
 3. Deploy only the two new Edge Functions to a non-production Supabase environment and test authenticated calls, CORS, timeouts and provider errors.
 4. Confirm the Copernicus STAC endpoint, returned asset URLs and commercial reuse/attribution conditions before exposing previews broadly.
 5. Do not run database migrations for this slice; it does not persist farm polygons or satellite assets.
+
+## Multi-source roadmap (incremental, with source-specific licensing)
+
+| Capability | Candidate source | Purpose | Guardrail |
+|---|---|---|---|
+| Short-term weather | Open-Meteo customer API (licensed) | Temperature, rainfall probability, wind, ET₀ | Commercial key and quota controls required |
+| Optical crop observations | Copernicus Sentinel-2 Level-2A | NDVI/NDMI time series and crop vigor indicators | Pixel-level cloud/shadow masking; no diagnosis from NDVI alone |
+| Radar observations | Copernicus Sentinel-1 GRD | Flooding and surface-change signals through clouds | Calibrated processing; radar backscatter is not a direct soil-moisture reading |
+| Historical climate | NASA POWER | Long-term temperature and climate normals | Clearly label historical/reanalysis data, not forecast |
+| Rainfall anomalies | NASA GPM IMERG or CHIRPS | Regional rainfall and drought context | Verify temporal resolution, latency, coverage and reuse terms |
+| Elevation and terrain | Copernicus DEM | Slope, drainage context and terrain | Validate resolution and local accuracy |
+| Soil context | ISRIC SoilGrids / FAO resources | Broad soil-property context | Modelled/global layers are not a substitute for soil tests |
+| Base maps and parcel boundaries | OpenStreetMap plus user-drawn parcel polygons | Navigation and farm boundaries | Attribute providers; verify tile/API terms and protect private parcel geometry |
+
+Do not enable every source at once. Implement source adapters with common metadata fields (provider, acquisition/forecast time, resolution, units, quality flags, license and processing version), then add sources after a focused test and licensing review. Esri imagery services are not assumed free for a revenue-generating marketplace; obtain the appropriate license before using them as a production basemap.
 
 ## Satellite roadmap
 
