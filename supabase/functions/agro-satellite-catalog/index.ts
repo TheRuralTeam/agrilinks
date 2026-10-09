@@ -119,8 +119,8 @@ serve(async (req: Request) => {
         id: typeof feature.id === "string" ? feature.id : null,
         acquiredAt: typeof properties.datetime === "string" ? properties.datetime : null,
         cloudCover: typeof properties["eo:cloud_cover"] === "number" ? properties["eo:cloud_cover"] : null,
-        platform: typeof properties.platform === "string" ? properties.platform : "Sentinel-2",
-        processingLevel: typeof properties["processing:level"] === "string" ? properties["processing:level"] : "Level-2A",
+        platform: typeof properties.platform === "string" ? properties.platform : collection === "sentinel-1-grd" ? "Sentinel-1" : "Sentinel-2",
+        processingLevel: typeof properties["processing:level"] === "string" ? properties["processing:level"] : collection === "sentinel-1-grd" ? "GRD (radar)" : "Level-2A",
         thumbnailUrl: typeof thumb === "string" && thumb.startsWith("https://") ? thumb : null,
         previewUrl: typeof visual === "string" && visual.startsWith("https://") ? visual : null,
       };
