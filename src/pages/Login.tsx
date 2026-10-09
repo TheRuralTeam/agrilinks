@@ -3,13 +3,12 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2, LockKeyhole, Mail, Phone, ArrowRight, CheckCircle2, Sprout, ShoppingCart, UserRound, PencilLine, Truck, ChevronLeft } from "lucide-react";
 import agrilinkLogo from "../assets/agrilink-logo.png";
 import { useAuth } from "../contexts/AuthContext";
-import { sendConfirmationEmail } from "../features/auth/email";
 import { toast } from "sonner";
 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, registerSimple, signInWithGoogle } = useAuth();
+  const { login, registerSimple, resendSignupConfirmation, signInWithGoogle } = useAuth();
   const initialSignup = new URLSearchParams(location.search).get("mode") === "signup";
 
   const [mode, setMode] = useState<"login" | "signup">(initialSignup ? "signup" : "login");
@@ -76,7 +75,8 @@ const Login = () => {
     if (!email.trim() || resendingConfirmation) return;
     setResendingConfirmation(true);
     try {
-      await sendConfirmationEmail({ email: email.trim().toLowerCase(), next: "/app" });
+      const { error } = await resendSignupConfirmation(email);
+      if (error) throw error;
       toast.success("Novo email de confirmação enviado. Verifique também a pasta de spam.");
     } catch (error: any) {
       toast.error(error?.message || "Não foi possível enviar o email de confirmação. Tente novamente mais tarde.");
