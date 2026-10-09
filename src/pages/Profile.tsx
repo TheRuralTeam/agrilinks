@@ -67,7 +67,7 @@ interface ReceivedOrder {
 }
 interface BuyerPreOrder {
   id: string; product_id: string; quantity: number; location: string
-  status: string; created_at: string; updated_at: string
+  status: string; created_at: string | null; updated_at: string | null
   unit_price: number | null; total_price: number | null
   payment_status: string | null; reservation_expires_at: string | null
   product?: { product_type: string; price: number }
@@ -262,6 +262,7 @@ const FichaTable = RTable<FichaRecebimento>
 const ProductTable = RTable<UserProduct>
 const SourcingTable = RTable<SourcingRequest>
 const OrdersTable = RTable<ReceivedOrder>
+const BuyerPreOrdersTable = RTable<BuyerPreOrder>
 const ReferralsTable = RTable<any>
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -971,7 +972,7 @@ const Profile = () => {
 
           {/* ── Buyer Pre-orders ── */}
           {activeTab === 'orders' && isComprador && (
-            <OrdersTable
+            <BuyerPreOrdersTable
               columns={[
                 { key: 'produto', label: 'Produto', render: r => <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}><span style={{ fontWeight: 700, color: T.ink }}>{r.product?.product_type || 'Produto'}</span><StatusPill status={r.status} /></div> },
                 { key: 'qtd', label: 'Quantidade', align: 'right', render: r => <span style={{ fontWeight: 700, color: T.g600 }}>{r.quantity.toLocaleString('pt-AO')} kg</span> },
