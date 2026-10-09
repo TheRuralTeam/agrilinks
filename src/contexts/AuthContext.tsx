@@ -246,13 +246,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     try {
-      // Buscar ID do agente usando RPC segura
-      let referredByAgentId = null;
-      if (referred_by_agent_id) {
-        const { data: agentId } = await supabase.rpc('get_agent_id_by_code', { p_code: referred_by_agent_id });
-        referredByAgentId = agentId || null;
-      }
-
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -266,7 +259,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             identity_document,
             phone,
             load_capacity_kg: (userData as any).load_capacity_kg ?? null,
-            referred_by_agent_id: referredByAgentId
+            referred_by_agent_code: referred_by_agent_id?.trim().toUpperCase() || null
           }
         }
       })
