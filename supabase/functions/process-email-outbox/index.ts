@@ -110,6 +110,20 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return new Response(JSON.stringify({ error: "Método não permitido." }), { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+  const workerSecret = req.headers.get("x-worker-secret");
+  if (!workerSecret) {
+    return new Response(JSON.stringify({ error: "Acesso interno obrigatório." }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
+  const { data: workerAuthorized, error: workerAuthError } = await supabase.rpc(
+    "is_valid_email_outbox_worker_secret",
+    { p_candidate: workerSecret },
+  );
+  if (workerAuthError || workerAuthorized !== true) {
+    console.warn("Tentativa não autorizada de executar a fila de emails.");
+    return new Response(JSON.stringify({ error: "Acesso interno obrigatório." }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
   const { data: jobs, error } = await supabase.rpc("claim_email_outbox", { p_limit: 10 });
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
