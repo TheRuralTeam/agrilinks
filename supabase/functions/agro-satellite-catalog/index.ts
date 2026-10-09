@@ -53,6 +53,7 @@ serve(async (req: Request) => {
     const { latitude, longitude } = payload;
     const cloudCoverMax = payload.cloudCoverMax === undefined ? 35 : payload.cloudCoverMax;
     const daysBack = payload.daysBack === undefined ? 90 : payload.daysBack;
+    const collection = payload.collection === undefined ? "sentinel-2-l2a" : payload.collection;
 
     if (!isNumber(latitude) || !isNumber(longitude)) {
       return jsonResponse({ error: "Latitude e longitude numéricas são obrigatórias." }, 400);
@@ -60,7 +61,7 @@ serve(async (req: Request) => {
     if (!inAngola(latitude, longitude)) {
       return jsonResponse({ error: "Esta versão piloto aceita coordenadas dentro dos limites geográficos aproximados de Angola." }, 422);
     }
-    if (!isNumber(cloudCoverMax) || cloudCoverMax < 0 || cloudCoverMax > 80) {
+    if (collection !== "sentinel-2-l2a" && collection !== "sentinel-1-grd") {\n      return jsonResponse({ error: "A coleção deve ser sentinel-2-l2a ou sentinel-1-grd." }, 400);\n    }\n    if (!isNumber(cloudCoverMax) || cloudCoverMax < 0 || cloudCoverMax > 80) {
       return jsonResponse({ error: "O limite de cobertura de nuvens deve estar entre 0 e 80%." }, 400);
     }
     if (!isNumber(daysBack) || !Number.isInteger(daysBack) || daysBack < 1 || daysBack > 180) {
@@ -124,7 +125,7 @@ serve(async (req: Request) => {
 
     return jsonResponse({
       provider: "Copernicus Data Space Ecosystem",
-      collection: "sentinel-2-l2a",
+      collection,
       catalogUrl: "https://browser.stac.dataspace.copernicus.eu",
       searchedAt: now.toISOString(),
       location: { latitude, longitude },
