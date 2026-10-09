@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../integrations/supabase/client'
 import { Button } from '../components/ui/button'
 import Loader from '../components/ui/Loader'
+import Loader from '../components/ui/Loader'
 import { ArrowLeft, MapPin } from 'lucide-react'
 import SimpleLeafletMap from '../components/SimpleLeafletMap'
 
