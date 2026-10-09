@@ -43,7 +43,9 @@ interface Conversation {
   id: string;
   title: string;
   avatar: string | null;
+  user_id?: string;
   participant_id: string;
+  peer_user_id?: string | null;
   last_message?: string;
   last_timestamp?: string;
 }
@@ -222,7 +224,7 @@ const Messages = () => {
   const [sentMessageIds, setSentMessageIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState<boolean | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -244,6 +246,66 @@ const Messages = () => {
     };
     loadConversation();
   }, [id, user, navigate, toast]);
+
+  // Presença real no chat: só considera online quem está ligado ao canal desta conversa.
+  // Se a ligação de presença falhar, mostramos estado desconhecido em vez de afirmar offline.
+  useEffect(() => {
+    if (!user?.id || !conversation || !id) {
+      setIsOnline(null);
+      return;
+    }
+
+    const otherParticipantId =
+      conversation.user_id === user.id
+        ? (conversation.participant_id || conversation.peer_user_id || null)
+        : (conversation.user_id || conversation.peer_user_id || conversation.participant_id || null);
+
+    if (!otherParticipantId || otherParticipantId === user.id) {
+      setIsOnline(false);
+      return;
+    }
+
+    let active = true;
+    const presenceChannel = supabase.channel(`chat-presence:${id}`, {
+      config: { presence: { key: user.id } },
+    });
+
+    const refreshPresence = () => {
+      const presenceState = presenceChannel.presenceState();
+      const peerIsPresent = Object.values(presenceState).some((entries) =>
+        entries.some((entry: { user_id?: string }) => entry.user_id === otherParticipantId)
+      );
+      if (active) setIsOnline(peerIsPresent);
+    };
+
+    presenceChannel
+      .on("presence", { event: "sync" }, refreshPresence)
+      .on("presence", { event: "join" }, refreshPresence)
+      .on("presence", { event: "leave" }, refreshPresence)
+      .subscribe(async (status) => {
+        if (!active) return;
+        if (status === "SUBSCRIBED") {
+          try {
+            await presenceChannel.track({
+              user_id: user.id,
+              online_at: new Date().toISOString(),
+            });
+            refreshPresence();
+          } catch (error) {
+            console.error("Não foi possível publicar a presença do chat:", error);
+            if (active) setIsOnline(null);
+          }
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          setIsOnline(null);
+        }
+      });
+
+    return () => {
+      active = false;
+      void supabase.removeChannel(presenceChannel);
+      setIsOnline(null);
+    };
+  }, [user?.id, conversation?.id, conversation?.user_id, conversation?.participant_id, conversation?.peer_user_id, id]);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -393,8 +455,10 @@ const Messages = () => {
             <div className="flex flex-col">
               <h1 className="text-sm font-black tracking-tight" style={{ color: T.ink }}>{conversation?.title || "Conversa"}</h1>
               <div className="flex items-center gap-1.5">
-                <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? "animate-pulse" : ""}`} style={{ backgroundColor: isOnline ? T.g500 : T.faint }} />
-                <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: T.muted }}>{isOnline ? "Online" : "Offline"}</p>
+                <span className={`h-1.5 w-1.5 rounded-full ${isOnline === true ? "animate-pulse" : ""}`} style={{ backgroundColor: isOnline === true ? T.g500 : T.faint }} />
+                <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: T.muted }}>
+                  {isOnline === null ? "A verificar" : isOnline ? "Online" : "Offline"}
+                </p>
               </div>
             </div>
           </div>
