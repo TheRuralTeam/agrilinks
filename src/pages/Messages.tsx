@@ -317,6 +317,14 @@ const Messages = () => {
   const sendMessage = useCallback(async () => {
     if (!user || !conversation?.participant_id || !id) return;
     if (!newMessage.trim() && selectedFiles.length === 0) return;
+    if (selectedFiles.length > 0) {
+      toast({
+        title: "Anexos temporariamente bloqueados",
+        description: "Para proteger a conversa, os anexos ficam bloqueados até a cifragem dos ficheiros e a respectiva desencriptação serem implementadas e testadas.",
+        variant: "destructive",
+      });
+      return;
+    }
     setIsSending(true);
     try {
       const filesData = [];
