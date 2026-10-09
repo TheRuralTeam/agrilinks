@@ -73,19 +73,23 @@ function safeRedirect(candidate?: string): string {
   try {
     const url = new URL(candidate);
     const hostname = url.hostname.toLowerCase();
+    const allowed = ALLOWED_HOSTS.includes(hostname);
+    const isLocalhost = hostname === "localhost";
+    const validProtocol = isLocalhost
+      ? url.protocol === "http:" || url.protocol === "https:"
+      : url.protocol === "https:";
+    const validPort = isLocalhost || !url.port;
+    const validPath = url.pathname === "/auth/callback";
 
-    const allowed = ALLOWED_HOSTS.some(
-      (host) =>
-        hostname === host ||
-        hostname.endsWith(`.${host}`),
-    );
-
-    if (!allowed) {
-      console.warn(
-        "Redirect rejeitado:",
-        candidate,
-      );
-
+    if (
+      !allowed ||
+      !validProtocol ||
+      !validPort ||
+      !validPath ||
+      url.username ||
+      url.password
+    ) {
+      console.warn("Redirect rejeitado por não corresponder ao callback autorizado.");
       return DEFAULT_REDIRECT;
     }
 
