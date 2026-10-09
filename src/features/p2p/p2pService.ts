@@ -168,7 +168,7 @@ export async function submitP2PPaymentProof(orderId: string, reference: string, 
   const { data, error } = await supabase.rpc('submit_p2p_payment_proof', {
     p_p2p_order_id: orderId,
     p_transfer_reference: reference,
-    p_note: note ?? null,
+    ...(note !== undefined ? { p_note: note } : {}),
   })
   if (error) throw error
   return data as string
@@ -196,7 +196,7 @@ export async function createP2POrder(preOrderId: string, channel: P2PPaymentChan
 export async function adminCompleteP2POrder(orderId: string, note?: string) {
   const { data, error } = await supabase.rpc('admin_complete_p2p_order', {
     p_p2p_order_id: orderId,
-    p_note: note ?? null,
+    ...(note !== undefined ? { p_note: note } : {}),
   })
   if (error) throw error
   return data as string
