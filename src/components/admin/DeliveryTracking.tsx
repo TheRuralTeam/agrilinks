@@ -57,7 +57,7 @@ interface Order {
   location: string;
   status: string;
   total_price: number;
-  created_at: string;
+  created_at: string | null;
 }
 
 interface DeliveryTrack {
@@ -92,8 +92,8 @@ interface UserInfo {
   phone?: string | null;
   user_type?: string | null;
   avatar_url?: string | null;
-  province_id?: string;
-  municipality_id?: string;
+  province_id?: string | null;
+  municipality_id?: string | null;
 }
 
 interface DeliveryTrackingProps {
