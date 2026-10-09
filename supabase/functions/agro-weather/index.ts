@@ -62,7 +62,7 @@ function hasAuthenticatedUser(req: Request): boolean {
   const parts = token.split(".");
   if (parts.length !== 3) return false;
   try {
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))) as {
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(parts[1].length / 4) * 4, "="))) as {
       role?: unknown;
       sub?: unknown;
     };
