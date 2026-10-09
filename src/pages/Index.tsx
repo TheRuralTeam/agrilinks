@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowRight, Check, ChevronDown, Clock3, FileCheck2, Globe2, Home, Menu,
+  ArrowRight, Check, ChevronDown, Clock3, FileCheck2, Globe2, Handshake, Home, Menu,
   Route, ShieldCheck, Sprout, Truck as TruckIcon, Users, Wallet, Warehouse, X,
 } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -233,6 +233,17 @@ export default function AgriLinkLanding() {
         .btn-primary:hover { background: #f3f6f3; }
         .btn-ghost:hover { background: rgba(255,255,255,.12); }
 
+        .partnership-announcement { padding: 24px 0; background: #f7f8f4; border-bottom: 1px solid #e3e8df; }
+        .partnership-card { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 24px; padding: 26px 30px; background: #fff; border: 1px solid #e2e7de; border-left: 4px solid ${T.gold}; border-radius: 10px; box-shadow: 0 8px 28px rgba(21,40,27,.045); }
+        .partnership-brand { width: 170px; min-height: 74px; display: flex; align-items: center; justify-content: center; padding-right: 24px; border-right: 1px solid #e5e9e2; }
+        .partnership-brand img { display: block; max-width: 100%; max-height: 66px; object-fit: contain; }
+        .partnership-copy { min-width: 0; }
+        .partnership-kicker { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 7px; color: ${T.g600}; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+        .partnership-copy h2 { margin: 0 0 7px; color: ${T.ink}; font-size: 21px; line-height: 1.3; font-weight: 800; }
+        .partnership-copy p { max-width: 690px; margin: 0; color: ${T.muted}; font-size: 13.5px; line-height: 1.7; }
+        .partnership-cta { display: inline-flex; align-items: center; justify-content: center; gap: 9px; white-space: nowrap; padding: 12px 16px; border: 1px solid #d8e0d5; border-radius: 6px; background: #f8faf7; color: ${T.g900}; font-size: 12px; font-weight: 800; transition: background .18s ease, transform .18s ease; }
+        .partnership-cta:hover { background: #edf3eb; transform: translateY(-1px); }
+        .partnership-cta:focus-visible { outline: 2px solid ${T.g600}; outline-offset: 3px; }
         .partners { padding: 34px 0; border-bottom: 1px solid var(--line); }
         .partners-inner { display: grid; grid-template-columns: .65fr 1.35fr; align-items: center; gap: 18px; }
         .partners-intro { max-width: 290px; }
@@ -252,6 +263,8 @@ export default function AgriLinkLanding() {
         .partner-item .casaletto-logo { width: 100%; height: auto; max-height: 64px; }
 
         @media (max-width: 1130px) {
+          .partnership-card { grid-template-columns: auto minmax(0,1fr); gap: 18px; }
+          .partnership-cta { grid-column: 2; justify-self: start; }
           .partners-inner { grid-template-columns: 1fr; gap: 12px; }
           .partners-intro { max-width: none; }
         }
@@ -395,6 +408,12 @@ export default function AgriLinkLanding() {
           .cta-box .btn-primary { margin-top: 26px; }
         }
         @media (max-width: 580px) {
+          .partnership-announcement { padding: 16px 0; }
+          .partnership-card { grid-template-columns: 1fr; gap: 15px; padding: 20px; }
+          .partnership-brand { width: 100%; min-height: 48px; justify-content: flex-start; padding: 0 0 14px; border-right: 0; border-bottom: 1px solid #e5e9e2; }
+          .partnership-brand img { max-height: 46px; max-width: 180px; }
+          .partnership-copy h2 { font-size: 19px; }
+          .partnership-cta { grid-column: 1; width: 100%; }
           .container { width: min(100% - 32px, 1160px); }
           .hero { min-height: 640px; }
           .hero-content { padding-top: 132px; }
@@ -450,6 +469,24 @@ export default function AgriLinkLanding() {
           <div className="hero-actions">
             <button className="btn-primary" onClick={goToRegister}>Aceder à plataforma <ArrowRight size={16} /></button>
             <a className="btn-ghost" href="#agregacao">Ver pontos de agregação</a>
+          </div>
+        </div>
+      </section>
+
+      <section className="partnership-announcement" aria-labelledby="casaletto-announcement-title">
+        <div className="container">
+          <div className="partnership-card">
+            <div className="partnership-brand">
+              <img src={casaLettoLogo} alt="Grupo CasaLetto" loading="eager" />
+            </div>
+            <div className="partnership-copy">
+              <div className="partnership-kicker"><Handshake size={14} strokeWidth={2} /> Parceria em destaque</div>
+              <h2 id="casaletto-announcement-title">AgriLink e Grupo CasaLetto: mais ligação entre a produção e o mercado.</h2>
+              <p>O Grupo CasaLetto integra a rede AgriLink como parceiro e cliente, reforçando a ligação entre fornecedores agrícolas e as necessidades de abastecimento do mercado.</p>
+            </div>
+            <a className="partnership-cta" href="https://casaletto.co.ao/" target="_blank" rel="noreferrer">
+              Conhecer o Grupo <ArrowRight size={15} />
+            </a>
           </div>
         </div>
       </section>
