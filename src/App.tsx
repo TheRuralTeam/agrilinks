@@ -159,9 +159,9 @@ const AppRoutes = () => {
   return (
     <Suspense fallback={<Loader />}>
       <Routes>
-        <Route path="/" element={<Navigate to="/app" replace />} />
-        <Route path="/index" element={<Navigate to="/app" replace />} />
-        <Route path="/home" element={<Navigate to="/app" replace />} />
+        <Route path="/" element={user ? <Navigate to="/app" replace /> : <Index />} />
+        <Route path="/index" element={user ? <Navigate to="/app" replace /> : <Index />} />
+        <Route path="/home" element={user ? <Navigate to="/app" replace /> : <Index />} />
         <Route path="/site" element={<Index />} />
         <Route path="/login" element={user ? <Navigate to="/app" replace /> : <LoginPage />} />
         <Route path="/cadastro" element={<Navigate to="/login?mode=signup" replace />} />
