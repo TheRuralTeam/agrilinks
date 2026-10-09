@@ -94,12 +94,14 @@ export default function P2PBeneficiaryPage() {
   const [historyLoading, setHistoryLoading] = useState(false)
 
   const refresh = useCallback(async () => {
+    const currentUserId = user?.id
+    if (!currentUserId) { setLoading(false); return }
     setLoading(true)
     try {
       const [app, ben] = await Promise.all([fetchMyP2PApplication(), fetchMyP2PBeneficiary()])
       setApplication(app)
       setBeneficiary(ben)
-      const { data: preOrders, error: preOrderError } = await supabase.from('pre_orders').select('id,total_price,product_id,status,payment_status').eq('user_id', user?.id).eq('status', 'accepted').eq('payment_status', 'unpaid').is('deleted_at', null).order('created_at', { ascending: false }).limit(20)
+      const { data: preOrders, error: preOrderError } = await supabase.from('pre_orders').select('id,total_price,product_id,status,payment_status').eq('user_id', currentUserId).eq('status', 'accepted').eq('payment_status', 'unpaid').is('deleted_at', null).order('created_at', { ascending: false }).limit(20)
       if (preOrderError) throw preOrderError
       setBuyerPreOrders((preOrders ?? []) as typeof buyerPreOrders)
       setBuyerP2POrders(await fetchMyP2POrders())
@@ -249,7 +251,11 @@ export default function P2PBeneficiaryPage() {
     }
   }
 
-  const downloadCompleteReceipt = async (preOrderId: string) => {
+  const downloadCompleteReceipt = async (preOrderId: string | null) => {
+    if (!preOrderId) {
+      toast({ title: 'Comprovante indisponível', description: 'Esta operação não está associada a uma pré-compra.' })
+      return
+    }
     setBusy(`order-pdf:${preOrderId}`)
     try {
       await downloadMarketplaceTransactionReceipt(preOrderId)
@@ -304,7 +310,7 @@ export default function P2PBeneficiaryPage() {
       const { error } = await supabase.rpc('admin_review_p2p_beneficiary_application', {
         p_application_id: item.id,
         p_decision: decision,
-        p_reason: decision === 'rejected' ? 'Candidatura não aprovada nesta revisão.' : null,
+        ...(decision === 'rejected' ? { p_reason: 'Candidatura não aprovada nesta revisão.' } : {}),
         p_per_transaction: 0,
         p_daily: 0,
         p_monthly: 0,
@@ -412,7 +418,7 @@ export default function P2PBeneficiaryPage() {
                     <Button variant="outline" size="sm" onClick={() => void downloadReceipt(order.id)} disabled={busy === `pdf:${order.id}`}>
                       {busy === `pdf:${order.id}` ? 'A gerar…' : 'Comprovante P2P'}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => void downloadCompleteReceipt(order.pre_order_id)} disabled={busy === `order-pdf:${order.pre_order_id}`}>
+                    <Button variant="outline" size="sm" onClick={() => void downloadCompleteReceipt(order.pre_order_id)} disabled={!order.pre_order_id || busy === `order-pdf:${order.pre_order_id}`}>
                       {busy === `order-pdf:${order.pre_order_id}` ? 'A gerar…' : 'Comprovante completo'}
                     </Button>
                   </div>
