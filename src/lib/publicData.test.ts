@@ -15,6 +15,7 @@ describe('publicData', () => {
     }
 
     const safe = sanitizePublicProfile(profile)
+    if (!safe) throw new Error('O perfil de teste deveria ser sanitizado.')
     expect(safe.full_name).toBe('Maria Silva')
     expect(safe.email).toBeUndefined()
     expect(safe.phone).toBeUndefined()
@@ -36,6 +37,7 @@ describe('publicData', () => {
     }
 
     const safe = sanitizePublicProduct(product)
+    if (!safe) throw new Error('O produto de teste deveria ser sanitizado.')
     expect(safe.product_type).toBe('Manga')
     expect(safe.user_id).toBeUndefined()
     expect(safe.farmer_name).toBe('Produtor Local')
