@@ -34,9 +34,10 @@ serve(async (req: Request) => {
       return jsonResponse({ error: "O corpo do pedido deve ser um objeto JSON." }, 400);
     }
 
-    const { latitude, longitude } = body as Record<string, unknown>;
-    const cloudCoverMax = body.cloudCoverMax === undefined ? 35 : body.cloudCoverMax;
-    const daysBack = body.daysBack === undefined ? 90 : body.daysBack;
+    const payload = body as Record<string, unknown>;
+    const { latitude, longitude } = payload;
+    const cloudCoverMax = payload.cloudCoverMax === undefined ? 35 : payload.cloudCoverMax;
+    const daysBack = payload.daysBack === undefined ? 90 : payload.daysBack;
 
     if (!isNumber(latitude) || !isNumber(longitude)) {
       return jsonResponse({ error: "Latitude e longitude numéricas são obrigatórias." }, 400);
@@ -47,12 +48,12 @@ serve(async (req: Request) => {
     if (!isNumber(cloudCoverMax) || cloudCoverMax < 0 || cloudCoverMax > 80) {
       return jsonResponse({ error: "O limite de cobertura de nuvens deve estar entre 0 e 80%." }, 400);
     }
-    if (!Number.isInteger(daysBack) || (daysBack as number) < 1 || (daysBack as number) > 180) {
+    if (!isNumber(daysBack) || !Number.isInteger(daysBack) || daysBack < 1 || daysBack > 180) {
       return jsonResponse({ error: "O período de pesquisa deve estar entre 1 e 180 dias." }, 400);
     }
 
     const now = new Date();
-    const start = new Date(now.getTime() - (daysBack as number) * 24 * 60 * 60 * 1000);
+    const start = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
     const datetime = `${start.toISOString().slice(0, 10)}/${now.toISOString().slice(0, 10)}`;
     const radius = 0.05;
     const bbox = [
