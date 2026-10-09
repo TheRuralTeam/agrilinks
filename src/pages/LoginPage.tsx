@@ -3,7 +3,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, Compass, X, Sprout, ShoppingCart, UserRound, PencilLine, Truck, CheckCircle2, ChevronLeft } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { sendMagicLink, sendPasswordResetEmail } from '../features/auth/email'
-import agrilinkLogo from '../assets/agrilink-logo.png'
+import agrilinkLogo from '../assets/LogoAgriLinkOfficiallNoBackground.png'
 // Imagem partilhada com o ecrã de Cadastro para manter a mesma identidade visual.
 // Para trocar por vídeo: substituir o <img> do painel esquerdo por um <video autoPlay muted loop playsInline>.
 
