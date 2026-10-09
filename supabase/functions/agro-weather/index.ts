@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { jsonResponse, handleCors } from "../_shared/http.ts";
 
-const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
+const OPEN_METEO_URL = "https://customer-api.open-meteo.com/v1/forecast";
 
 // Approximate mainland Angola bounding box. This is input validation, not a
 // claim that every point inside the rectangle is land or agricultural land.
@@ -75,10 +75,19 @@ serve(async (req: Request) => {
       }, 422);
     }
 
+    const apiKey = Deno.env.get("OPEN_METEO_API_KEY");
+    if (!apiKey) {
+      return jsonResponse({
+        error: "O serviço meteorológico ainda não está configurado para utilização comercial.",
+        setupRequired: "Configure o segredo OPEN_METEO_API_KEY no ambiente Supabase antes de ativar esta função.",
+      }, 503);
+    }
+
     const url = new URL(OPEN_METEO_URL);
     url.search = new URLSearchParams({
       latitude: String(latitude),
       longitude: String(longitude),
+      apikey: apiKey,
       current: CURRENT_VARIABLES,
       hourly: HOURLY_VARIABLES,
       daily: DAILY_VARIABLES,
