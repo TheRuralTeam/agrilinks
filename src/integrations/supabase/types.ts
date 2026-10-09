@@ -2159,6 +2159,14 @@ export type Database = {
           farmer_name: string
         }[]
       }
+      get_order_buyer_contact: {
+        Args: { p_pre_order_id: string }
+        Returns: {
+          email: string
+          full_name: string
+          phone: string
+        }[]
+      }
       get_public_user_profile: {
         Args: { p_user_id: string }
         Returns: {
