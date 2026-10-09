@@ -20,7 +20,7 @@ interface AuthContextType {
   hasAllPermissions: (permissions: AdminPermission[]) => boolean
   login: (email: string, password: string) => Promise<{ error: any }>
   register: (userData: RegisterData) => Promise<{ error: any; data?: any }>
-  registerSimple: (data: { email: string; phone: string; password: string }) => Promise<{ error: any; data?: any }>
+  registerSimple: (data: { email: string; phone: string; password: string; user_type: 'agricultor' | 'agente' | 'comprador' | 'motorista' }) => Promise<{ error: any; data?: any }>
   registerWithOtp: (data: { full_name: string; email: string; phone: string }) => Promise<{ error: any; data?: any }>
   signInWithGoogle: (next?: string) => Promise<{ error: any }>
   logout: () => Promise<void>
@@ -279,11 +279,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  const registerSimple = async ({ email, phone, password }: { email: string; phone: string; password: string }) => {
+  const registerSimple = async ({ email, phone, password, user_type }: { email: string; phone: string; password: string; user_type: 'agricultor' | 'agente' | 'comprador' | 'motorista' }) => {
     const normalizedEmail = email.trim().toLowerCase()
     const normalizedPhone = phone.trim()
-    if (!normalizedEmail || !normalizedPhone || !password) {
-      return { error: { message: 'Email, telefone e senha são obrigatórios.' }, data: null }
+    if (!normalizedEmail || !normalizedPhone || !password || !user_type) {
+      return { error: { message: 'Email, telefone, senha e tipo de utilizador são obrigatórios.' }, data: null }
+    }
+    if (!['agricultor', 'agente', 'comprador', 'motorista'].includes(user_type)) {
+      return { error: { message: 'Seleccione um tipo de utilizador válido.' }, data: null }
     }
     if (password.length < 8) {
       return { error: { message: 'A senha deve ter pelo menos 8 caracteres.' }, data: null }
@@ -297,9 +300,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           emailRedirectTo: buildAuthRedirectUrl('/app'),
           data: {
             phone: normalizedPhone,
-            // A conta nasce com o menor papel operacional necessário.
-            // O administrador pode alterá-lo posteriormente no painel.
-            user_type: 'comprador',
+            // O tipo escolhido no registo é guardado no perfil pelo trigger handle_new_user.
+            user_type,
           },
         },
       })
