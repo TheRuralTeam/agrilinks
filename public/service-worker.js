@@ -34,7 +34,7 @@ self.addEventListener('fetch', (event) => {
       fetch(request)
         .then((response) => {
           // Só guardar páginas válidas; não substituir o shell offline por erros HTTP.
-          if (response.ok && response.type === 'basic' && !response.headers.get('Cache-Control')?.toLowerCase().includes('no-store')) {
+          if (response.ok && response.type === 'basic' && !/(?:^|,)\s*(?:no-store|no-cache|private)\b/i.test(response.headers.get('Cache-Control') || '')) {
             const copy = response.clone();
             event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy)));
           }
@@ -58,7 +58,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          if (response.ok && response.type === 'basic' && !response.headers.get('Cache-Control')?.toLowerCase().includes('no-store')) {
+          if (response.ok && response.type === 'basic' && !/(?:^|,)\s*(?:no-store|no-cache|private)\b/i.test(response.headers.get('Cache-Control') || '')) {
             const cloned = response.clone();
             event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned)));
           }
@@ -74,7 +74,7 @@ self.addEventListener('fetch', (event) => {
       if (cached) return cached;
       return fetch(request)
         .then((response) => {
-          if (response.ok && response.type === 'basic' && !response.headers.get('Cache-Control')?.toLowerCase().includes('no-store')) {
+          if (response.ok && response.type === 'basic' && !/(?:^|,)\s*(?:no-store|no-cache|private)\b/i.test(response.headers.get('Cache-Control') || '')) {
             const cloned = response.clone();
             event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned)));
           }
