@@ -387,7 +387,9 @@ const Profile = () => {
       if (ordersError) throw ordersError
       const ordersWithDetails = await Promise.all((orders || []).map(async (order) => {
         const { data: product } = await supabase.from('products').select('product_type, price').eq('id', order.product_id).single()
-        const { data: buyer } = await supabase.from('users').select('full_name, phone, email').eq('id', order.user_id).single()
+        const { data: buyerContact, error: buyerContactError } = await supabase.rpc('get_order_buyer_contact', { p_pre_order_id: order.id })
+        if (buyerContactError) throw buyerContactError
+        const buyer = buyerContact?.[0] || null
         return { ...order, product: product || undefined, buyer: buyer || undefined, stockFullyRequested: Boolean((order as any).stock_fully_requested) } as ReceivedOrder
       }))
       setReceivedOrders(ordersWithDetails)
@@ -561,7 +563,8 @@ const Profile = () => {
       return
     }
     try {
-      const { error } = await supabase.from('users').update({ ...profileData, updated_at: new Date().toISOString() }).eq('id', user.id)
+      const { email: _authEmail, ...editableProfile } = profileData
+      const { error } = await supabase.from('users').update({ ...editableProfile, updated_at: new Date().toISOString() }).eq('id', user.id)
       if (error) throw error
       toast({ title: 'Perfil actualizado com sucesso.' })
       setEditMode(false)
