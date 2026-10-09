@@ -34,12 +34,23 @@ export function safeRedirect(candidate?: string, fallback = DEFAULT_REDIRECT): s
   try {
     const url = new URL(candidate);
     const hostname = url.hostname.toLowerCase();
-    const allowed = ALLOWED_HOSTS.some(
-      (host) => hostname === host || hostname.endsWith(`.${host}`),
-    );
+    const allowed = ALLOWED_HOSTS.includes(hostname);
+    const isLocalhost = hostname === "localhost";
+    const validProtocol = isLocalhost
+      ? url.protocol === "http:" || url.protocol === "https:"
+      : url.protocol === "https:";
+    const validPort = isLocalhost || !url.port;
+    const validPath = url.pathname === "/auth/callback";
 
-    if (!allowed) {
-      console.warn("Redirect rejeitado:", candidate);
+    if (
+      !allowed ||
+      !validProtocol ||
+      !validPort ||
+      !validPath ||
+      url.username ||
+      url.password
+    ) {
+      console.warn("Redirect rejeitado por não corresponder ao callback autorizado.");
       return fallback;
     }
 
@@ -79,7 +90,7 @@ export function buildBrandEmailTemplate({
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:28px 0 12px;">
         <tr>
           <td align="left">
-            <a href="${escapeHtml(ctaHref)}" style="display:inline-block;background:#176b3a;color:#ffffff;text-decoration:none;padding:13px 22px;border-radius:6px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;font-weight:700;">
+            <a href="${escapeHtml(ctaHref)}" style="display:inline-block;background:#176b3a;color:#ffffff;text-decoration:none;padding:13px 22px;border-radius:6px;font-family:Futura,'Century Gothic',Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;font-weight:700;">
               ${escapeHtml(ctaText)}
             </a>
           </td>
@@ -100,7 +111,7 @@ export function buildBrandEmailTemplate({
     <meta name="x-apple-disable-message-reformatting" />
     <title>${escapeHtml(title)}</title>
   </head>
-  <body style="margin:0;padding:0;background:#f4f7f3;font-family:Arial,Helvetica,sans-serif;color:#1b2b20;">
+  <body style="margin:0;padding:0;background:#f4f7f3;font-family:Futura,'Century Gothic',Arial,Helvetica,sans-serif;color:#1b2b20;">
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${escapeHtml(preheader)}</div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7f3;padding:32px 12px;">
       <tr>
@@ -113,18 +124,18 @@ export function buildBrandEmailTemplate({
             </tr>
             <tr>
               <td style="padding:30px 30px 8px;">
-                <h1 style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:25px;line-height:1.32;font-weight:700;letter-spacing:-0.35px;color:#173d27;">${escapeHtml(headline)}</h1>
+                <h1 style="margin:0;font-family:Futura,'Century Gothic',Arial,Helvetica,sans-serif;font-size:25px;line-height:1.32;font-weight:700;letter-spacing:-0.35px;color:#173d27;">${escapeHtml(headline)}</h1>
               </td>
             </tr>
             <tr>
               <td style="padding:14px 30px 30px;">
-                <div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:25px;color:#35463a;">${bodyHtml}</div>
+                <div style="font-family:Futura,'Century Gothic',Arial,Helvetica,sans-serif;font-size:15px;line-height:25px;color:#35463a;">${bodyHtml}</div>
                 ${secondaryMarkup}
                 ${ctaMarkup}
               </td>
             </tr>
             <tr>
-              <td style="padding:18px 30px;background:#f7faf6;border-top:1px solid #e7eee7;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#68776b;">
+              <td style="padding:18px 30px;background:#f7faf6;border-top:1px solid #e7eee7;font-family:Futura,'Century Gothic',Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#68776b;">
                 <strong style="font-weight:700;color:#245c37;">AgriLink</strong><br />
                 <a href="https://agrilink.ao" style="color:#245c37;text-decoration:none;">agrilink.ao</a>
                 <span style="padding:0 5px;color:#a3afa5;">|</span>
