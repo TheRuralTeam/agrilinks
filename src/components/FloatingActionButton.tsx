@@ -11,7 +11,7 @@ const FloatingActionButton = () => {
   if (!userProfile) return null
 
   // Configuração para cada tipo de usuário
-  const actionConfig = {
+  const actions = {
     agricultor: {
       icon: (
         <Feather
@@ -52,7 +52,8 @@ const FloatingActionButton = () => {
       path: '/cargas',
       shadowColor: 'shadow-[0_0_25px_rgba(176,125,10,0.45)]',
     },
-  }[userProfile.user_type]
+  }
+  const actionConfig = userProfile.user_type ? actions[userProfile.user_type] : undefined
 
   if (!actionConfig) return null
 
