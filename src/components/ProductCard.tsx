@@ -358,7 +358,7 @@ interface CommentReply {
 }
 interface Comment {
   id: string; user_id: string; comment_text: string; created_at: string
-  user_name: string; user_type: string; user_avatar?: string
+  user_name: string; user_type: string; user_avatar?: string | null
   likes_count?: number; is_liked?: boolean; replies?: CommentReply[]
 }
 export interface Product {
@@ -417,6 +417,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
 
   const toggleLike = async () => {
     if (!requireAct('dar like')) return
+    if (!user) return
     if (!onProductUpdate) return
     const optimisticUpdate = {
       ...product,
@@ -441,6 +442,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   const addComment = async () => {
     if (!comment.trim()) return toast.error('Escreva um comentário')
     if (!requireAct('comentar')) return
+    if (!user) return
     if (!onProductUpdate) return
     try {
       const { data: newComment, error: commentError } = await supabase
@@ -469,6 +471,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
 
   const toggleCommentLike = async (commentId: string, isLiked: boolean) => {
     if (!requireAct('reagir')) return
+    if (!user) return
     if (!onProductUpdate) return
     try {
       if (isLiked) {
@@ -491,6 +494,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   const addReply = async (commentId: string) => {
     if (!replyText.trim()) return toast.error('Escreva uma resposta')
     if (!requireAct('responder')) return
+    if (!user) return
     if (!onProductUpdate) return
     try {
       const { data: newReply, error: replyError } = await supabase
