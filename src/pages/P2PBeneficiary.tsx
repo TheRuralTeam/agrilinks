@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CheckCircle2, Clock3, ShieldCheck, AlertTriangle, ArrowRight, WalletCards } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
@@ -93,7 +93,7 @@ export default function P2PBeneficiaryPage() {
   const [historyEvents, setHistoryEvents] = useState<P2PHistoryEvent[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setLoading(true)
     try {
       const [app, ben] = await Promise.all([fetchMyP2PApplication(), fetchMyP2PBeneficiary()])
@@ -134,11 +134,11 @@ export default function P2PBeneficiaryPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id, canReview])
 
   useEffect(() => {
     if (user) void refresh()
-  }, [user, canReview])
+  }, [user?.id, canReview, refresh])
 
   const activeOrders = useMemo(
     () => orders.filter((order) => !['completed', 'cancelled', 'expired', 'rejected', 'refunded'].includes(order.status)),
