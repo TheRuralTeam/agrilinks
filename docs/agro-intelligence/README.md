@@ -5,7 +5,7 @@ Status: isolated foundation branch; **not enabled in production and not merged**
 ## Scope of this vertical slice
 
 1. Add an authenticated Supabase Edge Function, `agro-weather`, for a seven-day forecast through the licensed Open-Meteo customer API.
-2. Add an authenticated `agro-satellite-catalog` function to discover Sentinel-2 Level-2A scenes through the Copernicus STAC catalog.
+2. Add an authenticated `agro-satellite-catalog` function to discover Sentinel-2 Level-2A optical scenes and Sentinel-1 GRD radar scenes through the Copernicus STAC catalog.
 3. Add `/agro-inteligencia` weather and `/agro-satelite` map-based catalog pages; link them from Market Data.
 4. Restrict coordinates to Angola's approximate geographic bounding box, validate input, bound upstream latency and return safe errors.
 5. Document satellite processing, commercial API credentials and the risks in the existing `SatelliteMonitor` without changing that component.
@@ -18,7 +18,7 @@ A reliable weather forecast is useful before adding satellite analytics, and can
 
 - Web/mobile client calls Supabase Edge Functions using the authenticated Supabase session. Both new endpoints additionally inspect the gateway-verified JWT claims and reject the Supabase anon role; the pages are protected routes.
 - Weather uses `https://customer-api.open-meteo.com/v1/forecast` and requires the Supabase secret `OPEN_METEO_API_KEY`. The free public endpoint is not appropriate to assume for a commercial marketplace. Do not enable the weather feature in a commercial environment until the correct plan, key and terms are confirmed.
-- Satellite catalog search uses the public Copernicus Data Space STAC endpoint; it returns scene metadata and available preview assets, not computed NDVI.
+- Satellite catalog search uses the public Copernicus Data Space STAC endpoint; it returns Sentinel-2 optical or Sentinel-1 radar scene metadata and available preview assets, not computed NDVI.
 - Both functions validate coordinates, use fixed upstream URLs and never accept an arbitrary URL from clients.
 - Client displays source, timezone, forecast period and last retrieval time.
 - A later iteration may add server-side caching, quota/rate limiting, alert preferences and persisted user-owned farm parcels. These require separate schema/security review and should not be mixed into this first slice.
