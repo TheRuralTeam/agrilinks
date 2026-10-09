@@ -465,17 +465,6 @@ const LoginPage = () => {
             </button>
           )}
 
-          <button
-            onClick={() => navigate('/app')}
-            style={{
-              width: '100%', background: 'none', border: 'none', cursor: 'pointer',
-              color: T.muted, fontSize: 12.5, fontWeight: 700,
-              textDecoration: 'underline', marginBottom: 16, padding: 0,
-            }}
-          >
-            Explorar como convidado
-          </button>
-
           <p style={{ textAlign: 'center', marginTop: 24, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.faint }}>
             © 2025 AgriLink Lda · Segurança Garantida
           </p>
