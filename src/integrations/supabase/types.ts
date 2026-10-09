@@ -304,6 +304,27 @@ export type Database = {
           },
         ]
       }
+      chat_encryption_keys: {
+        Row: {
+          key_version: number
+          public_key: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          key_version?: number
+          public_key: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          key_version?: number
+          public_key?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           avatar: string | null
