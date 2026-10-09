@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders, jsonResponse, handleCors } from "../_shared/http.ts";
+import { jsonResponse, handleCors } from "../_shared/http.ts";
 
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
 
@@ -7,9 +7,9 @@ const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
 // claim that every point inside the rectangle is land or agricultural land.
 const ANGOLA_BOUNDS = {
   minLatitude: -18.05,
-  maxLatitude: -4.37,
-  minLongitude: 11.66,
-  maxLongitude: 24.09,
+  maxLatitude: -4.2,
+  minLongitude: 11.5,
+  maxLongitude: 24.1,
 };
 
 const CURRENT_VARIABLES = [
