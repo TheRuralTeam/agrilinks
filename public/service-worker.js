@@ -42,6 +42,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Pedidos de dados (fetch/XHR, APIs e respostas sem destino estático) nunca são colocados em cache.
+  // Isto evita persistir respostas potencialmente privadas no cache partilhado da origem.
+  if (request.destination === '') return;
+
   // Scripts/estilos: rede primeiro, cache apenas como fallback offline.
   // Nunca devolver HTML para pedidos de assets (causava ecrã branco).
   if (request.destination === 'script' || request.destination === 'style' || request.destination === 'document') {
