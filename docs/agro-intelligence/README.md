@@ -4,10 +4,11 @@ Status: isolated foundation branch; **not enabled in production and not merged**
 
 ## Scope of this vertical slice
 
-1. Add an authenticated Supabase Edge Function, `agro-weather`, for a seven-day forecast from Open-Meteo.
-2. Restrict coordinates to Angola's approximate geographic bounding box, validate all input and bound upstream latency.
-3. Return provider attribution, units, timezone, generation time and forecast fields needed for an agricultural UI.
-4. Document the satellite-processing design and the risks in the existing `SatelliteMonitor` without changing current UI or marketplace flows.
+1. Add an authenticated Supabase Edge Function, `agro-weather`, for a seven-day forecast through the licensed Open-Meteo customer API.
+2. Add an authenticated `agro-satellite-catalog` function to discover Sentinel-2 Level-2A scenes through the Copernicus STAC catalog.
+3. Add `/agro-inteligencia` weather and `/agro-satelite` map-based catalog pages; link them from Market Data.
+4. Restrict coordinates to Angola's approximate geographic bounding box, validate input, bound upstream latency and return safe errors.
+5. Document satellite processing, commercial API credentials and the risks in the existing `SatelliteMonitor` without changing that component.
 
 ## Why weather first
 
@@ -15,11 +16,21 @@ A reliable weather forecast is useful before adding satellite analytics, and can
 
 ## Architecture
 
-- Web/mobile client calls Supabase Edge Function using the authenticated Supabase session.
-- Edge Function validates coordinates and calls Open-Meteo; it never accepts an arbitrary upstream URL.
+- Web/mobile client calls Supabase Edge Functions using the authenticated Supabase session.
+- Weather uses `https://customer-api.open-meteo.com/v1/forecast` and requires the Supabase secret `OPEN_METEO_API_KEY`. The free public endpoint is not appropriate to assume for a commercial marketplace. Do not enable the weather feature in a commercial environment until the correct plan, key and terms are confirmed.
+- Satellite catalog search uses the public Copernicus Data Space STAC endpoint; it returns scene metadata and available preview assets, not computed NDVI.
+- Both functions validate coordinates, use fixed upstream URLs and never accept an arbitrary URL from clients.
 - Client displays source, timezone, forecast period and last retrieval time.
 - A later iteration may add server-side caching, quota/rate limiting, alert preferences and persisted user-owned farm parcels. These require separate schema/security review and should not be mixed into this first slice.
 - Satellite imagery must be served from a server-side integration when credentials or processing APIs are involved. Do not put Copernicus client secrets in the browser.
+
+## Deployment prerequisites
+
+1. Confirm the appropriate Open-Meteo commercial subscription and API key.
+2. Configure `OPEN_METEO_API_KEY` as a Supabase Edge Function secret in the target development/preview project, not in frontend code or Git.
+3. Deploy only the two new Edge Functions to a non-production Supabase environment and test authenticated calls, CORS, timeouts and provider errors.
+4. Confirm the Copernicus STAC endpoint, returned asset URLs and commercial reuse/attribution conditions before exposing previews broadly.
+5. Do not run database migrations for this slice; it does not persist farm polygons or satellite assets.
 
 ## Satellite roadmap
 
@@ -30,7 +41,8 @@ A reliable weather forecast is useful before adding satellite analytics, and can
 5. **Validation:** compare satellite indicators with field observations before creating farmer-facing recommendations.
 
 Official sources:
-- Open-Meteo forecast API: https://open-meteo.com/en/docs
+- Open-Meteo forecast API and commercial access: https://open-meteo.com/en/docs
+- Open-Meteo API terms: https://open-meteo.com/en/features#terms
 - Copernicus Data Space API documentation: https://documentation.dataspace.copernicus.eu/APIs.html
 - Copernicus Sentinel Hub beginner guide: https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/UserGuides/BeginnersGuide.html
 
