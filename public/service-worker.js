@@ -34,7 +34,7 @@ self.addEventListener('fetch', (event) => {
       fetch(request)
         .then((response) => {
           // Só guardar páginas válidas; não substituir o shell offline por erros HTTP.
-          if (response.ok && response.type === 'basic') {
+          if (response.ok && response.type === 'basic' && !response.headers.get('Cache-Control')?.toLowerCase().includes('no-store')) {
             const copy = response.clone();
             event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy)));
           }
