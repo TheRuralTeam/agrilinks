@@ -1,3 +1,5 @@
+import { supabase } from '@/integrations/supabase/client'
+
 const ALLOWED_REDIRECT_HOSTS = ['agrilink.ao', 'www.agrilink.ao', 'localhost']
 
 export const getAppRedirectBase = () => {
@@ -54,10 +56,7 @@ export const buildAuthRedirectUrl = (next: string = '/app') => {
 }
 
 const invokeEmailFunction = async (functionName: string, body: Record<string, unknown>) => {
-  const { data, error } = await (await import('@/integrations/supabase/client')).supabase.functions.invoke(
-    functionName,
-    { body },
-  )
+  const { data, error } = await supabase.functions.invoke(functionName, { body })
 
   if (error) {
     const details = error?.context ? await error.context.json().catch(() => null) : null
