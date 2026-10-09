@@ -1,0 +1,131 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { jsonResponse, handleCors } from "../_shared/http.ts";
+
+const STAC_SEARCH_URL = "https://stac.dataspace.copernicus.eu/v1/search";
+const BOUNDS = {
+  minLatitude: -18.05,
+  maxLatitude: -4.2,
+  minLongitude: 11.5,
+  maxLongitude: 24.1,
+};
+
+function isNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function validDate(value: unknown): value is string {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
+    && !Number.isNaN(Date.parse(value + "T00:00:00Z"))
+    && new Date(value + "T00:00:00Z").toISOString().slice(0, 10) === value;
+}
+
+function inAngola(latitude: number, longitude: number): boolean {
+  return latitude >= BOUNDS.minLatitude && latitude <= BOUNDS.maxLatitude
+    && longitude >= BOUNDS.minLongitude && longitude <= BOUNDS.maxLongitude;
+}
+
+serve(async (req: Request) => {
+  const cors = handleCors(req);
+  if (cors) return cors;
+
+  try {
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return jsonResponse({ error: "O corpo do pedido deve ser um objeto JSON." }, 400);
+    }
+
+    const { latitude, longitude } = body as Record<string, unknown>;
+    const cloudCoverMax = body.cloudCoverMax === undefined ? 35 : body.cloudCoverMax;
+    const daysBack = body.daysBack === undefined ? 90 : body.daysBack;
+
+    if (!isNumber(latitude) || !isNumber(longitude)) {
+      return jsonResponse({ error: "Latitude e longitude numéricas são obrigatórias." }, 400);
+    }
+    if (!inAngola(latitude, longitude)) {
+      return jsonResponse({ error: "Esta versão piloto aceita coordenadas dentro dos limites geográficos aproximados de Angola." }, 422);
+    }
+    if (!isNumber(cloudCoverMax) || cloudCoverMax < 0 || cloudCoverMax > 80) {
+      return jsonResponse({ error: "O limite de cobertura de nuvens deve estar entre 0 e 80%." }, 400);
+    }
+    if (!Number.isInteger(daysBack) || (daysBack as number) < 1 || (daysBack as number) > 180) {
+      return jsonResponse({ error: "O período de pesquisa deve estar entre 1 e 180 dias." }, 400);
+    }
+
+    const now = new Date();
+    const start = new Date(now.getTime() - (daysBack as number) * 24 * 60 * 60 * 1000);
+    const datetime = `${start.toISOString().slice(0, 10)}/${now.toISOString().slice(0, 10)}`;
+    const radius = 0.05;
+    const bbox = [
+      Math.max(BOUNDS.minLongitude, longitude - radius),
+      Math.max(BOUNDS.minLatitude, latitude - radius),
+      Math.min(BOUNDS.maxLongitude, longitude + radius),
+      Math.min(BOUNDS.maxLatitude, latitude + radius),
+    ];
+
+    const upstream = await fetch(STAC_SEARCH_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/geo+json, application/json" },
+      body: JSON.stringify({
+        collections: ["sentinel-2-l2a"],
+        bbox,
+        datetime,
+        limit: 10,
+        sortby: [{ field: "properties.datetime", direction: "desc" }],
+        query: { "eo:cloud_cover": { lte: cloudCoverMax } },
+      }),
+      signal: AbortSignal.timeout(12_000),
+    });
+
+    if (!upstream.ok) {
+      console.error("Copernicus STAC search failed with status", upstream.status);
+      return jsonResponse({ error: "O catálogo de imagens de satélite está temporariamente indisponível.", provider: "Copernicus Data Space" }, 502);
+    }
+
+    const raw: unknown = await upstream.json();
+    if (!raw || typeof raw !== "object" || !("features" in raw) || !Array.isArray((raw as { features: unknown }).features)) {
+      console.error("Copernicus STAC returned an unexpected response shape");
+      return jsonResponse({ error: "Resposta inválida do catálogo de satélites." }, 502);
+    }
+
+    const features = (raw as { features: Array<Record<string, unknown>> }).features;
+    const scenes = features.slice(0, 10).map((feature) => {
+      const properties = (feature.properties && typeof feature.properties === "object")
+        ? feature.properties as Record<string, unknown> : {};
+      const assets = (feature.assets && typeof feature.assets === "object")
+        ? feature.assets as Record<string, { href?: unknown; type?: unknown; title?: unknown }> : {};
+      const thumb = assets.thumbnail?.href ?? assets.preview?.href ?? assets.rendered_preview?.href;
+      const visual = assets.visual?.href ?? assets.B04?.href;
+      return {
+        id: typeof feature.id === "string" ? feature.id : null,
+        acquiredAt: typeof properties.datetime === "string" ? properties.datetime : null,
+        cloudCover: typeof properties["eo:cloud_cover"] === "number" ? properties["eo:cloud_cover"] : null,
+        platform: typeof properties.platform === "string" ? properties.platform : "Sentinel-2",
+        processingLevel: typeof properties["processing:level"] === "string" ? properties["processing:level"] : "Level-2A",
+        thumbnailUrl: typeof thumb === "string" && thumb.startsWith("https://") ? thumb : null,
+        previewUrl: typeof visual === "string" && visual.startsWith("https://") ? visual : null,
+      };
+    });
+
+    return jsonResponse({
+      provider: "Copernicus Data Space Ecosystem",
+      collection: "sentinel-2-l2a",
+      catalogUrl: "https://browser.stac.dataspace.copernicus.eu",
+      searchedAt: now.toISOString(),
+      location: { latitude, longitude },
+      search: { bbox, datetime, cloudCoverMax, daysBack },
+      scenes,
+      count: scenes.length,
+      advisory: scenes.length === 0
+        ? "Não foram encontradas cenas que correspondam aos filtros. Tente aumentar o período ou a cobertura de nuvens."
+        : "A cobertura de nuvens é uma métrica da cena e não garante que a parcela esteja livre de nuvens. O catálogo fornece metadados; o cálculo NDVI e a máscara de nuvens ao nível do pixel ainda são necessários para avaliar a vegetação.",
+    });
+  } catch (error) {
+    const timedOut = error instanceof DOMException && error.name === "TimeoutError";
+    console.error("agro-satellite-catalog failed", timedOut ? "upstream timeout" : "unexpected error");
+    return jsonResponse({
+      error: timedOut
+        ? "A pesquisa de imagens demorou demasiado tempo. Tente novamente."
+        : "Não foi possível pesquisar imagens de satélite neste momento.",
+    }, timedOut ? 504 : 500);
+  }
+});
