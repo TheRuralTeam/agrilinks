@@ -40,7 +40,10 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(async () => (await caches.match('/index.html')) || caches.match('/'))
+        .catch(async () => {
+          const cache = await caches.open(CACHE_NAME);
+          return (await cache.match('/index.html')) || cache.match('/');
+        })
     );
     return;
   }
@@ -61,13 +64,13 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => caches.match(request))
+        .catch(async () => (await caches.open(CACHE_NAME)).match(request))
     );
     return;
   }
 
   event.respondWith(
-    caches.match(request).then((cached) => {
+    caches.open(CACHE_NAME).then((cache) => cache.match(request)).then((cached) => {
       if (cached) return cached;
       return fetch(request)
         .then((response) => {
