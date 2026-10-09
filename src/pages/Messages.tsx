@@ -387,7 +387,7 @@ const Messages = () => {
     }
     setIsSending(true);
     try {
-      const filesData = [];
+      const filesData: Array<{ url: string; name: string; size: number }> = [];
       for (const file of selectedFiles) {
         const ext = file.name.split(".").pop();
         const fileName = `${crypto.randomUUID()}.${ext}`;
