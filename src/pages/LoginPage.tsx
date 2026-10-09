@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, Compass, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { sendMagicLink, sendPasswordResetEmail } from '../features/auth/email'
+import { sendMagicLink, sendPasswordResetEmail, sendConfirmationEmail } from '../features/auth/email'
 import agrilinkLogo from '../assets/agrilink-logo.png'
 // Imagem partilhada com o ecrã de Cadastro para manter a mesma identidade visual.
 // Para trocar por vídeo: substituir o <img> do painel esquerdo por um <video autoPlay muted loop playsInline>.
@@ -150,6 +150,19 @@ const LoginPage = () => {
     }
   }
 
+  const handleResendSignupConfirmation = async () => {
+    if (!email.trim() || resendLoading) { if (!email.trim()) toast({ title: 'Atenção', description: 'Insira o email usado no cadastro.' }); return }
+    setResendLoading(true)
+    try {
+      await sendConfirmationEmail({ email: email.trim().toLowerCase(), next: '/app' })
+      toast({ title: 'Confirmação enviada', description: 'Verifique a caixa de entrada e a pasta de spam.' })
+    } catch (err: any) {
+      toast({ title: 'Não foi possível enviar', description: err?.message || 'Tente novamente mais tarde.', variant: 'destructive' })
+    } finally {
+      setResendLoading(false)
+    }
+  }
+
   const handleResendConfirmation = async () => {
     if (!email) { toast({ title: 'Atenção', description: 'Insira o seu email primeiro.' }); return }
     setResendLoading(true)
@@ -273,9 +286,12 @@ const LoginPage = () => {
               </div>
               <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 800 }}>Confirma o teu email</h2>
               <p style={{ margin: 0, fontSize: 14, color: T.muted, lineHeight: 1.6 }}>
-                Enviámos o link de confirmação para <strong>{email}</strong>. Depois de confirmares, entrares na AgriLink não exige verificação de identidade.
+                O cadastro só fica concluído depois de confirmares o email <strong>{email}</strong>. Abre o link recebido para ativar a conta e, depois, inicia sessão. Verifica também a pasta de spam.
               </p>
-              <button type="button" onClick={() => { setSignupSuccess(false); setAuthMode('login'); }} style={{ marginTop: 18, width: '100%', height: 46, borderRadius: 999, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, fontWeight: 700 }}>
+              <button type="button" onClick={handleResendSignupConfirmation} disabled={resendLoading} style={{ marginTop: 18, width: '100%', height: 46, borderRadius: 999, border: `1px solid ${T.goldBorder}`, background: T.goldPale, color: T.ink, fontWeight: 700, opacity: resendLoading ? 0.6 : 1 }}>
+                {resendLoading ? 'A enviar confirmação...' : 'Reenviar email de confirmação'}
+              </button>
+              <button type="button" onClick={() => { setSignupSuccess(false); setAuthMode('login'); }} style={{ marginTop: 10, width: '100%', height: 46, borderRadius: 999, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, fontWeight: 700 }}>
                 Voltar ao login
               </button>
             </div>
