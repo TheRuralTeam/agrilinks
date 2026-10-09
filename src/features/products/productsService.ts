@@ -51,7 +51,7 @@ export const fetchProductsFeed = async ({
 
   const [{ data: users, error: usersError }, { data: myLikes, error: likesError }] = await Promise.all([
     userIds.length
-      ? supabase.from('users').select('id, full_name, user_type, avatar_url, verified').in('id', userIds)
+      ? supabase.from('public_user_profiles' as any).select('id, full_name, user_type, avatar_url, verified').in('id', userIds)
       : Promise.resolve({ data: [] as any[], error: null }),
     userId
       ? supabase.from('product_likes').select('product_id').eq('user_id', userId).in('product_id', productIds)
@@ -95,7 +95,7 @@ export const fetchProductById = async (productId: string, userId?: string) => {
   if (!product) return null
 
   const [userResult, likesResult] = await Promise.all([
-    supabase.from('users').select('id, full_name, user_type, avatar_url, verified').eq('id', product.user_id).maybeSingle(),
+    supabase.from('public_user_profiles' as any).select('id, full_name, user_type, avatar_url, verified').eq('id', product.user_id).maybeSingle(),
     userId
       ? supabase.from('product_likes').select('id').eq('product_id', productId).eq('user_id', userId).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
