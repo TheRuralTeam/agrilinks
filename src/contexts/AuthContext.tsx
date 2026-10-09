@@ -397,7 +397,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const resendSignupConfirmation = async (email: string) => {
     const normalizedEmail = email.trim().toLowerCase()
-    if (!normalizedEmail || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(normalizedEmail)) {
+    if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       return { error: { message: 'Introduza um endereço de email válido.' } }
     }
 
