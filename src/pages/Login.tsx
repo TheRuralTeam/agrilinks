@@ -1,7 +1,7 @@
 import React, { FormEvent, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2, LockKeyhole, Mail, Phone, ArrowRight, CheckCircle2, Sprout, ShoppingCart, UserRound, PencilLine, Truck, ChevronLeft } from "lucide-react";
-import agrilinkLogo from "../assets/agrilink-logo.png";
+import agrilinkLogo from "../assets/LogoAgriLinkOfficiallNoBackground.png";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "sonner";
 
