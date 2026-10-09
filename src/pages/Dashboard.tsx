@@ -31,7 +31,7 @@ interface Product {
   farmer_name: string
   contact: string
   status: string
-  created_at: string
+  created_at: string | null
   user_id: string
 }
 
