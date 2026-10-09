@@ -74,6 +74,11 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
   };
 
   const fetchCompanyData = React.useCallback(async () => {
+    if (!id) {
+      setCompanyData(null);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
 
