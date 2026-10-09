@@ -2091,6 +2091,14 @@ export type Database = {
         Args: { p_order_id: string; p_status: string }
         Returns: { id: string; status: string; updated_at: string }[]
       }
+      admin_remove_pre_order: {
+        Args: { p_order_id: string; p_reason?: string | null }
+        Returns: { id: string; deleted_at: string; deleted_until: string }[]
+      }
+      admin_restore_pre_order: {
+        Args: { p_order_id: string }
+        Returns: { id: string; status: string; deleted_at: string | null; deleted_until: string | null }[]
+      }
       admin_reject_product: {
         Args: { p_product_id: string; p_reason?: string }
         Returns: boolean
