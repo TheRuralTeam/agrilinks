@@ -10,7 +10,6 @@ import { faTractor, faUserTie, faCartShopping, faTruck } from "@fortawesome/free
 import { getProvincesForCountry, getProvinceLabel, getMunicipalityLabel } from "../data/country-locations";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../integrations/supabase/client";
-import { sendConfirmationEmail } from '../features/auth/email'
 import orbisLinkLogo from "../assets/orbislink-logo.png";
 import autenticar from '../assets/auth1.jpg'
 
@@ -271,20 +270,17 @@ const Registration = () => {
       }
 
       if (data?.user?.id) {
-        // O envio customizado usa uma página intermediária anti-scanner.
-        try {
-          await sendConfirmationEmail({ email: cleanEmail, full_name: cleanName, next: '/app' });
+        if (data.confirmation_sent) {
           toast({
-            title: "Link de confirmação enviado!",
-            description: `Enviámos um link para ${cleanEmail}. Clica nele para confirmares a conta.`,
+            title: "Link de confirmação enviado",
+            description: `Enviámos um email para ${cleanEmail}. Abre a mensagem para confirmares a tua conta.`,
           });
-        } catch (linkErr: any) {
+        } else {
           toast({
             title: "Conta criada",
-            description: "Não conseguimos enviar o link agora. Podes reenviá-lo no próximo passo.",
+            description: "Não foi possível enviar o email agora. Podes pedir um novo link no ecrã seguinte.",
             variant: "destructive",
           });
-          console.error('Erro ao enviar magic link:', linkErr)
         }
 
         navigate(`/confirmar-email?email=${encodeURIComponent(cleanEmail)}`, { replace: true });
@@ -305,9 +301,14 @@ const Registration = () => {
     setErrorMessage('');
     try {
       const fullPhone = `${selectedCountry.dialCode} ${phone}`.trim();
-      const { error } = await registerWithOtp({ full_name: fullName, email, phone: fullPhone });
+      const { error, data } = await registerWithOtp({ full_name: fullName, email, phone: fullPhone });
       if (error) throw error;
-      toast({ title: 'Email de confirmação enviado', description: 'Abra o email e clique no botão para ativar a conta.' });
+      toast({
+        title: data?.confirmation_sent ? 'Email de confirmação enviado' : 'Conta criada',
+        description: data?.confirmation_sent
+          ? 'Abre o email da AgriLink para activar a conta.'
+          : 'Não foi possível enviar o email agora. Podes pedir um novo link no ecrã seguinte.',
+      });
       navigate(`/confirmar-email?email=${encodeURIComponent(email.trim().toLowerCase())}`, { replace: true });
     } catch (error: any) {
       setErrorMessage(error?.message || 'Não foi possível enviar o email de confirmação.');
