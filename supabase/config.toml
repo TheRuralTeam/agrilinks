@@ -6,6 +6,9 @@ verify_jwt = true
 [functions.agro-satellite-catalog]
 verify_jwt = true
 
+[functions.agro-ndvi]
+verify_jwt = true
+
 [functions.send-magic-link]
 verify_jwt = false
 
