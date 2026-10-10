@@ -69,14 +69,16 @@ export default function MapWeatherPanel({
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [lastRequestedAt, setLastRequestedAt] = useState<string | null>(null);
+  const latitude = coordinates?.latitude;
+  const longitude = coordinates?.longitude;
 
   const loadWeather = useCallback(async () => {
-    if (!coordinates || !isOnline) return;
+    if (latitude == null || longitude == null || !isOnline) return;
     setLoading(true);
     setError('');
     try {
       const { data: result, error: invokeError } = await supabase.functions.invoke('agro-weather', {
-        body: { latitude: coordinates.latitude, longitude: coordinates.longitude },
+        body: { latitude, longitude },
       });
       if (invokeError) throw invokeError;
       if (result?.error) throw new Error(String(result.error));
@@ -90,7 +92,7 @@ export default function MapWeatherPanel({
     } finally {
       setLoading(false);
     }
-  }, [coordinates?.latitude, coordinates?.longitude, isOnline]);
+  }, [latitude, longitude, isOnline]);
 
   useEffect(() => {
     setData(null);
