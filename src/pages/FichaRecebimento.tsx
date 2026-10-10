@@ -50,7 +50,7 @@ const FichaRecebimento = () => {
   const [formData, setFormData] = useState({
     nomeFicha: "",
     tipoNegocio: "",
-    produtos: [{ key: crypto.randomUUID(), produto: "", qualidade: "", embalagem: "", transporte: "" }],
+    produtos: [{ key: crypto.randomUUID(), produto: "", quantidade: "", unidade: "kg", qualidade: "", embalagem: "", transporte: "", detalhes: "" }],
     locaisEntrega: [] as {
       descricao: string;
       coordenadas: { lat: number; lng: number } | null;
@@ -133,7 +133,11 @@ const FichaRecebimento = () => {
         transporte: item.transporte,
         locais_entrega: formData.locaisEntrega,
         telefone: formData.telefone.trim(),
-        descricao_final: formData.descricaoFinal.trim(),
+        descricao_final: [
+          item.quantidade.trim() ? `Quantidade pretendida: ${item.quantidade.trim()} ${item.unidade}` : "",
+          item.detalhes.trim() ? `Especificações adicionais para ${item.produto.trim()}: ${item.detalhes.trim()}` : "",
+          formData.descricaoFinal.trim() ? `Requisitos gerais do pedido: ${formData.descricaoFinal.trim()}` : "",
+        ].filter(Boolean).join("\n\n"),
         observacoes: formData.observacoes.trim(),
       }));
       const { data: insertedFichas, error } = await supabase
@@ -223,7 +227,7 @@ const FichaRecebimento = () => {
               Adicione todos os produtos que pretende comprar. Cada produto terá a sua própria ficha, qualidade, embalagem e transporte, mas ficará organizado no mesmo grupo para a equipa AgriLink.
             </div>
             {formData.produtos.map((item, index) => {
-              const updateProduct = (field: "produto" | "qualidade" | "embalagem" | "transporte", value: string) => {
+              const updateProduct = (field: "produto" | "quantidade" | "unidade" | "qualidade" | "embalagem" | "transporte" | "detalhes", value: string) => {
                 setFormData((prev) => ({ ...prev, produtos: prev.produtos.map((product) => product.key === item.key ? { ...product, [field]: value } : product) }));
               };
               const selectedNames = formData.produtos.filter((p) => p.key !== item.key).map((p) => p.produto.trim().toLocaleLowerCase("pt-AO"));
@@ -278,6 +282,21 @@ const FichaRecebimento = () => {
                     )}
                     {selectedNames.includes(query) && query && <p className="mt-1 text-xs text-red-600">Este produto já está na lista. Escolha outro produto ou remova a duplicação.</p>}
                   </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label className="mb-2 block text-sm font-bold" style={{ color: T.charcoal }}>Quantidade pretendida</Label>
+                      <Input type="number" min="0.01" step="0.01" inputMode="decimal" placeholder="Ex.: 500" value={item.quantidade} onChange={(e) => updateProduct("quantidade", e.target.value)} className="h-12" style={{ borderColor: T.border }} />
+                    </div>
+                    <div>
+                      <Label className="mb-2 block text-sm font-bold" style={{ color: T.charcoal }}>Unidade</Label>
+                      <Select value={item.unidade} onValueChange={(v) => updateProduct("unidade", v)}>
+                        <SelectTrigger className="h-12" style={{ borderColor: T.border }}><SelectValue placeholder="Unidade de medida" /></SelectTrigger>
+                        <SelectContent>
+                          {[{v:"kg",l:"Quilogramas (kg)"},{v:"t",l:"Toneladas (t)"},{v:"sacos",l:"Sacos"},{v:"caixas",l:"Caixas"},{v:"unidades",l:"Unidades"},{v:"litros",l:"Litros"},{v:"cestos",l:"Cestos"},{v:"molhos",l:"Molhos"}].map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
                       <Label className="mb-2 block text-sm font-bold" style={{ color: T.charcoal }}>Padrões de qualidade</Label>
@@ -294,6 +313,10 @@ const FichaRecebimento = () => {
                     </div>
                   </div>
                   <div>
+                    <Label className="mb-2 block text-sm font-bold" style={{ color: T.charcoal }}>Especificações adicionais deste produto</Label>
+                    <Textarea rows={3} placeholder="Ex.: milho seco, humidade máxima, calibre, maturação, origem ou certificação…" value={item.detalhes} onChange={(e) => updateProduct("detalhes", e.target.value)} style={{ borderColor: T.border }} />
+                  </div>
+                  <div>
                     <Label className="mb-2 block text-sm font-bold" style={{ color: T.charcoal }}>Transporte preferido</Label>
                     <Select value={item.transporte} onValueChange={(v) => updateProduct("transporte", v)}>
                       <SelectTrigger className="h-12" style={{ borderColor: T.border }}><SelectValue placeholder="Selecione o transporte" /></SelectTrigger>
@@ -308,7 +331,7 @@ const FichaRecebimento = () => {
                 </div>
               );
             })}
-            <Button type="button" variant="outline" className="h-12 w-full" style={{ borderColor: T.border, color: T.green }} onClick={() => setFormData((prev) => ({ ...prev, produtos: [...prev.produtos, { key: crypto.randomUUID(), produto: "", qualidade: "", embalagem: "", transporte: "" }] }))}>
+            <Button type="button" variant="outline" className="h-12 w-full" style={{ borderColor: T.border, color: T.green }} onClick={() => setFormData((prev) => ({ ...prev, produtos: [...prev.produtos, { key: crypto.randomUUID(), produto: "", quantidade: "", unidade: "kg", qualidade: "", embalagem: "", transporte: "", detalhes: "" }] }))}>
               <Plus size={16} className="mr-2" /> Adicionar outro produto
             </Button>
             <p className="text-xs" style={{ color: T.muted }}>Pode adicionar vários produtos. Cada ficha será guardada separadamente e todas ficarão agrupadas pelo nome desta solicitação.</p>
@@ -480,7 +503,8 @@ const FichaRecebimento = () => {
               {formData.produtos.map((item, index) => (
                 <div key={item.key} className="rounded-xl border p-3" style={{ borderColor: T.border, background: T.greenPale }}>
                   <p className="text-sm font-bold capitalize" style={{ color: T.charcoal }}>{index + 1}. {item.produto || "Produto por definir"}</p>
-                  <p className="mt-1 text-xs" style={{ color: T.muted }}>Qualidade: {item.qualidade || "Sem preferência indicada"} · Embalagem: {item.embalagem || "A combinar"} · Transporte: {item.transporte || "A combinar"}</p>
+                  <p className="mt-1 text-xs" style={{ color: T.muted }}>Quantidade: {item.quantidade ? `${item.quantidade} ${item.unidade}` : "A combinar"} · Qualidade: {item.qualidade || "A combinar"} · Embalagem: {item.embalagem || "A combinar"} · Transporte: {item.transporte || "A combinar"}</p>
+                  {item.detalhes && <p className="mt-1 whitespace-pre-wrap text-xs" style={{ color: T.muted }}>{item.detalhes}</p>}
                 </div>
               ))}
             </div>
