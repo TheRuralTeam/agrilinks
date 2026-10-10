@@ -76,6 +76,12 @@ serve(async (req: Request) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 
+  // The Supabase gateway verifies the token, but the anon key is also a valid
+  // JWT. Require a real authenticated user before processing any weather query.
+  if (!hasAuthenticatedUser(req)) {
+    return jsonResponse({ error: "Inicie sessão na AgriLink para utilizar este serviço." }, 401);
+  }
+
   try {
     const body = await req.json().catch(() => null);
     if (!body || typeof body !== "object" || Array.isArray(body)) {
