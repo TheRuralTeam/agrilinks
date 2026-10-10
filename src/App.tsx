@@ -48,6 +48,7 @@ const FreightLoadScan = lazy(() => import("./pages/FreightLoadScan"));
 const P2PBeneficiary = lazy(() => import("./pages/P2PBeneficiary"));
 const AgroInteligencia = lazy(() => import("./pages/AgroInteligencia"));
 const AgroSatelite = lazy(() => import("./pages/AgroSatelite"));
+const AgroNDVI = lazy(() => import("./pages/AgroNDVI"));
 
 const queryClient = new QueryClient();
 
@@ -180,6 +181,17 @@ const AppRoutes = () => {
             <ProtectedRoute>
               <AppLayout>
                 <AgroSatelite />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/agro-ndvi"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <AgroNDVI />
               </AppLayout>
             </ProtectedRoute>
           }
