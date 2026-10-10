@@ -21,11 +21,11 @@ Esta branch deriva de `feat/agro-intelligence-foundation` para reutilizar os ser
 
 1. O serviço `agro-weather` precisa de ser implantado no ambiente de teste e do segredo comercial `OPEN_METEO_API_KEY`. Sem isso, o painel deve apresentar indisponibilidade em vez de dados inventados.
 2. A função valida a sessão com Supabase Auth e aplica limite atómico de 30 consultas por utilizador em 15 minutos, usando `public.consume_api_rate_limit` através de `service_role`. Se a verificação do limite falhar, o pedido é recusado (fail closed); a chave `service_role` nunca é enviada ao frontend.
-2. O painel consulta a fonte a cada 15 minutos; isto é uma frequência de consulta, não uma promessa de que o modelo meteorológico se actualiza a cada 15 minutos. A hora de consulta fica visível.
-3. OSRM público fornece cálculo de trajecto, não tráfego em tempo real. A integração de trânsito exige escolher e validar um fornecedor com cobertura real em Angola, termos de utilização, limites e credenciais. Não foi adicionado um falso indicador de congestionamento.
-4. A posição de um motorista só pode ser considerada em tempo real se a aplicação do motorista enviar coordenadas durante uma entrega activa, com permissões e políticas RLS verificadas. Esta branch reutiliza a leitura Realtime existente; não altera o esquema nem cria um novo emissor GPS.
-5. Humidade do solo requer sensor ou fonte específica; humidade relativa do ar não é humidade do solo.
-6. O catálogo de satélite é metadata de cenas. O NDVI piloto existente usa Sentinel Hub e uma área aproximada em torno de um ponto; não deve ser apresentado como diagnóstico de doença, rendimento ou humidade do solo.
+3. O painel consulta a fonte a cada 15 minutos; isto é uma frequência de consulta, não uma promessa de que o modelo meteorológico se actualiza a cada 15 minutos. A hora de consulta fica visível.
+4. OSRM público fornece cálculo de trajecto, não tráfego em tempo real. A integração de trânsito exige escolher e validar um fornecedor com cobertura real em Angola, termos de utilização, limites e credenciais. Não foi adicionado um falso indicador de congestionamento.
+5. A posição de um motorista só pode ser considerada em tempo real se a aplicação do motorista enviar coordenadas durante uma entrega activa, com permissões e políticas RLS verificadas. Esta branch reutiliza a leitura Realtime existente; não altera o esquema nem cria um novo emissor GPS.
+6. Humidade do solo requer sensor ou fonte específica; humidade relativa do ar não é humidade do solo.
+7. O catálogo de satélite é metadata de cenas. O NDVI piloto existente usa Sentinel Hub e uma área aproximada em torno de um ponto; não deve ser apresentado como diagnóstico de doença, rendimento ou humidade do solo.
 
 ## Próximas fases recomendadas
 
