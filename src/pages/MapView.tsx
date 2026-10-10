@@ -1011,6 +1011,17 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
     }
   }, [userLocation]);
 
+  // When tracking an active freight load, prefer the driver's latest persisted GPS
+  // position over the product's static pickup/location coordinates for local weather.
+  const trackedWeatherLocation = useMemo(() => {
+    if (!trackedProduct) return null;
+    const freight = freightLoads.find((load) => load.product_id === trackedProduct.id);
+    const location = freight ? freightLocations[freight.id] : undefined;
+    return location
+      ? { latitude: location.latitude, longitude: location.longitude }
+      : null;
+  }, [trackedProduct, freightLoads, freightLocations]);
+
   /* ── Error screen ───────────────────────────────────────────────────────── */
   if (mapError)
     return (
@@ -1913,17 +1924,19 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
       </div>
       <MapWeatherPanel
         coordinates={
-          trackedProduct?.location_lat != null && trackedProduct?.location_lng != null
-            ? { latitude: trackedProduct.location_lat, longitude: trackedProduct.location_lng }
-            : selectedProduct?.location_lat != null && selectedProduct?.location_lng != null
-              ? { latitude: selectedProduct.location_lat, longitude: selectedProduct.location_lng }
-              : flyTarget
-                ? { latitude: flyTarget.lat, longitude: flyTarget.lng }
-                : userLocation
-                  ? { latitude: userLocation[1], longitude: userLocation[0] }
-                  : null
+          trackedWeatherLocation
+            ? trackedWeatherLocation
+            : trackedProduct?.location_lat != null && trackedProduct?.location_lng != null
+              ? { latitude: trackedProduct.location_lat, longitude: trackedProduct.location_lng }
+              : selectedProduct?.location_lat != null && selectedProduct?.location_lng != null
+                ? { latitude: selectedProduct.location_lat, longitude: selectedProduct.location_lng }
+                : flyTarget
+                  ? { latitude: flyTarget.lat, longitude: flyTarget.lng }
+                  : userLocation
+                    ? { latitude: userLocation[1], longitude: userLocation[0] }
+                    : null
         }
-        locationLabel={trackedProduct?.product_type || selectedProduct?.product_type || (flyTarget ? 'Localização seleccionada no mapa' : userLocation ? 'A sua localização' : 'Sem localização')}
+        locationLabel={trackedWeatherLocation ? 'Última posição GPS do motorista' : trackedProduct?.product_type || selectedProduct?.product_type || (flyTarget ? 'Localização seleccionada no mapa' : userLocation ? 'A sua localização' : 'Sem localização')}
         isOnline={isOnline}
       />
       <SatelliteMonitor />
