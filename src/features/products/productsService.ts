@@ -47,19 +47,29 @@ export const fetchProductsFeed = async ({
   if (!productsData?.length) return []
 
   const productIds = productsData.map((p) => p.id)
-  const { data: myLikes, error: likesError } = userId
-    ? await supabase.from('product_likes').select('product_id').eq('user_id', userId).in('product_id', productIds)
-    : { data: [], error: null }
+  const userIds = [...new Set(productsData.map((product) => product.user_id).filter(Boolean))]
+  const [{ data: publicProfiles, error: profilesError }, { data: myLikes, error: likesError }] = await Promise.all([
+    userIds.length
+      ? supabase.from('public_user_profiles').select('id, verified').in('id', userIds)
+      : Promise.resolve({ data: [] as { id: string; verified: boolean | null }[], error: null }),
+    userId
+      ? supabase.from('product_likes').select('product_id').eq('user_id', userId).in('product_id', productIds)
+      : Promise.resolve({ data: [], error: null }),
+  ])
 
+  if (profilesError) throw profilesError
   if (likesError) throw likesError
 
+  const verifiedByUserId = new Map<string, boolean>(
+    (publicProfiles || []).map((profile): [string, boolean] => [profile.id, profile.verified === true]),
+  )
   const likedProductIds = new Set((myLikes || []).map((like) => like.product_id))
 
   return productsData.map((product) => ({
     ...product,
     likes_count: Number(product.likes_count || 0),
     is_liked: likedProductIds.has(product.id),
-    user_verified: false,
+    user_verified: verifiedByUserId.get(product.user_id) ?? false,
     comments: [],
   }))
 }
@@ -85,16 +95,20 @@ export const fetchProductById = async (productId: string, userId?: string) => {
   if (error) throw error
   if (!product) return null
 
-  const likesResult = userId
-    ? await supabase.from('product_likes').select('id').eq('product_id', productId).eq('user_id', userId).maybeSingle()
-    : { data: null, error: null }
+  const [{ data: publicProfile, error: profileError }, likesResult] = await Promise.all([
+    supabase.from('public_user_profiles').select('verified').eq('id', product.user_id).maybeSingle(),
+    userId
+      ? supabase.from('product_likes').select('id').eq('product_id', productId).eq('user_id', userId).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ])
 
+  if (profileError) throw profileError
   if (likesResult.error) throw likesResult.error
 
   return {
     ...product,
     farmer_name: product.farmer_name || 'Fornecedor',
-    user_verified: false,
+    user_verified: Boolean(publicProfile?.verified),
     likes_count: Number(product.likes_count || 0),
     is_liked: Boolean(likesResult.data),
     comments: [],
