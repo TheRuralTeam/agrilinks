@@ -84,8 +84,8 @@ self.addEventListener('push', (event) => {
   let notificationData = {
     title: 'Notificação AgriLink',
     body: 'Você tem uma nova notificação',
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
+    icon: '/agrilink-icon.svg',
+    badge: '/agrilink-icon.svg',
     tag: 'agrilink-notification',
     data: {},
     actions: [
