@@ -491,6 +491,7 @@ const Messages = () => {
       return;
     }
     setIsSending(true);
+    const messageId = crypto.randomUUID();
     try {
       const filesData = [];
       for (const file of selectedFiles) {
@@ -505,6 +506,7 @@ const Messages = () => {
       const plainContent = newMessage.trim() || (filesData.length > 0 ? `📎 ${filesData.length} arquivo(s)` : "");
       const encryptedContent = await encryptChatMessage(plainContent, id, user.id, conversation.participant_id);
       const { data, error } = await supabase.from("messages").insert([{
+        id: messageId,
         conversation_id: id, sender_id: user.id, receiver_id: conversation.participant_id,
         content: encryptedContent, read: false, files: filesData.length > 0 ? filesData : undefined
       }]).select().single();
@@ -515,11 +517,9 @@ const Messages = () => {
       setSelectedFiles([]);
     } catch (err) {
       console.error("Erro ao enviar mensagem segura:", err);
-      const errorText = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
-      const networkFailure = !navigator.onLine || /failed to fetch|networkerror|network request failed|load failed|fetch failed|internet disconnected|err_internet_disconnected|timeout/.test(errorText);
-      if (networkFailure && user && conversation?.participant_id && id && newMessage.trim()) {
+      if (user && conversation?.participant_id && id && newMessage.trim()) {
         const queued: PendingMessage = {
-          id: crypto.randomUUID(),
+          id: messageId,
           conversation_id: id,
           sender_id: user.id,
           receiver_id: conversation.participant_id,
@@ -532,7 +532,12 @@ const Messages = () => {
           await savePendingMessage(queued);
           setMessages((previous) => [...previous.filter((message) => message.id !== queued.id), queued as Message]);
           setNewMessage("");
-          toast({ title: "Mensagem guardada", description: "Será enviada automaticamente quando a Internet regressar." });
+          toast({
+            title: "Mensagem guardada para reenvio",
+            description: navigator.onLine
+              ? "A mensagem ficou protegida no dispositivo e será tentada novamente automaticamente."
+              : "Será enviada automaticamente quando a Internet regressar.",
+          });
           return;
         } catch (queueError) {
           console.error("Falha ao guardar a mensagem offline:", queueError);
