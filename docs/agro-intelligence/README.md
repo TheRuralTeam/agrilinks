@@ -6,7 +6,8 @@ Status: isolated foundation branch; **not enabled in production and not merged**
 
 1. Add an authenticated Supabase Edge Function, `agro-weather`, for a seven-day forecast through the licensed Open-Meteo customer API.
 2. Add an authenticated `agro-satellite-catalog` function to discover Sentinel-2 Level-2A optical scenes and Sentinel-1 GRD radar scenes through the Copernicus STAC catalog.
-3. Add `/agro-inteligencia` weather and `/agro-satelite` map-based catalog pages; link them from Market Data.
+3. Add `agro-ndvi`, using the Copernicus Sentinel Hub Statistical API to calculate Sentinel-2 NDVI statistics with SCL quality masking.
+4. Add `/agro-inteligencia` weather, `/agro-satelite` catalog and `/agro-ndvi` NDVI analysis pages; link them from Market Data.
 4. Restrict coordinates to Angola's approximate geographic bounding box, validate input, bound upstream latency and return safe errors.
 5. Document satellite processing, commercial API credentials and the risks in the existing `SatelliteMonitor` without changing that component.
 
@@ -18,7 +19,8 @@ A reliable weather forecast is useful before adding satellite analytics, and can
 
 - Web/mobile client calls Supabase Edge Functions using the authenticated Supabase session. Both new endpoints additionally inspect the gateway-verified JWT claims and reject the Supabase anon role; the pages are protected routes.
 - Weather uses `https://customer-api.open-meteo.com/v1/forecast` and requires the Supabase secret `OPEN_METEO_API_KEY`. The free public endpoint is not appropriate to assume for a commercial marketplace. Do not enable the weather feature in a commercial environment until the correct plan, key and terms are confirmed.
-- Satellite catalog search uses the public Copernicus Data Space STAC endpoint; it returns Sentinel-2 optical or Sentinel-1 radar scene metadata and available preview assets, not computed NDVI.
+- Satellite catalog search uses the public Copernicus Data Space STAC endpoint and returns Sentinel-2 optical or Sentinel-1 radar metadata and preview assets.
+- `agro-ndvi` uses Sentinel Hub Statistical API with OAuth credentials stored only as Supabase secrets (`CDSE_CLIENT_ID`, `CDSE_CLIENT_SECRET`), Sentinel-2 Level-2A B04/B08 bands, 10 m nominal resolution, 10-day intervals and an SCL-based mask. The pilot uses an approximately 1.1 km point-centred square, not the cadastral farm polygon.
 - Both functions validate coordinates, use fixed upstream URLs and never accept an arbitrary URL from clients.
 - Client displays source, timezone, forecast period and last retrieval time.
 - A later iteration may add server-side caching, quota/rate limiting, alert preferences and persisted user-owned farm parcels. These require separate schema/security review and should not be mixed into this first slice.
@@ -28,9 +30,10 @@ A reliable weather forecast is useful before adding satellite analytics, and can
 
 1. Confirm the appropriate Open-Meteo commercial subscription and API key.
 2. Configure `OPEN_METEO_API_KEY` as a Supabase Edge Function secret in the target development/preview project, not in frontend code or Git.
-3. Deploy only the two new Edge Functions to a non-production Supabase environment and test authenticated calls, CORS, timeouts and provider errors.
-4. Confirm the Copernicus STAC endpoint, returned asset URLs and commercial reuse/attribution conditions before exposing previews broadly.
-5. Do not run database migrations for this slice; it does not persist farm polygons or satellite assets.
+3. Create a Sentinel Hub OAuth client in Copernicus Data Space and configure `CDSE_CLIENT_ID` and `CDSE_CLIENT_SECRET` as Supabase Edge Function secrets. Never place them in frontend code or Git.
+4. Deploy the three new Edge Functions to a non-production Supabase environment and test authenticated calls, CORS, timeouts, API quotas and provider errors.
+5. Confirm the Copernicus STAC endpoint, returned asset URLs and service terms before exposing previews broadly.
+6. Do not run database migrations for this slice; it does not persist farm polygons or satellite assets.
 
 ## Multi-source roadmap (incremental, with source-specific licensing)
 
@@ -49,11 +52,11 @@ Do not enable every source at once. Implement source adapters with common metada
 
 ## Satellite roadmap
 
-1. **Discovery prototype:** Copernicus Data Space Ecosystem STAC catalog; query Sentinel-2 Level-2A optical and Sentinel-1 GRD radar scenes by area and date window. The current pilot uses a small bounding box around a selected point; parcel polygons are a later phase.
-2. **Processing:** calculate NDVI from red/NIR bands using cloud/shadow masks; retain acquisition date, scene ID, processing version, cloud cover and quality flags.
-3. **Storage:** persist parcel geometry and analysis metadata under strict RLS; store generated raster/thumbnail assets separately with controlled access.
-4. **Interpretation:** show vegetation-change trends only when enough valid observations exist. NDVI is a vegetation-vigor indicator, not a direct diagnosis of pests, disease, yield or irrigation need.
-5. **Validation:** compare satellite indicators with field observations before creating farmer-facing recommendations.
+1. **Discovery prototype:** Copernicus STAC catalog for Sentinel-2 optical and Sentinel-1 radar scenes.
+2. **NDVI statistics prototype:** implemented via Sentinel Hub Statistical API using B04/B08, SCL cloud/shadow/water masking, nominal 10 m resolution and 10-day intervals. It uses a point-centred box; exact parcel boundaries remain future work.
+3. **Validation:** test masked pixels, missing intervals and known sample locations, then compare indicators with field observations before farmer-facing recommendations.
+4. **Storage:** persist parcel geometry and analysis metadata under strict RLS when a separate migration is reviewed.
+5. **Interpretation:** NDVI is a vegetation-vigor indicator, not a direct diagnosis of pests, disease, yield or irrigation need.
 
 Official sources:
 - Open-Meteo forecast API and commercial access: https://open-meteo.com/en/docs
