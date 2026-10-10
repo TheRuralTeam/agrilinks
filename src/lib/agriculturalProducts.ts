@@ -12,7 +12,7 @@ export const AGRICULTURAL_PRODUCT_GROUPS = [
   },
   {
     label: "Feijões, leguminosas e oleaginosas",
-    products: ["Feijão manteiga", "Feijão catarino", "Feijão macunde", "Feijão-nhemba", "Feijão-frade", "Feijão vermelho", "Feijão preto", "Feijão branco", "Feijão seco", "Feijão-verde", "Soja", "Amendoim (ginguba)", "Gergelim", "Girassol", "Ervilha", "Fava"],
+    products: ["Feijão manteiga", "Feijão catarino", "Feijão macunde", "Feijão-nhemba", "Feijão-frade", "Feijão vermelho", "Feijão preto", "Feijão branco", "Feijão seco", "Soja", "Amendoim (ginguba)", "Gergelim", "Girassol", "Ervilha", "Fava"],
   },
   {
     label: "Raízes, tubérculos e derivados",
