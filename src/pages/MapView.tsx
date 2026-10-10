@@ -129,7 +129,7 @@ interface FilterOptions {
   radius: number;
 }
 
-type RouteInfo = { coords: [number, number][]; km: number; mins: number | null };
+type RouteInfo = { coords: [number, number][]; km: number | null; mins: number | null };
 
 /* ─── Retry helper genérico com backoff exponencial ─────────────────────────── */
 async function retryWithBackoff<T>(
@@ -945,9 +945,9 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
           p.location_lng!,
         ]);
         if (cancelled) return;
-        const km = distance != null ? distance / 1000 : distanceKm(userLocation, [p.location_lng!, p.location_lat!]);
+        const km = distance != null ? Math.round((distance / 1000) * 10) / 10 : null;
         const mins = duration != null ? Math.max(1, Math.round(duration / 60)) : null;
-        acc[p.id] = { coords, km: Math.round(km * 10) / 10, mins };
+        acc[p.id] = { coords, km, mins };
         setAllRoutes({ ...acc });
       }
     })();
@@ -1141,7 +1141,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
                 eventHandlers={{ click: () => product && setSelectedProduct(product) }}
               >
                 <Tooltip sticky direction="top" className="al-route-tip">
-                  {route.km.toFixed(1)} km · {route.mins ? formatDuration(route.mins * 60) : '—'}
+                  {route.km != null ? `${route.km.toFixed(1)} km` : 'Rota indisponível'} · {route.mins ? formatDuration(route.mins * 60) : '—'}
                 </Tooltip>
               </Polyline>
             );
@@ -1917,11 +1917,13 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
             ? { latitude: trackedProduct.location_lat, longitude: trackedProduct.location_lng }
             : selectedProduct?.location_lat != null && selectedProduct?.location_lng != null
               ? { latitude: selectedProduct.location_lat, longitude: selectedProduct.location_lng }
-              : userLocation
-                ? { latitude: userLocation[1], longitude: userLocation[0] }
-                : null
+              : flyTarget
+                ? { latitude: flyTarget.lat, longitude: flyTarget.lng }
+                : userLocation
+                  ? { latitude: userLocation[1], longitude: userLocation[0] }
+                  : null
         }
-        locationLabel={trackedProduct?.product_type || selectedProduct?.product_type || (userLocation ? 'A sua localização' : 'Sem localização')}
+        locationLabel={trackedProduct?.product_type || selectedProduct?.product_type || (flyTarget ? 'Localização seleccionada no mapa' : userLocation ? 'A sua localização' : 'Sem localização')}
         isOnline={isOnline}
       />
       <SatelliteMonitor />
