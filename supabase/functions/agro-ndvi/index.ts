@@ -15,7 +15,7 @@ function setup() {
 function evaluatePixel(s) {
   var denominator = s.B08 + s.B04;
   var cls = s.SCL;
-  var invalid = cls === 1 || cls === 2 || cls === 3 || cls === 6 ||
+  var invalid = cls === 1 || cls === 2 || cls === 3 || cls === 6 || cls === 7 ||
     cls === 8 || cls === 9 || cls === 10 || cls === 11;
   var valid = s.dataMask === 1 && denominator > 0 && !invalid;
   var ndvi = denominator > 0 ? (s.B08 - s.B04) / denominator : 0;
