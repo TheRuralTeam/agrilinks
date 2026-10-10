@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { supabase } from "../integrations/supabase/client";
+import { AGRICULTURAL_PRODUCT_GROUPS } from "../lib/agriculturalProducts";
 import { toast } from "sonner";
 import { useCanAct } from "../hooks/useCanAct";
 import { useAuth } from "../contexts/AuthContext";
@@ -49,10 +50,7 @@ const FichaRecebimento = () => {
   const [formData, setFormData] = useState({
     nomeFicha: "",
     tipoNegocio: "",
-    produto: "",
-    qualidade: "",
-    embalagem: "",
-    transporte: "",
+    produtos: [{ key: crypto.randomUUID(), produto: "", quantidade: "", unidade: "kg", qualidade: "", embalagem: "", transporte: "", detalhes: "" }],
     locaisEntrega: [] as {
       descricao: string;
       coordenadas: { lat: number; lng: number } | null;
@@ -95,7 +93,8 @@ const FichaRecebimento = () => {
       case 0:
         return formData.nomeFicha.trim() && formData.tipoNegocio;
       case 1:
-        return formData.produto;
+        return formData.produtos.length > 0 && formData.produtos.every((item) => item.produto.trim().length > 0)
+          && new Set(formData.produtos.map((item) => item.produto.trim().toLocaleLowerCase("pt-AO"))).size === formData.produtos.length;
       case 2:
         return true; // delivery locations are optional
       case 3:
@@ -124,31 +123,38 @@ const FichaRecebimento = () => {
         return;
       }
 
-      const { data: insertedFicha, error } = await supabase.from("fichas_recebimento").insert([
-        {
-          user_id: user.id,
-          nome_ficha: formData.nomeFicha,
-          tipo_negocio: formData.tipoNegocio,
-          produto: formData.produto,
-          qualidade: formData.qualidade,
-          embalagem: formData.embalagem,
-          transporte: formData.transporte,
-          locais_entrega: formData.locaisEntrega,
-          telefone: formData.telefone,
-          descricao_final: formData.descricaoFinal,
-          observacoes: formData.observacoes,
-        },
-      ]).select('id').single();
+      const payload = formData.produtos.map((item) => ({
+        user_id: user.id,
+        nome_ficha: formData.nomeFicha.trim(),
+        tipo_negocio: formData.tipoNegocio,
+        produto: item.produto.trim(),
+        qualidade: item.qualidade.trim(),
+        embalagem: item.embalagem,
+        transporte: item.transporte,
+        locais_entrega: formData.locaisEntrega,
+        telefone: formData.telefone.trim(),
+        descricao_final: [
+          item.quantidade.trim() ? `Quantidade pretendida: ${item.quantidade.trim()} ${item.unidade}` : "",
+          item.detalhes.trim() ? `Especificações adicionais para ${item.produto.trim()}: ${item.detalhes.trim()}` : "",
+          formData.descricaoFinal.trim() ? `Requisitos gerais do pedido: ${formData.descricaoFinal.trim()}` : "",
+        ].filter(Boolean).join("\n\n"),
+        observacoes: formData.observacoes.trim(),
+      }));
+      const { data: insertedFichas, error } = await supabase
+        .from("fichas_recebimento")
+        .insert(payload)
+        .select("id");
       if (error) throw error;
 
-      // Trigger AI verification against existing products (fire-and-forget)
-      if (insertedFicha?.id) {
-        supabase.functions.invoke('verify-product-ficha', {
-          body: { ficha_id: insertedFicha.id },
-        }).catch((e) => console.error('verify error', e));
+      // Cada produto tem a sua ficha e especificações próprias.
+      // A verificação é iniciada individualmente, sem bloquear a submissão do grupo.
+      for (const ficha of insertedFichas || []) {
+        void supabase.functions.invoke("verify-product-ficha", {
+          body: { ficha_id: ficha.id },
+        }).catch((e) => console.error("Erro ao verificar ficha:", e));
       }
 
-      toast.success("Ficha de recebimento criada com sucesso!");
+      toast.success(`${payload.length} ficha(s) criada(s) no grupo “${formData.nomeFicha.trim()}”.`);
       navigate(-1);
     } catch (err) {
       console.error(err);
@@ -217,93 +223,118 @@ const FichaRecebimento = () => {
       case 1:
         return (
           <div className="space-y-5">
-            <div>
-              <Label className="text-sm font-bold mb-2 block" style={{ color: T.charcoal }}>
-                Produto Principal *
-              </Label>
-              <Select
-                value={formData.produto}
-                onValueChange={(v) => setFormData({ ...formData, produto: v })}
-              >
-                <SelectTrigger className="h-12 text-base" style={{ borderColor: T.border }}>
-                  <SelectValue placeholder="Selecione o produto" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[
-                    "Batata", "Mandioca", "Inhame", "Alface", "Couve", "Espinafre",
-                    "Manga", "Banana", "Laranja", "Milho", "Feijão", "Arroz",
-                    "Trigo", "Carne Bovina", "Carne Suína", "Frango", "Peixe",
-                  ].map((p) => (
-                    <SelectItem key={p.toLowerCase()} value={p.toLowerCase()}>
-                      {p}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="rounded-xl border p-3 text-sm" style={{ background: T.greenPale, borderColor: T.border, color: T.charcoal }}>
+              Adicione todos os produtos que pretende comprar. Cada produto terá a sua própria ficha, qualidade, embalagem e transporte, mas ficará organizado no mesmo grupo para a equipa AgriLink.
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm font-bold mb-2 block" style={{ color: T.charcoal }}>
-                  Padrões de Qualidade
-                </Label>
-                <Input
-                  placeholder="Ex.: Fresco, sem defeitos"
-                  value={formData.qualidade}
-                  onChange={(e) => setFormData({ ...formData, qualidade: e.target.value })}
-                  className="h-12"
-                  style={{ borderColor: T.border }}
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-bold mb-2 block" style={{ color: T.charcoal }}>
-                  Embalagem
-                </Label>
-                <Select
-                  value={formData.embalagem}
-                  onValueChange={(v) => setFormData({ ...formData, embalagem: v })}
-                >
-                  <SelectTrigger className="h-12" style={{ borderColor: T.border }}>
-                    <SelectValue placeholder="Tipo de embalagem" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[
-                      { v: "saco30", l: "Saco 30kg" },
-                      { v: "saco50", l: "Saco 50kg" },
-                      { v: "saco1t", l: "Saco 1 ton" },
-                      { v: "cesta10", l: "Cesta 10kg" },
-                      { v: "caixa20", l: "Caixa 20kg" },
-                      { v: "vacuo", l: "Embalagem a vácuo" },
-                      { v: "granel", l: "A granel" },
-                    ].map((o) => (
-                      <SelectItem key={o.v} value={o.v}>
-                        {o.l}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-sm font-bold mb-2 block" style={{ color: T.charcoal }}>
-                Transporte Preferido
-              </Label>
-              <Select
-                value={formData.transporte}
-                onValueChange={(v) => setFormData({ ...formData, transporte: v })}
-              >
-                <SelectTrigger className="h-12" style={{ borderColor: T.border }}>
-                  <SelectValue placeholder="Selecione o transporte" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="proprio">Próprio</SelectItem>
-                  <SelectItem value="terceiros">Terceiros</SelectItem>
-                  <SelectItem value="agrilink">Via AgriLink</SelectItem>
-                  <SelectItem value="combinar">A combinar</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {formData.produtos.map((item, index) => {
+              const updateProduct = (field: "produto" | "quantidade" | "unidade" | "qualidade" | "embalagem" | "transporte" | "detalhes", value: string) => {
+                setFormData((prev) => ({ ...prev, produtos: prev.produtos.map((product) => product.key === item.key ? { ...product, [field]: value } : product) }));
+              };
+              const selectedNames = formData.produtos.filter((p) => p.key !== item.key).map((p) => p.produto.trim().toLocaleLowerCase("pt-AO"));
+              const query = item.produto.trim().toLocaleLowerCase("pt-AO");
+              const matches = AGRICULTURAL_PRODUCT_GROUPS.map((group) => ({
+                ...group,
+                products: group.products.filter((name) => name.toLocaleLowerCase("pt-AO").includes(query) && !selectedNames.includes(name.toLocaleLowerCase("pt-AO"))),
+              })).filter((group) => group.products.length > 0);
+              return (
+                <div key={item.key} className="space-y-4 rounded-2xl border p-4" style={{ borderColor: T.border, background: T.white }}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-extrabold" style={{ color: T.charcoal }}>Produto {index + 1}</p>
+                      <p className="text-xs" style={{ color: T.muted }}>Especificações independentes</p>
+                    </div>
+                    {formData.produtos.length > 1 && (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setFormData((prev) => ({ ...prev, produtos: prev.produtos.filter((p) => p.key !== item.key) }))} aria-label={`Remover produto ${index + 1}`}>
+                        <X size={15} className="mr-1" /> Remover
+                      </Button>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-sm font-bold" style={{ color: T.charcoal }}>Pesquisar produto *</Label>
+                    <Input
+                      value={item.produto}
+                      onChange={(e) => updateProduct("produto", e.target.value)}
+                      placeholder="Escreva para pesquisar: milho, mandioca, tomate…"
+                      role="combobox"
+                      aria-expanded={matches.length > 0}
+                      aria-label={`Pesquisar produto ${index + 1}`}
+                      className="h-12 text-base"
+                      style={{ borderColor: T.border }}
+                    />
+                    {matches.length > 0 && (
+                      <div className="mt-2 max-h-56 overflow-y-auto rounded-xl border bg-white p-2" style={{ borderColor: T.border }}>
+                        {matches.map((group) => (
+                          <div key={group.label} className="mb-2 last:mb-0">
+                            <p className="px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider" style={{ color: T.muted }}>{group.label}</p>
+                            <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                              {group.products.slice(0, 16).map((name) => (
+                                <button type="button" key={name} onClick={() => updateProduct("produto", name)} className="rounded-lg px-2.5 py-2 text-left text-sm hover:bg-[#E8F5E9] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#2c863b]" style={{ color: T.charcoal }}>
+                                  {name}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {item.produto.trim() && !AGRICULTURAL_PRODUCT_GROUPS.some((group) => group.products.some((name) => name.toLocaleLowerCase("pt-AO") === query)) && (
+                      <p className="mt-2 text-xs" style={{ color: T.muted }}>Não encontrou? Pode escrever o nome completo do produto; a AgriLink receberá o pedido com essa designação.</p>
+                    )}
+                    {selectedNames.includes(query) && query && <p className="mt-1 text-xs text-red-600">Este produto já está na lista. Escolha outro produto ou remova a duplicação.</p>}
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label className="mb-2 block text-sm font-bold" style={{ color: T.charcoal }}>Quantidade pretendida</Label>
+                      <Input type="number" min="0.01" step="0.01" inputMode="decimal" placeholder="Ex.: 500" value={item.quantidade} onChange={(e) => updateProduct("quantidade", e.target.value)} className="h-12" style={{ borderColor: T.border }} />
+                    </div>
+                    <div>
+                      <Label className="mb-2 block text-sm font-bold" style={{ color: T.charcoal }}>Unidade</Label>
+                      <Select value={item.unidade} onValueChange={(v) => updateProduct("unidade", v)}>
+                        <SelectTrigger className="h-12" style={{ borderColor: T.border }}><SelectValue placeholder="Unidade de medida" /></SelectTrigger>
+                        <SelectContent>
+                          {[{v:"kg",l:"Quilogramas (kg)"},{v:"t",l:"Toneladas (t)"},{v:"sacos",l:"Sacos"},{v:"caixas",l:"Caixas"},{v:"unidades",l:"Unidades"},{v:"litros",l:"Litros"},{v:"cestos",l:"Cestos"},{v:"molhos",l:"Molhos"}].map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                      <Label className="mb-2 block text-sm font-bold" style={{ color: T.charcoal }}>Padrões de qualidade</Label>
+                      <Input placeholder="Ex.: calibre, maturação, frescura…" value={item.qualidade} onChange={(e) => updateProduct("qualidade", e.target.value)} className="h-12" style={{ borderColor: T.border }} />
+                    </div>
+                    <div>
+                      <Label className="mb-2 block text-sm font-bold" style={{ color: T.charcoal }}>Embalagem</Label>
+                      <Select value={item.embalagem} onValueChange={(v) => updateProduct("embalagem", v)}>
+                        <SelectTrigger className="h-12" style={{ borderColor: T.border }}><SelectValue placeholder="Tipo de embalagem" /></SelectTrigger>
+                        <SelectContent>
+                          {[{v:"saco10",l:"Saco 10 kg"},{v:"saco25",l:"Saco 25 kg"},{v:"saco30",l:"Saco 30 kg"},{v:"saco50",l:"Saco 50 kg"},{v:"saco1t",l:"Saco de 1 tonelada"},{v:"cesta10",l:"Cesta 10 kg"},{v:"caixa5",l:"Caixa 5 kg"},{v:"caixa10",l:"Caixa 10 kg"},{v:"caixa20",l:"Caixa 20 kg"},{v:"vacuo",l:"Embalagem a vácuo"},{v:"rede",l:"Rede"},{v:"garrafa",l:"Garrafa"},{v:"bidon",l:"Bidão"},{v:"granel",l:"A granel"},{v:"outro",l:"Outra (indicar nas observações)"}].map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-sm font-bold" style={{ color: T.charcoal }}>Especificações adicionais deste produto</Label>
+                    <Textarea rows={3} placeholder="Ex.: milho seco, humidade máxima, calibre, maturação, origem ou certificação…" value={item.detalhes} onChange={(e) => updateProduct("detalhes", e.target.value)} style={{ borderColor: T.border }} />
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-sm font-bold" style={{ color: T.charcoal }}>Transporte preferido</Label>
+                    <Select value={item.transporte} onValueChange={(v) => updateProduct("transporte", v)}>
+                      <SelectTrigger className="h-12" style={{ borderColor: T.border }}><SelectValue placeholder="Selecione o transporte" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="proprio">Transporte próprio</SelectItem>
+                        <SelectItem value="terceiros">Transportadora / terceiros</SelectItem>
+                        <SelectItem value="agrilink">Via AgriLink</SelectItem>
+                        <SelectItem value="combinar">A combinar</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              );
+            })}
+            <Button type="button" variant="outline" className="h-12 w-full" style={{ borderColor: T.border, color: T.green }} onClick={() => setFormData((prev) => ({ ...prev, produtos: [...prev.produtos, { key: crypto.randomUUID(), produto: "", quantidade: "", unidade: "kg", qualidade: "", embalagem: "", transporte: "", detalhes: "" }] }))}>
+              <Plus size={16} className="mr-2" /> Adicionar outro produto
+            </Button>
+            <p className="text-xs" style={{ color: T.muted }}>Pode adicionar vários produtos. Cada ficha será guardada separadamente e todas ficarão agrupadas pelo nome desta solicitação.</p>
           </div>
         );
 
@@ -450,10 +481,7 @@ const FichaRecebimento = () => {
             {[
               { label: "Nome da Ficha", value: formData.nomeFicha },
               { label: "Tipo de Negócio", value: formData.tipoNegocio },
-              { label: "Produto", value: formData.produto },
-              { label: "Qualidade", value: formData.qualidade || "—" },
-              { label: "Embalagem", value: formData.embalagem || "—" },
-              { label: "Transporte", value: formData.transporte || "—" },
+              { label: "Quantidade de produtos", value: String(formData.produtos.length) },
               { label: "Telefone", value: formData.telefone || "—" },
             ].map((item) => (
               <div
@@ -470,6 +498,16 @@ const FichaRecebimento = () => {
               </div>
             ))}
 
+            <div className="space-y-2">
+              <p className="text-sm font-extrabold" style={{ color: T.charcoal }}>Produtos e especificações</p>
+              {formData.produtos.map((item, index) => (
+                <div key={item.key} className="rounded-xl border p-3" style={{ borderColor: T.border, background: T.greenPale }}>
+                  <p className="text-sm font-bold capitalize" style={{ color: T.charcoal }}>{index + 1}. {item.produto || "Produto por definir"}</p>
+                  <p className="mt-1 text-xs" style={{ color: T.muted }}>Quantidade: {item.quantidade ? `${item.quantidade} ${item.unidade}` : "A combinar"} · Qualidade: {item.qualidade || "A combinar"} · Embalagem: {item.embalagem || "A combinar"} · Transporte: {item.transporte || "A combinar"}</p>
+                  {item.detalhes && <p className="mt-1 whitespace-pre-wrap text-xs" style={{ color: T.muted }}>{item.detalhes}</p>}
+                </div>
+              ))}
+            </div>
             {formData.locaisEntrega.length > 0 && (
               <div>
                 <p className="text-sm font-bold mb-2" style={{ color: T.charcoal }}>

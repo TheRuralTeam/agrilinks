@@ -922,6 +922,18 @@ const AdminDashboard = () => {
   const filteredProducts = useMemo(() => products.filter((p) => p.product_type.toLowerCase().includes(searchTerm.toLowerCase())), [products, searchTerm]);
   const filteredUsers = useMemo(() => users.filter((u) => (u.full_name || "").toLowerCase().includes(searchTerm.toLowerCase())), [users, searchTerm]);
   const filteredFichas = useMemo(() => fichas.filter((f) => f.nome_ficha.toLowerCase().includes(searchTerm.toLowerCase()) || f.produto.toLowerCase().includes(searchTerm.toLowerCase())), [fichas, searchTerm]);
+  // Um pedido com vários produtos é gravado num único INSERT; created_at é comum
+  // às fichas desse grupo. A chave também inclui utilizador e nome para isolar pedidos.
+  const groupedFilteredFichas = useMemo(() => {
+    const groups = new Map<string, { key: string; nome: string; userId: string; createdAt: string; items: Ficha[] }>();
+    for (const ficha of filteredFichas) {
+      const key = [ficha.user_id, ficha.nome_ficha, ficha.created_at || ""].join("::");
+      const existing = groups.get(key);
+      if (existing) existing.items.push(ficha);
+      else groups.set(key, { key, nome: ficha.nome_ficha, userId: ficha.user_id, createdAt: ficha.created_at || "", items: [ficha] });
+    }
+    return Array.from(groups.values());
+  }, [filteredFichas]);
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -1726,7 +1738,7 @@ const AdminDashboard = () => {
           <Card className="border-0 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" /> Fichas de Recebimento ({filteredFichas.length})
+                <FileText className="h-5 w-5 text-primary" /> Pedidos de Fichas ({groupedFilteredFichas.length} grupos · {filteredFichas.length} produtos)
               </CardTitle>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -1747,28 +1759,45 @@ const AdminDashboard = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredFichas.map((f) => (
-                    <TableRow key={f.id} className="hover:bg-gray-50/50 cursor-pointer" onClick={() => setSelectedFicha(f)}>
-                      <TableCell className="font-medium">{f.nome_ficha}</TableCell>
-                      <TableCell>{f.produto}</TableCell>
-                      <TableCell><Badge className={f.tipo_negocio === "compra" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}>{f.tipo_negocio}</Badge></TableCell>
-                      <TableCell>{f.qualidade || "-"}</TableCell>
-                      <TableCell>{f.telefone || "-"}</TableCell>
-                      <TableCell className="text-sm text-gray-500">{f.created_at ? new Date(f.created_at).toLocaleDateString("pt-BR") : "—"}</TableCell>
-                      <TableCell>
-  <div className="flex gap-1">
-    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); setSelectedFicha(f); }} aria-label="Ver ficha">
-      <Eye className="h-4 w-4" />
-    </Button>
-    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-primary" onClick={(e) => { e.stopPropagation(); void downloadFichaRecebimentoPdf({ ...f, user_name: users.find(u => u.id === f.user_id)?.full_name, user_phone: users.find(u => u.id === f.user_id)?.phone, user_email: users.find(u => u.id === f.user_id)?.email }); }} aria-label="Baixar ficha em PDF">
-      <Download className="h-4 w-4" />
-    </Button>
-    {(hasPermission("manage_orders") || hasPermission("manage_support")) && <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-600" onClick={(e) => { e.stopPropagation(); handleDelete("fichas_recebimento", f.id); }}>
-      <Trash2 className="h-4 w-4" />
-    </Button>}
-  </div>
-</TableCell>
-                    </TableRow>
+                  {groupedFilteredFichas.map((group) => (
+                    <React.Fragment key={group.key}>
+                      <TableRow className="bg-[#F4FAF5] hover:bg-[#F4FAF5]">
+                        <TableCell colSpan={7} className="border-t border-[#DCE8DE] py-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                              <div className="font-extrabold text-[#1C2B1E]">{group.nome}</div>
+                              <div className="mt-0.5 text-xs text-[#6B7C6E]">
+                                Solicitante: {users.find((u) => u.id === group.userId)?.full_name || "Utilizador"} · {group.items.length} produto(s) · {group.createdAt ? new Date(group.createdAt).toLocaleDateString("pt-AO") : "Data não indicada"}
+                              </div>
+                            </div>
+                            <Badge variant="outline" className="bg-white">{group.items.length} ficha(s) neste pedido</Badge>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      {group.items.map((f) => (
+                        <TableRow key={f.id} className="hover:bg-gray-50/50 cursor-pointer" onClick={() => setSelectedFicha(f)}>
+                          <TableCell className="pl-6 font-medium text-muted-foreground">↳ {f.nome_ficha}</TableCell>
+                          <TableCell className="font-semibold">{f.produto}</TableCell>
+                          <TableCell><Badge className={f.tipo_negocio === "compra" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}>{f.tipo_negocio}</Badge></TableCell>
+                          <TableCell>{f.qualidade || "-"}</TableCell>
+                          <TableCell>{f.telefone || "-"}</TableCell>
+                          <TableCell className="text-sm text-gray-500">{f.created_at ? new Date(f.created_at).toLocaleDateString("pt-AO") : "—"}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); setSelectedFicha(f); }} aria-label="Ver ficha">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-primary" onClick={(e) => { e.stopPropagation(); void downloadFichaRecebimentoPdf({ ...f, user_name: users.find(u => u.id === f.user_id)?.full_name, user_phone: users.find(u => u.id === f.user_id)?.phone, user_email: users.find(u => u.id === f.user_id)?.email }); }} aria-label="Baixar ficha em PDF">
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              {(hasPermission("manage_orders") || hasPermission("manage_support")) && <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-600" onClick={(e) => { e.stopPropagation(); handleDelete("fichas_recebimento", f.id); }}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </React.Fragment>
                   ))}
                 </TableBody>
               </Table>
