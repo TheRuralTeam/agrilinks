@@ -14,7 +14,9 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { supabase } from "../integrations/supabase/client";
-import { AGRICULTURAL_PRODUCT_GROUPS } from "../lib/agriculturalProducts";
+import { AGRICULTURAL_PRODUCT_GROUPS, AGRICULTURAL_PRODUCTS } from "../lib/agriculturalProducts";
+import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "../components/ui/command";
 import { toast } from "sonner";
 import { useCanAct } from "../hooks/useCanAct";
 import { useAuth } from "../contexts/AuthContext";
@@ -32,6 +34,7 @@ import {
   X,
   Plus,
   CheckCircle2,
+  ChevronsUpDown,
 } from "lucide-react";
 
 const STEPS = [
@@ -67,6 +70,7 @@ const FichaRecebimento = () => {
   const [mapError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [identityDialogOpen, setIdentityDialogOpen] = useState(false);
+  const [openProductPicker, setOpenProductPicker] = useState<string | null>(null);
 
   const handleAddLocal = () => {
     if (localTemp.descricao && localTemp.coordenadas) {
@@ -93,7 +97,7 @@ const FichaRecebimento = () => {
       case 0:
         return formData.nomeFicha.trim() && formData.tipoNegocio;
       case 1:
-        return formData.produtos.length > 0 && formData.produtos.every((item) => item.produto.trim().length > 0)
+        return formData.produtos.length > 0 && formData.produtos.every((item) => AGRICULTURAL_PRODUCTS.includes(item.produto as (typeof AGRICULTURAL_PRODUCTS)[number]))
           && new Set(formData.produtos.map((item) => item.produto.trim().toLocaleLowerCase("pt-AO"))).size === formData.produtos.length;
       case 2:
         return true; // delivery locations are optional
@@ -250,37 +254,60 @@ const FichaRecebimento = () => {
                     )}
                   </div>
                   <div>
-                    <Label className="mb-2 block text-sm font-bold" style={{ color: T.charcoal }}>Pesquisar produto *</Label>
-                    <Input
-                      value={item.produto}
-                      onChange={(e) => updateProduct("produto", e.target.value)}
-                      placeholder="Escreva para pesquisar: milho, mandioca, tomate…"
-                      role="combobox"
-                      aria-expanded={matches.length > 0}
-                      aria-label={`Pesquisar produto ${index + 1}`}
-                      className="h-12 text-base"
-                      style={{ borderColor: T.border }}
-                    />
-                    {matches.length > 0 && (
-                      <div className="mt-2 max-h-56 overflow-y-auto rounded-xl border bg-white p-2" style={{ borderColor: T.border }}>
-                        {matches.map((group) => (
-                          <div key={group.label} className="mb-2 last:mb-0">
-                            <p className="px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider" style={{ color: T.muted }}>{group.label}</p>
-                            <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
-                              {group.products.slice(0, 16).map((name) => (
-                                <button type="button" key={name} onClick={() => updateProduct("produto", name)} className="rounded-lg px-2.5 py-2 text-left text-sm hover:bg-[#E8F5E9] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#2c863b]" style={{ color: T.charcoal }}>
-                                  {name}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                    <Label className="mb-2 block text-sm font-bold" style={{ color: T.charcoal }}>Produto *</Label>
+                    <Popover open={openProductPicker === item.key} onOpenChange={(open) => setOpenProductPicker(open ? item.key : null)}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openProductPicker === item.key}
+                          aria-label={`Selecionar produto ${index + 1}`}
+                          className="h-12 w-full justify-between text-left text-base font-normal"
+                          style={{ borderColor: T.border, color: item.produto ? T.charcoal : T.muted }}
+                        >
+                          <span className="truncate">{item.produto || "Selecione um produto do campo"}</span>
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-60" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-[280px] p-0" style={{ zIndex: 1200 }}>
+                        <Command>
+                          <CommandInput placeholder="Pesquisar produto..." aria-label="Pesquisar no catálogo de produtos" />
+                          <CommandList>
+                            <CommandEmpty>Nenhum produto encontrado no catálogo angolano.</CommandEmpty>
+                            {AGRICULTURAL_PRODUCT_GROUPS.map((group) => {
+                              const availableProducts = group.products.filter((name) =>
+                                !formData.produtos.some((other) => other.key !== item.key && other.produto === name)
+                              );
+                              if (availableProducts.length === 0) return null;
+                              return (
+                                <CommandGroup key={group.label} heading={group.label}>
+                                  {availableProducts.map((name) => (
+                                    <CommandItem
+                                      key={name}
+                                      value={name}
+                                      onSelect={() => {
+                                        updateProduct("produto", name);
+                                        setOpenProductPicker(null);
+                                      }}
+                                    >
+                                      <Check className={`mr-2 h-4 w-4 ${item.produto === name ? "opacity-100" : "opacity-0"}`} />
+                                      {name}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              );
+                            })}
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    {selectedNames.includes(item.produto.trim().toLocaleLowerCase("pt-AO")) && item.produto.trim() && (
+                      <p className="mt-1 text-xs text-red-600">Este produto já foi seleccionado. Escolha outro.</p>
                     )}
-                    {item.produto.trim() && !AGRICULTURAL_PRODUCT_GROUPS.some((group) => group.products.some((name) => name.toLocaleLowerCase("pt-AO") === query)) && (
-                      <p className="mt-2 text-xs" style={{ color: T.muted }}>Não encontrou? Pode escrever o nome completo do produto; a AgriLink receberá o pedido com essa designação.</p>
-                    )}
-                    {selectedNames.includes(query) && query && <p className="mt-1 text-xs text-red-600">Este produto já está na lista. Escolha outro produto ou remova a duplicação.</p>}
+                    <p className="mt-1.5 text-xs" style={{ color: T.muted }}>
+                      Seleccione no botão. A pesquisa mostra apenas produtos do catálogo de produtos conhecidos em Angola.
+                    </p>
                   </div>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
