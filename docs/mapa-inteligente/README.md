@@ -20,6 +20,7 @@ Esta branch deriva de `feat/agro-intelligence-foundation` para reutilizar os ser
 ## Limitações conhecidas / pré-requisitos
 
 1. O serviço `agro-weather` precisa de ser implantado no ambiente de teste e do segredo comercial `OPEN_METEO_API_KEY`. Sem isso, o painel deve apresentar indisponibilidade em vez de dados inventados.
+2. A função valida a sessão com Supabase Auth e aplica limite atómico de 30 consultas por utilizador em 15 minutos, usando `public.consume_api_rate_limit` através de `service_role`. Se a verificação do limite falhar, o pedido é recusado (fail closed); a chave `service_role` nunca é enviada ao frontend.
 2. O painel consulta a fonte a cada 15 minutos; isto é uma frequência de consulta, não uma promessa de que o modelo meteorológico se actualiza a cada 15 minutos. A hora de consulta fica visível.
 3. OSRM público fornece cálculo de trajecto, não tráfego em tempo real. A integração de trânsito exige escolher e validar um fornecedor com cobertura real em Angola, termos de utilização, limites e credenciais. Não foi adicionado um falso indicador de congestionamento.
 4. A posição de um motorista só pode ser considerada em tempo real se a aplicação do motorista enviar coordenadas durante uma entrega activa, com permissões e políticas RLS verificadas. Esta branch reutiliza a leitura Realtime existente; não altera o esquema nem cria um novo emissor GPS.
@@ -38,7 +39,7 @@ Esta branch deriva de `feat/agro-intelligence-foundation` para reutilizar os ser
 ## Validação antes de integrar
 
 - Executar CI e verificar lint, testes e build no head desta branch.
-- Testar com sessão autenticada, utilizador anónimo, serviço sem chave, falha do fornecedor, coordenadas fora de Angola e perda/restauro da rede.
+- Testar com sessão autenticada, token expirado/anónimo, 31.ª consulta dentro de 15 minutos (429), falha do RPC de limite (503), serviço sem chave, falha do fornecedor, coordenadas fora de Angola e perda/restauro da rede.
 - Confirmar que falha de OSRM não cria polylines fictícias.
 - Testar sobreposição dos painéis em desktop e telemóvel.
 - Não fazer merge nem deploy de produção até revisão e aprovação.
