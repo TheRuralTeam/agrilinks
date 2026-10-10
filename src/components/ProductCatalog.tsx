@@ -12,9 +12,9 @@ interface Product {
   product_type: string;
   price: number;
   quantity: number;
-  description?: string;
-  province_id: string;
-  municipality_id: string;
+  description?: string | null;
+  province_id: string | null;
+  municipality_id: string | null;
   farmer_name: string;
   status: string;
 }

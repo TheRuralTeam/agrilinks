@@ -16,7 +16,7 @@ export interface FichaRecebimentoPdf {
   telefone?: string | null;
   descricao_final?: string | null;
   observacoes?: string | null;
-  created_at: string;
+  created_at: string | null;
   updated_at?: string | null;
 }
 

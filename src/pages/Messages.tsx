@@ -272,9 +272,7 @@ const Messages = () => {
 
     const refreshPresence = () => {
       const presenceState = presenceChannel.presenceState();
-      const peerIsPresent = Object.values(presenceState).some((entries) =>
-        entries.some((entry: { user_id?: string }) => entry.user_id === otherParticipantId)
-      );
+      const peerIsPresent = Object.prototype.hasOwnProperty.call(presenceState, otherParticipantId);
       if (active) setIsOnline(peerIsPresent);
     };
 
@@ -305,7 +303,7 @@ const Messages = () => {
       void supabase.removeChannel(presenceChannel);
       setIsOnline(null);
     };
-  }, [user?.id, conversation?.id, conversation?.user_id, conversation?.participant_id, conversation?.peer_user_id, id]);
+  }, [user?.id, conversation, id]);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -389,7 +387,7 @@ const Messages = () => {
     }
     setIsSending(true);
     try {
-      const filesData = [];
+      const filesData: Array<{ url: string; name: string; size: number }> = [];
       for (const file of selectedFiles) {
         const ext = file.name.split(".").pop();
         const fileName = `${crypto.randomUUID()}.${ext}`;

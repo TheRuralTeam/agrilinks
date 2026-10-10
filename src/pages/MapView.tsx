@@ -84,7 +84,6 @@ const FONT = "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif";
 // (não usamos ícones default em lado nenhum — todos os markers abaixo levam
 // divIcon próprio — mas isto evita o quadrado-partido caso algum marker
 // futuro seja adicionado sem icon próprio).
-// @ts-expect-error Leaflet's runtime default icon helper is not in its typings.
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -1788,20 +1787,29 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
               ));
             })()}
 
-            {freight && (
-              <div style={{ marginTop: 14, padding: 12, borderRadius: 14, background: T.g50 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <Label>Estado da rota</Label>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: T.g700, fontFamily: FONT }}>
-                    {isDelivered ? '100%' : hasLiveLocation ? 'GPS actualizado' : 'Sem GPS'}
-                  </span>
+            {(() => {
+              const freight = trackedProduct
+                ? freightLoads.find((load) => load.product_id === trackedProduct.id)
+                : undefined;
+              if (!freight) return null;
+              const location = freightLocations[freight.id];
+              const hasLiveLocation = Boolean(location);
+              const isDelivered = freight.status === 'delivered' || Boolean(freight.delivered_at);
+              return (
+                <div style={{ marginTop: 14, padding: 12, borderRadius: 14, background: T.g50 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: T.g700, fontFamily: FONT }}>Estado da rota</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: T.g700, fontFamily: FONT }}>
+                      {isDelivered ? '100%' : hasLiveLocation ? 'GPS actualizado' : 'Sem GPS'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 10, color: T.muted, fontFamily: FONT }}>
+                    {freight.route_distance_km != null ? `Rota prevista: ${Number(freight.route_distance_km).toFixed(1)} km` : 'Distância da rota indisponível'}
+                    {location ? ` · Última posição: ${new Date(location.recorded_at).toLocaleString('pt-AO')}` : ''}
+                  </div>
                 </div>
-                <div style={{ fontSize: 10, color: T.muted, fontFamily: FONT }}>
-                  {freight.route_distance_km != null ? `Rota prevista: ${Number(freight.route_distance_km).toFixed(1)} km` : 'Distância da rota indisponível'}
-                  {location ? ` · Última posição: ${new Date(location.recorded_at).toLocaleString('pt-AO')}` : ''}
-                </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </aside>
       )}

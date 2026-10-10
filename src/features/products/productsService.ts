@@ -47,28 +47,19 @@ export const fetchProductsFeed = async ({
   if (!productsData?.length) return []
 
   const productIds = productsData.map((p) => p.id)
-  const userIds = [...new Set(productsData.map((p) => p.user_id).filter(Boolean))]
+  const { data: myLikes, error: likesError } = userId
+    ? await supabase.from('product_likes').select('product_id').eq('user_id', userId).in('product_id', productIds)
+    : { data: [], error: null }
 
-  const [{ data: users, error: usersError }, { data: myLikes, error: likesError }] = await Promise.all([
-    userIds.length
-      ? supabase.from('public_user_profiles' as any).select('id, full_name, user_type, avatar_url, verified').in('id', userIds)
-      : Promise.resolve({ data: [] as any[], error: null }),
-    userId
-      ? supabase.from('product_likes').select('product_id').eq('user_id', userId).in('product_id', productIds)
-      : Promise.resolve({ data: [] as any[], error: null }),
-  ])
-
-  if (usersError) throw usersError
   if (likesError) throw likesError
 
-  const userById = new Map((users || []).map((u) => [u.id, u]))
   const likedProductIds = new Set((myLikes || []).map((like) => like.product_id))
 
   return productsData.map((product) => ({
     ...product,
     likes_count: Number(product.likes_count || 0),
     is_liked: likedProductIds.has(product.id),
-    user_verified: userById.get(product.user_id)?.verified || false,
+    user_verified: false,
     comments: [],
   }))
 }
@@ -86,7 +77,7 @@ export const fetchActiveProducts = async (userId?: string, page = 0, limit = 20)
 export const fetchProductById = async (productId: string, userId?: string) => {
   const { data: product, error } = await supabase
     .from('products')
-     .select('id,user_id,product_type,quantity,harvest_date,price,province_id,municipality_id,logistics_access,farmer_name,contact,photos,status,created_at,updated_at,description,location_lat,location_lng,category')
+     .select('id,user_id,product_type,quantity,harvest_date,price,province_id,municipality_id,logistics_access,farmer_name,contact,photos,status,created_at,updated_at,description,location_lat,location_lng,category,likes_count')
     .eq('id', productId)
     .eq('status', 'active')
     .maybeSingle()
@@ -94,20 +85,16 @@ export const fetchProductById = async (productId: string, userId?: string) => {
   if (error) throw error
   if (!product) return null
 
-  const [userResult, likesResult] = await Promise.all([
-    supabase.from('public_user_profiles' as any).select('id, full_name, user_type, avatar_url, verified').eq('id', product.user_id).maybeSingle(),
-    userId
-      ? supabase.from('product_likes').select('id').eq('product_id', productId).eq('user_id', userId).maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-  ])
+  const likesResult = userId
+    ? await supabase.from('product_likes').select('id').eq('product_id', productId).eq('user_id', userId).maybeSingle()
+    : { data: null, error: null }
 
-  if (userResult.error) throw userResult.error
   if (likesResult.error) throw likesResult.error
 
   return {
     ...product,
-    farmer_name: product.farmer_name || userResult.data?.full_name || 'Fornecedor',
-    user_verified: userResult.data?.verified || false,
+    farmer_name: product.farmer_name || 'Fornecedor',
+    user_verified: false,
     likes_count: Number(product.likes_count || 0),
     is_liked: Boolean(likesResult.data),
     comments: [],

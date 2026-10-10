@@ -88,7 +88,7 @@ interface Product {
   price: number;
   logistics_access: string;
   user_id: string;
-  created_at: string;
+  created_at: string | null;
 }
 
 interface User {
@@ -100,7 +100,7 @@ interface User {
   created_at?: string | null;
   verified?: boolean;
   verified_at?: string | null;
-  is_root_admin?: boolean;
+  is_root_admin?: boolean | null;
 }
 
 interface Order {
@@ -110,7 +110,7 @@ interface Order {
   quantity: number;
   location: string;
   status: string;
-  created_at: string;
+  created_at: string | null;
   updated_at?: string | null;
   destination_lat?: number | null;
   destination_lng?: number | null;
@@ -154,7 +154,7 @@ interface Ficha {
   telefone?: string | null;
   descricao_final?: string | null;
   observacoes?: string | null;
-  created_at: string;
+  created_at: string | null;
   updated_at?: string | null;
 }
 
@@ -426,15 +426,6 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (!currentUserId) return;
-    void fetchAllData();
-    const interval = setInterval(() => {
-      void fetchAllData(true);
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [currentUserId]);
-
-  useEffect(() => {
-    if (!currentUserId) return;
     const channel = supabase
       .channel(`admin-notifications-${currentUserId}`)
       .on(
@@ -456,7 +447,7 @@ const AdminDashboard = () => {
     return () => { void supabase.removeChannel(channel); };
   }, [currentUserId]);
 
-  const fetchAllData = async (silent = false) => {
+  const fetchAllData = useCallback(async (silent = false) => {
     // Atualizações periódicas não devem desmontar o painel nem interromper a interação.
     if (!silent) setLoading(true);
     try {
@@ -525,7 +516,16 @@ const AdminDashboard = () => {
     } finally {
       if (!silent) setLoading(false);
     }
-  };
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    void fetchAllData();
+    const interval = setInterval(() => {
+      void fetchAllData(true);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [currentUserId, fetchAllData]);
 
   const sendNotification = useCallback(async () => {
     if (!hasPermission("manage_support") && !isSuperRoot) {
@@ -781,7 +781,7 @@ const AdminDashboard = () => {
     }
     setChangingUserType((prev) => new Set(prev).add(userId));
     try {
-      const enumMap: Record<string, string> = {
+      const enumMap: Record<string, 'agricultor' | 'comprador' | 'agente' | 'motorista'> = {
         agricultor: "agricultor",
         comprador: "comprador",
         agente: "agente",
@@ -866,7 +866,7 @@ const AdminDashboard = () => {
     }
   }, [products]);
 
-  const get30DayTrend = useCallback((items: Array<{ created_at: string | null | undefined }>) => {
+  const get30DayTrend = useCallback((items: Array<{ created_at?: string | null }>) => {
     const now = Date.now();
     const currentStart = now - 30 * 24 * 60 * 60 * 1000;
     const previousStart = now - 60 * 24 * 60 * 60 * 1000;
@@ -1255,7 +1255,7 @@ const AdminDashboard = () => {
                         <TableCell>
                           <Badge className={getStatusColor(order.status)}>{getAdminPreOrderStatusLabel(order.status)}</Badge>
                         </TableCell>
-                        <TableCell className="text-sm text-gray-500">{new Date(order.created_at).toLocaleDateString("pt-BR")}</TableCell>
+                        <TableCell className="text-sm text-gray-500">{order.created_at ? new Date(order.created_at).toLocaleDateString("pt-BR") : "—"}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
                             <Button
@@ -1372,7 +1372,7 @@ const AdminDashboard = () => {
                   <div className="sm:col-span-2"><span className="text-xs text-gray-500">Local de entrega</span><p className="font-medium break-words">{selectedOrder.location || "—"}</p></div>
                   <div><span className="text-xs text-gray-500">Coordenadas de entrega</span><p className="font-medium">{selectedOrder.destination_lat != null && selectedOrder.destination_lng != null ? selectedOrder.destination_lat + ", " + selectedOrder.destination_lng : "—"}</p></div>
                   <div><span className="text-xs text-gray-500">Stock reservado</span><p className="font-medium">{selectedOrder.stock_reserved ? "Sim" : "Não"}</p></div>
-                  <div><span className="text-xs text-gray-500">Criado em</span><p className="font-medium">{new Date(selectedOrder.created_at).toLocaleString("pt-AO")}</p></div>
+                  <div><span className="text-xs text-gray-500">Criado em</span><p className="font-medium">{selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleString("pt-AO") : "—"}</p></div>
                   <div><span className="text-xs text-gray-500">Atualizado em</span><p className="font-medium">{selectedOrder.updated_at ? new Date(selectedOrder.updated_at).toLocaleString("pt-AO") : "—"}</p></div>
                   <div className="sm:col-span-2"><span className="text-xs text-gray-500">ID do cliente</span><p className="font-medium break-all">{selectedOrder.user_id}</p></div>
                 </div>
@@ -1457,7 +1457,7 @@ const AdminDashboard = () => {
                              (product as any).status === 'rejected' ? 'Rejeitado' : (product as any).status}
                           </span>
                         </TableCell>
-                        <TableCell className="text-sm text-gray-500">{new Date(product.created_at).toLocaleDateString("pt-BR")}</TableCell>
+                        <TableCell className="text-sm text-gray-500">{product.created_at ? new Date(product.created_at).toLocaleDateString("pt-BR") : "—"}</TableCell>
                         <TableCell>
                           {(hasPermission("manage_products") || hasPermission("manage_support") || isSuperRoot) && (
                             <DropdownMenu>
@@ -1580,7 +1580,7 @@ const AdminDashboard = () => {
                       <TableCell>
   <select
     value={user.user_type || ""}
-    disabled={!hasPermission("manage_users") || changingUserType.has(user.id) || user.is_root_admin}
+    disabled={!hasPermission("manage_users") || changingUserType.has(user.id) || !!user.is_root_admin}
     onChange={(e) => void changeUserType(user.id, e.target.value as User["user_type"])}
     className="h-8 min-w-[125px] rounded-lg border border-gray-200 bg-white px-2 text-xs font-semibold capitalize outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
     aria-label={`Tipo de utilizador de ${user.full_name}`}
@@ -1754,7 +1754,7 @@ const AdminDashboard = () => {
                       <TableCell><Badge className={f.tipo_negocio === "compra" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}>{f.tipo_negocio}</Badge></TableCell>
                       <TableCell>{f.qualidade || "-"}</TableCell>
                       <TableCell>{f.telefone || "-"}</TableCell>
-                      <TableCell className="text-sm text-gray-500">{new Date(f.created_at).toLocaleDateString("pt-BR")}</TableCell>
+                      <TableCell className="text-sm text-gray-500">{f.created_at ? new Date(f.created_at).toLocaleDateString("pt-BR") : "—"}</TableCell>
                       <TableCell>
   <div className="flex gap-1">
     <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); setSelectedFicha(f); }} aria-label="Ver ficha">
@@ -2026,7 +2026,7 @@ const AdminDashboard = () => {
                     <LineChart data={(() => {
                       const grouped: Record<string, number> = {};
                       products.forEach(p => {
-                        const date = new Date(p.created_at).toLocaleDateString("pt-BR", { month: "short", day: "numeric" });
+                        const date = p.created_at ? new Date(p.created_at).toLocaleDateString("pt-BR", { month: "short", day: "numeric" }) : "Data indisponível";
                         grouped[date] = (grouped[date] || 0) + 1;
                       });
                       return Object.entries(grouped).slice(-14).map(([date, count]) => ({ date, count }));
@@ -2450,7 +2450,7 @@ const AdminDashboard = () => {
                     <Detail label="Embalagem" value={selectedFicha.embalagem || "Não indicada"} />
                     <Detail label="Transporte" value={selectedFicha.transporte || "Não indicado"} />
                     <Detail label="ID da ficha" value={selectedFicha.id} />
-                     <Detail label="Criada em" value={new Date(selectedFicha.created_at).toLocaleString("pt-AO")} />
+                     <Detail label="Criada em" value={selectedFicha.created_at ? new Date(selectedFicha.created_at).toLocaleString("pt-AO") : "—"} />
                      <Detail label="Atualizada em" value={selectedFicha.updated_at ? new Date(selectedFicha.updated_at).toLocaleString("pt-AO") : "—"} />
                   </div>
                   <Detail label="Locais de entrega" value={places.length ? places.join(", ") : "Não indicados"} multiline />

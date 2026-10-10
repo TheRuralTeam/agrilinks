@@ -77,20 +77,20 @@ export const downloadFreightLoadPdf = async (load: FreightPdfLoad) => {
   } catch {
     doc.setTextColor(...GREEN);
     doc.setFontSize(18);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text('AgriLink', 20, 27);
   }
 
   doc.setTextColor(...MUTED);
   doc.setFontSize(8);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('helvetica', 'bold');
   doc.text('DOCUMENTO OPERACIONAL DE CARGA', pageWidth - 20, 20, { align: 'right' });
 
   doc.setTextColor(...INK);
   doc.setFontSize(11);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('helvetica', 'bold');
   doc.text('Cliente', 20, 43);
-  doc.setFont(undefined, 'normal');
+  doc.setFont('helvetica', 'normal');
   doc.text(doc.splitTextToSize(safeClient, 100), 20, 49);
 
   // QR is a capability token, never the load payload.
@@ -113,19 +113,19 @@ export const downloadFreightLoadPdf = async (load: FreightPdfLoad) => {
 
   doc.setTextColor(...GREEN);
   doc.setFontSize(9);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('helvetica', 'bold');
   doc.text('CARGA', 20, 94);
 
   doc.setTextColor(...INK);
   doc.setFontSize(21);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('helvetica', 'bold');
   const productLines = doc.splitTextToSize(load.product_name, pageWidth - 40);
   doc.text(productLines, 20, 104);
 
   let y = 104 + Math.max(1, productLines.length) * 9 + 7;
   doc.setFontSize(8);
   doc.setTextColor(...MUTED);
-  doc.setFont(undefined, 'normal');
+  doc.setFont('helvetica', 'normal');
   doc.text(`ID: ${maskUuid(load.id)}`, 20, y);
   y += 10;
 
@@ -143,10 +143,10 @@ export const downloadFreightLoadPdf = async (load: FreightPdfLoad) => {
   doc.setFontSize(9.5);
   rows.forEach(([label, value]) => {
     doc.setTextColor(...MUTED);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text(label, 22, y);
     doc.setTextColor(...INK);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('helvetica', 'normal');
     const lines = doc.splitTextToSize(value || '—', 105);
     doc.text(lines, 82, y);
     y += Math.max(8, lines.length * 5.2);
@@ -155,11 +155,11 @@ export const downloadFreightLoadPdf = async (load: FreightPdfLoad) => {
   if (load.notes) {
     y += 3;
     doc.setTextColor(...MUTED);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text('Observações', 22, y);
     y += 5;
     doc.setTextColor(...INK);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('helvetica', 'normal');
     const noteLines = doc.splitTextToSize(load.notes, pageWidth - 44);
     doc.text(noteLines, 22, y);
   }
@@ -174,17 +174,17 @@ export const downloadFreightLoadPdf = async (load: FreightPdfLoad) => {
   } catch {
     doc.setTextColor(...GREEN);
     doc.setFontSize(9);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text('AgriLink', 20, pageHeight - 18);
   }
 
   doc.setFontSize(8);
   doc.setTextColor(...GREEN);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('helvetica', 'bold');
   doc.text('Conexão de mercado', pageWidth - 20, pageHeight - 19, { align: 'right' });
 
   doc.setTextColor(...MUTED);
-  doc.setFont(undefined, 'normal');
+  doc.setFont('helvetica', 'normal');
   doc.text('O QR não contém os dados da carga. O acesso é validado pela AgriLink.', 20, pageHeight - 9);
   doc.text(`Gerado em ${new Date().toLocaleString('pt-AO')}`, pageWidth - 20, pageHeight - 9, { align: 'right' });
 

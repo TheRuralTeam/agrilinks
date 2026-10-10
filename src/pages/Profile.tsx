@@ -50,7 +50,7 @@ const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)'
 interface UserProduct {
   id: string; product_type: string; quantity: number; harvest_date: string
   price: number; province_id: string; municipality_id: string
-  status: 'active' | 'inactive' | 'removed'; created_at: string
+  status: 'active' | 'inactive' | 'removed'; created_at: string | null
   views?: number; interests?: number
 }
 interface FichaRecebimento {
@@ -59,14 +59,15 @@ interface FichaRecebimento {
 }
 interface ReceivedOrder {
   id: string; product_id: string; user_id: string; quantity: number
-  location: string; status: string; created_at: string
-  unit_price?: number | null; payment_status?: string | null
+  location: string; status: string; created_at: string | null
+  unit_price?: number | null; total_price: number; payment_status?: string | null
+  reservation_expires_at: string | null; stockFullyRequested: boolean
   product?: { product_type: string; price: number }
   buyer?: { full_name: string; phone: string; email?: string }
 }
 interface BuyerPreOrder {
   id: string; product_id: string; quantity: number; location: string
-  status: string; created_at: string; updated_at: string
+  status: string; created_at: string | null; updated_at: string | null
   unit_price: number | null; total_price: number | null
   payment_status: string | null; reservation_expires_at: string | null
   product?: { product_type: string; price: number }
@@ -261,6 +262,7 @@ const FichaTable = RTable<FichaRecebimento>
 const ProductTable = RTable<UserProduct>
 const SourcingTable = RTable<SourcingRequest>
 const OrdersTable = RTable<ReceivedOrder>
+const BuyerPreOrdersTable = RTable<BuyerPreOrder>
 const ReferralsTable = RTable<any>
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -344,8 +346,9 @@ const Profile = () => {
   const [submittingSourcing, setSubmittingSourcing] = useState(false)
 
   const fetchUserProducts = React.useCallback(async () => {
+    if (!user?.id) { setUserProducts([]); return }
     try {
-      const { data, error } = await supabase.from('products').select('*').eq('user_id', user?.id).order('created_at', { ascending: false })
+      const { data, error } = await supabase.from('products').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
       if (error) throw error
       const statsMap: { [productId: string]: { likes: number; comments: number } } = {}
       for (const product of (data || [])) {
@@ -359,16 +362,18 @@ const Profile = () => {
   }, [user?.id])
 
   const fetchFichasRecebimento = React.useCallback(async () => {
+    if (!user?.id) { setFichasRecebimento([]); return }
     try {
-      const { data, error } = await supabase.from('fichas_recebimento' as any).select('*').eq('user_id', user?.id).order('created_at', { ascending: false })
+      const { data, error } = await supabase.from('fichas_recebimento' as any).select('*').eq('user_id', user.id).order('created_at', { ascending: false })
       if (error) throw error
       setFichasRecebimento((data || []) as any)
     } catch (error) { console.error(error) }
   }, [user?.id])
 
   const fetchAgentStats = React.useCallback(async () => {
+    if (!user?.id) { setAgentStats({ totalReferrals: 0, totalPoints: 0, recentReferrals: [] }); return }
     try {
-      const { data, error } = await supabase.rpc('get_agent_referral_stats', { agent_user_id: user?.id })
+      const { data, error } = await supabase.rpc('get_agent_referral_stats', { agent_user_id: user.id })
       if (error) throw error
       if (data && data.length > 0) {
         const s = data[0]
@@ -378,12 +383,13 @@ const Profile = () => {
   }, [user?.id])
 
   const fetchReceivedOrders = React.useCallback(async () => {
+    if (!user?.id) { setReceivedOrders([]); return }
     try {
-      const { data: userProductIds, error: prodError } = await supabase.from('products').select('id').eq('user_id', user?.id)
+      const { data: userProductIds, error: prodError } = await supabase.from('products').select('id').eq('user_id', user.id)
       if (prodError) throw prodError
       if (!userProductIds || userProductIds.length === 0) { setReceivedOrders([]); return }
       const productIds = userProductIds.map(p => p.id)
-      const { data: orders, error: ordersError } = await supabase.from('pre_orders').select('id, product_id, user_id, quantity, location, status, stock_fully_requested, created_at, updated_at, unit_price, payment_status').in('product_id', productIds).is('deleted_at', null).order('created_at', { ascending: false })
+      const { data: orders, error: ordersError } = await supabase.from('pre_orders').select('id, product_id, user_id, quantity, location, status, stock_fully_requested, created_at, updated_at, unit_price, total_price, reservation_expires_at, payment_status').in('product_id', productIds).is('deleted_at', null).order('created_at', { ascending: false })
       if (ordersError) throw ordersError
       const ordersWithDetails = await Promise.all((orders || []).map(async (order) => {
         const { data: product } = await supabase.from('products').select('product_type, price').eq('id', order.product_id).single()
@@ -397,17 +403,19 @@ const Profile = () => {
   }, [user?.id])
 
   const fetchSourcingRequests = React.useCallback(async () => {
+    if (!user?.id) { setSourcingRequests([]); return }
     try {
-      const { data, error } = await supabase.from('sourcing_requests').select('*').eq('user_id', user?.id).order('created_at', { ascending: false })
+      const { data, error } = await supabase.from('sourcing_requests').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
       if (error) throw error
       setSourcingRequests(data || [])
     } catch (error) { console.error(error) }
   }, [user?.id])
 
   const fetchBuyerStats = React.useCallback(async () => {
+    if (!user?.id) { setBuyerStats({ completedOrders: 0, favoriteProducts: 0 }); return }
     try {
-      const { count: completedCount } = await supabase.from('pre_orders').select('*', { count: 'exact', head: true }).eq('user_id', user?.id).in('status', ['completed', 'accepted'])
-      const { count: likesCount } = await supabase.from('product_likes').select('*', { count: 'exact', head: true }).eq('user_id', user?.id)
+      const { count: completedCount } = await supabase.from('pre_orders').select('*', { count: 'exact', head: true }).eq('user_id', user.id).in('status', ['completed', 'accepted'])
+      const { count: likesCount } = await supabase.from('product_likes').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
       setBuyerStats({ completedOrders: completedCount || 0, favoriteProducts: likesCount || 0 })
     } catch (error) { console.error(error) }
   }, [user?.id])
@@ -585,11 +593,11 @@ const Profile = () => {
       setAvatarLoading(true)
       const file = event.target.files?.[0]; if (!file) return
       const fileExt = file.name.split('.').pop()
-      const fileName = `${user?.id}/avatar.${fileExt}`
+      const fileName = `${user.id}/avatar.${fileExt}`
       const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file, { upsert: true })
       if (uploadError) throw uploadError
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
-      await supabase.from('users').update({ avatar_url: publicUrl, updated_at: new Date().toISOString() }).eq('id', user?.id)
+      await supabase.from('users').update({ avatar_url: publicUrl, updated_at: new Date().toISOString() }).eq('id', user.id)
     } catch (error: any) { toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' }) }
     finally { setAvatarLoading(false) }
   }
@@ -650,7 +658,7 @@ const Profile = () => {
     } catch (error) { console.error(error) }
   }
 
-  const formatDate = (d: string) => new Date(d).toLocaleDateString('pt-AO')
+  const formatDate = (d: string | null | undefined) => d ? new Date(d).toLocaleDateString('pt-AO') : 'Data indisponível'
   const activeProducts = userProducts.filter(p => p.status === 'active').length
   const totalComments = userProducts.reduce((s, p) => s + (productStats[p.id]?.comments || 0), 0)
   const totalLikes = userProducts.reduce((s, p) => s + (productStats[p.id]?.likes || 0), 0)
@@ -964,7 +972,7 @@ const Profile = () => {
 
           {/* ── Buyer Pre-orders ── */}
           {activeTab === 'orders' && isComprador && (
-            <OrdersTable
+            <BuyerPreOrdersTable
               columns={[
                 { key: 'produto', label: 'Produto', render: r => <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}><span style={{ fontWeight: 700, color: T.ink }}>{r.product?.product_type || 'Produto'}</span><StatusPill status={r.status} /></div> },
                 { key: 'qtd', label: 'Quantidade', align: 'right', render: r => <span style={{ fontWeight: 700, color: T.g600 }}>{r.quantity.toLocaleString('pt-AO')} kg</span> },

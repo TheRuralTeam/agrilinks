@@ -76,7 +76,7 @@ export async function createAuthorizedRecipientPaymentIntent(
   return (Array.isArray(data) ? data[0] : data) as {
     intent_id: string
     pre_order_id: string
-    amount: string
+    amount: number
     currency: string
     status: string
     recipient_id: string
@@ -93,7 +93,7 @@ export async function submitAuthorizedRecipientPaymentProof(
   const { data, error } = await supabase.rpc('submit_authorized_recipient_payment_proof', {
     p_intent_id: intentId,
     p_transfer_reference: transferReference,
-    p_note: note ?? null,
+    ...(note !== undefined ? { p_note: note } : {}),
   })
   if (error) throw error
   return data as boolean

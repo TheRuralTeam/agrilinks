@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agrilink-shell-v7';
+const CACHE_NAME = 'agrilink-shell-v10';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -17,7 +17,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(
-      keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      keys.filter((key) => key.startsWith('agrilink-') && key !== CACHE_NAME).map((key) => caches.delete(key))
     ))
   );
   self.clients.claim();
@@ -26,21 +26,31 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
-  if (!request.url.startsWith(self.location.origin)) return;
+  if (new URL(request.url).origin !== self.location.origin) return;
 
   // Navegação: sempre rede primeiro (evita servir HTML antigo com scripts inexistentes)
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy));
+          // Só guardar páginas válidas; não substituir o shell offline por erros HTTP.
+          if (response.ok && response.type === 'basic' && !/(?:^|,)\s*(?:no-store|no-cache|private)\b/i.test(response.headers.get('Cache-Control') || '')) {
+            const copy = response.clone();
+            event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy)));
+          }
           return response;
         })
-        .catch(async () => (await caches.match('/index.html')) || caches.match('/'))
+        .catch(async () => {
+          const cache = await caches.open(CACHE_NAME);
+          return (await cache.match('/index.html')) || cache.match('/');
+        })
     );
     return;
   }
+
+  // Pedidos de dados (fetch/XHR, APIs e respostas sem destino estático) nunca são colocados em cache.
+  // Isto evita persistir respostas potencialmente privadas no cache partilhado da origem.
+  if (request.destination === '') return;
 
   // Scripts/estilos: rede primeiro, cache apenas como fallback offline.
   // Nunca devolver HTML para pedidos de assets (causava ecrã branco).
@@ -48,22 +58,26 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const cloned = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
+          if (response.ok && response.type === 'basic' && !/(?:^|,)\s*(?:no-store|no-cache|private)\b/i.test(response.headers.get('Cache-Control') || '')) {
+            const cloned = response.clone();
+            event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned)));
+          }
           return response;
         })
-        .catch(() => caches.match(request))
+        .catch(async () => (await caches.open(CACHE_NAME)).match(request))
     );
     return;
   }
 
   event.respondWith(
-    caches.match(request).then((cached) => {
+    caches.open(CACHE_NAME).then((cache) => cache.match(request)).then((cached) => {
       if (cached) return cached;
       return fetch(request)
         .then((response) => {
-          const cloned = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
+          if (response.ok && response.type === 'basic' && !/(?:^|,)\s*(?:no-store|no-cache|private)\b/i.test(response.headers.get('Cache-Control') || '')) {
+            const cloned = response.clone();
+            event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned)));
+          }
           return response;
         })
         .catch(() => cached);

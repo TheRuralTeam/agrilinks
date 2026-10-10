@@ -5,6 +5,7 @@ import {
   Star, ShoppingCart, Users, Verified, BadgeCheck, Sparkles
 } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
+import Loader from '../components/ui/Loader';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { ProductCard, Product } from '../components/ProductCard';
@@ -21,11 +22,11 @@ interface UserData {
   full_name: string;
   avatar_url: string | null;
   user_type: 'agricultor' | 'comprador' | 'agente' | 'motorista' | null;
-  province_id: string;
-  municipality_id: string;
-  created_at: string;
-  phone?: string;
-  agent_code?: string;
+  province_id: string | null;
+  municipality_id: string | null;
+  created_at: string | null;
+  phone?: string | null;
+  agent_code?: string | null;
   verified?: boolean;
 }
 
@@ -111,6 +112,11 @@ const UserProfile = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchUserData = React.useCallback(async () => {
+    if (!id) {
+      setUserData(null);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
 
@@ -354,7 +360,7 @@ const UserProfile = () => {
         }}>
           <h3 style={{ fontFamily: FONT, fontSize: 14, fontWeight: 700, color: T.ink, margin: '0 0 4px' }}>Informações</h3>
           <InfoRow icon={<MapPin size={14} color={T.g600}/>} label="Localização" value={`${userData.province_id}${userData.municipality_id ? ', ' + userData.municipality_id : ''}`}/>
-          <InfoRow icon={<Calendar size={14} color={T.g600}/>} label="Membro desde" value={new Date(userData.created_at).toLocaleDateString('pt-AO', { month: 'long', year: 'numeric' })}/>
+          <InfoRow icon={<Calendar size={14} color={T.g600}/>} label="Membro desde" value={userData.created_at ? new Date(userData.created_at).toLocaleDateString('pt-AO', { month: 'long', year: 'numeric' }) : 'Data não disponível'}/>
           {userData.user_type === 'agente' && userData.agent_code && (
             <InfoRow icon={<Verified size={14} color="#7C3AED"/>} label="Código de Agente" value={userData.agent_code} accent="#7C3AED"/>
           )}

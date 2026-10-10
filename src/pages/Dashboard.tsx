@@ -31,7 +31,7 @@ interface Product {
   farmer_name: string
   contact: string
   status: string
-  created_at: string
+  created_at: string | null
   user_id: string
 }
 
@@ -82,8 +82,10 @@ const Dashboard = () => {
 
       // Calculate statistics
       const activeProducts = productsData?.filter(p => p.status === 'active') || []
-      const usersByProvince = usersData?.reduce((acc: any, user) => {
-        acc[user.province_id] = (acc[user.province_id] || 0) + 1
+      const usersByProvince = usersData?.reduce((acc: Record<string, number>, user) => {
+        if (user.province_id) {
+          acc[user.province_id] = (acc[user.province_id] || 0) + 1
+        }
         return acc
       }, {}) || {}
 

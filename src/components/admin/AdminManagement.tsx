@@ -105,7 +105,7 @@ interface AdminUser {
   is_root_admin: boolean;
   is_super_root: boolean;
   permissions: PermissionKey[];
-  created_at: string;
+  created_at: string | null;
 }
 
 interface User {
@@ -113,8 +113,8 @@ interface User {
   full_name: string;
   email?: string | null;
   user_type?: string | null;
-  is_root_admin?: boolean;
-  is_super_root?: boolean;
+  is_root_admin?: boolean | null;
+  is_super_root?: boolean | null;
 }
 
 interface AdminManagementProps {
@@ -188,7 +188,7 @@ const AdminManagement: React.FC<AdminManagementProps> = ({
         const adminList: AdminUser[] = (adminUsers || []).map((user) => ({
           ...user,
           is_root_admin: user.is_root_admin || false,
-          is_super_root: (user as any).is_super_root || false,
+          is_super_root: user.is_super_root || false,
           permissions: (permissions || [])
             .filter((p) => p.user_id === user.id)
             .map((p) => p.permission as PermissionKey),

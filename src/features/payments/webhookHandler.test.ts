@@ -17,6 +17,8 @@ const verifiedEvent: VerifiedPaymentWebhook = {
 function registryFor(event = verifiedEvent) {
   const adapter: PaymentProviderAdapter = {
     id: 'provider-a',
+    checkoutHosts: [],
+    capabilities: { checkout: true, statusQuery: false, refunds: false, webhookVerification: true, supportedCurrencies: ['AOA'] },
     createCheckout: async () => ({ providerReference: 'provider-reference-1' }),
     verifyWebhook: vi.fn(async () => event),
   }

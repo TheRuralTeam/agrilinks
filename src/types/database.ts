@@ -4,16 +4,16 @@ export interface User {
   email: string | null
   phone: string | null
   full_name: string
-  identity_document: string
-  user_type: 'agricultor' | 'agente' | 'comprador' | 'motorista'
-  province_id: string
-  municipality_id: string
-  email_verified: boolean
-  phone_verified: boolean
-  avatar_url?: string
-  load_capacity_kg?: number | null
-  created_at: string
-  updated_at: string
+  identity_document: string | null
+  user_type: 'agricultor' | 'agente' | 'comprador' | 'motorista' | null
+  province_id: string | null
+  municipality_id: string | null
+  email_verified: boolean | null
+  phone_verified: boolean | null
+  avatar_url: string | null
+  load_capacity_kg: number | null
+  created_at: string | null
+  updated_at: string | null
 }
 
 export interface Product {

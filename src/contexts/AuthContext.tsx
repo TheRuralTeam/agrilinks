@@ -116,10 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return
       }
 
-      const profile = data ? {
-        ...data,
-        user_type: data.user_type as 'agricultor' | 'agente' | 'comprador' | 'motorista'
-      } : null
+      const profile = data
 
       setUserProfile(profile)
 
