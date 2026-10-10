@@ -60,7 +60,9 @@ export const fetchProductsFeed = async ({
   if (profilesError) throw profilesError
   if (likesError) throw likesError
 
-  const verifiedByUserId = new Map((publicProfiles || []).map((profile) => [profile.id, Boolean(profile.verified)]))
+  const verifiedByUserId = new Map<string, boolean>(
+    (publicProfiles || []).map((profile): [string, boolean] => [profile.id, profile.verified === true]),
+  )
   const likedProductIds = new Set((myLikes || []).map((like) => like.product_id))
 
   return productsData.map((product) => ({
