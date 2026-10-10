@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CloudRain, Droplets, RefreshCw, Thermometer, Wind, AlertTriangle, CloudSun } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
 
@@ -69,17 +69,21 @@ export default function MapWeatherPanel({
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [lastRequestedAt, setLastRequestedAt] = useState<string | null>(null);
+  const requestSequence = useRef(0);
   const latitude = coordinates?.latitude;
   const longitude = coordinates?.longitude;
 
   const loadWeather = useCallback(async () => {
     if (latitude == null || longitude == null || !isOnline) return;
+    const requestId = ++requestSequence.current;
     setLoading(true);
     setError('');
     try {
       const { data: result, error: invokeError } = await supabase.functions.invoke('agro-weather', {
         body: { latitude, longitude },
       });
+      // Ignore a response for an older location or a request superseded by a refresh.
+      if (requestId !== requestSequence.current) return;
       if (invokeError) throw invokeError;
       if (result?.error) throw new Error(String(result.error));
       if (!result?.forecast?.current || !result?.forecast?.daily) {
@@ -88,20 +92,27 @@ export default function MapWeatherPanel({
       setData(result as WeatherResponse);
       setLastRequestedAt(new Date().toISOString());
     } catch (cause) {
+      if (requestId !== requestSequence.current) return;
       setError(cause instanceof Error ? cause.message : 'Não foi possível carregar a meteorologia.');
     } finally {
-      setLoading(false);
+      if (requestId === requestSequence.current) setLoading(false);
     }
   }, [latitude, longitude, isOnline]);
 
   useEffect(() => {
+    // Invalidate in-flight requests when the location changes or this panel unmounts.
+    requestSequence.current += 1;
     setData(null);
     setError('');
+    setLoading(false);
     setLastRequestedAt(null);
     if (!coordinates || !isOnline) return;
     void loadWeather();
     const refresh = window.setInterval(() => void loadWeather(), 15 * 60 * 1000);
-    return () => window.clearInterval(refresh);
+    return () => {
+      window.clearInterval(refresh);
+      requestSequence.current += 1;
+    };
   }, [coordinates?.latitude, coordinates?.longitude, isOnline, loadWeather]);
 
   const current = data?.forecast?.current;
