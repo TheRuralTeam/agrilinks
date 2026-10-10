@@ -439,9 +439,16 @@ const Messages = () => {
 
   useEffect(() => {
     const syncWhenOnline = () => { void flushPendingMessages(); };
+    const syncWhenVisible = () => {
+      if (document.visibilityState === "visible") void flushPendingMessages();
+    };
     window.addEventListener("online", syncWhenOnline);
+    document.addEventListener("visibilitychange", syncWhenVisible);
     if (navigator.onLine) void flushPendingMessages();
-    return () => window.removeEventListener("online", syncWhenOnline);
+    return () => {
+      window.removeEventListener("online", syncWhenOnline);
+      document.removeEventListener("visibilitychange", syncWhenVisible);
+    };
   }, [flushPendingMessages]);
 
   const sendMessage = useCallback(async () => {
@@ -508,7 +515,9 @@ const Messages = () => {
       setSelectedFiles([]);
     } catch (err) {
       console.error("Erro ao enviar mensagem segura:", err);
-      if (!navigator.onLine && user && conversation?.participant_id && id) {
+      const errorText = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+      const networkFailure = !navigator.onLine || /failed to fetch|networkerror|network request failed|load failed|fetch failed|internet disconnected|err_internet_disconnected|timeout/.test(errorText);
+      if (networkFailure && user && conversation?.participant_id && id && newMessage.trim()) {
         const queued: PendingMessage = {
           id: crypto.randomUUID(),
           conversation_id: id,
