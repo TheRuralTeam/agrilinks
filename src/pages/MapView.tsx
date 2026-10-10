@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import SatelliteMonitor from '../components/SatelliteMonitor';
+import MapWeatherPanel from '../components/map/MapWeatherPanel';
 import { MAP_TILE_LAYERS } from '../lib/mapTiles';
 import { supabase } from '../integrations/supabase/client';
 import axios from 'axios';
@@ -128,7 +129,7 @@ interface FilterOptions {
   radius: number;
 }
 
-type RouteInfo = { coords: [number, number][]; km: number; mins: number | null };
+type RouteInfo = { coords: [number, number][]; km: number | null; mins: number | null };
 
 /* ─── Retry helper genérico com backoff exponencial ─────────────────────────── */
 async function retryWithBackoff<T>(
@@ -192,7 +193,8 @@ async function fetchRoadRouteFull(
     routeCache.set(key, withTs);
     return result;
   } catch {
-    const fallback = { coords: [from, to] as [number, number][], distance: null, duration: null };
+    // Não desenhar uma linha recta como se fosse uma estrada quando o serviço falha.
+    const fallback = { coords: [] as [number, number][], distance: null, duration: null };
     routeCache.set(key, { ...fallback, ts: Date.now() });
     return fallback;
   }
@@ -943,9 +945,9 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
           p.location_lng!,
         ]);
         if (cancelled) return;
-        const km = distance != null ? distance / 1000 : distanceKm(userLocation, [p.location_lng!, p.location_lat!]);
+        const km = distance != null ? Math.round((distance / 1000) * 10) / 10 : null;
         const mins = duration != null ? Math.max(1, Math.round(duration / 60)) : null;
-        acc[p.id] = { coords, km: Math.round(km * 10) / 10, mins };
+        acc[p.id] = { coords, km, mins };
         setAllRoutes({ ...acc });
       }
     })();
@@ -1008,6 +1010,17 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
       setFlyTarget({ lat: userLocation[1], lng: userLocation[0], zoom: 13 });
     }
   }, [userLocation]);
+
+  // When tracking an active freight load, prefer the driver's latest persisted GPS
+  // position over the product's static pickup/location coordinates for local weather.
+  const trackedWeatherLocation = useMemo(() => {
+    if (!trackedProduct) return null;
+    const freight = freightLoads.find((load) => load.product_id === trackedProduct.id);
+    const location = freight ? freightLocations[freight.id] : undefined;
+    return location
+      ? { latitude: location.latitude, longitude: location.longitude }
+      : null;
+  }, [trackedProduct, freightLoads, freightLocations]);
 
   /* ── Error screen ───────────────────────────────────────────────────────── */
   if (mapError)
@@ -1130,6 +1143,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
           {/* Linhas utilizador → todos os produtos próximos */}
           {Object.entries(allRoutes).map(([id, route]) => {
             const product = filteredProducts.find((p) => p.id === id);
+            if (route.coords.length < 2) return null;
             return (
               <Polyline
                 key={id}
@@ -1138,14 +1152,14 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
                 eventHandlers={{ click: () => product && setSelectedProduct(product) }}
               >
                 <Tooltip sticky direction="top" className="al-route-tip">
-                  {route.km.toFixed(1)} km · {route.mins ? formatDuration(route.mins * 60) : '—'}
+                  {route.km != null ? `${route.km.toFixed(1)} km` : 'Rota indisponível'} · {route.mins ? formatDuration(route.mins * 60) : '—'}
                 </Tooltip>
               </Polyline>
             );
           })}
 
           {/* Rota destacada: produto seleccionado */}
-          {selectedRoute && selectedProduct?.location_lat && selectedProduct?.location_lng && (
+          {selectedRoute && selectedRoute.length > 1 && selectedProduct?.location_lat != null && selectedProduct?.location_lng != null && (
             <>
               <Polyline positions={selectedRoute} pathOptions={{ color: T.blue, weight: 8, opacity: 0.1 }} />
               <Polyline
@@ -1908,6 +1922,23 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
       <div className="text-center mt-2" style={{ fontSize: 11, color: T.faint, marginTop: 8 }}>
         Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a> · Tiles © <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>
       </div>
+      <MapWeatherPanel
+        coordinates={
+          trackedWeatherLocation
+            ? trackedWeatherLocation
+            : trackedProduct?.location_lat != null && trackedProduct?.location_lng != null
+              ? { latitude: trackedProduct.location_lat, longitude: trackedProduct.location_lng }
+              : selectedProduct?.location_lat != null && selectedProduct?.location_lng != null
+                ? { latitude: selectedProduct.location_lat, longitude: selectedProduct.location_lng }
+                : flyTarget
+                  ? { latitude: flyTarget.lat, longitude: flyTarget.lng }
+                  : userLocation
+                    ? { latitude: userLocation[1], longitude: userLocation[0] }
+                    : null
+        }
+        locationLabel={trackedWeatherLocation ? 'Última posição GPS do motorista' : trackedProduct?.product_type || selectedProduct?.product_type || (flyTarget ? 'Localização seleccionada no mapa' : userLocation ? 'A sua localização' : 'Sem localização')}
+        isOnline={isOnline}
+      />
       <SatelliteMonitor />
     </div>
   );

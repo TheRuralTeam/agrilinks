@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 import { jsonResponse, handleCors } from "../_shared/http.ts";
 
 const OPEN_METEO_URL = "https://customer-api.open-meteo.com/v1/forecast";
@@ -54,35 +55,54 @@ function isWithinAngola(latitude: number, longitude: number): boolean {
     && longitude <= ANGOLA_BOUNDS.maxLongitude;
 }
 
-function hasAuthenticatedUser(req: Request): boolean {
-  // Supabase verifies the JWT at the gateway (verify_jwt = true). The anon key
-  // is also a valid JWT, so explicitly require a user token with role=authenticated.
-  const header = req.headers.get("Authorization") ?? "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-  const parts = token.split(".");
-  if (parts.length !== 3) return false;
-  try {
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(parts[1].length / 4) * 4, "="))) as {
-      role?: unknown;
-      sub?: unknown;
-    };
-    return payload.role === "authenticated" && typeof payload.sub === "string" && payload.sub.length > 0;
-  } catch {
-    return false;
-  }
-}
 
 serve(async (req: Request) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 
-  // The Supabase gateway verifies the token, but the anon key is also a valid
-  // JWT. Require a real authenticated user before processing any weather query.
-  if (!hasAuthenticatedUser(req)) {
+  // Validate the session against Supabase Auth rather than trusting decoded JWT claims.
+  const authorization = req.headers.get("Authorization") ?? "";
+  const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const publishableKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (!token) {
     return jsonResponse({ error: "Inicie sessão na AgriLink para utilizar este serviço." }, 401);
+  }
+  if (!supabaseUrl || !publishableKey || !serviceRoleKey) {
+    console.error("Supabase environment is not configured for agro-weather.");
+    return jsonResponse({ error: "O serviço meteorológico está temporariamente indisponível." }, 503);
   }
 
   try {
+    const authClient = createClient(supabaseUrl, publishableKey, {
+      global: { headers: { Authorization: authorization } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: authData, error: authError } = await authClient.auth.getUser(token);
+    if (authError || !authData.user) {
+      return jsonResponse({ error: "Inicie sessão na AgriLink para utilizar este serviço." }, 401);
+    }
+
+    // Shared, atomic database rate limiter. The RPC is granted only to service_role.
+    // Fail closed so a database/rate-limit outage cannot become unlimited provider usage.
+    const serviceClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: allowed, error: rateLimitError } = await serviceClient.rpc("consume_api_rate_limit", {
+      p_bucket_key: `agro-weather:user:${authData.user.id}`,
+      p_window_seconds: 900,
+      p_max_requests: 30,
+    });
+    if (rateLimitError || typeof allowed !== "boolean") {
+      console.error("Could not consume agro-weather rate limit:", rateLimitError?.message ?? "invalid response");
+      return jsonResponse({ error: "Não foi possível validar o limite de pedidos meteorológicos. Tente novamente mais tarde." }, 503);
+    }
+    if (!allowed) {
+      return jsonResponse({ error: "Atingiu o limite de consultas meteorológicas. Tente novamente dentro de 15 minutos." }, 429);
+    }
+
     const body = await req.json().catch(() => null);
     if (!body || typeof body !== "object" || Array.isArray(body)) {
       return jsonResponse({ error: "O corpo do pedido deve ser um objeto JSON." }, 400);
