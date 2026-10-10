@@ -43,6 +43,15 @@ const PublishProduct = () => {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [identityDialogOpen, setIdentityDialogOpen] = useState(false);
 
+  const imagePreviewUrlsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    return () => {
+      imagePreviewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      imagePreviewUrlsRef.current = [];
+    };
+  }, []);
+
   const emailConfirmed = !!(user as any)?.email_confirmed_at || !!userProfile?.email_verified;
   if (user && !emailConfirmed) {
     return (
@@ -92,11 +101,18 @@ const PublishProduct = () => {
       toast({ title: "Muitas imagens", description: "Você pode adicionar no máximo 10 imagens", variant: "destructive" });
       return;
     }
+
+    const nextPreviews = files.map((file) => URL.createObjectURL(file));
+    imagePreviewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    imagePreviewUrlsRef.current = nextPreviews;
     setSelectedImages(files);
-    setImagePreviews(files.map(file => URL.createObjectURL(file)));
+    setImagePreviews(nextPreviews);
   };
 
   const removeImage = (index: number) => {
+    const removedUrl = imagePreviewUrlsRef.current[index];
+    if (removedUrl) URL.revokeObjectURL(removedUrl);
+    imagePreviewUrlsRef.current = imagePreviewUrlsRef.current.filter((_, i) => i !== index);
     setSelectedImages(prev => prev.filter((_, i) => i !== index));
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
