@@ -1,8 +1,9 @@
-const CACHE_NAME = 'agrilink-shell-v7';
+const CACHE_NAME = 'agrilink-shell-v8';
 const APP_SHELL = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
+  '/agrilink-icon.svg',
   '/favicon.ico',
   '/robots.txt'
 ];
