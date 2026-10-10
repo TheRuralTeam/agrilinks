@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CloudRain, Droplets, RefreshCw, Thermometer, Wind, AlertTriangle, CloudSun } from 'lucide-react';
-import { supabase } from '../integrations/supabase/client';
+import { supabase } from '../../integrations/supabase/client';
 
 type Coordinates = { latitude: number; longitude: number } | null;
 
