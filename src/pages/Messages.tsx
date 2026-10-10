@@ -479,7 +479,7 @@ const Messages = () => {
         setNewMessage("");
         toast({
           title: "Mensagem guardada",
-          description: "Está protegida no dispositivo e será enviada automaticamente quando a Internet regressar.",
+          description: "Está protegida no dispositivo e será enviada quando a ligação regressar e a aplicação voltar a sincronizar.",
         });
       } catch (error) {
         toast({
@@ -536,7 +536,7 @@ const Messages = () => {
             title: "Mensagem guardada para reenvio",
             description: navigator.onLine
               ? "A mensagem ficou protegida no dispositivo e será tentada novamente automaticamente."
-              : "Será enviada automaticamente quando a Internet regressar.",
+              : "Será enviada quando a ligação regressar e a aplicação voltar a sincronizar.",
           });
           return;
         } catch (queueError) {
