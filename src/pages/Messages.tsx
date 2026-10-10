@@ -22,6 +22,7 @@ import { supabase } from "../integrations/supabase/client";
 import { useToast } from "../hooks/use-toast";
 import Loader from "../components/ui/Loader";
 import { decryptChatMessage, encryptChatMessage, ensureChatEncryptionKey } from "../lib/chatEncryption";
+import { deletePendingMessage, getPendingMessages, savePendingMessage, type PendingMessage } from "../lib/offlineMessageQueue";
 
 // --- Branding Tokens ---
 import { T } from '../lib/brand';
@@ -311,24 +312,41 @@ const Messages = () => {
     if (!user || !id) return;
     setIsLoading(true);
     const fetchMessages = async () => {
+      let formattedMsgs: Message[] = [];
       try {
-        await ensureChatEncryptionKey(user.id);
-        const { data, error } = await supabase.from("messages").select("*").eq("conversation_id", id).order("created_at", { ascending: true });
-        if (error) throw error;
-        if (data) {
-          const formattedMsgs = await Promise.all(data.map(async (msg) => ({
-            ...msg,
-            content: await decryptChatMessage(msg.content, id, user.id),
-            files: msg.files ? (Array.isArray(msg.files) ? msg.files : []) : []
-          }))) as Message[];
-          setMessages(formattedMsgs);
-          const unread = formattedMsgs.filter(m => m.receiver_id === user.id && !m.read);
-          if (unread.length > 0) {
-            await supabase.from("messages").update({ read: true }).in("id", unread.map(m => m.id));
+        if (navigator.onLine) {
+          try {
+            await ensureChatEncryptionKey(user.id);
+          } catch (keyError) {
+            console.warn("A chave de chat será sincronizada quando a ligação estiver disponível:", keyError);
+          }
+          const { data, error } = await supabase.from("messages").select("*").eq("conversation_id", id).order("created_at", { ascending: true });
+          if (error) throw error;
+          if (data) {
+            formattedMsgs = await Promise.all(data.map(async (msg) => ({
+              ...msg,
+              content: await decryptChatMessage(msg.content, id, user.id),
+              files: msg.files ? (Array.isArray(msg.files) ? msg.files : []) : []
+            }))) as Message[];
+            const unread = formattedMsgs.filter(m => m.receiver_id === user.id && !m.read);
+            if (unread.length > 0) {
+              await supabase.from("messages").update({ read: true }).in("id", unread.map(m => m.id));
+            }
           }
         }
       } catch (err) {
-        console.error("Erro ao carregar mensagens:", err);
+        console.error("Erro ao carregar mensagens do servidor:", err);
+      }
+
+      try {
+        const pending = await getPendingMessages(user.id, id);
+        const combined = [...formattedMsgs, ...pending] as Message[];
+        const unique = Array.from(new Map(combined.map((message) => [message.id, message])).values());
+        unique.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        setMessages(unique);
+      } catch (err) {
+        console.error("Erro ao carregar a caixa de saída offline:", err);
+        setMessages(formattedMsgs);
       } finally {
         setIsLoading(false);
       }
@@ -376,6 +394,56 @@ const Messages = () => {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
+  const flushPendingMessages = useCallback(async () => {
+    if (!navigator.onLine || !user?.id || !id) return;
+    let pending: PendingMessage[] = [];
+    try {
+      pending = await getPendingMessages(user.id, id);
+    } catch (error) {
+      console.error("Não foi possível ler a caixa de saída offline:", error);
+      return;
+    }
+
+    for (const queued of pending) {
+      try {
+        const encryptedContent = await encryptChatMessage(queued.content, queued.conversation_id, queued.sender_id, queued.receiver_id);
+        const { error } = await supabase.from("messages").insert([{
+          id: queued.id,
+          conversation_id: queued.conversation_id,
+          sender_id: queued.sender_id,
+          receiver_id: queued.receiver_id,
+          content: encryptedContent,
+          read: false,
+          created_at: queued.created_at,
+        }]);
+
+        if (error) {
+          // A resposta pode ter-se perdido depois de o servidor gravar a mensagem.
+          // Consultar o mesmo ID antes de repetir evita duplicados.
+          const { data: existing, error: lookupError } = await supabase.from("messages").select("id").eq("id", queued.id).maybeSingle();
+          if (lookupError || !existing) throw error;
+        }
+
+        await supabase.from("conversations").update({
+          last_message: "🔒 Mensagem encriptada",
+          last_timestamp: queued.created_at,
+        }).eq("id", queued.conversation_id);
+        await deletePendingMessage(queued.id);
+        setSentMessageIds((previous) => new Set([...previous, queued.id]));
+      } catch (error) {
+        console.warn("Mensagem mantida na caixa de saída; será tentada novamente:", error);
+        break;
+      }
+    }
+  }, [user?.id, id]);
+
+  useEffect(() => {
+    const syncWhenOnline = () => { void flushPendingMessages(); };
+    window.addEventListener("online", syncWhenOnline);
+    if (navigator.onLine) void flushPendingMessages();
+    return () => window.removeEventListener("online", syncWhenOnline);
+  }, [flushPendingMessages]);
+
   const sendMessage = useCallback(async () => {
     if (!user || !conversation?.participant_id || !id) return;
     if (!newMessage.trim() && selectedFiles.length === 0) return;
@@ -385,6 +453,34 @@ const Messages = () => {
         description: "Para proteger a conversa, os anexos ficam bloqueados até a cifragem dos ficheiros e a respectiva desencriptação serem implementadas e testadas.",
         variant: "destructive",
       });
+      return;
+    }
+    if (!navigator.onLine) {
+      const queued: PendingMessage = {
+        id: crypto.randomUUID(),
+        conversation_id: id,
+        sender_id: user.id,
+        receiver_id: conversation.participant_id,
+        content: newMessage.trim(),
+        created_at: new Date().toISOString(),
+        read: false,
+        files: [],
+      };
+      try {
+        await savePendingMessage(queued);
+        setMessages((previous) => [...previous.filter((message) => message.id !== queued.id), queued as Message]);
+        setNewMessage("");
+        toast({
+          title: "Mensagem guardada",
+          description: "Está protegida no dispositivo e será enviada automaticamente quando a Internet regressar.",
+        });
+      } catch (error) {
+        toast({
+          title: "Não foi possível guardar a mensagem",
+          description: error instanceof Error ? error.message : "Este dispositivo não conseguiu guardar a mensagem offline.",
+          variant: "destructive",
+        });
+      }
       return;
     }
     setIsSending(true);
@@ -412,6 +508,27 @@ const Messages = () => {
       setSelectedFiles([]);
     } catch (err) {
       console.error("Erro ao enviar mensagem segura:", err);
+      if (!navigator.onLine && user && conversation?.participant_id && id) {
+        const queued: PendingMessage = {
+          id: crypto.randomUUID(),
+          conversation_id: id,
+          sender_id: user.id,
+          receiver_id: conversation.participant_id,
+          content: newMessage.trim(),
+          created_at: new Date().toISOString(),
+          read: false,
+          files: [],
+        };
+        try {
+          await savePendingMessage(queued);
+          setMessages((previous) => [...previous.filter((message) => message.id !== queued.id), queued as Message]);
+          setNewMessage("");
+          toast({ title: "Mensagem guardada", description: "Será enviada automaticamente quando a Internet regressar." });
+          return;
+        } catch (queueError) {
+          console.error("Falha ao guardar a mensagem offline:", queueError);
+        }
+      }
       toast({
         title: "Não foi possível enviar a mensagem",
         description: err instanceof Error ? err.message : "Verifique a ligação e tente novamente.",
