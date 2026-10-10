@@ -1,21 +1,36 @@
 import { describe, expect, it } from "vitest";
 import { AGRICULTURAL_PRODUCT_GROUPS, AGRICULTURAL_PRODUCTS } from "./agriculturalProducts";
 
-describe("catálogo pesquisável de produtos do campo", () => {
-  it("inclui várias áreas da cadeia agroalimentar", () => {
-    expect(AGRICULTURAL_PRODUCT_GROUPS.length).toBeGreaterThanOrEqual(10);
-    expect(AGRICULTURAL_PRODUCTS.length).toBeGreaterThanOrEqual(200);
+describe("catálogo de produtos agrícolas angolanos", () => {
+  it("organiza produtos agrícolas vegetais em categorias úteis", () => {
+    expect(AGRICULTURAL_PRODUCT_GROUPS.length).toBeGreaterThanOrEqual(8);
+    expect(AGRICULTURAL_PRODUCTS.length).toBeGreaterThanOrEqual(100);
   });
 
-  it("inclui produtos relevantes para a agricultura angolana", () => {
+  it("inclui culturas, frutas, hortícolas e temperos relevantes em Angola", () => {
     const names = AGRICULTURAL_PRODUCTS.map((name) => name.toLocaleLowerCase("pt-AO"));
-    for (const product of ["Mandioca", "Milho", "Feijão manteiga", "Massango", "Mexoeira", "Múcua", "Cacusso", "Dendém", "Batata rena"]) {
+    for (const product of [
+      "Mandioca", "Milho", "Feijão manteiga", "Massango", "Massambala",
+      "Múcua", "Dendém", "Batata rena", "Alho", "Jindungo",
+      "Piri-piri", "Tomate", "Banana", "Manga", "Cebola",
+    ]) {
       expect(names).toContain(product.toLocaleLowerCase("pt-AO"));
     }
   });
 
-  it("não contém opções vazias e permite pesquisa por texto", () => {
+  it("exclui pecuária, carnes, ovos, lacticínios, pescado, marisco e apicultura", () => {
+    const names = AGRICULTURAL_PRODUCTS.map((name) => name.toLocaleLowerCase("pt-AO"));
+    for (const forbidden of [
+      "Frango", "Frangos vivos", "Carne bovina", "Ovos de galinha", "Leite cru",
+      "Queijo", "Cacusso", "Carapau", "Camarão", "Tilápia", "Mel", "Cera de abelha",
+    ]) {
+      expect(names).not.toContain(forbidden.toLocaleLowerCase("pt-AO"));
+    }
+    expect(AGRICULTURAL_PRODUCT_GROUPS.some((group) => /pecuária|pescado|aquicultura|carnes/i.test(group.label))).toBe(false);
+  });
+
+  it("não contém opções vazias ou nomes repetidos", () => {
     expect(AGRICULTURAL_PRODUCTS.every((name) => name.trim().length > 0)).toBe(true);
-    expect(AGRICULTURAL_PRODUCT_GROUPS.some((group) => group.products.some((name) => name.toLocaleLowerCase("pt-AO").includes("mandioca")))).toBe(true);
+    expect(new Set(AGRICULTURAL_PRODUCTS).size).toBe(AGRICULTURAL_PRODUCTS.length);
   });
 });
