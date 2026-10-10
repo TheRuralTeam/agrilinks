@@ -106,6 +106,8 @@ export default function AgroSatelite() {
         </p>
       </header>
 
+      <p><Link to="/agro-ndvi" className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted">Calcular NDVI real com Sentinel-2</Link></p>
+
       <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
         <Card>
           <CardHeader>
