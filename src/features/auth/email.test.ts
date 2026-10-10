@@ -1,6 +1,6 @@
     import { describe, it, expect, vi } from 'vitest'
 
-const invoke = vi.fn()
+const { invoke } = vi.hoisted(() => ({ invoke: vi.fn() }))
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: { functions: { invoke } },
