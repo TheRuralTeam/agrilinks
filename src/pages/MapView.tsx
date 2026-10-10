@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import SatelliteMonitor from '../components/SatelliteMonitor';
+import MapWeatherPanel from '../components/map/MapWeatherPanel';
 import { MAP_TILE_LAYERS } from '../lib/mapTiles';
 import { supabase } from '../integrations/supabase/client';
 import axios from 'axios';
@@ -192,7 +193,8 @@ async function fetchRoadRouteFull(
     routeCache.set(key, withTs);
     return result;
   } catch {
-    const fallback = { coords: [from, to] as [number, number][], distance: null, duration: null };
+    // Não desenhar uma linha recta como se fosse uma estrada quando o serviço falha.
+    const fallback = { coords: [] as [number, number][], distance: null, duration: null };
     routeCache.set(key, { ...fallback, ts: Date.now() });
     return fallback;
   }
@@ -1130,6 +1132,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
           {/* Linhas utilizador → todos os produtos próximos */}
           {Object.entries(allRoutes).map(([id, route]) => {
             const product = filteredProducts.find((p) => p.id === id);
+            if (route.coords.length < 2) return null;
             return (
               <Polyline
                 key={id}
@@ -1145,7 +1148,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
           })}
 
           {/* Rota destacada: produto seleccionado */}
-          {selectedRoute && selectedProduct?.location_lat && selectedProduct?.location_lng && (
+          {selectedRoute && selectedRoute.length > 1 && selectedProduct?.location_lat != null && selectedProduct?.location_lng != null && (
             <>
               <Polyline positions={selectedRoute} pathOptions={{ color: T.blue, weight: 8, opacity: 0.1 }} />
               <Polyline
@@ -1908,6 +1911,19 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
       <div className="text-center mt-2" style={{ fontSize: 11, color: T.faint, marginTop: 8 }}>
         Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a> · Tiles © <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>
       </div>
+      <MapWeatherPanel
+        coordinates={
+          trackedProduct?.location_lat != null && trackedProduct?.location_lng != null
+            ? { latitude: trackedProduct.location_lat, longitude: trackedProduct.location_lng }
+            : selectedProduct?.location_lat != null && selectedProduct?.location_lng != null
+              ? { latitude: selectedProduct.location_lat, longitude: selectedProduct.location_lng }
+              : userLocation
+                ? { latitude: userLocation[1], longitude: userLocation[0] }
+                : null
+        }
+        locationLabel={trackedProduct?.product_type || selectedProduct?.product_type || (userLocation ? 'A sua localização' : 'Sem localização')}
+        isOnline={isOnline}
+      />
       <SatelliteMonitor />
     </div>
   );
