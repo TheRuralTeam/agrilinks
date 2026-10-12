@@ -52,6 +52,7 @@ const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)'
 interface UserProduct {
   id: string; product_type: string; quantity: number; harvest_date: string
   price: number; province_id: string; municipality_id: string
+  sale_unit?: string | null; min_order_quantity?: number | null
   status: 'active' | 'inactive' | 'removed'; created_at: string | null
   views?: number; interests?: number
 }
