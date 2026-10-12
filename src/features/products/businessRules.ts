@@ -10,7 +10,7 @@ export type ProductSubmissionInput = {
   logistics_access: 'sim' | 'nao' | 'parcial'
   photos?: string[]
   category?: string
-  sale_unit: 'kg' | 'tonelada' | 'unidade' | 'caixa' | 'saco' | 'litro' | 'outro'
+  sale_unit: 'kg' | 'tonelada' | 'unidade' | 'caixa' | 'saco' | 'litro'
   min_order_quantity: number
   package_weight_kg?: number | null
   product_variety?: string
@@ -50,7 +50,7 @@ export const validateProductSubmission = (input: ProductSubmissionInput) => {
     errors.push('Preço deve ser maior que zero.')
   }
 
-  if (!['kg', 'tonelada', 'unidade', 'caixa', 'saco', 'litro', 'outro'].includes(input.sale_unit)) {
+  if (!['kg', 'tonelada', 'unidade', 'caixa', 'saco', 'litro'].includes(input.sale_unit)) {
     errors.push('Selecione a unidade de venda do produto.')
   }
   if (!Number.isInteger(input.min_order_quantity) || input.min_order_quantity <= 0 || input.min_order_quantity > input.quantity) {
