@@ -20,6 +20,7 @@ import { ProductLocationMap } from '../components/ProductLocationMap'
 import { useAuth } from '../contexts/AuthContext'
 import IdentityActionDialog from '../components/IdentityActionDialog'
 import { geocodeAngolaLocation } from '../features/maps/geocodingService'
+import LocationAutocomplete from '../components/LocationAutocomplete'
 import { validatePreOrderSubmission } from '../features/products/businessRules'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
 import { toast } from 'sonner'
@@ -572,12 +573,12 @@ const SearchPage = () => {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-bold text-[#3D4D40]">Local de Entrega</label>
-              <Input
-                placeholder="Digite o local de entrega"
+              <LocationAutocomplete
                 value={orderData.location}
-                onChange={(e) => setOrderData({ ...orderData, location: e.target.value })}
-                className="border-none rounded-xl"
-                style={{ background: 'rgba(118,118,128,0.08)' }}
+                onChange={(location) => setOrderData({ ...orderData, location })}
+                placeholder="Ex.: Viana, Luanda ou Bairro/Zona"
+                inputClassName="h-10 rounded-xl border-none text-sm text-[#111714] placeholder:text-[#758A79] outline-none"
+                inputStyle={{ background: 'rgba(118,118,128,0.08)' }}
               />
             </div>
             <div className="p-4 rounded-2xl space-y-2" style={{ background: 'rgba(118,118,128,0.06)' }}>
