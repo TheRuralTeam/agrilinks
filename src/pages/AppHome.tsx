@@ -204,8 +204,6 @@ const AppHome = () => {
         p_product_id: selectedProduct.id,
         p_quantity: quantity,
         p_location: orderData.location,
-        p_delivery_lat: null,
-        p_delivery_lng: null,
         p_idempotency_key: idempotencyKey,
       })
 
