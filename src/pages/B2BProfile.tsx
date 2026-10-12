@@ -21,6 +21,8 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
  import { ActionButtons } from '../components/b2b/ActionButtons';
  
  import agrilinkLogo from '../assets/agrilink-logo.png';
+ import { angolaProvinces } from '../data/angola-locations';
+ import { SOURCING_AGRICULTURAL_PRODUCTS, SOURCING_UNITS } from '../features/sourcing/sourcingCatalog';
  
  interface CompanyData {
    id: string;
@@ -49,10 +51,9 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
   const [rfqOpen, setRfqOpen] = useState(false);
   const [rfqLoading, setRfqLoading] = useState(false);
   const [rfqForm, setRfqForm] = useState({
-    productName: '',
-    quantity: '',
-    deliveryDate: '',
-    description: '',
+    productName: '', quantity: '', unit: 'kg', qualitySpecification: '',
+    deliveryProvinceId: '', deliveryMunicipalityId: '', deliveryLocation: '',
+    deliveryDate: '', description: '',
   });
  
   const buyerProfileData = {
@@ -203,7 +204,7 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
       toast.error('Faça login para enviar uma solicitação de cotação.');
       return;
     }
-    setRfqForm({ productName: '', quantity: '', deliveryDate: '', description: '' });
+    setRfqForm({ productName: '', quantity: '', unit: 'kg', qualitySpecification: '', deliveryProvinceId: '', deliveryMunicipalityId: '', deliveryLocation: '', deliveryDate: '', description: '' });
     setRfqOpen(true);
   };
 
@@ -216,8 +217,8 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
 
     const productName = rfqForm.productName.trim();
     const quantity = Number(rfqForm.quantity);
-    if (!productName || !Number.isFinite(quantity) || quantity <= 0 || !rfqForm.deliveryDate) {
-      toast.error('Indique o produto, uma quantidade válida e a data de entrega.');
+    if (!SOURCING_AGRICULTURAL_PRODUCTS.includes(productName as (typeof SOURCING_AGRICULTURAL_PRODUCTS)[number]) || !Number.isFinite(quantity) || quantity <= 0 || !rfqForm.deliveryDate || !rfqForm.deliveryProvinceId || !rfqForm.deliveryMunicipalityId) {
+      toast.error('Indique um produto agrícola da lista, quantidade válida, data e município de entrega.');
       return;
     }
 
@@ -225,13 +226,18 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
     try {
       const details = [
         `Perfil consultado: ${companyData?.name || 'Empresa'}`,
-        rfqForm.description.trim() ? `Necessidade: ${rfqForm.description.trim()}` : '',
+        rfqForm.description.trim() ? `Observações: ${rfqForm.description.trim()}` : '',
       ].filter(Boolean).join('\\n\\n');
 
       const { error } = await supabase.from('sourcing_requests').insert({
         user_id: user.id,
         product_name: productName,
         quantity,
+        unit: rfqForm.unit,
+        quality_specification: rfqForm.qualitySpecification.trim() || null,
+        delivery_province_id: rfqForm.deliveryProvinceId,
+        delivery_municipality_id: rfqForm.deliveryMunicipalityId,
+        delivery_location: rfqForm.deliveryLocation.trim() || null,
         delivery_date: rfqForm.deliveryDate,
         description: details || null,
         status: 'pending',
@@ -240,7 +246,7 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
 
       toast.success('Solicitação de cotação enviada à equipa AgriLink.');
       setRfqOpen(false);
-      setRfqForm({ productName: '', quantity: '', deliveryDate: '', description: '' });
+      setRfqForm({ productName: '', quantity: '', unit: 'kg', qualitySpecification: '', deliveryProvinceId: '', deliveryMunicipalityId: '', deliveryLocation: '', deliveryDate: '', description: '' });
     } catch (error) {
       console.error('Erro ao enviar solicitação de cotação:', error);
       toast.error(error instanceof Error ? error.message : 'Não foi possível enviar a solicitação.');
@@ -374,12 +380,25 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
                   <p className="text-sm leading-6 text-muted-foreground">Envie uma necessidade de compra para a equipa AgriLink. O perfil consultado será usado como referência operacional.</p>
                 </DialogHeader>
                 <div className="mt-5 space-y-4">
-                  <div className="space-y-2"><Label htmlFor="rfq-product">Produto</Label><Input id="rfq-product" value={rfqForm.productName} onChange={(e) => setRfqForm(v => ({ ...v, productName: e.target.value }))} placeholder="Ex.: Milho branco" disabled={rfqLoading} /></div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2"><Label htmlFor="rfq-quantity">Quantidade (kg)</Label><Input id="rfq-quantity" type="number" min="1" step="0.01" value={rfqForm.quantity} onChange={(e) => setRfqForm(v => ({ ...v, quantity: e.target.value }))} placeholder="1000" disabled={rfqLoading} /></div>
-                    <div className="space-y-2"><Label htmlFor="rfq-date">Data de entrega</Label><Input id="rfq-date" type="date" value={rfqForm.deliveryDate} onChange={(e) => setRfqForm(v => ({ ...v, deliveryDate: e.target.value }))} disabled={rfqLoading} /></div>
+                  <div className="space-y-2">
+                    <Label htmlFor="rfq-product">Produto agrícola *</Label>
+                    <select id="rfq-product" value={rfqForm.productName} onChange={(e) => setRfqForm(v => ({ ...v, productName: e.target.value }))} required disabled={rfqLoading} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                      <option value="">Seleccionar produto</option>
+                      {SOURCING_AGRICULTURAL_PRODUCTS.map(product => <option key={product} value={product}>{product}</option>)}
+                    </select>
                   </div>
-                  <div className="space-y-2"><Label htmlFor="rfq-description">Necessidade / especificações</Label><Textarea id="rfq-description" rows={5} value={rfqForm.description} onChange={(e) => setRfqForm(v => ({ ...v, description: e.target.value }))} placeholder="Qualidade, embalagem, localização de entrega, requisitos adicionais..." disabled={rfqLoading} className="resize-none" /></div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2"><Label htmlFor="rfq-quantity">Quantidade *</Label><Input id="rfq-quantity" type="number" min="0.01" step="any" value={rfqForm.quantity} onChange={(e) => setRfqForm(v => ({ ...v, quantity: e.target.value }))} placeholder="1000" required disabled={rfqLoading} /></div>
+                    <div className="space-y-2"><Label htmlFor="rfq-unit">Unidade *</Label><select id="rfq-unit" value={rfqForm.unit} onChange={(e) => setRfqForm(v => ({ ...v, unit: e.target.value }))} required disabled={rfqLoading} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">{SOURCING_UNITS.map(unit => <option key={unit.value} value={unit.value}>{unit.label}</option>)}</select></div>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2"><Label htmlFor="rfq-province">Província de entrega *</Label><select id="rfq-province" value={rfqForm.deliveryProvinceId} onChange={(e) => setRfqForm(v => ({ ...v, deliveryProvinceId: e.target.value, deliveryMunicipalityId: '' }))} required disabled={rfqLoading} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="">Seleccionar província</option>{angolaProvinces.map(province => <option key={province.id} value={province.id}>{province.name}</option>)}</select></div>
+                    <div className="space-y-2"><Label htmlFor="rfq-municipality">Município de entrega *</Label><select id="rfq-municipality" value={rfqForm.deliveryMunicipalityId} onChange={(e) => setRfqForm(v => ({ ...v, deliveryMunicipalityId: e.target.value }))} required disabled={rfqLoading || !rfqForm.deliveryProvinceId} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="">Seleccionar município</option>{angolaProvinces.find(province => province.id === rfqForm.deliveryProvinceId)?.municipalities.map(municipality => <option key={municipality.id} value={municipality.id}>{municipality.name}</option>)}</select></div>
+                  </div>
+                  <div className="space-y-2"><Label htmlFor="rfq-location">Local de entrega (opcional)</Label><Input id="rfq-location" maxLength={180} value={rfqForm.deliveryLocation} onChange={(e) => setRfqForm(v => ({ ...v, deliveryLocation: e.target.value }))} placeholder="Armazém, mercado ou ponto de descarga" disabled={rfqLoading} /></div>
+                  <div className="space-y-2"><Label htmlFor="rfq-quality">Qualidade e apresentação pretendidas</Label><Textarea id="rfq-quality" maxLength={1000} rows={3} value={rfqForm.qualitySpecification} onChange={(e) => setRfqForm(v => ({ ...v, qualitySpecification: e.target.value }))} placeholder="Frescura, maturação, calibre, secagem ou embalagem" disabled={rfqLoading} className="resize-none" /></div>
+                  <div className="space-y-2"><Label htmlFor="rfq-date">Data de entrega *</Label><Input id="rfq-date" type="date" value={rfqForm.deliveryDate} onChange={(e) => setRfqForm(v => ({ ...v, deliveryDate: e.target.value }))} required disabled={rfqLoading} /></div>
+                  <div className="space-y-2"><Label htmlFor="rfq-description">Observações adicionais</Label><Textarea id="rfq-description" rows={3} value={rfqForm.description} onChange={(e) => setRfqForm(v => ({ ...v, description: e.target.value }))} placeholder="Requisitos adicionais para a equipa AgriLink" disabled={rfqLoading} className="resize-none" /></div>
                 </div>
               </div>
               <DialogFooter className="border-t border-[#E5EDE6] bg-white px-5 py-4 sm:px-6">
