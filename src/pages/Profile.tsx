@@ -432,7 +432,8 @@ const Profile = () => {
         .eq('confirmation_status', 'confirmed')
         .order('confirmed_at', { ascending: false })
       if (error) throw error
-      setSourcingQuotes((data || []) as SourcingQuote[])
+      const today = new Date().toISOString().slice(0, 10)
+      setSourcingQuotes(((data || []) as SourcingQuote[]).filter((quote) => !quote.valid_until || quote.valid_until >= today))
     } catch (error) {
       console.error('[AgriLink Sourcing] Erro ao carregar cotações confirmadas:', error)
       setSourcingQuotes([])
