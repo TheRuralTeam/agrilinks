@@ -948,9 +948,9 @@ const Profile = () => {
                       <StatusPill status={r.status} />
                     </div>
                   ) },
-                  { key: 'qtd', label: 'Quantidade', render: r => `${r.quantity.toLocaleString()} kg` },
+                  { key: 'qtd', label: 'Quantidade', render: r => `${r.quantity.toLocaleString()} ${r.sale_unit || 'kg'}` },
                   { key: 'colheita', label: 'Colheita', render: r => formatDate(r.harvest_date) },
-                  { key: 'preco', label: 'Preço', align: 'right', render: r => <span style={{ fontWeight: 800, color: T.g600 }}>{r.price.toLocaleString()} Kz/kg</span> },
+                  { key: 'preco', label: 'Preço', align: 'right', render: r => <span style={{ fontWeight: 800, color: T.g600 }}>{r.price.toLocaleString()} Kz/{r.sale_unit || 'kg'}</span> },
                   { key: 'interacoes', label: 'Interações', align: 'center', render: r => (
                     <div style={{ display: 'flex', gap: 10, justifyContent: 'center', color: T.faint, fontSize: 12 }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><MessageCircle size={12} strokeWidth={1.75}/>{productStats[r.id]?.comments || 0}</span>
