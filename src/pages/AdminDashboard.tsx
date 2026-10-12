@@ -65,6 +65,7 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import agrilinkLogo from "../assets/agrilink-logo.png";
 import AdminManagement from "../components/admin/AdminManagement";
 import DeliveryTracking from "../components/admin/DeliveryTracking";
+import SourcingOperations from "../components/admin/SourcingOperations";
 import WorkSessionTimer from "../components/admin/WorkSessionTimer";
 import MarketPricesManager from "../components/admin/MarketPricesManager";
 import { downloadFichaRecebimentoPdf } from "../lib/fichaRecebimentoPdf";
@@ -1942,6 +1943,8 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         )}
+
+        {activeTab === "sourcing" && <SourcingOperations requests={sourcingRequests} canManage={hasPermission("manage_sourcing")} />}
 
         {/* MARKET DATA */}
         {activeTab === "market" && (
