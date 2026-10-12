@@ -3472,6 +3472,12 @@ export type Database = {
           municipality_id: string
           photos: string[] | null
           price: number
+          sale_unit: string
+          min_order_quantity: number
+          package_weight_kg: number | null
+          product_variety: string | null
+          product_condition: string | null
+          packaging_type: string | null
           product_type: string
           province_id: string
           quantity: number
@@ -3495,6 +3501,12 @@ export type Database = {
           municipality_id: string
           photos?: string[] | null
           price: number
+          sale_unit?: string
+          min_order_quantity?: number
+          package_weight_kg?: number | null
+          product_variety?: string | null
+          product_condition?: string | null
+          packaging_type?: string | null
           product_type: string
           province_id: string
           quantity: number
@@ -3518,6 +3530,12 @@ export type Database = {
           municipality_id?: string
           photos?: string[] | null
           price?: number
+          sale_unit?: string
+          min_order_quantity?: number
+          package_weight_kg?: number | null
+          product_variety?: string | null
+          product_condition?: string | null
+          packaging_type?: string | null
           product_type?: string
           province_id?: string
           quantity?: number
