@@ -208,8 +208,8 @@ const AppHome = () => {
         p_product_id: selectedProduct.id,
         p_quantity: quantity,
         p_location: orderData.location,
-        p_delivery_lat: destination ? Number(destination.lat) : null,
-        p_delivery_lng: destination ? Number(destination.lon) : null,
+        p_delivery_lat: null,
+        p_delivery_lng: null,
         p_idempotency_key: idempotencyKey,
       })
 
@@ -247,11 +247,7 @@ const AppHome = () => {
       const reservation = Array.isArray(data) ? data[0] : data
       if (!reservation) throw new Error('Não foi possível criar a reserva.')
 
-      toast.success(
-        destination
-          ? 'Pré-compra registada. O fornecedor será notificado e a reserva fica activa por 15 minutos.'
-          : 'Pré-compra registada. O local foi guardado e será confirmado antes de iniciar a logística.'
-      )
+      toast.success('Pré-compra registada. O local foi guardado e será confirmado antes de iniciar a logística.')
       // O preço final, frete e pagamento são calculados pelo servidor após a aceitação do fornecedor.
       setModalOpen(false)
       setSelectedProduct(null)
