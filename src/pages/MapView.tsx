@@ -431,7 +431,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 >
                   {product.quantity}
                 </div>
-                <div style={{ fontSize: 10, color: T.muted, fontFamily: FONT, marginTop: 2 }}>kg</div>
+                <div style={{ fontSize: 10, color: T.muted, fontFamily: FONT, marginTop: 2 }}>{product.sale_unit || 'kg'}</div>
               </div>
             </div>
           </div>
@@ -606,16 +606,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
 };
 
 /* ─── Stats Panel ───────────────────────────────────────────────────────────── */
-const StatsPanel: React.FC<{ count: number; avgPrice: number; totalQuantity: number }> = ({
+const StatsPanel: React.FC<{ count: number; avgPrice: number; unitTypes: number }> = ({
   count,
   avgPrice,
-  totalQuantity,
+  unitTypes,
 }) => (
   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
     {[
       { label: 'Produtos', value: count, color: T.g700 },
       { label: 'Preço Médio', value: `${avgPrice.toLocaleString()}`, color: T.blue },
-      { label: 'Total (kg)', value: totalQuantity.toLocaleString(), color: T.gold },
+      { label: 'Unidades comerciais', value: unitTypes.toLocaleString(), color: T.gold },
     ].map((s) => (
       <div key={s.label} style={{ padding: '10px 9px', borderRadius: 12, background: T.canvas, textAlign: 'center' }}>
         <div
@@ -847,11 +847,11 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
   );
 
   const statsData = useMemo(() => {
-    if (!filteredProducts.length) return { count: 0, avgPrice: 0, totalQuantity: 0 };
+    if (!filteredProducts.length) return { count: 0, avgPrice: 0, unitTypes: 0 };
     return {
       count: filteredProducts.length,
       avgPrice: Math.round(filteredProducts.reduce((s, p) => s + p.price, 0) / filteredProducts.length),
-      totalQuantity: filteredProducts.reduce((s, p) => s + p.quantity, 0),
+      unitTypes: new Set(filteredProducts.map((p) => p.sale_unit || 'kg')).size,
     };
   }, [filteredProducts]);
 
@@ -1568,7 +1568,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
               </span>
             </div>
             <div style={{ padding: '0 14px 12px' }}>
-              <StatsPanel count={statsData.count} avgPrice={statsData.avgPrice} totalQuantity={statsData.totalQuantity} />
+              <StatsPanel count={statsData.count} avgPrice={statsData.avgPrice} unitTypes={statsData.unitTypes} />
             </div>
             <div style={{ maxHeight: 220, overflowY: 'auto', borderTop: `1px solid ${T.rule}` }}>
               {filteredProducts.length === 0 ? (
