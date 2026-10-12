@@ -19,7 +19,6 @@ import { fetchProductsFeed } from '../features/products/productsService'
 import { ProductLocationMap } from '../components/ProductLocationMap'
 import { useAuth } from '../contexts/AuthContext'
 import IdentityActionDialog from '../components/IdentityActionDialog'
-import { geocodeAngolaLocation } from '../features/maps/geocodingService'
 import LocationAutocomplete from '../components/LocationAutocomplete'
 import { validatePreOrderSubmission } from '../features/products/businessRules'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
@@ -212,21 +211,9 @@ const SearchPage = () => {
         location: orderData.location,
       })
 
-      let destination: { lat: string; lon: string } | null = null
-      try {
-        destination = await geocodeAngolaLocation(orderData.location)
-      } catch (geocodeError) {
-        // Não bloquear a pré-compra por indisponibilidade temporária do mapa.
-        // O texto é guardado na conta autenticada; coordenadas ficam pendentes.
-        console.warn('[AgriLink] Geocodificação indisponível; a pré-compra seguirá com o texto informado.', geocodeError)
-      }
-
-      if (destination && (
-        !Number.isFinite(Number(destination.lat)) ||
-        !Number.isFinite(Number(destination.lon)) ||
-        Number(destination.lat) < -18.5 || Number(destination.lat) > -4.2 ||
-        Number(destination.lon) < 11.4 || Number(destination.lon) > 24.2
-      )) destination = null
+      // Privacidade: não enviamos a morada/bairro digitado para serviços externos.
+      // O texto fica no pedido autenticado; as coordenadas serão resolvidas antes da logística.
+      const destination: { lat: string; lon: string } | null = null
 
       const idempotencyKey = crypto.randomUUID()
 
