@@ -260,9 +260,11 @@ const SearchPage = () => {
         : null
 
       toast.success(
-        expiresAt
-          ? `Pré-compra enviada. A disponibilidade fica reservada até às ${expiresAt}.`
-          : 'Pré-compra enviada. A disponibilidade foi reservada temporariamente.'
+        !destination
+          ? 'Pré-compra enviada. O local foi guardado e será confirmado antes de iniciar a logística.'
+          : expiresAt
+            ? `Pré-compra enviada. A disponibilidade fica reservada até às ${expiresAt}.`
+            : 'Pré-compra enviada. A disponibilidade foi reservada temporariamente.'
       )
       setPreOrderModalOpen(false)
       setSelectedProduct(null)
