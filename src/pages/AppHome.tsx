@@ -13,7 +13,6 @@ import { useNavigate } from 'react-router-dom'
 import { ProductCard, Product } from '../components/ProductCard'
 import { ProductLocationMap } from '../components/ProductLocationMap'
 import IdentityActionDialog from '../components/IdentityActionDialog'
-import { geocodeAngolaLocation } from '../features/maps/geocodingService'
 import LocationAutocomplete from '../components/LocationAutocomplete'
 import agrilinkLogo from '../assets/agrilink-logo.png'
 import { fetchActiveProducts } from '../features/products/productsService'
@@ -70,7 +69,6 @@ const AppHome = () => {
   const [mapModalOpen, setMapModalOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [orderData, setOrderData] = useState({ quantity: 1, location: '' })
-  const [geocodingLocation, setGeocodingLocation] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string>('all')
@@ -200,25 +198,10 @@ const AppHome = () => {
     try {
       const quantity = Number(orderData.quantity || 0)
       if (!Number.isFinite(quantity) || quantity <= 0) throw new Error('Informe uma quantidade válida.')
-      setGeocodingLocation(true)
-      let destination: { lat: string; lon: string } | null = null
-      try {
-        destination = await geocodeAngolaLocation(orderData.location)
-      } catch (geocodeError) {
-        // A localização textual continua a ser guardada. As coordenadas podem
-        // ser resolvidas antes de iniciar a logística, sem inventar GPS.
-        console.warn('[AgriLink] Geocodificação indisponível; a pré-compra seguirá com o texto informado.', geocodeError)
-        destination = null
-      } finally {
-        setGeocodingLocation(false)
-      }
-
-      if (destination && (
-        !Number.isFinite(Number(destination.lat)) ||
-        !Number.isFinite(Number(destination.lon)) ||
-        Number(destination.lat) < -18.5 || Number(destination.lat) > -4.2 ||
-        Number(destination.lon) < 11.4 || Number(destination.lon) > 24.2
-      )) destination = null
+      // Privacidade: guardamos a localização como texto no pedido autenticado.
+      // Não enviamos a morada/bairro digitado para serviços externos de mapas.
+      // A equipa resolve as coordenadas antes de iniciar a logística.
+      const destination: { lat: string; lon: string } | null = null
 
       const idempotencyKey = crypto.randomUUID()
       const { data, error } = await supabase.rpc('create_marketplace_pre_order', {
@@ -649,7 +632,7 @@ const AppHome = () => {
             </button>
             <button
               onClick={handlePreOrderSubmit}
-              disabled={isSubmitting || geocodingLocation || !orderData.location.trim() || orderData.quantity < 1}
+              disabled={isSubmitting || !orderData.location.trim() || orderData.quantity < 1}
               style={{
                 flex:2, height:42, borderRadius:10, border:'none',
                 background:`linear-gradient(135deg, ${T.g500}, ${T.g700})`,
@@ -662,7 +645,7 @@ const AppHome = () => {
               onMouseEnter={e => { if (!(isSubmitting || !orderData.location.trim() || orderData.quantity < 1)) { (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 24px rgba(45,125,58,0.4)` } }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 16px rgba(45,125,58,0.3)` }}
             >
-              {isSubmitting || geocodingLocation ? (
+              {isSubmitting ? (
                 <>
                   <span style={{ width:14, height:14, borderRadius:'50%', border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'#fff', animation:'spin 0.8s linear infinite' }}/>
                   A localizar entrega...
