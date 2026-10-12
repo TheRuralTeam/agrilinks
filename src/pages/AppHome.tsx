@@ -259,7 +259,6 @@ const AppHome = () => {
       console.error('[AgriLink] Erro ao criar pré-compra:', error)
       toast.error(error?.message || 'Não foi possível concluir a reserva.')
     } finally {
-      setGeocodingLocation(false)
       setIsSubmitting(false)
     }
   }
@@ -648,7 +647,7 @@ const AppHome = () => {
               {isSubmitting ? (
                 <>
                   <span style={{ width:14, height:14, borderRadius:'50%', border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'#fff', animation:'spin 0.8s linear infinite' }}/>
-                  A localizar entrega...
+                  A registar pré-compra...
                 </>
               ) : (
                 <><ShoppingCart size={15}/> Enviar pré-compra</>
