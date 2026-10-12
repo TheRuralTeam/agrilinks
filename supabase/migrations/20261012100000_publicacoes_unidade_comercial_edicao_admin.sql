@@ -7,6 +7,37 @@ ALTER TABLE public.products
   ADD COLUMN IF NOT EXISTS product_condition text,
   ADD COLUMN IF NOT EXISTS packaging_type text;
 
+-- Backfill the new commercial unit from the existing canonical legacy field.
+UPDATE public.products
+SET sale_unit = CASE WHEN unit IN ('kg', 'tonelada', 'unidade', 'caixa', 'saco', 'litro') THEN unit ELSE 'kg' END;
+
+-- Keep legacy screens and new screens consistent regardless of which field a caller updates.
+CREATE OR REPLACE FUNCTION public.sync_product_commercial_unit()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.sale_unit = 'kg' AND NEW.unit IS DISTINCT FROM 'kg' THEN
+      NEW.sale_unit := NEW.unit;
+    ELSE
+      NEW.unit := NEW.sale_unit;
+    END IF;
+  ELSIF NEW.sale_unit IS DISTINCT FROM OLD.sale_unit THEN
+    NEW.unit := NEW.sale_unit;
+  ELSIF NEW.unit IS DISTINCT FROM OLD.unit THEN
+    NEW.sale_unit := NEW.unit;
+  END IF;
+  RETURN NEW;
+END;
+$;
+
+DROP TRIGGER IF EXISTS trg_sync_product_commercial_unit ON public.products;
+CREATE TRIGGER trg_sync_product_commercial_unit
+BEFORE INSERT OR UPDATE OF sale_unit, unit ON public.products
+FOR EACH ROW EXECUTE FUNCTION public.sync_product_commercial_unit();
+
 ALTER TABLE public.products
   ADD CONSTRAINT products_sale_unit_check
     CHECK (sale_unit IN ('kg', 'tonelada', 'unidade', 'caixa', 'saco', 'litro')),
@@ -54,7 +85,6 @@ DECLARE
   v_actor uuid := auth.uid();
   v_before jsonb;
   v_after jsonb;
-  v_reserved numeric;
 BEGIN
   IF v_actor IS NULL OR NOT (
     EXISTS (SELECT 1 FROM public.users u WHERE u.id = v_actor AND (u.is_root_admin IS TRUE OR u.is_super_root IS TRUE))
@@ -76,22 +106,19 @@ BEGIN
     RAISE EXCEPTION 'Os dados da publicação são inválidos.' USING ERRCODE = '22023';
   END IF;
 
-  SELECT to_jsonb(p), coalesce(p.reserved_quantity, 0)
-    INTO v_before, v_reserved
+  SELECT to_jsonb(p)
+    INTO v_before
     FROM public.products p
     WHERE p.id = p_product_id
     FOR UPDATE;
   IF v_before IS NULL THEN
     RAISE EXCEPTION 'Publicação não encontrada.' USING ERRCODE = 'P0002';
   END IF;
-  IF p_quantity < v_reserved THEN
-    RAISE EXCEPTION 'A quantidade não pode ficar abaixo do stock já reservado.' USING ERRCODE = '22023';
-  END IF;
-
   UPDATE public.products
   SET product_type = trim(p_product_type),
       quantity = p_quantity,
       price = p_price,
+      unit = p_sale_unit,
       sale_unit = p_sale_unit,
       min_order_quantity = p_min_order_quantity,
       package_weight_kg = p_package_weight_kg,
