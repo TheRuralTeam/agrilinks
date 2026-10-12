@@ -4288,6 +4288,26 @@ export type Database = {
         Args: { p_product_id: string }
         Returns: boolean
       }
+      admin_update_product: {
+        Args: {
+          p_product_id: string
+          p_product_type: string
+          p_quantity: number
+          p_price: number
+          p_sale_unit: string
+          p_min_order_quantity: number
+          p_package_weight_kg: number | null
+          p_product_variety: string | null
+          p_product_condition: string | null
+          p_packaging_type: string | null
+          p_description: string | null
+          p_harvest_date: string
+          p_province_id: string
+          p_municipality_id: string
+          p_logistics_access: string
+        }
+        Returns: boolean
+      }
       admin_bulk_delete_fichas_recebimento: {
         Args: { p_ficha_ids: string[] }
         Returns: number
