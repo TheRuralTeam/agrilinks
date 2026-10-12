@@ -79,6 +79,14 @@ function municipalityName(provinceId: string | null, municipalityId: string | nu
 function unitLabel(value: string) {
   return SOURCING_UNITS.find((item) => item.value === value)?.label ?? value;
 }
+function currentLuandaDate() {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Luanda", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value ?? "";
+  const month = parts.find((part) => part.type === "month")?.value ?? "";
+  const day = parts.find((part) => part.type === "day")?.value ?? "";
+  return `${year}-${month}-${day}`;
+}
+
 
 export default function SourcingOperations({ requests, canManage }: { requests: Request[]; canManage: boolean }) {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -236,7 +244,7 @@ export default function SourcingOperations({ requests, canManage }: { requests: 
       toast.error("Registe primeiro a disponibilidade como disponível ou parcialmente disponível.");
       return;
     }
-    if (quote.valid_until && quote.valid_until < new Date().toISOString().slice(0, 10)) {
+    if (quote.valid_until && quote.valid_until < currentLuandaDate()) {
       toast.error("Esta cotação expirou. Registe uma nova cotação actualizada antes de confirmar a disponibilidade.");
       return;
     }
@@ -319,7 +327,7 @@ export default function SourcingOperations({ requests, canManage }: { requests: 
           <div><label className={labelClass}>Preço por unidade (AOA)</label><input className={fieldClass} type="number" min="0" step="0.01" value={quoteForm.unit_price} onChange={(e) => setQuoteForm({ ...quoteForm, unit_price: e.target.value })} placeholder="A confirmar" /></div>
           <div><label className={labelClass}>Disponibilidade declarada</label><select className={fieldClass} value={quoteForm.availability_status} onChange={(e) => setQuoteForm({ ...quoteForm, availability_status: e.target.value as Quote["availability_status"] })}><option value="not_checked">Por verificar</option><option value="available">Disponível</option><option value="partially_available">Parcialmente disponível</option><option value="unavailable">Indisponível</option></select></div>
           <div><label className={labelClass}>Entrega prevista</label><input className={fieldClass} type="date" value={quoteForm.expected_delivery_date} onChange={(e) => setQuoteForm({ ...quoteForm, expected_delivery_date: e.target.value })} /></div>
-          <div><label className={labelClass}>Cotação válida até</label><input className={fieldClass} type="date" min={new Date().toISOString().slice(0, 10)} value={quoteForm.valid_until} onChange={(e) => setQuoteForm({ ...quoteForm, valid_until: e.target.value })} /></div>
+          <div><label className={labelClass}>Cotação válida até</label><input className={fieldClass} type="date" min={currentLuandaDate()} value={quoteForm.valid_until} onChange={(e) => setQuoteForm({ ...quoteForm, valid_until: e.target.value })} /></div>
           <div><label className={labelClass}>Método de confirmação</label><select className={fieldClass} value={quoteForm.confirmation_method} onChange={(e) => setQuoteForm({ ...quoteForm, confirmation_method: e.target.value })}><option value="phone">Telefone</option><option value="in_person">Presencial</option><option value="marketplace">Marketplace</option><option value="document">Documento / evidência</option><option value="other">Outro</option></select></div>
           <div className="md:col-span-3"><label className={labelClass}>Qualidade / especificações</label><textarea className={fieldClass} rows={2} maxLength={2000} value={quoteForm.quality_notes} onChange={(e) => setQuoteForm({ ...quoteForm, quality_notes: e.target.value })} /></div>
           <div className="md:col-span-3"><label className={labelClass}>Notas da equipa</label><textarea className={fieldClass} rows={2} maxLength={2000} value={quoteForm.notes} onChange={(e) => setQuoteForm({ ...quoteForm, notes: e.target.value })} /></div>
@@ -348,14 +356,14 @@ export default function SourcingOperations({ requests, canManage }: { requests: 
             <div className="divide-y divide-gray-100">{quotes.map((quote) => {
               const supplier = suppliers.find((item) => item.id === quote.supplier_id);
               const request = requests.find((item) => item.id === quote.sourcing_request_id);
-              const isExpiredByDate = Boolean(quote.valid_until && quote.valid_until < new Date().toISOString().slice(0, 10));
+              const isExpiredByDate = Boolean(quote.valid_until && quote.valid_until < currentLuandaDate());
               const confirmed = quote.confirmation_status === "confirmed" && !isExpiredByDate;
               const expired = quote.confirmation_status === "expired" || isExpiredByDate;
               return <div key={quote.id} className="space-y-2 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="font-semibold text-gray-900">{request?.product_name ?? "Pedido indisponível"} · {supplier?.company_name ?? "Fornecedor"}</p><p className="text-sm text-gray-600">{Number(quote.available_quantity).toLocaleString("pt-AO")} {unitLabel(quote.unit)}{quote.unit_price !== null ? " · " + Number(quote.unit_price).toLocaleString("pt-AO") + " " + quote.currency + "/" + unitLabel(quote.unit) : " · Preço por confirmar"}</p><p className="text-xs text-gray-500">Disponibilidade: {quote.availability_status.replace(/_/g, " ")}{quote.expected_delivery_date ? " · Entrega: " + new Date(quote.expected_delivery_date).toLocaleDateString("pt-AO") : ""}{quote.valid_until ? " · Válida até: " + new Date(quote.valid_until).toLocaleDateString("pt-AO") : ""}</p></div><span className={confirmed ? "rounded-full bg-green-50 px-2 py-1 text-xs font-semibold text-green-700" : expired ? "rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700" : "rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800"}>{confirmed ? "Confirmada" : expired ? "Expirada" : quote.confirmation_status === "rejected" ? "Rejeitada" : "Pendente"}</span></div>
                 {quote.quality_notes && <p className="text-xs text-gray-600">Qualidade: {quote.quality_notes}</p>}
                 {quote.notes && <p className="text-xs text-gray-600">Notas: {quote.notes}</p>}
-                {canManage && !confirmed && quote.confirmation_status === "pending" && <div className="flex flex-wrap gap-2"><Button size="sm" onClick={() => void confirmQuote(quote)} disabled={busyQuoteId === quote.id || !["available", "partially_available"].includes(quote.availability_status) || Boolean(quote.valid_until && quote.valid_until < new Date().toISOString().slice(0, 10))}>{busyQuoteId === quote.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Confirmar disponibilidade</Button><Button size="sm" variant="outline" onClick={() => void updateQuoteStatus(quote, "rejected")} disabled={busyQuoteId === quote.id}>Rejeitar</Button>{quote.valid_until && quote.valid_until < new Date().toISOString().slice(0, 10) && <Button size="sm" variant="outline" onClick={() => void updateQuoteStatus(quote, "expired")} disabled={busyQuoteId === quote.id}>Marcar expirada</Button>}</div>}
+                {canManage && !confirmed && quote.confirmation_status === "pending" && <div className="flex flex-wrap gap-2"><Button size="sm" onClick={() => void confirmQuote(quote)} disabled={busyQuoteId === quote.id || !["available", "partially_available"].includes(quote.availability_status) || Boolean(quote.valid_until && quote.valid_until < currentLuandaDate())}>{busyQuoteId === quote.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Confirmar disponibilidade</Button><Button size="sm" variant="outline" onClick={() => void updateQuoteStatus(quote, "rejected")} disabled={busyQuoteId === quote.id}>Rejeitar</Button>{quote.valid_until && quote.valid_until < currentLuandaDate() && <Button size="sm" variant="outline" onClick={() => void updateQuoteStatus(quote, "expired")} disabled={busyQuoteId === quote.id}>Marcar expirada</Button>}</div>}
                 {confirmed && <p className="flex items-center gap-1 text-xs font-medium text-green-700"><ShieldCheck className="h-3.5 w-3.5" />Confirmada em {quote.confirmed_at ? new Date(quote.confirmed_at).toLocaleString("pt-AO") : "data não disponível"}</p>}
                 {isExpiredByDate && quote.confirmation_status !== "expired" && <p className="flex items-center gap-1 text-xs text-amber-700"><CircleAlert className="h-3.5 w-3.5" />Cotação fora da validade; não deve ser tratada como disponibilidade actual.</p>}{canManage && isExpiredByDate && quote.confirmation_status === "confirmed" && <Button size="sm" variant="outline" onClick={() => void updateQuoteStatus(quote, "expired")} disabled={busyQuoteId === quote.id}>Registar expiração no histórico</Button>}
               </div>;
