@@ -93,7 +93,7 @@ export default function LocationAutocomplete({
         </div>
       )}
       <p className="mt-1.5 text-[11px] leading-4 text-[#758A79]">
-        Escreva município e bairro/zona. Pode escolher uma sugestão ou manter o texto livre; não precisa de partilhar a sua localização GPS.
+        Escreva município e bairro/zona. Pode escolher uma sugestão ou manter o texto livre. O texto fica no pedido autenticado e não é enviado a serviços externos de mapas.
       </p>
     </div>
   )
