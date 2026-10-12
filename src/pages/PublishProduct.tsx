@@ -214,7 +214,6 @@ const PublishProduct = () => {
   product_type: formData.product_type,
   category: formData.category,
   sale_unit: formData.sale_unit,
-  unit: formData.sale_unit,
   min_order_quantity: parseFloat(formData.min_order_quantity),
   package_weight_kg: formData.package_weight_kg ? parseFloat(formData.package_weight_kg) : null,
   product_variety: formData.product_variety.trim() || null,
