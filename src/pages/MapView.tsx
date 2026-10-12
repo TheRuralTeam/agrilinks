@@ -93,6 +93,7 @@ L.Icon.Default.mergeOptions({
 
 /* ─── Types ─────────────────────────────────────────────────────────────────── */
 interface Product {
+  sale_unit?: string | null
   id: string;
   product_type: string;
   quantity: number;
@@ -304,7 +305,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   distanceLabel,
 }) => {
   const [isFavorited, setIsFavorited] = useState(false);
-  const pricePerKg = (product.price / Math.max(product.quantity, 1)).toFixed(0);
+  const displayUnit = product.sale_unit || 'kg';
 
   return (
     <div
@@ -413,7 +414,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   <span style={{ fontSize: 11, fontWeight: 600, color: T.faint }}>Kz</span>
                 </div>
                 <div style={{ fontSize: 10, color: T.muted, fontFamily: FONT, marginTop: 2 }}>
-                  {pricePerKg} Kz/kg
+                  {product.price.toLocaleString('pt-AO')} Kz/{displayUnit}
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
