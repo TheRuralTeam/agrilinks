@@ -15,7 +15,7 @@ SET sale_unit = CASE WHEN unit IN ('kg', 'tonelada', 'unidade', 'caixa', 'saco',
 CREATE OR REPLACE FUNCTION public.sync_product_commercial_unit()
 RETURNS trigger
 LANGUAGE plpgsql
-SET search_path = public
+SET search_path = ''
 AS $sync_product_commercial_unit$
 BEGIN
   IF TG_OP = 'INSERT' THEN
@@ -79,8 +79,8 @@ CREATE OR REPLACE FUNCTION public.admin_update_product(
 RETURNS boolean
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
-AS $$
+SET search_path = ''
+AS $
 DECLARE
   v_actor uuid := auth.uid();
   v_before jsonb;
