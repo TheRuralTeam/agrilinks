@@ -77,6 +77,8 @@ import {
   type AdminPreOrderStatus,
 } from "../features/orders/adminPreOrderStatus";
 import { setAdminPreOrderStatus } from "../features/orders/adminPreOrderService";
+import { angolaProvinces } from "../data/angola-locations";
+import { SOURCING_UNITS } from "../features/sourcing/sourcingCatalog";
 
 type AdminPermission = "manage_users" | "manage_products" | "manage_orders" | "manage_support" | "manage_sourcing" | "view_analytics" | "manage_admins";
 
@@ -165,7 +167,12 @@ interface SourcingRequest {
   user_id: string;
   product_name: string;
   quantity: number;
+  unit: string;
   delivery_date: string;
+  quality_specification: string | null;
+  delivery_province_id: string | null;
+  delivery_municipality_id: string | null;
+  delivery_location: string | null;
   description: string | null;
   status: string;
   admin_notes: string | null;
@@ -1822,8 +1829,9 @@ const AdminDashboard = () => {
                     <TableRow className="bg-gray-50/80">
                       <TableHead>Cliente</TableHead>
                       <TableHead>Produto</TableHead>
-                      <TableHead>Qtd (kg)</TableHead>
-                      <TableHead>Entrega</TableHead>
+                      <TableHead>Quantidade</TableHead>
+                      <TableHead>Local de entrega</TableHead>
+                      <TableHead>Qualidade pretendida</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Data</TableHead>
                       <TableHead>Ações</TableHead>
@@ -1835,9 +1843,23 @@ const AdminDashboard = () => {
                       return (
                         <TableRow key={req.id} className="hover:bg-gray-50/50">
                           <TableCell className="font-medium">{user?.full_name || "-"}</TableCell>
-                          <TableCell>{req.product_name}</TableCell>
-                          <TableCell>{req.quantity}</TableCell>
-                          <TableCell className="text-sm">{new Date(req.delivery_date).toLocaleDateString("pt-BR")}</TableCell>
+                          <TableCell>
+                            <div className="font-medium">{req.product_name}</div>
+                            {req.description && <div className="mt-1 max-w-xs truncate text-xs text-muted-foreground" title={req.description}>{req.description}</div>}
+                          </TableCell>
+                          <TableCell>{Number(req.quantity).toLocaleString("pt-AO")} {SOURCING_UNITS.find((unit) => unit.value === req.unit)?.label || req.unit || "kg"}</TableCell>
+                          <TableCell>
+                            {(() => {
+                              const province = angolaProvinces.find((item) => item.id === req.delivery_province_id);
+                              const municipality = province?.municipalities.find((item) => item.id === req.delivery_municipality_id);
+                              return <div className="min-w-36 text-sm">
+                                <div>{[province?.name, municipality?.name].filter(Boolean).join(" · ") || "Local não indicado"}</div>
+                                {req.delivery_location && <div className="text-xs text-muted-foreground">{req.delivery_location}</div>}
+                              </div>;
+                            })()}
+                          </TableCell>
+                          <TableCell className="max-w-xs text-sm whitespace-normal">{req.quality_specification || "Sem especificação"}</TableCell>
+                          <TableCell className="text-sm">{new Date(req.delivery_date).toLocaleDateString("pt-AO")}</TableCell>
                           <TableCell>
                             <Badge className={getStatusColor(req.status)}>{req.status}</Badge>
                           </TableCell>
