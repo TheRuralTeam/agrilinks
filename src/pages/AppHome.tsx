@@ -225,7 +225,7 @@ const AppHome = () => {
           const available = Number(stockMatch[1])
           setProducts(prev => prev.map(p => p.id === selectedProduct.id ? { ...p, quantity: available, status: available > 0 ? p.status : 'removed' } : p).filter(p => Number(p.quantity) > 0 && p.status === 'active'))
           throw new Error(available > 0
-            ? `A quantidade solicitada não está disponível. Neste momento existem apenas ${available.toLocaleString('pt-AO')} kg disponíveis.`
+            ? `A quantidade solicitada não está disponível. Neste momento existem apenas ${available.toLocaleString('pt-AO')} ${selectedProduct.sale_unit || 'kg'} disponíveis.`
             : 'Este produto já não tem stock disponível e foi removido do Marketplace.')
         }
         if (raw.includes('STOCK_UNAVAILABLE:0')) {
@@ -551,14 +551,14 @@ const AppHome = () => {
             {/* Quantity */}
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               <label style={{ fontSize:12, fontWeight:700, color: T.ink, display:'flex', alignItems:'center', gap:8 }}>
-                Quantidade (kg)
+                Quantidade ({selectedProduct?.sale_unit || 'kg'})
                 <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:5, background: T.g50, color: T.g600, border:`1px solid ${T.gBorder}` }}>Obrigatório</span>
               </label>
               <input
                 type="number"
                 value={orderData.quantity || ''}
                 onChange={e => setOrderData({ ...orderData, quantity: Number(e.target.value) })}
-                min={1} max={selectedProduct?.quantity}
+                min={selectedProduct?.min_order_quantity ?? 1} max={selectedProduct?.quantity} step={1}
                 placeholder="Ex: 500"
                 style={{
                   height:42, borderRadius:10, border:`1px solid ${T.rule}`, padding:'0 14px',
@@ -570,7 +570,8 @@ const AppHome = () => {
               />
               <p style={{ fontSize:11, color: T.faint, display:'flex', alignItems:'center', gap:5 }}>
                 <CheckCircle2 size={11} color={T.g400}/>
-                Disponível: <strong style={{ color: T.g600 }}>{selectedProduct?.quantity.toLocaleString()} kg</strong>
+                Disponível: <strong style={{ color: T.g600 }}>{selectedProduct?.quantity.toLocaleString()} {selectedProduct?.sale_unit || 'kg'}</strong>
+                {selectedProduct?.min_order_quantity != null && <span style={{ marginLeft: 6 }}>· Mínimo: {selectedProduct.min_order_quantity} {selectedProduct.sale_unit || 'kg'}</span>}
               </p>
             </div>
 
