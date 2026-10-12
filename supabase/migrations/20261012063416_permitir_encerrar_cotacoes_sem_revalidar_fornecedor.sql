@@ -1,0 +1,50 @@
+-- Permitir fechar o ciclo de vida de uma cotação antiga sem a revalidar como nova.
+create or replace function public.validate_sourcing_supplier_quote()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  request_product text;
+  request_unit text;
+  supplier_product text;
+  supplier_status text;
+  must_validate_source boolean;
+begin
+  must_validate_source :=
+    tg_op = 'INSERT'
+    or new.sourcing_request_id is distinct from old.sourcing_request_id
+    or new.supplier_id is distinct from old.supplier_id
+    or new.unit is distinct from old.unit
+    or new.confirmation_status = 'confirmed';
+
+  if must_validate_source then
+    select r.product_name, r.unit into request_product, request_unit
+    from public.sourcing_requests r where r.id = new.sourcing_request_id;
+    if not found then raise exception 'O pedido de sourcing indicado não existe.'; end if;
+
+    select s.product_name, s.verification_status into supplier_product, supplier_status
+    from public.sourcing_supplier_leads s where s.id = new.supplier_id;
+    if not found then raise exception 'O fornecedor indicado não existe.'; end if;
+
+    if supplier_status <> 'confirmed' then
+      raise exception 'Só é possível registar ou confirmar cotações de fornecedores confirmados.';
+    end if;
+    if lower(trim(supplier_product)) <> lower(trim(request_product)) then
+      raise exception 'O produto do fornecedor não corresponde ao produto pedido.';
+    end if;
+    if new.unit <> request_unit then
+      raise exception 'A unidade da cotação deve ser igual à unidade do pedido para evitar comparações incorrectas.';
+    end if;
+  end if;
+
+  if new.confirmation_status = 'confirmed'
+     and new.valid_until is not null
+     and new.valid_until < (now() at time zone 'Africa/Luanda')::date then
+    raise exception 'Não é possível confirmar uma cotação cuja validade terminou.';
+  end if;
+
+  return new;
+end;
+$$;
+revoke all on function public.validate_sourcing_supplier_quote() from public, anon, authenticated;
