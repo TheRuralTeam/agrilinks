@@ -15,6 +15,7 @@ import { supabase } from '../integrations/supabase/client';
 import { toast } from '../hooks/use-toast';
 import agrilinkLogo from '../assets/agrilink-logo.png'
 import { PRODUCT_CATEGORIES } from '../lib/productCategories'
+import { AGRICULTURAL_PRODUCT_GROUPS } from '../lib/agriculturalProducts'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import SimpleLeafletMap from '../components/SimpleLeafletMap';
 import { validateProductSubmission } from '../features/products/businessRules'
@@ -30,6 +31,12 @@ const PublishProduct = () => {
   const [formData, setFormData] = useState({
     product_type: '',
     category: '',
+    sale_unit: 'kg' as 'kg' | 'tonelada' | 'unidade' | 'caixa' | 'saco' | 'litro' | 'outro',
+    min_order_quantity: '1',
+    package_weight_kg: '',
+    product_variety: '',
+    product_condition: '',
+    packaging_type: '',
     quantity: '',
     harvest_date: '',
     price: '',
@@ -179,6 +186,9 @@ const PublishProduct = () => {
         logistics_access: formData.logistics_access as 'sim' | 'nao' | 'parcial',
         photos: selectedImages.map((file) => file.name),
         category: formData.category,
+        sale_unit: formData.sale_unit,
+        min_order_quantity: Number(formData.min_order_quantity),
+        package_weight_kg: formData.package_weight_kg ? Number(formData.package_weight_kg) : null,
       })
     } catch (validationError: any) {
       toast({ title: "Erro de validação", description: validationError?.message || "Dados do produto inválidos.", variant: "destructive" });
@@ -203,6 +213,12 @@ const PublishProduct = () => {
   user_id: user.id,
   product_type: formData.product_type,
   category: formData.category,
+  sale_unit: formData.sale_unit,
+  min_order_quantity: parseFloat(formData.min_order_quantity),
+  package_weight_kg: formData.package_weight_kg ? parseFloat(formData.package_weight_kg) : null,
+  product_variety: formData.product_variety.trim() || null,
+  product_condition: formData.product_condition || null,
+  packaging_type: formData.packaging_type.trim() || null,
   quantity: parseFloat(formData.quantity),
   harvest_date: formData.harvest_date,
   price: parseFloat(formData.price),
@@ -286,22 +302,20 @@ const PublishProduct = () => {
     autoComplete="off"
     className="space-y-6"
   >
-    {/* Tipo de produto */}
+    {/* Produto agrícola: catálogo agrupado, sem sugerir produtos não agrícolas */}
     <div className="space-y-2">
-      <Label htmlFor="product_type">Tipo de Produto</Label>
-      <div className="relative">
-        <Package className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <Input
-          id="product_type"
-          value={formData.product_type}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, product_type: e.target.value }))
-          }
-          placeholder="Ex: Milho, Feijão, Tomate..."
-          className="pl-10"
-          required
-        />
-      </div>
+      <Label htmlFor="product_type">Produto agrícola *</Label>
+      <Select value={formData.product_type} onValueChange={(value) => setFormData((prev) => ({ ...prev, product_type: value }))}>
+        <SelectTrigger id="product_type"><SelectValue placeholder="Selecionar produto agrícola" /></SelectTrigger>
+        <SelectContent>
+          {AGRICULTURAL_PRODUCT_GROUPS.map((group) => (
+            <React.Fragment key={group.label}>
+              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{group.label}</div>
+              {group.products.map((product) => <SelectItem key={product} value={product}>{product}</SelectItem>)}
+            </React.Fragment>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
 
     {/* Categoria do produto (filtro do feed) */}
@@ -334,10 +348,25 @@ const PublishProduct = () => {
       </div>
     </div>
 
-    {/* Quantidade e preço */}
+    {/* Quantidade, unidade comercial e preço */}
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="space-y-2">
-        <Label htmlFor="quantity">Quantidade (kg)</Label>
+        <Label htmlFor="sale_unit">Unidade de venda *</Label>
+        <Select value={formData.sale_unit} onValueChange={(value: typeof formData.sale_unit) => setFormData((prev) => ({ ...prev, sale_unit: value }))}>
+          <SelectTrigger id="sale_unit"><SelectValue placeholder="Escolher unidade" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="kg">Quilograma (kg)</SelectItem>
+            <SelectItem value="tonelada">Tonelada</SelectItem>
+            <SelectItem value="unidade">Unidade</SelectItem>
+            <SelectItem value="caixa">Caixa</SelectItem>
+            <SelectItem value="saco">Saco</SelectItem>
+            <SelectItem value="litro">Litro</SelectItem>
+            <SelectItem value="outro">Outra unidade</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="quantity">Quantidade disponível ({formData.sale_unit}) *</Label>
         <div className="relative">
           <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
@@ -356,7 +385,7 @@ const PublishProduct = () => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="price">Preço por kg (Kz)</Label>
+        <Label htmlFor="price">Preço por {formData.sale_unit} (Kz) *</Label>
         <div className="relative">
           <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
@@ -373,6 +402,44 @@ const PublishProduct = () => {
             required
           />
         </div>
+      </div>
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Label htmlFor="min_order_quantity">Quantidade mínima por encomenda ({formData.sale_unit}) *</Label>
+        <Input id="min_order_quantity" type="number" min="0.001" step="any" value={formData.min_order_quantity} onChange={(e) => setFormData((prev) => ({ ...prev, min_order_quantity: e.target.value }))} required />
+      </div>
+      {(formData.sale_unit === 'caixa' || formData.sale_unit === 'saco') && (
+        <div className="space-y-2">
+          <Label htmlFor="package_weight_kg">Peso por {formData.sale_unit} (kg), se conhecido</Label>
+          <Input id="package_weight_kg" type="number" min="0.001" step="any" value={formData.package_weight_kg} onChange={(e) => setFormData((prev) => ({ ...prev, package_weight_kg: e.target.value }))} placeholder="Ex.: 20" />
+        </div>
+      )}
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="space-y-2">
+        <Label htmlFor="product_variety">Variedade (opcional)</Label>
+        <Input id="product_variety" value={formData.product_variety} onChange={(e) => setFormData((prev) => ({ ...prev, product_variety: e.target.value }))} placeholder="Variedade, se conhecida" />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="product_condition">Estado do produto</Label>
+        <Select value={formData.product_condition || 'nao_especificado'} onValueChange={(value) => setFormData((prev) => ({ ...prev, product_condition: value === 'nao_especificado' ? '' : value }))}>
+          <SelectTrigger id="product_condition"><SelectValue placeholder="Selecionar estado" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="nao_especificado">Não especificado</SelectItem>
+            <SelectItem value="fresco">Fresco</SelectItem>
+            <SelectItem value="seco">Seco</SelectItem>
+            <SelectItem value="maduro">Maduro</SelectItem>
+            <SelectItem value="verde">Verde</SelectItem>
+            <SelectItem value="transformado">Transformado</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="packaging_type">Acondicionamento (opcional)</Label>
+        <Input id="packaging_type" value={formData.packaging_type} onChange={(e) => setFormData((prev) => ({ ...prev, packaging_type: e.target.value }))} placeholder="Ex.: caixa ventilada" />
       </div>
     </div>
 
