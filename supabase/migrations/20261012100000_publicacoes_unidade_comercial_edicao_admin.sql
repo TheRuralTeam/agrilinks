@@ -66,7 +66,6 @@ BEGIN
   IF p_product_type IS NULL OR length(trim(p_product_type)) < 2
      OR p_quantity IS NULL OR p_quantity <= 0 OR p_quantity <> trunc(p_quantity)
      OR p_price IS NULL OR p_price <= 0
-     OR p_sale_unit NOT IN ('kg', 'tonelada', 'unidade', 'caixa', 'saco', 'litro', 'outro')
      OR p_min_order_quantity IS NULL OR p_min_order_quantity <= 0 OR p_min_order_quantity <> trunc(p_min_order_quantity) OR p_min_order_quantity > p_quantity
      OR (p_package_weight_kg IS NOT NULL AND p_package_weight_kg <= 0)
      OR p_sale_unit IS NULL OR p_sale_unit NOT IN ('kg', 'tonelada', 'unidade', 'caixa', 'saco', 'litro')
