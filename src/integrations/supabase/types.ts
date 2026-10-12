@@ -3695,6 +3695,162 @@ export type Database = {
           },
         ]
       }
+      sourcing_supplier_leads: {
+        Row: {
+          company_name: string
+          contact_name: string | null
+          created_at: string
+          created_by: string
+          id: string
+          locality: string | null
+          municipality_id: string | null
+          phone: string
+          product_name: string
+          province_id: string | null
+          source: string
+          updated_at: string
+          verification_notes: string | null
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          company_name: string
+          contact_name?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          locality?: string | null
+          municipality_id?: string | null
+          phone: string
+          product_name: string
+          province_id?: string | null
+          source?: string
+          updated_at?: string
+          verification_notes?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          company_name?: string
+          contact_name?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          locality?: string | null
+          municipality_id?: string | null
+          phone?: string
+          product_name?: string
+          province_id?: string | null
+          source?: string
+          updated_at?: string
+          verification_notes?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
+      sourcing_supplier_quotes: {
+        Row: {
+          availability_status: string
+          available_quantity: number
+          confirmation_method: string | null
+          confirmation_status: string
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          created_by: string
+          currency: string
+          expected_delivery_date: string | null
+          id: string
+          notes: string | null
+          quality_notes: string | null
+          sourcing_request_id: string
+          supplier_id: string
+          unit: string
+          unit_price: number | null
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          availability_status?: string
+          available_quantity: number
+          confirmation_method?: string | null
+          confirmation_status?: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by?: string
+          currency?: string
+          expected_delivery_date?: string | null
+          id?: string
+          notes?: string | null
+          quality_notes?: string | null
+          sourcing_request_id: string
+          supplier_id: string
+          unit: string
+          unit_price?: number | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          availability_status?: string
+          available_quantity?: number
+          confirmation_method?: string | null
+          confirmation_status?: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by?: string
+          currency?: string
+          expected_delivery_date?: string | null
+          id?: string
+          notes?: string | null
+          quality_notes?: string | null
+          sourcing_request_id?: string
+          supplier_id?: string
+          unit?: string
+          unit_price?: number | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
+      sourcing_quote_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          new_values: Json
+          old_values: Json | null
+          quote_id: string
+          sourcing_request_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          new_values: Json
+          old_values?: Json | null
+          quote_id: string
+          sourcing_request_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          new_values?: Json
+          old_values?: Json | null
+          quote_id?: string
+          sourcing_request_id?: string
+        }
+        Relationships: []
+      }
       support_messages: {
         Row: {
           created_at: string | null
