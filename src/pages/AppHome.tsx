@@ -14,6 +14,7 @@ import { ProductCard, Product } from '../components/ProductCard'
 import { ProductLocationMap } from '../components/ProductLocationMap'
 import IdentityActionDialog from '../components/IdentityActionDialog'
 import LocationAutocomplete from '../components/LocationAutocomplete'
+import { savePreferredDeliveryLocation } from '../features/products/deliveryLocationPreference'
 import agrilinkLogo from '../assets/agrilink-logo.png'
 import { fetchActiveProducts } from '../features/products/productsService'
 import { isNeutralPublicView, sanitizePublicProduct } from '../lib/publicData'
@@ -241,6 +242,7 @@ const AppHome = () => {
       const reservation = Array.isArray(data) ? data[0] : data
       if (!reservation) throw new Error('Não foi possível criar a reserva.')
 
+      await savePreferredDeliveryLocation(user.id, orderData.location)
       toast.success('Pré-compra registada. O local foi guardado e será confirmado antes de iniciar a logística.')
       // O preço final, frete e pagamento são calculados pelo servidor após a aceitação do fornecedor.
       setModalOpen(false)
