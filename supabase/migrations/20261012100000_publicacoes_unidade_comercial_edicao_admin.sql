@@ -19,7 +19,7 @@ ALTER TABLE public.products
 
 CREATE TABLE IF NOT EXISTS public.product_admin_edit_audit (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  product_id uuid NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+  product_id uuid NOT NULL,
   admin_user_id uuid NOT NULL REFERENCES auth.users(id),
   before_values jsonb NOT NULL,
   after_values jsonb NOT NULL,
