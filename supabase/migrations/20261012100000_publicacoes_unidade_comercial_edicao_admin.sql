@@ -35,7 +35,7 @@ $;
 
 DROP TRIGGER IF EXISTS trg_sync_product_commercial_unit ON public.products;
 CREATE TRIGGER trg_sync_product_commercial_unit
-BEFORE INSERT OR UPDATE OF sale_unit, unit ON public.products
+BEFORE INSERT OR UPDATE ON public.products
 FOR EACH ROW EXECUTE FUNCTION public.sync_product_commercial_unit();
 
 ALTER TABLE public.products
