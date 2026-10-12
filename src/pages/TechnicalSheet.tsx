@@ -18,6 +18,12 @@ interface Product {
   quantity: number;
   harvest_date: string;
   price: number;
+  sale_unit?: string | null;
+  min_order_quantity?: number | null;
+  package_weight_kg?: number | null;
+  product_variety?: string | null;
+  product_condition?: string | null;
+  packaging_type?: string | null;
   logistics_access: string;
   contact: string;
   description?: string;
@@ -100,7 +106,7 @@ const TechnicalSheet = () => {
 
   const formatPrice = (price?: number | null) => {
     if (price == null || !Number.isFinite(Number(price))) return "Não indicado";
-    return `${Number(price).toLocaleString("pt-AO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kz/kg`;
+    return `${Number(price).toLocaleString("pt-AO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kz/${product?.sale_unit || 'kg'}`;
   };
 
   const handleExportPDF = async () => {
@@ -183,7 +189,7 @@ const TechnicalSheet = () => {
             <div className="mt-4 flex flex-wrap gap-2">
               <span className="rounded-full bg-[#2c863b] px-3 py-1 text-[11px] font-bold text-white">{product.status || "Estado não indicado"}</span>
               {product.category && <span className="rounded-full border border-[#DCE8DE] bg-white px-3 py-1 text-[11px] font-bold text-[#3D4D40]">{product.category}</span>}
-              <span className="rounded-full border border-[#DCE8DE] bg-white px-3 py-1 text-[11px] font-bold text-[#3D4D40]">Disponibilidade · {Number(product.quantity || 0).toLocaleString("pt-AO")} kg</span>
+              <span className="rounded-full border border-[#DCE8DE] bg-white px-3 py-1 text-[11px] font-bold text-[#3D4D40]">Disponibilidade · {Number(product.quantity || 0).toLocaleString("pt-AO")} {product.sale_unit || 'kg'}</span>
             </div>
           </CardHeader>
 
@@ -199,12 +205,17 @@ const TechnicalSheet = () => {
               </div>
               <div className="rounded-xl border border-[#E5EDE6] bg-white p-4">
                 <div className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.11em] text-[#758A79]">Quantidade disponível</div>
-                <div className="text-xl font-extrabold text-[#2c863b]">{Number(product.quantity || 0).toLocaleString("pt-AO")} kg</div>
+                <div className="text-xl font-extrabold text-[#2c863b]">{Number(product.quantity || 0).toLocaleString("pt-AO")} {product.sale_unit || 'kg'}</div>
               </div>
               <div className="rounded-xl border border-[#E5EDE6] bg-white p-4">
                 <div className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.11em] text-[#758A79]">Preço</div>
                 <div className="text-xl font-extrabold text-[#2c863b]">{formatPrice(product.price)}</div>
               </div>
+              {product.min_order_quantity != null && <div className="rounded-xl border border-[#E5EDE6] bg-white p-4"><div className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.11em] text-[#758A79]">Quantidade mínima</div><div className="text-sm font-semibold text-[#111714]">{product.min_order_quantity} {product.sale_unit || "kg"}</div></div>}
+              {product.package_weight_kg != null && <div className="rounded-xl border border-[#E5EDE6] bg-white p-4"><div className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.11em] text-[#758A79]">Peso por embalagem</div><div className="text-sm font-semibold text-[#111714]">{product.package_weight_kg} kg</div></div>}
+              {product.product_variety && <div className="rounded-xl border border-[#E5EDE6] bg-white p-4"><div className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.11em] text-[#758A79]">Variedade</div><div className="text-sm font-semibold text-[#111714]">{product.product_variety}</div></div>}
+              {product.product_condition && <div className="rounded-xl border border-[#E5EDE6] bg-white p-4"><div className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.11em] text-[#758A79]">Estado do produto</div><div className="text-sm font-semibold text-[#111714]">{product.product_condition}</div></div>}
+              {product.packaging_type && <div className="rounded-xl border border-[#E5EDE6] bg-white p-4"><div className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.11em] text-[#758A79]">Acondicionamento</div><div className="text-sm font-semibold text-[#111714]">{product.packaging_type}</div></div>}
               <div className="rounded-xl border border-[#E5EDE6] bg-white p-4">
                 <div className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.11em] text-[#758A79]">Data de colheita</div>
                 <div className="text-sm font-semibold text-[#111714]">{formatDate(product.harvest_date)}</div>
