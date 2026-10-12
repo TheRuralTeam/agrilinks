@@ -39,5 +39,12 @@ export async function savePreferredDeliveryLocation(
 
   if (error) {
     console.warn('[AgriLink] A pré-compra foi concluída, mas não foi possível memorizar a localização.', error)
+    return
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('agrilink:delivery-location-saved', {
+      detail: { userId, location: normalized },
+    }))
   }
 }
