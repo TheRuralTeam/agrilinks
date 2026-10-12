@@ -221,8 +221,8 @@ const SearchPage = () => {
         p_product_id: selectedProduct.id,
         p_quantity: quantity,
         p_location: orderData.location,
-        p_delivery_lat: destination ? Number(destination.lat) : null,
-        p_delivery_lng: destination ? Number(destination.lon) : null,
+        p_delivery_lat: null,
+        p_delivery_lng: null,
         p_idempotency_key: idempotencyKey,
       })
 
@@ -246,13 +246,7 @@ const SearchPage = () => {
           })
         : null
 
-      toast.success(
-        !destination
-          ? 'Pré-compra enviada. O local foi guardado e será confirmado antes de iniciar a logística.'
-          : expiresAt
-            ? `Pré-compra enviada. A disponibilidade fica reservada até às ${expiresAt}.`
-            : 'Pré-compra enviada. A disponibilidade foi reservada temporariamente.'
-      )
+      toast.success('Pré-compra enviada. O local foi guardado e será confirmado antes de iniciar a logística.')
       setPreOrderModalOpen(false)
       setSelectedProduct(null)
 
