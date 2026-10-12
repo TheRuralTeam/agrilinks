@@ -227,6 +227,7 @@ const SearchPage = () => {
       if (error) {
         const message = error.message || ''
         if (message.includes('INSUFFICIENT_STOCK')) throw new Error('A quantidade disponível acabou de ser alterada. Reduza a quantidade e tente novamente.')
+        if (message.includes('MIN_ORDER_QUANTITY')) throw new Error(`A quantidade está abaixo do mínimo desta publicação (${selectedProduct.min_order_quantity ?? 1} ${selectedProduct.sale_unit || 'kg'}).`)
         if (message.includes('PRODUCT_NOT_AVAILABLE')) throw new Error('Este produto já não está disponível.')
         if (message.includes('SELLER_CANNOT_BUY_OWN_PRODUCT')) throw new Error('Não pode comprar o seu próprio produto.')
         if (message.includes('DELIVERY_LOCATION_REQUIRED')) throw new Error('Informe o local de entrega.')
