@@ -24,6 +24,8 @@ import { WalletSummaryCard } from '../features/wallet/WalletSummaryCard'
 import { respondToPreOrder } from '../features/orders/adminPreOrderService'
 import agrilinkLogo from '../assets/agrilink-logo.png'
 import { downloadMarketplaceTransactionReceipt } from '../features/orders/transactionReceipts'
+import { angolaProvinces } from '../data/angola-locations'
+import { SOURCING_AGRICULTURAL_PRODUCTS, SOURCING_UNITS } from '../features/sourcing/sourcingCatalog'
 
 /* ─── Design tokens ──────────────────────────────────────────────────────────
    Mesma fonte de verdade da landing (../lib/brand). Os campos abaixo com
@@ -79,8 +81,9 @@ interface BuyerFreightQuote {
   route_duration_minutes: number | null; status: string; created_at: string
 }
 interface SourcingRequest {
-  id: string; product_name: string; quantity: number; delivery_date: string
-  description: string | null; status: string; admin_notes: string | null; created_at: string
+  id: string; product_name: string; quantity: number; unit: string; delivery_date: string
+  quality_specification: string | null; delivery_province_id: string | null; delivery_municipality_id: string | null
+  delivery_location: string | null; description: string | null; status: string; admin_notes: string | null; created_at: string
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -342,7 +345,7 @@ const Profile = () => {
 
   const [sourcingRequests, setSourcingRequests] = useState<SourcingRequest[]>([])
   const [showSourcingForm, setShowSourcingForm] = useState(false)
-  const [sourcingForm, setSourcingForm] = useState({ product_name: '', quantity: '', delivery_date: '', description: '' })
+  const [sourcingForm, setSourcingForm] = useState({ product_name: '', quantity: '', unit: 'kg', quality_specification: '', delivery_province_id: '', delivery_municipality_id: '', delivery_location: '', delivery_date: '', description: '' })
   const [submittingSourcing, setSubmittingSourcing] = useState(false)
 
   const fetchUserProducts = React.useCallback(async () => {
@@ -482,16 +485,28 @@ const Profile = () => {
       requireAuth('enviar um pedido de sourcing')
       return
     }
-    if (!sourcingForm.product_name || !sourcingForm.quantity || !sourcingForm.delivery_date) {
-      toast({ title: 'Erro', description: 'Preencha todos os campos obrigatórios', variant: 'destructive' }); return
+    const quantity = Number(sourcingForm.quantity)
+    if (!sourcingForm.product_name || !Number.isFinite(quantity) || quantity <= 0 || !sourcingForm.delivery_date || !sourcingForm.delivery_province_id || !sourcingForm.delivery_municipality_id) {
+      toast({ title: 'Erro', description: 'Indique o produto, uma quantidade válida, a data e o município de entrega.', variant: 'destructive' }); return
     }
     setSubmittingSourcing(true)
     try {
-      const { error } = await supabase.from('sourcing_requests').insert({ user_id: user.id, product_name: sourcingForm.product_name, quantity: parseFloat(sourcingForm.quantity), delivery_date: sourcingForm.delivery_date, description: sourcingForm.description || null })
+      const { error } = await supabase.from('sourcing_requests').insert({
+        user_id: user.id,
+        product_name: sourcingForm.product_name,
+        quantity,
+        unit: sourcingForm.unit,
+        quality_specification: sourcingForm.quality_specification.trim() || null,
+        delivery_province_id: sourcingForm.delivery_province_id,
+        delivery_municipality_id: sourcingForm.delivery_municipality_id,
+        delivery_location: sourcingForm.delivery_location.trim() || null,
+        delivery_date: sourcingForm.delivery_date,
+        description: sourcingForm.description.trim() || null,
+      })
       if (error) throw error
       // A notificação administrativa é criada pelo trigger da base de dados após o INSERT.
       toast({ title: t('sourcing.requestSent'), description: t('sourcing.requestSentMessage') })
-      setSourcingForm({ product_name: '', quantity: '', delivery_date: '', description: '' })
+      setSourcingForm({ product_name: '', quantity: '', unit: 'kg', quality_specification: '', delivery_province_id: '', delivery_municipality_id: '', delivery_location: '', delivery_date: '', description: '' })
       setShowSourcingForm(false)
       fetchSourcingRequests()
     } catch (error: any) {
@@ -944,11 +959,43 @@ const Profile = () => {
 
               {showSourcingForm && (
                 <div style={{ background: T.white, borderRadius: 20, border: `1px solid ${T.rule}`, padding: 20, display: 'flex', flexDirection: 'column', gap: 14, animation: `ag-fade-up 0.3s ${EASE} both` }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }} className="sm:grid-cols-2">
-                    <Input label={t('sourcing.productName')} value={sourcingForm.product_name} onChange={(e: any) => setSourcingForm(p => ({ ...p, product_name: e.target.value }))} placeholder={t('sourcing.productNamePlaceholder')} required />
-                    <Input label={t('sourcing.quantity')} type="number" value={sourcingForm.quantity} onChange={(e: any) => setSourcingForm(p => ({ ...p, quantity: e.target.value }))} placeholder={t('sourcing.quantityPlaceholder')} required />
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 14 }} className="sm:grid-cols-2">
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, fontWeight: 700, color: T.mid }}>
+                      Produto agrícola *
+                      <select value={sourcingForm.product_name} onChange={(e) => setSourcingForm(p => ({ ...p, product_name: e.target.value }))} required style={{ width: '100%', minHeight: 42, padding: '10px 12px', borderRadius: 10, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, font: 'inherit' }}>
+                        <option value="">Seleccionar produto</option>
+                        {SOURCING_AGRICULTURAL_PRODUCTS.map(product => <option key={product} value={product}>{product}</option>)}
+                      </select>
+                    </label>
+                    <Input label="Quantidade *" type="number" min="0.01" step="any" value={sourcingForm.quantity} onChange={(e: any) => setSourcingForm(p => ({ ...p, quantity: e.target.value }))} placeholder="Ex.: 2500" required />
                   </div>
-                  <Input label={t('sourcing.deliveryDate')} type="date" value={sourcingForm.delivery_date} onChange={(e: any) => setSourcingForm(p => ({ ...p, delivery_date: e.target.value }))} required />
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 14 }} className="sm:grid-cols-2">
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, fontWeight: 700, color: T.mid }}>
+                      Unidade de medida *
+                      <select value={sourcingForm.unit} onChange={(e) => setSourcingForm(p => ({ ...p, unit: e.target.value }))} required style={{ width: '100%', minHeight: 42, padding: '10px 12px', borderRadius: 10, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, font: 'inherit' }}>
+                        {SOURCING_UNITS.map(unit => <option key={unit.value} value={unit.value}>{unit.label}</option>)}
+                      </select>
+                    </label>
+                    <Input label="Data pretendida de entrega *" type="date" value={sourcingForm.delivery_date} onChange={(e: any) => setSourcingForm(p => ({ ...p, delivery_date: e.target.value }))} required />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 14 }} className="sm:grid-cols-2">
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, fontWeight: 700, color: T.mid }}>
+                      Província de entrega *
+                      <select value={sourcingForm.delivery_province_id} onChange={(e) => setSourcingForm(p => ({ ...p, delivery_province_id: e.target.value, delivery_municipality_id: '' }))} required style={{ width: '100%', minHeight: 42, padding: '10px 12px', borderRadius: 10, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, font: 'inherit' }}>
+                        <option value="">Seleccionar província</option>
+                        {angolaProvinces.map(province => <option key={province.id} value={province.id}>{province.name}</option>)}
+                      </select>
+                    </label>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, fontWeight: 700, color: T.mid }}>
+                      Município de entrega *
+                      <select value={sourcingForm.delivery_municipality_id} onChange={(e) => setSourcingForm(p => ({ ...p, delivery_municipality_id: e.target.value }))} required disabled={!sourcingForm.delivery_province_id} style={{ width: '100%', minHeight: 42, padding: '10px 12px', borderRadius: 10, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, font: 'inherit', opacity: sourcingForm.delivery_province_id ? 1 : 0.55 }}>
+                        <option value="">Seleccionar município</option>
+                        {angolaProvinces.find(province => province.id === sourcingForm.delivery_province_id)?.municipalities.map(municipality => <option key={municipality.id} value={municipality.id}>{municipality.name}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                  <Input label="Local de entrega (opcional)" value={sourcingForm.delivery_location} onChange={(e: any) => setSourcingForm(p => ({ ...p, delivery_location: e.target.value.slice(0, 180) }))} placeholder="Ex.: armazém, mercado ou ponto de descarga" />
+                  <Textarea label="Qualidade e apresentação pretendidas" value={sourcingForm.quality_specification} onChange={(e: any) => setSourcingForm(p => ({ ...p, quality_specification: e.target.value.slice(0, 1000) }))} placeholder="Ex.: produto fresco, seco, sem danos, calibre ou tipo de embalagem pretendidos" />
                   <Textarea label={t('sourcing.description')} value={sourcingForm.description} onChange={(e: any) => setSourcingForm(p => ({ ...p, description: e.target.value }))} placeholder={t('sourcing.descriptionPlaceholder')} />
                   <Btn variant="primary" onClick={submitSourcingRequest} disabled={submittingSourcing} style={{ width: '100%' }}>
                     {submittingSourcing ? t('common.processing') : t('sourcing.submitRequest')}
