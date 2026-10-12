@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION public.sync_product_commercial_unit()
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = public
-AS $
+AS $sync_product_commercial_unit$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     IF NEW.sale_unit = 'kg' AND NEW.unit IS DISTINCT FROM 'kg' THEN
@@ -31,7 +31,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$sync_product_commercial_unit$;
 
 DROP TRIGGER IF EXISTS trg_sync_product_commercial_unit ON public.products;
 CREATE TRIGGER trg_sync_product_commercial_unit
