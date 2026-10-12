@@ -958,9 +958,14 @@ const Profile = () => {
 
               <SourcingTable
                 columns={[
-                  { key: 'produto', label: 'Produto', render: r => <span style={{ fontWeight: 700, color: T.ink }}>{r.product_name}</span> },
-                  { key: 'qtd', label: 'Quantidade', render: r => `${r.quantity} kg` },
-                  { key: 'data', label: t('sourcing.deliveryDate'), render: r => new Date(r.delivery_date).toLocaleDateString() },
+                  { key: 'produto', label: 'Produto', render: r => <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}><span style={{ fontWeight: 700, color: T.ink }}>{r.product_name}</span>{r.quality_specification && <span style={{ fontSize: 11, color: T.faint }}>{r.quality_specification}</span>}</div> },
+                  { key: 'qtd', label: 'Quantidade', render: r => `${Number(r.quantity).toLocaleString('pt-AO')} ${SOURCING_UNITS.find(unit => unit.value === r.unit)?.label || r.unit || 'kg'}` },
+                  { key: 'entrega', label: 'Entrega', render: r => {
+                    const province = angolaProvinces.find(item => item.id === r.delivery_province_id);
+                    const municipality = province?.municipalities.find(item => item.id === r.delivery_municipality_id);
+                    return <span style={{ fontSize: 12 }}>{[province?.name, municipality?.name, r.delivery_location].filter(Boolean).join(' · ') || '—'}</span>;
+                  } },
+                  { key: 'data', label: t('sourcing.deliveryDate'), render: r => new Date(r.delivery_date).toLocaleDateString('pt-AO') },
                   { key: 'estado', label: 'Estado', align: 'right', render: r => <StatusPill status={r.status} /> },
                 ]}
                 rows={sourcingRequests}
