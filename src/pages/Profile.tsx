@@ -85,6 +85,11 @@ interface SourcingRequest {
   quality_specification: string | null; delivery_province_id: string | null; delivery_municipality_id: string | null
   delivery_location: string | null; description: string | null; status: string; admin_notes: string | null; created_at: string
 }
+interface SourcingQuote {
+  id: string; sourcing_request_id: string; available_quantity: number; unit: string
+  unit_price: number | null; currency: string; availability_status: string; confirmation_status: string
+  expected_delivery_date: string | null; valid_until: string | null; quality_notes: string | null; confirmed_at: string | null
+}
 
 /* ════════════════════════════════════════════════════════════════════════════
    MICRO COMPONENTS
@@ -344,6 +349,8 @@ const Profile = () => {
   const memberCode = (userProfile as any)?.agent_code || (user?.id ? user.id.slice(0, 8).toUpperCase() : '—')
 
   const [sourcingRequests, setSourcingRequests] = useState<SourcingRequest[]>([])
+  const [sourcingQuotes, setSourcingQuotes] = useState<SourcingQuote[]>([])
+  const [sourcingQuotesLoading, setSourcingQuotesLoading] = useState(false)
   const [showSourcingForm, setShowSourcingForm] = useState(false)
   const [sourcingForm, setSourcingForm] = useState({ product_name: '', quantity: '', unit: 'kg', quality_specification: '', delivery_province_id: '', delivery_municipality_id: '', delivery_location: '', delivery_date: '', description: '' })
   const [submittingSourcing, setSubmittingSourcing] = useState(false)
@@ -413,6 +420,26 @@ const Profile = () => {
       setSourcingRequests(data || [])
     } catch (error) { console.error(error) }
   }, [user?.id])
+
+  const fetchSourcingQuotes = React.useCallback(async () => {
+    const requestIds = sourcingRequests.map((request) => request.id)
+    if (!user?.id || requestIds.length === 0) { setSourcingQuotes([]); return }
+    setSourcingQuotesLoading(true)
+    try {
+      const { data, error } = await supabase.from('sourcing_supplier_quotes')
+        .select('id, sourcing_request_id, available_quantity, unit, unit_price, currency, availability_status, confirmation_status, expected_delivery_date, valid_until, quality_notes, confirmed_at')
+        .in('sourcing_request_id', requestIds)
+        .eq('confirmation_status', 'confirmed')
+        .order('confirmed_at', { ascending: false })
+      if (error) throw error
+      setSourcingQuotes((data || []) as SourcingQuote[])
+    } catch (error) {
+      console.error('[AgriLink Sourcing] Erro ao carregar cotações confirmadas:', error)
+      setSourcingQuotes([])
+    } finally { setSourcingQuotesLoading(false) }
+  }, [user?.id, sourcingRequests])
+
+  useEffect(() => { void fetchSourcingQuotes() }, [fetchSourcingQuotes])
 
   const fetchBuyerStats = React.useCallback(async () => {
     if (!user?.id) { setBuyerStats({ completedOrders: 0, favoriteProducts: 0 }); return }
@@ -1019,6 +1046,35 @@ const Profile = () => {
                 keyField={r => r.id}
                 empty={<EmptyState icon={<Search size={26} color={T.faint}/>} message={t('sourcing.noRequests')} />}
               />
+
+              <div style={{ background: T.white, borderRadius: 18, border: `1px solid ${T.rule}`, padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <h4 style={{ fontFamily: FONT, fontSize: 15, fontWeight: 750, color: T.ink, margin: 0 }}>Cotações confirmadas pela AgriLink</h4>
+                  <p style={{ fontSize: 11, color: T.faint, marginTop: 4 }}>Só aparecem aqui disponibilidades verificadas pela equipa. Contactos directos do fornecedor permanecem protegidos durante a fase de pesquisa.</p>
+                </div>
+                {sourcingQuotesLoading ? (
+                  <p style={{ fontSize: 12, color: T.faint }}>A carregar cotações confirmadas…</p>
+                ) : sourcingQuotes.length === 0 ? (
+                  <p style={{ fontSize: 12, color: T.faint }}>Ainda não existem cotações confirmadas para os seus pedidos. A equipa irá actualizar esta área quando validar uma disponibilidade.</p>
+                ) : sourcingQuotes.map((quote) => {
+                  const request = sourcingRequests.find((item) => item.id === quote.sourcing_request_id)
+                  return (
+                    <div key={quote.id} style={{ border: `1px solid ${T.rule}`, borderRadius: 13, padding: 13, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                        <strong style={{ fontSize: 13, color: T.ink }}>{request?.product_name || 'Produto agrícola'}</strong>
+                        <StatusPill status="confirmed" />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(125px, 1fr))', gap: 10 }}>
+                        <div><div style={{ fontSize: 10, color: T.faint }}>Quantidade disponível</div><div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{Number(quote.available_quantity).toLocaleString('pt-AO')} {SOURCING_UNITS.find(unit => unit.value === quote.unit)?.label || quote.unit}</div></div>
+                        <div><div style={{ fontSize: 10, color: T.faint }}>Preço por unidade</div><div style={{ fontSize: 13, fontWeight: 700, color: T.g600 }}>{quote.unit_price === null ? 'A confirmar' : `${Number(quote.unit_price).toLocaleString('pt-AO')} ${quote.currency}`}</div></div>
+                        <div><div style={{ fontSize: 10, color: T.faint }}>Entrega prevista</div><div style={{ fontSize: 12, color: T.mid }}>{quote.expected_delivery_date ? new Date(quote.expected_delivery_date).toLocaleDateString('pt-AO') : 'A combinar'}</div></div>
+                        <div><div style={{ fontSize: 10, color: T.faint }}>Válida até</div><div style={{ fontSize: 12, color: T.mid }}>{quote.valid_until ? new Date(quote.valid_until).toLocaleDateString('pt-AO') : 'Sem data definida'}</div></div>
+                      </div>
+                      {quote.quality_notes && <p style={{ fontSize: 12, color: T.mid, margin: 0 }}>Qualidade: {quote.quality_notes}</p>}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           )}
 
