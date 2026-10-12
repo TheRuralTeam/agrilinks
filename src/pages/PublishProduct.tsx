@@ -31,7 +31,7 @@ const PublishProduct = () => {
   const [formData, setFormData] = useState({
     product_type: '',
     category: '',
-    sale_unit: 'kg' as 'kg' | 'tonelada' | 'unidade' | 'caixa' | 'saco' | 'litro' | 'outro',
+    sale_unit: 'kg' as 'kg' | 'tonelada' | 'unidade' | 'caixa' | 'saco' | 'litro',
     min_order_quantity: '1',
     package_weight_kg: '',
     product_variety: '',
@@ -361,7 +361,6 @@ const PublishProduct = () => {
             <SelectItem value="caixa">Caixa</SelectItem>
             <SelectItem value="saco">Saco</SelectItem>
             <SelectItem value="litro">Litro</SelectItem>
-            <SelectItem value="outro">Outra unidade</SelectItem>
           </SelectContent>
         </Select>
       </div>
