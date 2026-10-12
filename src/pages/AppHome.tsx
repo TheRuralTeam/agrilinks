@@ -14,6 +14,7 @@ import { ProductCard, Product } from '../components/ProductCard'
 import { ProductLocationMap } from '../components/ProductLocationMap'
 import IdentityActionDialog from '../components/IdentityActionDialog'
 import { geocodeAngolaLocation } from '../features/maps/geocodingService'
+import LocationAutocomplete from '../components/LocationAutocomplete'
 import agrilinkLogo from '../assets/agrilink-logo.png'
 import { fetchActiveProducts } from '../features/products/productsService'
 import { isNeutralPublicView, sanitizePublicProduct } from '../lib/publicData'
@@ -595,17 +596,16 @@ const AppHome = () => {
                 Local de Entrega
                 <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:5, background: T.g50, color: T.g600, border:`1px solid ${T.gBorder}` }}>Obrigatório</span>
               </label>
-              <input
-                placeholder="Ex: Luanda, Viana, Cacuaco"
+              <LocationAutocomplete
                 value={orderData.location}
-                onChange={e => setOrderData({ ...orderData, location: e.target.value })}
-                style={{
-                  height:42, borderRadius:10, border:`1px solid ${T.rule}`, padding:'0 14px',
+                onChange={location => setOrderData({ ...orderData, location })}
+                placeholder="Ex.: Viana, Luanda ou Bairro/Zona"
+                inputStyle={{
+                  height:42, borderRadius:10, border:`1px solid ${T.rule}`, padding:'0 12px 0 38px',
                   fontSize:14, outline:'none', background: T.white, color: T.ink,
                   transition:'border-color 0.18s, box-shadow 0.18s', width:'100%', boxSizing:'border-box',
                 }}
-                onFocus={e => { e.currentTarget.style.borderColor = T.g600; e.currentTarget.style.boxShadow = `0 0 0 3px rgba(61,154,72,0.1)` }}
-                onBlur={e => { e.currentTarget.style.borderColor = T.rule; e.currentTarget.style.boxShadow = 'none' }}
+                onFocus={() => {}}
               />
             </div>
 
