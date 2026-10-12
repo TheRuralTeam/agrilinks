@@ -661,6 +661,16 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
             {product.quantity.toLocaleString()} {product.sale_unit || 'kg'} disponíveis
           </div>
 
+          {(product.min_order_quantity != null || product.package_weight_kg != null || product.product_variety || product.product_condition || product.packaging_type) && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px 12px', margin: '0 0 14px', fontSize: 11, color: T.muted }}>
+              {product.min_order_quantity != null && <span>Mínimo: {product.min_order_quantity} {product.sale_unit || 'kg'}</span>}
+              {product.package_weight_kg != null && <span>Peso/embalagem: {product.package_weight_kg} kg</span>}
+              {product.product_variety && <span>Variedade: {product.product_variety}</span>}
+              {product.product_condition && <span>Estado: {product.product_condition}</span>}
+              {product.packaging_type && <span>Acondicionamento: {product.packaging_type}</span>}
+            </div>
+          )}
+
           {/* Buy button */}
           {onOpenPreOrder && (
             <button
