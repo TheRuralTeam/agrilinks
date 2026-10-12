@@ -362,6 +362,12 @@ interface Comment {
   likes_count?: number; is_liked?: boolean; replies?: CommentReply[]
 }
 export interface Product {
+  sale_unit?: string | null
+  min_order_quantity?: number | null
+  package_weight_kg?: number | null
+  product_variety?: string | null
+  product_condition?: string | null
+  packaging_type?: string | null
   id: string; product_type: string; description?: string | null; quantity: number
   harvest_date: string; price: number; province_id: string; municipality_id: string
   farmer_name: string; contact?: string; photos: string[] | null
@@ -647,12 +653,12 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
 
           {/* Price + stock */}
           <div style={styles.priceRow}>
-            <span style={styles.price}>{formatPrice(product.price)}</span>
+            <span style={styles.price}>{formatPrice(product.price)}</span><span style={{ fontSize: 12, color: T.faint }}>/ {product.sale_unit || 'kg'}</span>
           </div>
 
           <div style={styles.stockRow}>
             <TrendingUp size={13} color={T.g500} />
-            {product.quantity.toLocaleString()} kg em estoque
+            {product.quantity.toLocaleString()} {product.sale_unit || 'kg'} disponíveis
           </div>
 
           {/* Buy button */}
@@ -908,7 +914,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
             <div>
               <p style={{ fontWeight: 700, color: T.ink, fontSize: 15, margin: 0 }}>{product.product_type}</p>
               <p style={{ fontSize: 12, color: T.faint, marginTop: 3 }}>
-                {product.quantity.toLocaleString()} kg disponíveis
+                {product.quantity.toLocaleString()} {product.sale_unit || 'kg'} disponíveis
               </p>
             </div>
             <button
