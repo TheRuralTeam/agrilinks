@@ -1832,8 +1832,9 @@ const AdminDashboard = () => {
                       <TableHead>Quantidade</TableHead>
                       <TableHead>Local de entrega</TableHead>
                       <TableHead>Qualidade pretendida</TableHead>
+                      <TableHead>Prazo de entrega</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Data</TableHead>
+                      <TableHead>Pedido em</TableHead>
                       <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
