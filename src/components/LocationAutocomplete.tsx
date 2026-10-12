@@ -41,7 +41,17 @@ export default function LocationAutocomplete({
     void getPreferredDeliveryLocation(user.id).then((location) => {
       if (active) setSavedLocation(location)
     })
-    return () => { active = false }
+    const handleSavedLocation = (event: Event) => {
+      const detail = (event as CustomEvent<{ userId: string; location: string }>).detail
+      if (detail?.userId === user.id && typeof detail.location === 'string') {
+        setSavedLocation(detail.location)
+      }
+    }
+    window.addEventListener('agrilink:delivery-location-saved', handleSavedLocation)
+    return () => {
+      active = false
+      window.removeEventListener('agrilink:delivery-location-saved', handleSavedLocation)
+    }
   }, [user?.id])
   const suggestions = useMemo(() => {
     const provinces = getProvincesForCountry('AO')
@@ -78,7 +88,7 @@ export default function LocationAutocomplete({
           placeholder={placeholder}
           aria-label="Local de entrega"
           aria-autocomplete="list"
-          aria-expanded={focused && suggestions.length > 0}
+          aria-expanded={focused && (suggestions.length > 0 || Boolean(savedLocation))}
           onFocus={() => { setFocused(true); onFocus?.() }}
           onBlur={() => { window.setTimeout(() => setFocused(false), 120); onBlur?.() }}
           onChange={(event) => onChange(event.target.value)}
