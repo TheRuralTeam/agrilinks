@@ -408,7 +408,7 @@ const PublishProduct = () => {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="space-y-2">
         <Label htmlFor="min_order_quantity">Quantidade mínima por encomenda ({formData.sale_unit}) *</Label>
-        <Input id="min_order_quantity" type="number" min="0.001" step="any" value={formData.min_order_quantity} onChange={(e) => setFormData((prev) => ({ ...prev, min_order_quantity: e.target.value }))} required />
+        <Input id="min_order_quantity" type="number" min="1" step="1" value={formData.min_order_quantity} onChange={(e) => setFormData((prev) => ({ ...prev, min_order_quantity: e.target.value }))} required />
       </div>
       {(formData.sale_unit === 'caixa' || formData.sale_unit === 'saco') && (
         <div className="space-y-2">
