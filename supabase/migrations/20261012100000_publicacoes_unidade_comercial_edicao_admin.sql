@@ -80,7 +80,7 @@ RETURNS boolean
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
-AS $
+AS $function$
 DECLARE
   v_actor uuid := auth.uid();
   v_before jsonb;
@@ -139,7 +139,7 @@ BEGIN
 
   RETURN true;
 END;
-$$;
+$function$;
 
 REVOKE ALL ON FUNCTION public.admin_update_product(uuid,text,numeric,numeric,text,numeric,numeric,text,text,text,text,date,text,text,text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_update_product(uuid,text,numeric,numeric,text,numeric,numeric,text,text,text,text,date,text,text,text) TO authenticated;
