@@ -9,7 +9,7 @@ ALTER TABLE public.products
 
 ALTER TABLE public.products
   ADD CONSTRAINT products_sale_unit_check
-    CHECK (sale_unit IN ('kg', 'tonelada', 'unidade', 'caixa', 'saco', 'litro', 'outro')),
+    CHECK (sale_unit IN ('kg', 'tonelada', 'unidade', 'caixa', 'saco', 'litro')),
   ADD CONSTRAINT products_min_order_quantity_check
     CHECK (min_order_quantity > 0),
   ADD CONSTRAINT products_min_order_quantity_integer_check
@@ -64,10 +64,10 @@ BEGIN
   END IF;
 
   IF p_product_type IS NULL OR length(trim(p_product_type)) < 2
-     OR p_quantity IS NULL OR p_quantity <= 0
+     OR p_quantity IS NULL OR p_quantity <= 0 OR p_quantity <> trunc(p_quantity)
      OR p_price IS NULL OR p_price <= 0
      OR p_sale_unit NOT IN ('kg', 'tonelada', 'unidade', 'caixa', 'saco', 'litro', 'outro')
-     OR p_min_order_quantity IS NULL OR p_min_order_quantity <= 0 OR p_min_order_quantity <> trunc(p_min_order_quantity)
+     OR p_min_order_quantity IS NULL OR p_min_order_quantity <= 0 OR p_min_order_quantity <> trunc(p_min_order_quantity) OR p_min_order_quantity > p_quantity
      OR (p_package_weight_kg IS NOT NULL AND p_package_weight_kg <= 0)
      OR p_province_id IS NULL OR trim(p_province_id) = ''
      OR p_municipality_id IS NULL OR trim(p_municipality_id) = ''
