@@ -53,7 +53,7 @@ export const validateProductSubmission = (input: ProductSubmissionInput) => {
   if (!['kg', 'tonelada', 'unidade', 'caixa', 'saco', 'litro', 'outro'].includes(input.sale_unit)) {
     errors.push('Selecione a unidade de venda do produto.')
   }
-  if (!Number.isFinite(input.min_order_quantity) || input.min_order_quantity <= 0 || input.min_order_quantity > input.quantity) {
+  if (!Number.isInteger(input.min_order_quantity) || input.min_order_quantity <= 0 || input.min_order_quantity > input.quantity) {
     errors.push('A quantidade mínima deve ser positiva e não pode exceder a quantidade disponível.')
   }
   if (input.package_weight_kg != null && (!Number.isFinite(input.package_weight_kg) || input.package_weight_kg <= 0)) {
