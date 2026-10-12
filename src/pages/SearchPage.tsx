@@ -234,8 +234,8 @@ const SearchPage = () => {
         p_product_id: selectedProduct.id,
         p_quantity: quantity,
         p_location: orderData.location,
-        p_delivery_lat: Number(destination.lat),
-        p_delivery_lng: Number(destination.lon),
+        p_delivery_lat: destination ? Number(destination.lat) : null,
+        p_delivery_lng: destination ? Number(destination.lon) : null,
         p_idempotency_key: idempotencyKey,
       })
 
