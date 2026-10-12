@@ -90,6 +90,8 @@ export default function SourcingOperations({ requests, canManage }: { requests: 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [busySupplierId, setBusySupplierId] = useState<string | null>(null);
+  const [verificationTargetId, setVerificationTargetId] = useState<string | null>(null);
+  const [verificationEvidence, setVerificationEvidence] = useState("");
   const [busyQuoteId, setBusyQuoteId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
@@ -157,9 +159,8 @@ export default function SourcingOperations({ requests, canManage }: { requests: 
 
   const verifySupplier = async (supplier: Supplier) => {
     if (!canManage) return;
-    const evidence = window.prompt("Registe como a equipa confirmou este fornecedor (contacto, visita ou evidência).");
-    if (!evidence?.trim()) {
-      toast.error("A confirmação exige uma nota de verificação.");
+    if (!verificationEvidence.trim()) {
+      toast.error("Registe a evidência de verificação antes de confirmar.");
       return;
     }
     setBusySupplierId(supplier.id);
@@ -168,12 +169,14 @@ export default function SourcingOperations({ requests, canManage }: { requests: 
       if (!authData.user) throw new Error("A sessão expirou. Inicie sessão novamente.");
       const { error } = await supabase.from("sourcing_supplier_leads").update({
         verification_status: "confirmed",
-        verification_notes: evidence.trim(),
+        verification_notes: verificationEvidence.trim(),
         verified_at: new Date().toISOString(),
         verified_by: authData.user.id,
       }).eq("id", supplier.id);
       if (error) throw error;
       toast.success("Confirmação operacional registada.");
+      setVerificationTargetId(null);
+      setVerificationEvidence("");
       await loadData();
     } catch (error) {
       console.error("[AgriLink Sourcing] Falha ao confirmar fornecedor:", error);
@@ -332,7 +335,8 @@ export default function SourcingOperations({ requests, canManage }: { requests: 
               <div key={supplier.id} className="space-y-2 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="font-semibold text-gray-900">{supplier.company_name}</p><p className="text-sm text-gray-600">{supplier.product_name} · {supplier.phone}</p><p className="text-xs text-gray-500">{[provinceName(supplier.province_id), municipalityName(supplier.province_id, supplier.municipality_id), supplier.locality].filter(Boolean).join(" · ")}</p></div><span className={supplier.verification_status === "confirmed" ? "rounded-full bg-green-50 px-2 py-1 text-xs font-semibold text-green-700" : "rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800"}>{supplier.verification_status === "confirmed" ? "Confirmado pela equipa" : supplier.verification_status === "contacted" ? "Contactado" : supplier.verification_status === "unavailable" ? "Indisponível" : supplier.verification_status === "rejected" ? "Rejeitado" : "Por verificar"}</span></div>
                 {supplier.verification_notes && <p className="text-xs text-gray-600">Verificação: {supplier.verification_notes}</p>}
-                {canManage && supplier.verification_status !== "confirmed" && supplier.verification_status !== "rejected" && <Button size="sm" variant="outline" onClick={() => void verifySupplier(supplier)} disabled={busySupplierId === supplier.id}>{busySupplierId === supplier.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}Registar verificação</Button>}
+                {canManage && supplier.verification_status !== "confirmed" && supplier.verification_status !== "rejected" && <Button size="sm" variant="outline" onClick={() => { setVerificationTargetId(supplier.id); setVerificationEvidence(""); }} disabled={busySupplierId === supplier.id}><ShieldCheck className="mr-2 h-4 w-4" />Registar verificação</Button>}
+                {canManage && verificationTargetId === supplier.id && <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3"><label className={labelClass}>Evidência da confirmação (obrigatória)</label><textarea className={fieldClass} rows={3} maxLength={2000} value={verificationEvidence} onChange={(event) => setVerificationEvidence(event.target.value)} placeholder="Ex.: contacto telefónico com o produtor em 12/10; confirmou cultura, localização e contacto." required /><div className="flex flex-wrap gap-2"><Button size="sm" onClick={() => void verifySupplier(supplier)} disabled={busySupplierId === supplier.id || !verificationEvidence.trim()}>{busySupplierId === supplier.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}Confirmar fornecedor</Button><Button size="sm" variant="outline" onClick={() => { setVerificationTargetId(null); setVerificationEvidence(""); }}>Cancelar</Button></div></div>}}
               </div>
             ))}</div>
           )}
