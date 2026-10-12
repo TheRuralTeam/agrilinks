@@ -541,6 +541,7 @@ const SearchPage = () => {
               />
               <p className="text-xs text-[#758A79]">
                 Disponível: <span className="font-bold text-[#2c863b]">{selectedProduct?.quantity.toLocaleString()} {selectedProduct?.sale_unit || 'kg'}</span>
+                {selectedProduct?.min_order_quantity != null && <span className="block mt-1">Mínimo por encomenda: {selectedProduct.min_order_quantity} {selectedProduct.sale_unit || 'kg'}</span>}
               </p>
             </div>
             <div className="space-y-2">
