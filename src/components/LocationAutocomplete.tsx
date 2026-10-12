@@ -1,5 +1,7 @@
-import React, { useMemo, useState } from 'react'
-import { MapPin, Search } from 'lucide-react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { History, MapPin, Search } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
+import { getPreferredDeliveryLocation } from '../features/products/deliveryLocationPreference'
 import { getProvincesForCountry } from '../data/country-locations'
 
 type LocationAutocompleteProps = {
@@ -27,6 +29,20 @@ export default function LocationAutocomplete({
   onFocus,
 }: LocationAutocompleteProps) {
   const [focused, setFocused] = useState(false)
+  const [savedLocation, setSavedLocation] = useState<string | null>(null)
+  const { user } = useAuth()
+
+  useEffect(() => {
+    let active = true
+    if (!user?.id) {
+      setSavedLocation(null)
+      return () => { active = false }
+    }
+    void getPreferredDeliveryLocation(user.id).then((location) => {
+      if (active) setSavedLocation(location)
+    })
+    return () => { active = false }
+  }, [user?.id])
   const suggestions = useMemo(() => {
     const provinces = getProvincesForCountry('AO')
     const all = provinces.flatMap((province) => [
@@ -70,12 +86,29 @@ export default function LocationAutocomplete({
           style={inputStyle}
         />
       </div>
-      {focused && suggestions.length > 0 && (
+      {focused && (suggestions.length > 0 || savedLocation) && (
         <div
           role="listbox"
           aria-label="Sugestões de localização em Angola"
-          className="absolute z-[80] mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-[#DCE8DD] bg-white py-1 shadow-xl"
+          className="absolute z-[80] mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-[#DCE8DD] bg-white py-1 shadow-xl"
         >
+          {savedLocation && normalize(savedLocation) !== normalize(value) && (
+            <button
+              key="saved-delivery-location"
+              type="button"
+              role="option"
+              aria-selected={false}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => { onChange(savedLocation); setFocused(false) }}
+              className="flex w-full items-start gap-2 border-b border-[#E5EDE6] px-3 py-2.5 text-left text-sm text-[#26382A] transition-colors hover:bg-[#F2FAF3]"
+            >
+              <History aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[#2c863b]" />
+              <span className="min-w-0">
+                <span className="block text-[10px] font-semibold uppercase tracking-wide text-[#2c863b]">Usar localização anterior</span>
+                <span className="block break-words">{savedLocation}</span>
+              </span>
+            </button>
+          )}
           {suggestions.map((item) => (
             <button
               key={item.label}
