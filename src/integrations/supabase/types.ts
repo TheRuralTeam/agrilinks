@@ -3631,11 +3631,16 @@ export type Database = {
           admin_notes: string | null
           created_at: string
           delivery_date: string
+          delivery_location: string | null
+          delivery_municipality_id: string | null
+          delivery_province_id: string | null
           description: string | null
           id: string
           product_name: string
+          quality_specification: string | null
           quantity: number
           status: string
+          unit: string
           updated_at: string
           user_id: string
         }
@@ -3643,11 +3648,16 @@ export type Database = {
           admin_notes?: string | null
           created_at?: string
           delivery_date: string
+          delivery_location?: string | null
+          delivery_municipality_id?: string | null
+          delivery_province_id?: string | null
           description?: string | null
           id?: string
           product_name: string
+          quality_specification?: string | null
           quantity: number
           status?: string
+          unit?: string
           updated_at?: string
           user_id: string
         }
@@ -3655,11 +3665,16 @@ export type Database = {
           admin_notes?: string | null
           created_at?: string
           delivery_date?: string
+          delivery_location?: string | null
+          delivery_municipality_id?: string | null
+          delivery_province_id?: string | null
           description?: string | null
           id?: string
           product_name?: string
+          quality_specification?: string | null
           quantity?: number
           status?: string
+          unit?: string
           updated_at?: string
           user_id?: string
         }
