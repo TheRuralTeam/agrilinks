@@ -206,6 +206,8 @@ const SearchPage = () => {
           quantity: selectedProduct.quantity,
           user_id: selectedProduct.user_id,
           price: selectedProduct.price,
+          sale_unit: selectedProduct.sale_unit || 'kg',
+          min_order_quantity: selectedProduct.min_order_quantity ?? 1,
         },
         buyer_id: user.id,
         quantity,
@@ -526,7 +528,7 @@ const SearchPage = () => {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-bold text-[#3D4D40]">Quantidade (kg)</label>
+              <label className="text-sm font-bold text-[#3D4D40]">Quantidade ({selectedProduct?.sale_unit || 'kg'})</label>
               <Input
                 type="number"
                 min="1"
@@ -537,7 +539,7 @@ const SearchPage = () => {
                 style={{ background: 'rgba(118,118,128,0.08)' }}
               />
               <p className="text-xs text-[#758A79]">
-                Disponível: <span className="font-bold text-[#2c863b]">{selectedProduct?.quantity.toLocaleString()} kg</span>
+                Disponível: <span className="font-bold text-[#2c863b]">{selectedProduct?.quantity.toLocaleString()} {selectedProduct?.sale_unit || 'kg'}</span>
               </p>
             </div>
             <div className="space-y-2">
@@ -552,7 +554,7 @@ const SearchPage = () => {
             </div>
             <div className="p-4 rounded-2xl space-y-2" style={{ background: 'rgba(118,118,128,0.06)' }}>
               <div className="flex justify-between text-sm text-[#3D4D40]">
-                <span>Preço por kg:</span>
+                <span>Preço por {selectedProduct?.sale_unit || 'kg'}:</span>
                 <span className="font-medium">{selectedProduct?.price.toLocaleString()} Kz</span>
               </div>
               <div className="flex justify-between text-sm text-[#3D4D40]">
