@@ -23,6 +23,7 @@ interface Product {
   id: string
   product_type: string
   quantity: number
+  sale_unit?: string | null
   harvest_date: string
   price: number
   province_id: string
@@ -253,7 +254,7 @@ const Dashboard = () => {
                     <TableHead>Quantidade</TableHead>
                     <TableHead>Data de Colheita</TableHead>
                     <TableHead>Região</TableHead>
-                    <TableHead>Preço Provável</TableHead>
+                    <TableHead>Preço por unidade</TableHead>
                     <TableHead>Logística</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Ações</TableHead>
@@ -263,10 +264,10 @@ const Dashboard = () => {
                   {products.map((product) => (
                     <TableRow key={product.id}>
                       <TableCell className="font-medium">{product.product_type}</TableCell>
-                      <TableCell>{product.quantity.toLocaleString()} kg</TableCell>
+                      <TableCell>{product.quantity.toLocaleString()} {product.sale_unit || 'kg'}</TableCell>
                       <TableCell>{new Date(product.harvest_date).toLocaleDateString('pt-BR')}</TableCell>
                       <TableCell>{product.province_id}</TableCell>
-                      <TableCell>{product.price.toLocaleString()} Kz</TableCell>
+                      <TableCell>{product.price.toLocaleString('pt-AO')} Kz/{product.sale_unit || 'kg'}</TableCell>
                       <TableCell>{getLogisticsBadge(product.logistics_access)}</TableCell>
                       <TableCell>{getStatusBadge(product.status)}</TableCell>
                       <TableCell>
