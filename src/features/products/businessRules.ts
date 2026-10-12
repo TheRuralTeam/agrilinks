@@ -42,7 +42,7 @@ export const validateProductSubmission = (input: ProductSubmissionInput) => {
     errors.push('Nome do produto é obrigatório.')
   }
 
-  if (!Number.isFinite(input.quantity) || input.quantity <= 0) {
+  if (!Number.isInteger(input.quantity) || input.quantity <= 0) {
     errors.push('Quantidade deve ser maior que zero.')
   }
 
