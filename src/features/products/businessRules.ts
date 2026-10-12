@@ -24,6 +24,8 @@ export type ProductForOrder = {
   quantity: number
   user_id: string
   price: number
+  sale_unit?: string | null
+  min_order_quantity?: number | null
 }
 
 export type PreOrderInput = {
@@ -116,6 +118,10 @@ export const validatePreOrderSubmission = ({
 
   if (quantity > product.quantity) {
     throw new Error('Quantidade solicitada é maior que o stock disponível.')
+  }
+
+  if (product.min_order_quantity != null && quantity < product.min_order_quantity) {
+    throw new Error(`A quantidade mínima desta publicação é ${product.min_order_quantity} ${product.sale_unit || 'unidade(s)'}.`)
   }
 
   if (!location || location.trim().length < 3) {
