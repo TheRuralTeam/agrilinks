@@ -264,7 +264,11 @@ const AppHome = () => {
       const reservation = Array.isArray(data) ? data[0] : data
       if (!reservation) throw new Error('Não foi possível criar a reserva.')
 
-      toast.success('Pré-compra registada. O fornecedor será notificado e a reserva fica activa por 15 minutos.')
+      toast.success(
+        destination
+          ? 'Pré-compra registada. O fornecedor será notificado e a reserva fica activa por 15 minutos.'
+          : 'Pré-compra registada. O local foi guardado e será confirmado antes de iniciar a logística.'
+      )
       // O preço final, frete e pagamento são calculados pelo servidor após a aceitação do fornecedor.
       setModalOpen(false)
       setSelectedProduct(null)
