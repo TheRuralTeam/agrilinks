@@ -10,6 +10,12 @@ export type ProductSubmissionInput = {
   logistics_access: 'sim' | 'nao' | 'parcial'
   photos?: string[]
   category?: string
+  sale_unit: 'kg' | 'tonelada' | 'unidade' | 'caixa' | 'saco' | 'litro' | 'outro'
+  min_order_quantity: number
+  package_weight_kg?: number | null
+  product_variety?: string
+  product_condition?: string
+  packaging_type?: string
 }
 
 export type ProductForOrder = {
@@ -40,6 +46,16 @@ export const validateProductSubmission = (input: ProductSubmissionInput) => {
 
   if (!Number.isFinite(input.price) || input.price <= 0) {
     errors.push('Preço deve ser maior que zero.')
+  }
+
+  if (!['kg', 'tonelada', 'unidade', 'caixa', 'saco', 'litro', 'outro'].includes(input.sale_unit)) {
+    errors.push('Selecione a unidade de venda do produto.')
+  }
+  if (!Number.isFinite(input.min_order_quantity) || input.min_order_quantity <= 0 || input.min_order_quantity > input.quantity) {
+    errors.push('A quantidade mínima deve ser positiva e não pode exceder a quantidade disponível.')
+  }
+  if (input.package_weight_kg != null && (!Number.isFinite(input.package_weight_kg) || input.package_weight_kg <= 0)) {
+    errors.push('O peso por embalagem deve ser maior que zero.')
   }
 
   if (!input.province_id || !input.municipality_id) {
