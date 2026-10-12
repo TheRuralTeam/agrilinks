@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '../components/ui/select';
 import { ArrowLeft, Package, Calendar, DollarSign, Hash, MapPin, User, Upload, X } from 'lucide-react';
 import { angolaProvinces } from '../data/angola-locations';
 import { useAuth } from '../contexts/AuthContext';
@@ -309,10 +309,10 @@ const PublishProduct = () => {
         <SelectTrigger id="product_type"><SelectValue placeholder="Selecionar produto agrícola" /></SelectTrigger>
         <SelectContent>
           {AGRICULTURAL_PRODUCT_GROUPS.map((group) => (
-            <React.Fragment key={group.label}>
-              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{group.label}</div>
+            <SelectGroup key={group.label}>
+              <SelectLabel>{group.label}</SelectLabel>
               {group.products.map((product) => <SelectItem key={product} value={product}>{product}</SelectItem>)}
-            </React.Fragment>
+            </SelectGroup>
           ))}
         </SelectContent>
       </Select>
@@ -352,7 +352,7 @@ const PublishProduct = () => {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="space-y-2">
         <Label htmlFor="sale_unit">Unidade de venda *</Label>
-        <Select value={formData.sale_unit} onValueChange={(value: typeof formData.sale_unit) => setFormData((prev) => ({ ...prev, sale_unit: value }))}>
+        <Select value={formData.sale_unit} onValueChange={(value) => setFormData((prev) => ({ ...prev, sale_unit: value as typeof formData.sale_unit }))}>
           <SelectTrigger id="sale_unit"><SelectValue placeholder="Escolher unidade" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="kg">Quilograma (kg)</SelectItem>
