@@ -52,6 +52,7 @@ const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)'
 interface UserProduct {
   id: string; product_type: string; quantity: number; harvest_date: string
   price: number; province_id: string; municipality_id: string
+  sale_unit?: string | null; min_order_quantity?: number | null
   status: 'active' | 'inactive' | 'removed'; created_at: string | null
   views?: number; interests?: number
 }
@@ -948,9 +949,9 @@ const Profile = () => {
                       <StatusPill status={r.status} />
                     </div>
                   ) },
-                  { key: 'qtd', label: 'Quantidade', render: r => `${r.quantity.toLocaleString()} kg` },
+                  { key: 'qtd', label: 'Quantidade', render: r => `${r.quantity.toLocaleString()} ${r.sale_unit || 'kg'}` },
                   { key: 'colheita', label: 'Colheita', render: r => formatDate(r.harvest_date) },
-                  { key: 'preco', label: 'Preço', align: 'right', render: r => <span style={{ fontWeight: 800, color: T.g600 }}>{r.price.toLocaleString()} Kz/kg</span> },
+                  { key: 'preco', label: 'Preço', align: 'right', render: r => <span style={{ fontWeight: 800, color: T.g600 }}>{r.price.toLocaleString()} Kz/{r.sale_unit || 'kg'}</span> },
                   { key: 'interacoes', label: 'Interações', align: 'center', render: r => (
                     <div style={{ display: 'flex', gap: 10, justifyContent: 'center', color: T.faint, fontSize: 12 }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><MessageCircle size={12} strokeWidth={1.75}/>{productStats[r.id]?.comments || 0}</span>

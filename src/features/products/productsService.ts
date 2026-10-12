@@ -26,7 +26,7 @@ export const fetchProductsFeed = async ({
 }: ProductFeedOptions = {}) => {
   let query = supabase
     .from('products')
-    .select('id,user_id,product_type,quantity,harvest_date,price,province_id,municipality_id,logistics_access,farmer_name,photos,status,created_at,updated_at,description,location_lat,location_lng,category,likes_count')
+    .select('id,user_id,product_type,quantity,harvest_date,price,province_id,municipality_id,logistics_access,farmer_name,photos,status,created_at,updated_at,description,location_lat,location_lng,category,likes_count,sale_unit,min_order_quantity,package_weight_kg,product_variety,product_condition,packaging_type')
     .eq('status', status)
     .order('created_at', { ascending: false })
     .range(page * limit, page * limit + limit - 1)
@@ -87,7 +87,7 @@ export const fetchActiveProducts = async (userId?: string, page = 0, limit = 20)
 export const fetchProductById = async (productId: string, userId?: string) => {
   const { data: product, error } = await supabase
     .from('products')
-     .select('id,user_id,product_type,quantity,harvest_date,price,province_id,municipality_id,logistics_access,farmer_name,contact,photos,status,created_at,updated_at,description,location_lat,location_lng,category,likes_count')
+     .select('id,user_id,product_type,quantity,harvest_date,price,province_id,municipality_id,logistics_access,farmer_name,contact,photos,status,created_at,updated_at,description,location_lat,location_lng,category,likes_count,sale_unit,min_order_quantity,package_weight_kg,product_variety,product_condition,packaging_type')
     .eq('id', productId)
     .eq('status', 'active')
     .maybeSingle()

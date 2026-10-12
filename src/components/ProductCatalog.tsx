@@ -12,6 +12,7 @@ interface Product {
   product_type: string;
   price: number;
   quantity: number;
+  sale_unit?: string | null;
   description?: string | null;
   province_id: string | null;
   municipality_id: string | null;
@@ -147,7 +148,7 @@ const ProductCatalog = () => {
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Quantidade:</span>
                     <span className="font-semibold">
-                      {product.quantity.toLocaleString()} kg
+                      {product.quantity.toLocaleString()} {product.sale_unit || 'kg'}
                     </span>
                   </div>
                   <div className="flex justify-between">

@@ -10,6 +10,12 @@ export interface TechnicalSheetPdfProduct {
   quantity: number | null;
   harvest_date: string | null;
   price: number | null;
+  sale_unit?: string | null;
+  min_order_quantity?: number | null;
+  package_weight_kg?: number | null;
+  product_variety?: string | null;
+  product_condition?: string | null;
+  packaging_type?: string | null;
   logistics_access: string | null;
   contact: string | null;
   description?: string | null;
@@ -99,9 +105,14 @@ export async function downloadTechnicalSheetPdf(product: TechnicalSheetPdfProduc
   const info = [
     ["Fornecedor / produtor", product.farmer_name || "Não indicado"],
     ["Categoria", product.category || "Não indicada"],
-    ["Quantidade disponível", product.quantity != null ? `${Number(product.quantity).toLocaleString("pt-AO")} kg` : "Não indicada"],
+    ["Quantidade disponível", product.quantity != null ? `${Number(product.quantity).toLocaleString("pt-AO")} ${product.sale_unit || "kg"}` : "Não indicada"],
     ["Data de colheita", product.harvest_date ? new Date(product.harvest_date).toLocaleDateString("pt-AO") : "Não indicada"],
-    ["Preço", product.price != null ? `${Number(product.price).toLocaleString("pt-AO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kz/kg` : "Não indicado"],
+    ["Preço", product.price != null ? `${Number(product.price).toLocaleString("pt-AO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kz/${product.sale_unit || "kg"}` : "Não indicado"],
+    ["Quantidade mínima por encomenda", product.min_order_quantity != null ? `${product.min_order_quantity} ${product.sale_unit || "kg"}` : "Não indicada"],
+    ["Peso por embalagem", product.package_weight_kg != null ? `${product.package_weight_kg} kg` : "Não indicado"],
+    ["Variedade", product.product_variety || "Não indicada"],
+    ["Estado do produto", product.product_condition || "Não indicado"],
+    ["Acondicionamento", product.packaging_type || "Não indicado"],
     ["Contacto", product.contact || "Não indicado"],
     ["Acesso logístico", product.logistics_access || "Não indicado"],
     ["Estado", product.status || "Não indicado"],

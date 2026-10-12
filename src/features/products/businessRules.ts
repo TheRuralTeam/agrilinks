@@ -10,6 +10,12 @@ export type ProductSubmissionInput = {
   logistics_access: 'sim' | 'nao' | 'parcial'
   photos?: string[]
   category?: string
+  sale_unit: 'kg' | 'tonelada' | 'unidade' | 'caixa' | 'saco' | 'litro'
+  min_order_quantity: number
+  package_weight_kg?: number | null
+  product_variety?: string
+  product_condition?: string
+  packaging_type?: string
 }
 
 export type ProductForOrder = {
@@ -18,6 +24,8 @@ export type ProductForOrder = {
   quantity: number
   user_id: string
   price: number
+  sale_unit?: string | null
+  min_order_quantity?: number | null
 }
 
 export type PreOrderInput = {
@@ -34,12 +42,22 @@ export const validateProductSubmission = (input: ProductSubmissionInput) => {
     errors.push('Nome do produto é obrigatório.')
   }
 
-  if (!Number.isFinite(input.quantity) || input.quantity <= 0) {
+  if (!Number.isInteger(input.quantity) || input.quantity <= 0) {
     errors.push('Quantidade deve ser maior que zero.')
   }
 
   if (!Number.isFinite(input.price) || input.price <= 0) {
     errors.push('Preço deve ser maior que zero.')
+  }
+
+  if (!['kg', 'tonelada', 'unidade', 'caixa', 'saco', 'litro'].includes(input.sale_unit)) {
+    errors.push('Selecione a unidade de venda do produto.')
+  }
+  if (!Number.isInteger(input.min_order_quantity) || input.min_order_quantity <= 0 || input.min_order_quantity > input.quantity) {
+    errors.push('A quantidade mínima deve ser positiva e não pode exceder a quantidade disponível.')
+  }
+  if (input.package_weight_kg != null && (!Number.isFinite(input.package_weight_kg) || input.package_weight_kg <= 0)) {
+    errors.push('O peso por embalagem deve ser maior que zero.')
   }
 
   if (!input.province_id || !input.municipality_id) {
@@ -100,6 +118,10 @@ export const validatePreOrderSubmission = ({
 
   if (quantity > product.quantity) {
     throw new Error('Quantidade solicitada é maior que o stock disponível.')
+  }
+
+  if (product.min_order_quantity != null && quantity < product.min_order_quantity) {
+    throw new Error(`A quantidade mínima desta publicação é ${product.min_order_quantity} ${product.sale_unit || 'unidade(s)'}.`)
   }
 
   if (!location || location.trim().length < 3) {

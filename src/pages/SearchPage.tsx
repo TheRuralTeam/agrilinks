@@ -206,6 +206,8 @@ const SearchPage = () => {
           quantity: selectedProduct.quantity,
           user_id: selectedProduct.user_id,
           price: selectedProduct.price,
+          sale_unit: selectedProduct.sale_unit || 'kg',
+          min_order_quantity: selectedProduct.min_order_quantity ?? 1,
         },
         buyer_id: user.id,
         quantity,
@@ -225,6 +227,7 @@ const SearchPage = () => {
       if (error) {
         const message = error.message || ''
         if (message.includes('INSUFFICIENT_STOCK')) throw new Error('A quantidade disponível acabou de ser alterada. Reduza a quantidade e tente novamente.')
+        if (message.includes('MIN_ORDER_QUANTITY')) throw new Error(`A quantidade está abaixo do mínimo desta publicação (${selectedProduct.min_order_quantity ?? 1} ${selectedProduct.sale_unit || 'kg'}).`)
         if (message.includes('PRODUCT_NOT_AVAILABLE')) throw new Error('Este produto já não está disponível.')
         if (message.includes('SELLER_CANNOT_BUY_OWN_PRODUCT')) throw new Error('Não pode comprar o seu próprio produto.')
         if (message.includes('DELIVERY_LOCATION_REQUIRED')) throw new Error('Informe o local de entrega.')
@@ -526,7 +529,7 @@ const SearchPage = () => {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-bold text-[#3D4D40]">Quantidade (kg)</label>
+              <label className="text-sm font-bold text-[#3D4D40]">Quantidade ({selectedProduct?.sale_unit || 'kg'})</label>
               <Input
                 type="number"
                 min="1"
@@ -537,7 +540,8 @@ const SearchPage = () => {
                 style={{ background: 'rgba(118,118,128,0.08)' }}
               />
               <p className="text-xs text-[#758A79]">
-                Disponível: <span className="font-bold text-[#2c863b]">{selectedProduct?.quantity.toLocaleString()} kg</span>
+                Disponível: <span className="font-bold text-[#2c863b]">{selectedProduct?.quantity.toLocaleString()} {selectedProduct?.sale_unit || 'kg'}</span>
+                {selectedProduct?.min_order_quantity != null && <span className="block mt-1">Mínimo por encomenda: {selectedProduct.min_order_quantity} {selectedProduct.sale_unit || 'kg'}</span>}
               </p>
             </div>
             <div className="space-y-2">
@@ -552,7 +556,7 @@ const SearchPage = () => {
             </div>
             <div className="p-4 rounded-2xl space-y-2" style={{ background: 'rgba(118,118,128,0.06)' }}>
               <div className="flex justify-between text-sm text-[#3D4D40]">
-                <span>Preço por kg:</span>
+                <span>Preço por {selectedProduct?.sale_unit || 'kg'}:</span>
                 <span className="font-medium">{selectedProduct?.price.toLocaleString()} Kz</span>
               </div>
               <div className="flex justify-between text-sm text-[#3D4D40]">

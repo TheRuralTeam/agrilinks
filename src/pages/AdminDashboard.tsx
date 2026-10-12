@@ -92,6 +92,16 @@ interface Product {
   logistics_access: string;
   user_id: string;
   created_at: string | null;
+  sale_unit?: string | null;
+  min_order_quantity?: number | null;
+  package_weight_kg?: number | null;
+  product_variety?: string | null;
+  product_condition?: string | null;
+  packaging_type?: string | null;
+  description?: string | null;
+  harvest_date?: string | null;
+  province_id?: string | null;
+  municipality_id?: string | null;
 }
 
 interface User {
@@ -333,6 +343,9 @@ const AdminDashboard = () => {
   const [adminPermissionsLoaded, setAdminPermissionsLoaded] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [savingProductEdit, setSavingProductEdit] = useState(false);
+  const [productEditForm, setProductEditForm] = useState({ product_type: '', quantity: '', price: '', sale_unit: 'kg', min_order_quantity: '1', package_weight_kg: '', product_variety: '', product_condition: '', packaging_type: '', description: '', harvest_date: '', province_id: '', municipality_id: '', logistics_access: 'sim' });
   // Work session tracking for support agents
   const {
     elapsedTimeFormatted,
@@ -1412,6 +1425,53 @@ const AdminDashboard = () => {
           </DialogContent>
         </Dialog>
 
+        <Dialog open={!!editingProduct} onOpenChange={(open) => { if (!open && !savingProductEdit) setEditingProduct(null); }}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader><DialogTitle>Editar publicação agrícola</DialogTitle></DialogHeader>
+            <p className="text-sm text-muted-foreground">As alterações ficam registadas no histórico administrativo. A quantidade não pode ficar abaixo do stock reservado.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1"><label className="text-sm font-medium">Produto</label><Input value={productEditForm.product_type} onChange={(e) => setProductEditForm((p) => ({ ...p, product_type: e.target.value }))} /></div>
+              <div className="space-y-1"><label className="text-sm font-medium">Unidade de venda</label><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={productEditForm.sale_unit} onChange={(e) => setProductEditForm((p) => ({ ...p, sale_unit: e.target.value }))}><option value="kg">Quilograma (kg)</option><option value="tonelada">Tonelada</option><option value="unidade">Unidade</option><option value="caixa">Caixa</option><option value="saco">Saco</option><option value="litro">Litro</option></select></div>
+              <div className="space-y-1"><label className="text-sm font-medium">Quantidade disponível</label><Input type="number" min="1" step="1" value={productEditForm.quantity} onChange={(e) => setProductEditForm((p) => ({ ...p, quantity: e.target.value }))} /></div>
+              <div className="space-y-1"><label className="text-sm font-medium">Preço por {productEditForm.sale_unit} (Kz)</label><Input type="number" min="0.01" step="any" value={productEditForm.price} onChange={(e) => setProductEditForm((p) => ({ ...p, price: e.target.value }))} /></div>
+              <div className="space-y-1"><label className="text-sm font-medium">Quantidade mínima por encomenda</label><Input type="number" min="1" step="1" value={productEditForm.min_order_quantity} onChange={(e) => setProductEditForm((p) => ({ ...p, min_order_quantity: e.target.value }))} /></div>
+              {(productEditForm.sale_unit === 'caixa' || productEditForm.sale_unit === 'saco') && <div className="space-y-1"><label className="text-sm font-medium">Peso por embalagem (kg)</label><Input type="number" min="0.001" step="any" value={productEditForm.package_weight_kg} onChange={(e) => setProductEditForm((p) => ({ ...p, package_weight_kg: e.target.value }))} placeholder="Opcional" /></div>}
+              <div className="space-y-1"><label className="text-sm font-medium">Variedade</label><Input value={productEditForm.product_variety} onChange={(e) => setProductEditForm((p) => ({ ...p, product_variety: e.target.value }))} /></div>
+              <div className="space-y-1"><label className="text-sm font-medium">Estado do produto</label><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={productEditForm.product_condition} onChange={(e) => setProductEditForm((p) => ({ ...p, product_condition: e.target.value }))}><option value="">Não especificado</option><option value="fresco">Fresco</option><option value="seco">Seco</option><option value="maduro">Maduro</option><option value="verde">Verde</option><option value="transformado">Transformado</option></select></div>
+              <div className="space-y-1"><label className="text-sm font-medium">Acondicionamento</label><Input value={productEditForm.packaging_type} onChange={(e) => setProductEditForm((p) => ({ ...p, packaging_type: e.target.value }))} /></div>
+              <div className="space-y-1"><label className="text-sm font-medium">Data de colheita</label><Input type="date" value={productEditForm.harvest_date} onChange={(e) => setProductEditForm((p) => ({ ...p, harvest_date: e.target.value }))} /></div>
+              <div className="space-y-1"><label className="text-sm font-medium">Província</label><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={productEditForm.province_id} onChange={(e) => setProductEditForm((p) => ({ ...p, province_id: e.target.value, municipality_id: "" }))}><option value="">Selecionar província</option>{angolaProvinces.map((province) => <option key={province.id} value={province.id}>{province.name}</option>)}</select></div>
+              <div className="space-y-1"><label className="text-sm font-medium">Município</label><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={productEditForm.municipality_id} disabled={!productEditForm.province_id} onChange={(e) => setProductEditForm((p) => ({ ...p, municipality_id: e.target.value }))}><option value="">Selecionar município</option>{(angolaProvinces.find((province) => province.id === productEditForm.province_id)?.municipalities || []).map((municipality) => <option key={municipality.id} value={municipality.id}>{municipality.name}</option>)}</select></div>
+              <div className="space-y-1"><label className="text-sm font-medium">Disponibilidade logística</label><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={productEditForm.logistics_access} onChange={(e) => setProductEditForm((p) => ({ ...p, logistics_access: e.target.value }))}><option value="sim">Sim</option><option value="nao">Não</option><option value="parcial">Parcial</option></select></div>
+              <div className="space-y-1 sm:col-span-2"><label className="text-sm font-medium">Descrição</label><Textarea value={productEditForm.description} onChange={(e) => setProductEditForm((p) => ({ ...p, description: e.target.value }))} /></div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingProduct(null)} disabled={savingProductEdit}>Cancelar</Button>
+              <Button disabled={savingProductEdit} onClick={async () => {
+                if (!editingProduct) return;
+                const quantity = Number(productEditForm.quantity), price = Number(productEditForm.price), minimum = Number(productEditForm.min_order_quantity);
+                if (!productEditForm.product_type.trim() || !Number.isInteger(quantity) || quantity <= 0 || !Number.isFinite(price) || price <= 0 || !Number.isInteger(minimum) || minimum <= 0 || minimum > quantity || !productEditForm.harvest_date || !productEditForm.province_id.trim() || !productEditForm.municipality_id.trim()) return toast.error('Revise produto, quantidade, preço, mínimo, colheita e localização.');
+                setSavingProductEdit(true);
+                try {
+                  const { error } = await supabase.rpc('admin_update_product', {
+                    p_product_id: editingProduct.id, p_product_type: productEditForm.product_type.trim(), p_quantity: quantity,
+                    p_price: price, p_sale_unit: productEditForm.sale_unit, p_min_order_quantity: minimum,
+                    p_package_weight_kg: productEditForm.package_weight_kg ? Number(productEditForm.package_weight_kg) : null,
+                    p_product_variety: productEditForm.product_variety, p_product_condition: productEditForm.product_condition,
+                    p_packaging_type: productEditForm.packaging_type, p_description: productEditForm.description,
+                    p_harvest_date: productEditForm.harvest_date, p_province_id: productEditForm.province_id.trim(),
+                    p_municipality_id: productEditForm.municipality_id.trim(), p_logistics_access: productEditForm.logistics_access,
+                  });
+                  if (error) throw error;
+                  setProducts((prev) => prev.map((p) => p.id === editingProduct.id ? { ...p, ...productEditForm, quantity, price, min_order_quantity: minimum, package_weight_kg: productEditForm.package_weight_kg ? Number(productEditForm.package_weight_kg) : null } : p));
+                  toast.success('Publicação atualizada e alteração registada.'); setEditingProduct(null);
+                } catch (error: any) { toast.error(error?.message || 'Não foi possível atualizar a publicação.'); }
+                finally { setSavingProductEdit(false); }
+              }}>{savingProductEdit ? 'A guardar…' : 'Guardar alterações'}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* PRODUTOS */}
         {activeTab === "products" && (
           <Card className="border-0 shadow-sm">
@@ -1462,8 +1522,8 @@ const AdminDashboard = () => {
                           />
                         </TableCell>
                         <TableCell className="font-medium">{product.product_type}</TableCell>
-                        <TableCell>{product.quantity} kg</TableCell>
-                        <TableCell>{product.price?.toFixed(2)} Kz</TableCell>
+                        <TableCell>{product.quantity} {product.sale_unit || 'kg'}</TableCell>
+                        <TableCell>{product.price?.toLocaleString('pt-AO')} Kz/{product.sale_unit || 'kg'}</TableCell>
                         <TableCell>{user?.full_name || "-"}</TableCell>
                         <TableCell>
                           <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
@@ -1514,6 +1574,21 @@ const AdminDashboard = () => {
                                       <XCircle className="h-4 w-4 mr-2" /> Rejeitar
                                     </DropdownMenuItem>
                                   </>
+                                )}
+                                {hasPermission("manage_products") && (
+                                  <DropdownMenuItem onClick={() => {
+                                    setProductEditForm({
+                                      product_type: product.product_type || '', quantity: String(product.quantity ?? ''), price: String(product.price ?? ''),
+                                      sale_unit: product.sale_unit || 'kg', min_order_quantity: String(product.min_order_quantity ?? 1),
+                                      package_weight_kg: product.package_weight_kg == null ? '' : String(product.package_weight_kg),
+                                      product_variety: product.product_variety || '', product_condition: product.product_condition || '',
+                                      packaging_type: product.packaging_type || '', description: product.description || '', harvest_date: product.harvest_date || '',
+                                      province_id: product.province_id || '', municipality_id: product.municipality_id || '', logistics_access: product.logistics_access || 'sim',
+                                    });
+                                    setEditingProduct(product);
+                                  }}>
+                                    <Package className="h-4 w-4 mr-2" /> Editar publicação
+                                  </DropdownMenuItem>
                                 )}
                                 {(hasPermission("manage_support") || isSuperRoot) && (
                                   <DropdownMenuItem onClick={() => { setTargetUser(product.user_id); setNotificationModalOpen(true); }}>
