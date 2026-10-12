@@ -212,25 +212,21 @@ const SearchPage = () => {
         location: orderData.location,
       })
 
-      let destination: { lat: string; lon: string } | null
+      let destination: { lat: string; lon: string } | null = null
       try {
         destination = await geocodeAngolaLocation(orderData.location)
       } catch (geocodeError) {
-        console.warn('[AgriLink] Geocoding da entrega falhou.', geocodeError)
-        throw new Error('Não foi possível localizar o ponto de entrega. Informe uma localização mais específica e tente novamente.')
+        // Não bloquear a pré-compra por indisponibilidade temporária do mapa.
+        // O texto é guardado na conta autenticada; coordenadas ficam pendentes.
+        console.warn('[AgriLink] Geocodificação indisponível; a pré-compra seguirá com o texto informado.', geocodeError)
       }
 
-      if (
-        !destination ||
+      if (destination && (
         !Number.isFinite(Number(destination.lat)) ||
         !Number.isFinite(Number(destination.lon)) ||
-        Number(destination.lat) < -90 ||
-        Number(destination.lat) > 90 ||
-        Number(destination.lon) < -180 ||
-        Number(destination.lon) > 180
-      ) {
-        throw new Error('O ponto de entrega não foi localizado com coordenadas válidas. Informe uma localização mais específica e tente novamente.')
-      }
+        Number(destination.lat) < -18.5 || Number(destination.lat) > -4.2 ||
+        Number(destination.lon) < 11.4 || Number(destination.lon) > 24.2
+      )) destination = null
 
       const idempotencyKey = crypto.randomUUID()
 
