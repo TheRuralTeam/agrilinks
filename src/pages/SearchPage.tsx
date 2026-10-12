@@ -211,9 +211,6 @@ const SearchPage = () => {
         location: orderData.location,
       })
 
-      // Privacidade: não enviamos a morada/bairro digitado para serviços externos.
-      // O texto fica no pedido autenticado; as coordenadas serão resolvidas antes da logística.
-      const destination: { lat: string; lon: string } | null = null
 
       const idempotencyKey = crypto.randomUUID()
 
@@ -238,13 +235,6 @@ const SearchPage = () => {
 
       const reservation = Array.isArray(data) ? data[0] : data
       if (!reservation) throw new Error('Não foi possível criar a reserva.')
-
-      const expiresAt = reservation.reservation_expires_at
-        ? new Date(reservation.reservation_expires_at).toLocaleTimeString('pt-AO', {
-            hour: '2-digit',
-            minute: '2-digit',
-          })
-        : null
 
       toast.success('Pré-compra enviada. O local foi guardado e será confirmado antes de iniciar a logística.')
       setPreOrderModalOpen(false)
