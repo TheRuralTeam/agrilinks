@@ -432,7 +432,8 @@ const Profile = () => {
         .eq('confirmation_status', 'confirmed')
         .order('confirmed_at', { ascending: false })
       if (error) throw error
-      const today = new Date().toISOString().slice(0, 10)
+      const dateParts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Luanda', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date())
+      const today = `${dateParts.find((part) => part.type === 'year')?.value}-${dateParts.find((part) => part.type === 'month')?.value}-${dateParts.find((part) => part.type === 'day')?.value}`
       setSourcingQuotes(((data || []) as SourcingQuote[]).filter((quote) => !quote.valid_until || quote.valid_until >= today))
     } catch (error) {
       console.error('[AgriLink Sourcing] Erro ao carregar cotações confirmadas:', error)
