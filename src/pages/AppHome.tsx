@@ -232,6 +232,7 @@ const AppHome = () => {
           setProducts(prev => prev.filter(p => p.id !== selectedProduct.id))
           throw new Error('Este produto já não tem stock disponível e foi removido do Marketplace.')
         }
+        if (raw.includes('MIN_ORDER_QUANTITY')) throw new Error(`A quantidade está abaixo do mínimo desta publicação (${selectedProduct.min_order_quantity ?? 1} ${selectedProduct.sale_unit || 'kg'}).`)
         if (raw.includes('PRODUCT_NOT_AVAILABLE')) throw new Error('Este produto já não está disponível.')
         if (raw.includes('PRODUCT_NOT_FOUND')) throw new Error('Este produto já não existe.')
         if (raw.includes('SELLER_CANNOT_BUY_OWN_PRODUCT')) throw new Error('Não pode comprar o seu próprio produto.')
