@@ -198,10 +198,6 @@ const AppHome = () => {
     try {
       const quantity = Number(orderData.quantity || 0)
       if (!Number.isFinite(quantity) || quantity <= 0) throw new Error('Informe uma quantidade válida.')
-      // Privacidade: guardamos a localização como texto no pedido autenticado.
-      // Não enviamos a morada/bairro digitado para serviços externos de mapas.
-      // A equipa resolve as coordenadas antes de iniciar a logística.
-      const destination: { lat: string; lon: string } | null = null
 
       const idempotencyKey = crypto.randomUUID()
       const { data, error } = await supabase.rpc('create_marketplace_pre_order', {
