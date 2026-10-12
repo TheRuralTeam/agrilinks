@@ -20,6 +20,7 @@ import { ProductLocationMap } from '../components/ProductLocationMap'
 import { useAuth } from '../contexts/AuthContext'
 import IdentityActionDialog from '../components/IdentityActionDialog'
 import LocationAutocomplete from '../components/LocationAutocomplete'
+import { savePreferredDeliveryLocation } from '../features/products/deliveryLocationPreference'
 import { validatePreOrderSubmission } from '../features/products/businessRules'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
 import { toast } from 'sonner'
@@ -234,6 +235,7 @@ const SearchPage = () => {
       const reservation = Array.isArray(data) ? data[0] : data
       if (!reservation) throw new Error('Não foi possível criar a reserva.')
 
+      await savePreferredDeliveryLocation(user.id, orderData.location)
       toast.success('Pré-compra enviada. O local foi guardado e será confirmado antes de iniciar a logística.')
       setPreOrderModalOpen(false)
       setSelectedProduct(null)
