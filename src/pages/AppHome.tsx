@@ -205,15 +205,20 @@ const AppHome = () => {
       try {
         destination = await geocodeAngolaLocation(orderData.location)
       } catch (geocodeError) {
-        console.warn('[AgriLink] Geocoding da entrega falhou.', geocodeError)
-        throw new Error('Não foi possível localizar o ponto de entrega. Informe uma localização mais específica (ex.: município e zona) e tente novamente.')
+        // A localização textual continua a ser guardada. As coordenadas podem
+        // ser resolvidas antes de iniciar a logística, sem inventar GPS.
+        console.warn('[AgriLink] Geocodificação indisponível; a pré-compra seguirá com o texto informado.', geocodeError)
+        destination = null
       } finally {
         setGeocodingLocation(false)
       }
 
-      if (!destination) {
-        throw new Error('O ponto de entrega precisa de coordenadas válidas para concluir a pré-compra.')
-      }
+      if (destination && (
+        !Number.isFinite(Number(destination.lat)) ||
+        !Number.isFinite(Number(destination.lon)) ||
+        Number(destination.lat) < -18.5 || Number(destination.lat) > -4.2 ||
+        Number(destination.lon) < 11.4 || Number(destination.lon) > 24.2
+      )) destination = null
 
       const idempotencyKey = crypto.randomUUID()
       const { data, error } = await supabase.rpc('create_marketplace_pre_order', {
