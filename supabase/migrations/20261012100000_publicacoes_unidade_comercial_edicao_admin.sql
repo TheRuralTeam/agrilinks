@@ -69,9 +69,11 @@ BEGIN
      OR p_sale_unit NOT IN ('kg', 'tonelada', 'unidade', 'caixa', 'saco', 'litro', 'outro')
      OR p_min_order_quantity IS NULL OR p_min_order_quantity <= 0 OR p_min_order_quantity <> trunc(p_min_order_quantity) OR p_min_order_quantity > p_quantity
      OR (p_package_weight_kg IS NOT NULL AND p_package_weight_kg <= 0)
+     OR p_sale_unit IS NULL OR p_sale_unit NOT IN ('kg', 'tonelada', 'unidade', 'caixa', 'saco', 'litro')
+     OR p_logistics_access IS NULL OR p_logistics_access NOT IN ('sim', 'nao', 'parcial')
      OR p_province_id IS NULL OR trim(p_province_id) = ''
      OR p_municipality_id IS NULL OR trim(p_municipality_id) = ''
-     OR p_logistics_access NOT IN ('sim', 'nao', 'parcial') THEN
+ THEN
     RAISE EXCEPTION 'Os dados da publicação são inválidos.' USING ERRCODE = '22023';
   END IF;
 
