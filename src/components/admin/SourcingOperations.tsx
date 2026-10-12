@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { CheckCircle2, CircleAlert, Loader2, Plus, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "../../integrations/supabase/client";
 import { angolaProvinces } from "../../data/angola-locations";
-import { SOURCING_UNITS } from "../../features/sourcing/sourcingCatalog";
+import { SOURCING_AGRICULTURAL_PRODUCTS, SOURCING_UNITS } from "../../features/sourcing/sourcingCatalog";
 import { Button } from "../ui/button";
 
 type Request = {
@@ -114,13 +114,13 @@ export default function SourcingOperations({ requests, canManage }: { requests: 
   useEffect(() => { void loadData(); }, [loadData]);
 
   const eligibleSuppliers = useMemo(
-    () => suppliers.filter((supplier) => supplier.verification_status === "confirmed"),
-    [suppliers],
+    () => suppliers.filter((supplier) => supplier.verification_status === "confirmed" && (!selectedRequest || supplier.product_name.trim().toLocaleLowerCase("pt-AO") === selectedRequest.product_name.trim().toLocaleLowerCase("pt-AO"))),
+    [suppliers, selectedRequest],
   );
   const selectedRequest = requests.find((request) => request.id === quoteForm.sourcing_request_id);
   const selectedProvince = angolaProvinces.find((province) => province.id === supplierForm.province_id);
 
-  const saveSupplier = async (event: React.FormEvent<HTMLFormElement>) => {
+  const saveSupplier = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canManage) return;
     if (!supplierForm.company_name.trim() || !supplierForm.phone.trim() || !supplierForm.product_name.trim()) {
@@ -298,7 +298,7 @@ export default function SourcingOperations({ requests, canManage }: { requests: 
           <div><label className={labelClass}>Empresa / fornecedor *</label><input className={fieldClass} value={supplierForm.company_name} onChange={(e) => setSupplierForm({ ...supplierForm, company_name: e.target.value })} maxLength={160} required /></div>
           <div><label className={labelClass}>Pessoa de contacto</label><input className={fieldClass} value={supplierForm.contact_name} onChange={(e) => setSupplierForm({ ...supplierForm, contact_name: e.target.value })} maxLength={160} /></div>
           <div><label className={labelClass}>Telefone *</label><input className={fieldClass} type="tel" value={supplierForm.phone} onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })} maxLength={40} required /></div>
-          <div><label className={labelClass}>Produto agrícola *</label><input className={fieldClass} value={supplierForm.product_name} onChange={(e) => setSupplierForm({ ...supplierForm, product_name: e.target.value })} maxLength={120} placeholder="Ex.: milho" required /></div>
+          <div><label className={labelClass}>Produto agrícola *</label><select className={fieldClass} value={supplierForm.product_name} onChange={(e) => setSupplierForm({ ...supplierForm, product_name: e.target.value })} required><option value="">Seleccionar produto</option>{SOURCING_AGRICULTURAL_PRODUCTS.map((product) => <option key={product.value} value={product.value}>{product.label}</option>)}</select></div>
           <div><label className={labelClass}>Província</label><select className={fieldClass} value={supplierForm.province_id} onChange={(e) => setSupplierForm({ ...supplierForm, province_id: e.target.value, municipality_id: "" })}><option value="">Seleccionar província</option>{angolaProvinces.map((province) => <option key={province.id} value={province.id}>{province.name}</option>)}</select></div>
           <div><label className={labelClass}>Município</label><select className={fieldClass} value={supplierForm.municipality_id} onChange={(e) => setSupplierForm({ ...supplierForm, municipality_id: e.target.value })} disabled={!selectedProvince}><option value="">Seleccionar município</option>{selectedProvince?.municipalities.map((municipality) => <option key={municipality.id} value={municipality.id}>{municipality.name}</option>)}</select></div>
           <div><label className={labelClass}>Localidade / mercado</label><input className={fieldClass} value={supplierForm.locality} onChange={(e) => setSupplierForm({ ...supplierForm, locality: e.target.value })} maxLength={180} /></div>
