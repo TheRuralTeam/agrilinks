@@ -30,3 +30,17 @@ export async function addOfficialAgriLinkLogo(
 
   doc.addImage(dataUrl, 'PNG', x, y, width, height);
 }
+
+/** Download a generated PDF through a Blob URL for consistent browser behaviour. */
+export function downloadPdf(doc: jsPDF, filename: string): void {
+  const blob = doc.output('blob');
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.style.display = 'none';
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
