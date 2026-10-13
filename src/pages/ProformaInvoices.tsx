@@ -27,7 +27,8 @@ const today = () => new Date().toISOString().slice(0, 10);
 const makeKey = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 const ProformaInvoices = () => {
-  const { user, userProfile } = useAuth();
+  const { user, isAdmin, isRootAdmin, isSuperRoot, loading: authLoading } = useAuth();
+  const canManageProformas = isAdmin || isRootAdmin || isSuperRoot;
   const [searchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -48,17 +49,31 @@ const ProformaInvoices = () => {
   const [notes, setNotes] = useState("");
 
   const loadData = useCallback(async () => {
-    if (!user) return;
+    if (!user || !canManageProformas) return;
     setLoading(true);
     try {
-      const [productResult, invoiceResult] = await Promise.all([
-        supabase.from("products").select("id, product_type, quantity, sale_unit, price, status").eq("user_id", user.id).order("created_at", { ascending: false }),
-        (supabase as any).from("proforma_invoices").select("*").eq("issuer_id", user.id).order("created_at", { ascending: false }).limit(50),
-      ]);
+      // A equipa administrativa pode emitir propostas com qualquer produto activo do catálogo.
+      const productResult = await supabase
+        .from("products")
+        .select("id, product_type, quantity, sale_unit, price, status, created_at")
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
       if (productResult.error) throw productResult.error;
-      if (invoiceResult.error) throw invoiceResult.error;
       setProducts((productResult.data ?? []) as Product[]);
-      setInvoices((invoiceResult.data ?? []) as Invoice[]);
+
+      // Uma falha no histórico não deve impedir o catálogo de aparecer.
+      const invoiceResult = await (supabase as any)
+        .from("proforma_invoices")
+        .select("*")
+        .eq("issuer_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (invoiceResult.error) {
+        console.error("Erro ao carregar histórico de proformas:", invoiceResult.error);
+        toast({ title: "Produtos carregados; histórico indisponível", description: "Não foi possível carregar as facturas anteriores.", variant: "destructive" });
+      } else {
+        setInvoices((invoiceResult.data ?? []) as Invoice[]);
+      }
       const initialProductId = searchParams.get("product");
       if (initialProductId && productResult.data?.some((p) => p.id === initialProductId)) {
         const p = productResult.data.find((item) => item.id === initialProductId)!;
@@ -70,7 +85,7 @@ const ProformaInvoices = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, searchParams]);
+  }, [user, canManageProformas, searchParams]);
 
   useEffect(() => { void loadData(); }, [loadData]);
 
@@ -146,7 +161,10 @@ const ProformaInvoices = () => {
   };
 
   const saveInvoice = async () => {
-    if (!user) return;
+    if (!user || !canManageProformas) {
+      toast({ title: "Acesso reservado", description: "Só os administradores podem emitir facturas proforma.", variant: "destructive" });
+      return;
+    }
     if (!customerName.trim()) { toast({ title: "Indique o cliente", description: "O nome do cliente é obrigatório.", variant: "destructive" }); return; }
     if (validLines.length === 0 || validLines.length !== lines.length) { toast({ title: "Revise os produtos", description: "Seleccione produtos válidos e indique quantidades e preços não negativos.", variant: "destructive" }); return; }
     if (!Number.isFinite(freightAmount) || freightAmount < 0) { toast({ title: "Frete inválido", description: "O frete deve ser zero ou um valor positivo.", variant: "destructive" }); return; }
@@ -180,6 +198,10 @@ const ProformaInvoices = () => {
     } finally { setSaving(false); }
   };
 
+  if (authLoading) return <div className="mx-auto flex min-h-64 max-w-5xl items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /> A verificar permissões…</div>;
+
+  if (!canManageProformas) return <main className="mx-auto max-w-2xl px-4 py-12"><Card><CardHeader><CardTitle>Acesso reservado a administradores</CardTitle></CardHeader><CardContent className="space-y-3 text-sm text-muted-foreground"><p>A emissão de facturas proforma é uma função administrativa da AgriLink.</p><Button variant="outline" onClick={() => window.history.back()}><ArrowLeft className="mr-2 h-4 w-4" /> Voltar</Button></CardContent></Card></main>;
+
   if (loading) return <div className="mx-auto flex min-h-64 max-w-5xl items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /> A carregar facturas e produtos…</div>;
 
   return <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 md:px-6">
@@ -211,11 +233,11 @@ const ProformaInvoices = () => {
         <Card>
           <CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><CardTitle className="text-base">2. Produtos e quantidades</CardTitle><Button type="button" variant="outline" size="sm" onClick={addLine}><Plus className="mr-1 h-4 w-4" /> Adicionar produto</Button></div></CardHeader>
           <CardContent className="space-y-4">
-            {products.length === 0 && <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Não encontrámos produtos associados à sua conta. Registe ou publique produtos para os poder incluir numa proforma.</div>}
+            {products.length === 0 && <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Não existem produtos activos visíveis no catálogo. Verifique o estado das publicações e as permissões de leitura.</div>}
             {lines.map((line, index) => <div key={line.key} className="rounded-xl border p-4">
               <div className="mb-3 flex items-center justify-between"><span className="text-sm font-medium">Produto {index + 1}</span><Button type="button" variant="ghost" size="icon" aria-label="Remover produto" onClick={() => setLines((current) => current.filter((item) => item.key !== line.key))}><Trash2 className="h-4 w-4 text-destructive" /></Button></div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-2 sm:col-span-2"><Label>Produto registado</Label><Select value={line.product_id} onValueChange={(value) => changeProduct(line.key, value)}><SelectTrigger><SelectValue placeholder="Seleccione um dos seus produtos" /></SelectTrigger><SelectContent>{products.map((p) => <SelectItem key={p.id} value={p.id}>{p.product_type} · {money(Number(p.price) || 0)}/{p.sale_unit || "kg"} · stock {Number(p.quantity).toLocaleString("pt-AO")}</SelectItem>)}</SelectContent></Select>{line.product_id && <p className="text-xs text-muted-foreground">Preço inicial carregado da publicação. Confirme o preço comercial desta proposta.</p>}</div>
+                <div className="space-y-2 sm:col-span-2"><Label>Produto registado</Label><Select value={line.product_id} onValueChange={(value) => changeProduct(line.key, value)}><SelectTrigger><SelectValue placeholder="Seleccione um produto activo da plataforma" /></SelectTrigger><SelectContent>{products.map((p) => <SelectItem key={p.id} value={p.id}>{p.product_type} · {money(Number(p.price) || 0)}/{p.sale_unit || "kg"} · stock {Number(p.quantity).toLocaleString("pt-AO")}</SelectItem>)}</SelectContent></Select>{line.product_id && <p className="text-xs text-muted-foreground">Preço inicial carregado da publicação. Confirme o preço comercial desta proposta.</p>}</div>
                 <div className="space-y-2"><Label>Quantidade</Label><Input type="number" min="0.001" step="any" value={line.quantity} onChange={(e) => changeLine(line.key, "quantity", e.target.value)} /></div>
                 <div className="space-y-2"><Label>Unidade</Label><Select value={line.unit} onValueChange={(value) => changeLine(line.key, "unit", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["kg", "tonelada", "saco", "caixa", "unidade", "litro"].map((unit) => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}</SelectContent></Select></div>
                 <div className="space-y-2"><Label>Preço unitário (Kz)</Label><Input type="number" min="0" step="any" value={line.unit_price} onChange={(e) => changeLine(line.key, "unit_price", e.target.value)} /></div>
