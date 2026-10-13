@@ -1402,8 +1402,9 @@ const Profile = () => {
                 setConfirmBusy(true)
                 try {
                   if (confirmAction.kind === 'delete-product') {
-                    const { error } = await supabase.from('products').update({ status: 'removed' }).eq('id', confirmAction.id).eq('user_id', user.id)
+                    const { data: removedProduct, error } = await supabase.from('products').update({ status: 'removed' }).eq('id', confirmAction.id).eq('user_id', user.id).select('id').single()
                     if (error) throw error
+                    if (!removedProduct) throw new Error('O produto não foi encontrado ou já não tens permissão para o remover.')
                     setUserProducts(prev => prev.filter(p => p.id !== confirmAction.id))
                     toast({ title: 'Produto removido', description: 'O produto foi retirado do seu catálogo.' })
                   } else {
