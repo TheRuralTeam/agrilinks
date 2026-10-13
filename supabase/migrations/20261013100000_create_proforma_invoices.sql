@@ -62,7 +62,7 @@ CREATE OR REPLACE FUNCTION public.validate_proforma_invoice_totals()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SET search_path = pg_catalog, public
-AS $
+AS $proforma$
 DECLARE
   v_items_subtotal NUMERIC(18,2);
 BEGIN
@@ -87,7 +87,7 @@ EXCEPTION
   WHEN invalid_text_representation OR numeric_value_out_of_range THEN
     RAISE EXCEPTION 'Quantidade ou preço inválido nas linhas da proforma' USING ERRCODE = '22023';
 END;
-$;
+$proforma$;
 
 DROP TRIGGER IF EXISTS validate_proforma_invoice_totals ON public.proforma_invoices;
 CREATE TRIGGER validate_proforma_invoice_totals
