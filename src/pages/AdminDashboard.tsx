@@ -1437,7 +1437,7 @@ const AdminDashboard = () => {
                   <div><span className="text-xs text-gray-500">Pagamento</span><p className="font-medium">{selectedOrder.payment_status || "—"}</p></div>
                   <div className="sm:col-span-2"><span className="text-xs text-gray-500">Local de entrega</span><p className="font-medium break-words">{selectedOrder.location || "—"}</p></div>
                   <div><span className="text-xs text-gray-500">Coordenadas de entrega</span><p className="font-medium">{selectedOrder.destination_lat != null && selectedOrder.destination_lng != null ? selectedOrder.destination_lat + ", " + selectedOrder.destination_lng : "—"}</p></div>
-                  <div><span className="text-xs text-gray-500">Stock reservado</span><p className="font-medium">{selectedOrder.stock_reserved ? "Sim" : "Não"}</p></div>
+                  <div><span className="text-xs text-gray-500">Stock reservado</span><p className="font-medium">{selectedOrder.stock_reserved || ["accepted", "completed"].includes(selectedOrder.status) ? "Sim - Reserva Feita" : "Não"}</p></div>
                   <div><span className="text-xs text-gray-500">Criado em</span><p className="font-medium">{selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleString("pt-AO") : "—"}</p></div>
                   <div><span className="text-xs text-gray-500">Atualizado em</span><p className="font-medium">{selectedOrder.updated_at ? new Date(selectedOrder.updated_at).toLocaleString("pt-AO") : "—"}</p></div>
                   <div className="sm:col-span-2"><span className="text-xs text-gray-500">ID do cliente</span><p className="font-medium break-all">{selectedOrder.user_id}</p></div>
