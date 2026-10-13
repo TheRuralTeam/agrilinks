@@ -51,14 +51,28 @@ const ProformaInvoices = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [productResult, invoiceResult] = await Promise.all([
-        supabase.from("products").select("id, product_type, quantity, sale_unit, price, status").eq("user_id", user.id).order("created_at", { ascending: false }),
-        (supabase as any).from("proforma_invoices").select("*").eq("issuer_id", user.id).order("created_at", { ascending: false }).limit(50),
-      ]);
+      // A proforma pode ser emitida a partir do dashboard para produtos de diferentes fornecedores.
+      // Não filtrar por user_id: a visibilidade continua sujeita às políticas RLS de products.
+      const productResult = await supabase
+        .from("products")
+        .select("id, product_type, quantity, sale_unit, price, status, created_at")
+        .order("created_at", { ascending: false });
       if (productResult.error) throw productResult.error;
-      if (invoiceResult.error) throw invoiceResult.error;
       setProducts((productResult.data ?? []) as Product[]);
-      setInvoices((invoiceResult.data ?? []) as Invoice[]);
+
+      // O histórico é independente do catálogo: uma falha no histórico não deve ocultar os produtos.
+      const invoiceResult = await (supabase as any)
+        .from("proforma_invoices")
+        .select("*")
+        .eq("issuer_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (invoiceResult.error) {
+        console.error("Erro ao carregar histórico de proformas:", invoiceResult.error);
+        toast({ title: "Produtos carregados; histórico indisponível", description: "Não foi possível carregar as facturas anteriores.", variant: "destructive" });
+      } else {
+        setInvoices((invoiceResult.data ?? []) as Invoice[]);
+      }
       const initialProductId = searchParams.get("product");
       if (initialProductId && productResult.data?.some((p) => p.id === initialProductId)) {
         const p = productResult.data.find((item) => item.id === initialProductId)!;
