@@ -41,6 +41,7 @@ DECLARE
   v_product public.products%ROWTYPE;
   v_previous_status text;
   v_total numeric;
+  v_available numeric;
 BEGIN
   IF v_actor_id IS NULL THEN
     RAISE EXCEPTION 'Authentication required' USING ERRCODE='42501';
@@ -65,8 +66,19 @@ BEGIN
   END IF;
 
   IF p_status='accepted' THEN
-    IF NOT v_order.stock_reserved THEN
-      RAISE EXCEPTION 'PRE_ORDER_RESERVATION_MISSING: A reserva desta pré-compra já não está activa' USING ERRCODE='22023';
+    IF v_order.stock_reserved THEN
+      IF coalesce(v_product.reserved_quantity, 0) < v_order.quantity THEN
+        RAISE EXCEPTION 'PRE_ORDER_RESERVATION_INCONSISTENT' USING ERRCODE='22023';
+      END IF;
+    ELSE
+      v_available := coalesce(v_product.quantity, 0) - coalesce(v_product.reserved_quantity, 0);
+      IF v_available < v_order.quantity THEN
+        RAISE EXCEPTION 'INSUFFICIENT_STOCK: stock disponível insuficiente para aceitar a pré-compra' USING ERRCODE='22023';
+      END IF;
+      UPDATE public.products
+      SET reserved_quantity = coalesce(reserved_quantity, 0) + v_order.quantity,
+          updated_at = now()
+      WHERE products.id = v_product.id;
     END IF;
     IF v_product.price IS NULL OR v_product.price < 0 THEN
       RAISE EXCEPTION 'PRODUCT_PRICE_UNAVAILABLE' USING ERRCODE='22023';
@@ -77,6 +89,7 @@ BEGIN
   v_previous_status := v_order.status;
   UPDATE public.pre_orders AS po
   SET status=p_status,
+      stock_reserved=CASE WHEN p_status='accepted' THEN true ELSE po.stock_reserved END,
       unit_price=CASE WHEN p_status='accepted' THEN v_product.price ELSE po.unit_price END,
       total_price=CASE WHEN p_status='accepted' THEN v_total ELSE po.total_price END,
       updated_at=now()
@@ -104,6 +117,7 @@ DECLARE
   v_order public.pre_orders%ROWTYPE;
   v_product public.products%ROWTYPE;
   v_total numeric;
+  v_available numeric;
 BEGIN
   IF v_actor_id IS NULL OR NOT (
     public.has_admin_permission(v_actor_id,'manage_orders'::public.admin_permission)
@@ -128,8 +142,19 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'Product not found' USING ERRCODE='P0002'; END IF;
 
   IF p_status='accepted' THEN
-    IF NOT v_order.stock_reserved THEN
-      RAISE EXCEPTION 'PRE_ORDER_RESERVATION_MISSING' USING ERRCODE='22023';
+    IF v_order.stock_reserved THEN
+      IF coalesce(v_product.reserved_quantity, 0) < v_order.quantity THEN
+        RAISE EXCEPTION 'PRE_ORDER_RESERVATION_INCONSISTENT' USING ERRCODE='22023';
+      END IF;
+    ELSE
+      v_available := coalesce(v_product.quantity, 0) - coalesce(v_product.reserved_quantity, 0);
+      IF v_available < v_order.quantity THEN
+        RAISE EXCEPTION 'INSUFFICIENT_STOCK: stock disponível insuficiente para aceitar a pré-compra' USING ERRCODE='22023';
+      END IF;
+      UPDATE public.products
+      SET reserved_quantity = coalesce(reserved_quantity, 0) + v_order.quantity,
+          updated_at = now()
+      WHERE products.id = v_product.id;
     END IF;
     IF v_product.price IS NULL OR v_product.price < 0 THEN
       RAISE EXCEPTION 'PRODUCT_PRICE_UNAVAILABLE' USING ERRCODE='22023';
@@ -139,6 +164,7 @@ BEGIN
 
   UPDATE public.pre_orders AS po
   SET status=p_status,
+      stock_reserved=CASE WHEN p_status='accepted' THEN true ELSE po.stock_reserved END,
       unit_price=CASE WHEN p_status='accepted' THEN v_product.price ELSE po.unit_price END,
       total_price=CASE WHEN p_status='accepted' THEN v_total ELSE po.total_price END,
       updated_at=now()
