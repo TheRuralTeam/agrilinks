@@ -301,6 +301,7 @@ const AdminDashboard = () => {
   const location = useLocation();
   const [orders, setOrders] = useState<Order[]>([]);
   const [updatingOrders, setUpdatingOrders] = useState<Set<string>>(() => new Set());
+  const [adminFreightPrice, setAdminFreightPrice] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedFicha, setSelectedFicha] = useState<Ficha | null>(null);
   const [changingUserType, setChangingUserType] = useState<Set<string>>(() => new Set());
@@ -770,6 +771,37 @@ const AdminDashboard = () => {
       });
     }
   }, [hasPermission, isSupportAgent]);
+
+  const acceptPreOrderWithFreight = useCallback(async (order: Order) => {
+    if (!hasPermission("manage_orders") && !isSupportAgent) {
+      toast.error("Não tem permissão para gerir pré-compras.");
+      return;
+    }
+    const freight = Number(adminFreightPrice);
+    if (!adminFreightPrice.trim() || !Number.isFinite(freight) || freight < 0 || freight > 1000000000000) {
+      toast.error("Introduza um preço de frete válido em Kz.");
+      return;
+    }
+    setUpdatingOrders((previous) => new Set(previous).add(order.id));
+    try {
+      const { data, error } = await supabase.rpc("admin_accept_pre_order_with_freight" as never, {
+        p_order_id: order.id,
+        p_freight_price: freight,
+      } as never);
+      if (error) throw error;
+      const result = (Array.isArray(data) ? data[0] : data) as { id?: string; status?: string } | null;
+      if (!result?.id) throw new Error("O servidor não confirmou a aceitação da pré-compra.");
+      setOrders((previous) => previous.map((item) => item.id === order.id ? { ...item, status: result.status || "accepted" } : item));
+      setSelectedOrder((previous) => previous?.id === order.id ? { ...previous, status: result.status || "accepted" } : previous);
+      setAdminFreightPrice("");
+      toast.success("Pré-compra aceite e preço do frete registado.");
+    } catch (error) {
+      console.error("Erro ao aceitar pré-compra com frete:", error);
+      toast.error(error instanceof Error ? error.message : "Não foi possível aceitar a pré-compra e definir o frete.");
+    } finally {
+      setUpdatingOrders((previous) => { const next = new Set(previous); next.delete(order.id); return next; });
+    }
+  }, [adminFreightPrice, hasPermission, isSupportAgent]);
 
   const updateSourcingStatus = useCallback(async (id: string, newStatus: string, adminNotes?: string) => {
     if (!hasPermission("manage_sourcing")) {
@@ -1320,7 +1352,7 @@ const AdminDashboard = () => {
                                   className="h-8 w-8 p-0 text-green-600"
                                   aria-label="Aceitar pedido"
                                   title="Aceitar pedido"
-                                  onClick={(e) => { e.stopPropagation(); updateOrderStatus(order.id, "accepted"); }}
+                                  onClick={(e) => { e.stopPropagation(); setAdminFreightPrice(""); setSelectedOrder(order); }}
                                   disabled={updatingOrders.has(order.id) || isAdminPreOrderStatusFinal(order.status) || order.status === "accepted"}
                                 >
                                   <Check className="h-4 w-4" />
@@ -1409,6 +1441,23 @@ const AdminDashboard = () => {
                   <div><span className="text-xs text-gray-500">Atualizado em</span><p className="font-medium">{selectedOrder.updated_at ? new Date(selectedOrder.updated_at).toLocaleString("pt-AO") : "—"}</p></div>
                   <div className="sm:col-span-2"><span className="text-xs text-gray-500">ID do cliente</span><p className="font-medium break-all">{selectedOrder.user_id}</p></div>
                 </div>
+                {(hasPermission("manage_orders") || isSupportAgent) && ["pending", "aguardando"].includes(selectedOrder.status) && (
+                  <div className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
+                    <div>
+                      <p className="font-semibold text-emerald-950">Aceitar pré-compra e definir frete</p>
+                      <p className="text-xs text-muted-foreground">Introduza o preço do transporte. O valor será registado na carga e apresentado no comprovativo actualizado.</p>
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <div className="flex-1 space-y-1">
+                        <label className="text-sm font-medium">Preço do frete (Kz)</label>
+                        <Input type="number" min="0" step="0.01" placeholder="Ex.: 25000" value={adminFreightPrice} onChange={(event) => setAdminFreightPrice(event.target.value)} />
+                      </div>
+                      <Button className="self-end" onClick={() => void acceptPreOrderWithFreight(selectedOrder)} disabled={updatingOrders.has(selectedOrder.id)}>
+                        <Truck className="mr-2 h-4 w-4" /> Aceitar e definir frete
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 <div className="flex flex-col-reverse gap-2 border-t border-[#E5EDE6] pt-4 sm:flex-row sm:justify-end">
                   <Button variant="outline" onClick={() => { if (selectedOrder) void downloadMarketplaceTransactionReceipt(selectedOrder.id) }}>
                     <FileText className="mr-2 h-4 w-4" /> Comprovante PDF
