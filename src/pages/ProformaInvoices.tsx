@@ -21,7 +21,8 @@ type Invoice = {
   delivery_location: string | null; sourcing_reference: string | null; payment_terms: string | null; notes: string | null;
   freight_amount: number; products_subtotal: number; grand_total: number; items: Line[]; created_at: string;
 };
-const money = (value: number) => new Intl.NumberFormat("pt-AO", { style: "currency", currency: "AOA", maximumFractionDigits: 2 }).format(value);
+const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+const money = (value: number) => new Intl.NumberFormat("pt-AO", { style: "currency", currency: "AOA", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(roundMoney(value));
 const today = () => new Date().toISOString().slice(0, 10);
 const makeKey = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -85,9 +86,9 @@ const ProformaInvoices = () => {
     setLines((current) => current.map((line) => line.key === key ? { ...line, [field]: value } : line));
   const validLines = useMemo(() => lines.map((line) => ({ ...line, qty: Number(line.quantity), price: Number(line.unit_price) }))
     .filter((line) => line.product_id && Number.isFinite(line.qty) && line.qty > 0 && Number.isFinite(line.price) && line.price >= 0), [lines]);
-  const subtotal = validLines.reduce((sum, line) => sum + line.qty * line.price, 0);
+  const subtotal = roundMoney(validLines.reduce((sum, line) => sum + roundMoney(line.qty * line.price), 0));
   const freightAmount = Number(freight);
-  const total = subtotal + (Number.isFinite(freightAmount) && freightAmount >= 0 ? freightAmount : 0);
+  const total = roundMoney(subtotal + (Number.isFinite(freightAmount) && freightAmount >= 0 ? freightAmount : 0));
 
   const createPdf = (invoice: Invoice) => {
     const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -218,7 +219,7 @@ const ProformaInvoices = () => {
                 <div className="space-y-2"><Label>Quantidade</Label><Input type="number" min="0.001" step="any" value={line.quantity} onChange={(e) => changeLine(line.key, "quantity", e.target.value)} /></div>
                 <div className="space-y-2"><Label>Unidade</Label><Select value={line.unit} onValueChange={(value) => changeLine(line.key, "unit", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["kg", "tonelada", "saco", "caixa", "unidade", "litro"].map((unit) => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}</SelectContent></Select></div>
                 <div className="space-y-2"><Label>Preço unitário (Kz)</Label><Input type="number" min="0" step="any" value={line.unit_price} onChange={(e) => changeLine(line.key, "unit_price", e.target.value)} /></div>
-                <div className="space-y-2"><Label>Subtotal</Label><div className="flex h-10 items-center rounded-md bg-muted px-3 text-sm font-semibold tabular-nums">{money(Math.max(0, Number(line.quantity) || 0) * Math.max(0, Number(line.unit_price) || 0))}</div></div>
+                <div className="space-y-2"><Label>Subtotal</Label><div className="flex h-10 items-center rounded-md bg-muted px-3 text-sm font-semibold tabular-nums">{money(roundMoney(Math.max(0, Number(line.quantity) || 0) * Math.max(0, Number(line.unit_price) || 0)))}</div></div>
               </div>
             </div>)}
             {lines.length === 0 && <div className="py-6 text-center text-sm text-muted-foreground"><PackageCheck className="mx-auto mb-2 h-6 w-6" />Adicione um ou mais produtos para calcular a proposta.</div>}

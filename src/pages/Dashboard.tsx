@@ -280,6 +280,14 @@ const Dashboard = () => {
                           <Button
                             size="sm"
                             variant="outline"
+                            onClick={() => navigate(`/facturas-proforma?product=${encodeURIComponent(product.id)}`)}
+                          >
+                            <Receipt className="mr-1 h-3 w-3" />
+                            Proforma
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
                             onClick={() => handleGenerateTechnicalSheet(product.id)}
                           >
                             <FileText className="mr-1 h-3 w-3" />
