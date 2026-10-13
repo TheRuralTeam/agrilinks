@@ -403,7 +403,7 @@ const Profile = () => {
       if (prodError) throw prodError
       if (!userProductIds || userProductIds.length === 0) { setReceivedOrders([]); return }
       const productIds = userProductIds.map(p => p.id)
-      const { data: orders, error: ordersError } = await supabase.from('pre_orders').select('id, product_id, user_id, quantity, location, status, stock_fully_requested, created_at, updated_at, unit_price, total_price, reservation_expires_at, payment_status').in('product_id', productIds).is('deleted_at', null).order('created_at', { ascending: false })
+      const { data: orders, error: ordersError } = await supabase.from('pre_orders').select('id, product_id, user_id, quantity, location, status, stock_fully_requested, created_at, updated_at, unit_price, total_price, payment_status').in('product_id', productIds).is('deleted_at', null).order('created_at', { ascending: false })
       if (ordersError) throw ordersError
       const ordersWithDetails = await Promise.all((orders || []).map(async (order) => {
         const { data: product } = await supabase.from('products').select('product_type, price').eq('id', order.product_id).single()
@@ -460,7 +460,7 @@ const Profile = () => {
     if (!user?.id) { setBuyerPreOrders([]); return }
     try {
       const { data, error } = await supabase.from('pre_orders')
-        .select('id, product_id, quantity, location, status, created_at, updated_at, unit_price, total_price, payment_status, reservation_expires_at')
+        .select('id, product_id, quantity, location, status, created_at, updated_at, unit_price, total_price, payment_status')
         .eq('user_id', user.id).is('deleted_at', null).order('created_at', { ascending: false })
       if (error) throw error
       const rows = await Promise.all((data || []).map(async (order) => {
@@ -1177,11 +1177,6 @@ const Profile = () => {
                 { key: 'qtd', label: 'Quantidade', align: 'right', render: r => <span style={{ fontWeight: 700, color: T.g600 }}>{r.quantity.toLocaleString('pt-AO')} kg</span> },
                 { key: 'valor', label: 'Total', align: 'right', render: r => `${Number(r.total_price || 0).toLocaleString('pt-AO')} Kz` },
                 { key: 'pagamento', label: 'Pagamento', render: r => <span style={{ fontSize: 12, fontWeight: 600, color: r.payment_status === 'paid' ? T.g600 : T.faint }}>{r.payment_status === 'paid' ? 'Pago' : r.status === 'accepted' ? 'A aguardar pagamento' : 'Não iniciado'}</span> },
-                { key: 'prazo', label: 'Reserva', render: r => {
-                  if (r.status !== 'pending' || !r.reservation_expires_at) return <span style={{ color: T.faint, fontSize: 12 }}>—</span>
-                  const expired = new Date(r.reservation_expires_at).getTime() <= Date.now()
-                  return <span style={{ color: expired ? '#DC2626' : T.faint, fontSize: 12, fontWeight: 600 }}>{expired ? 'Expirada' : `Até ${new Date(r.reservation_expires_at).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}`}</span>
-                } },
                 { key: 'data', label: 'Data', render: r => formatDate(r.created_at) },
               ]}
               rows={buyerPreOrders}
