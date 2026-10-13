@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf'
 import { supabase } from '../../integrations/supabase/client'
-import { addOfficialAgriLinkLogo } from '../../lib/pdfBranding'
+import { addOfficialAgriLinkLogo, downloadPdf } from '../../lib/pdfBranding'
 
 export type P2PActorRole = 'buyer' | 'p2p_beneficiary' | 'seller' | 'admin' | 'system'
 
@@ -197,5 +197,5 @@ export async function downloadP2PTransactionReceipt(orderId: string) {
   doc.setTextColor(90)
   addWrapped(doc, 'Documento informativo da operação. A validação financeira definitiva depende do estado registado no sistema AgriLink.', margin, y, width, 4)
 
-  doc.save(`${receipt.receipt_number}.pdf`)
+  downloadPdf(doc, `${receipt.receipt_number}.pdf`)
 }
