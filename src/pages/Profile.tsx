@@ -320,6 +320,9 @@ const Profile = () => {
   const [walletError, setWalletError] = useState(false)
   const [loading, setLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<UserProduct | null>(null)
+  const [productEditForm, setProductEditForm] = useState({ product_type: '', quantity: '', price: '', harvest_date: '', sale_unit: 'kg', min_order_quantity: '', province_id: '', municipality_id: '', description: '', category: '', product_variety: '', product_condition: '', packaging_type: '' })
+  const [savingProductEdit, setSavingProductEdit] = useState(false)
   const [avatarLoading, setAvatarLoading] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [confirmAction, setConfirmAction] = useState<{
@@ -647,6 +650,67 @@ const Profile = () => {
     finally { setAvatarLoading(false) }
   }
 
+  const openProductEditor = (product: UserProduct) => {
+    if (!user) { requireAuth('editar um produto'); return }
+    setEditingProduct(product)
+    setProductEditForm({
+      product_type: product.product_type || '',
+      quantity: String(product.quantity ?? ''),
+      price: String(product.price ?? ''),
+      harvest_date: product.harvest_date || '',
+      sale_unit: product.sale_unit || 'kg',
+      min_order_quantity: product.min_order_quantity == null ? '' : String(product.min_order_quantity),
+      province_id: product.province_id || '',
+      municipality_id: product.municipality_id || '',
+      description: String((product as any).description || ''),
+      category: String((product as any).category || ''),
+      product_variety: String((product as any).product_variety || ''),
+      product_condition: String((product as any).product_condition || ''),
+      packaging_type: String((product as any).packaging_type || ''),
+    })
+  }
+
+  const saveProductEdit = async () => {
+    if (!user || !editingProduct) return
+    const quantity = Number(productEditForm.quantity)
+    const price = Number(productEditForm.price)
+    const minOrder = productEditForm.min_order_quantity.trim() ? Number(productEditForm.min_order_quantity) : null
+    if (!productEditForm.product_type.trim() || !Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(price) || price < 0 || (minOrder !== null && (!Number.isFinite(minOrder) || minOrder <= 0))) {
+      toast({ title: 'Verifica os dados do produto', description: 'Indica o produto, uma quantidade positiva, um preço válido e uma quantidade mínima válida.', variant: 'destructive' })
+      return
+    }
+    setSavingProductEdit(true)
+    try {
+      const updates = {
+        product_type: productEditForm.product_type.trim(),
+        quantity,
+        price,
+        harvest_date: productEditForm.harvest_date || null,
+        sale_unit: productEditForm.sale_unit || 'kg',
+        min_order_quantity: minOrder,
+        province_id: productEditForm.province_id || null,
+        municipality_id: productEditForm.municipality_id || null,
+        description: productEditForm.description.trim() || null,
+        category: productEditForm.category.trim() || null,
+        product_variety: productEditForm.product_variety.trim() || null,
+        product_condition: productEditForm.product_condition.trim() || null,
+        packaging_type: productEditForm.packaging_type.trim() || null,
+        updated_at: new Date().toISOString(),
+      }
+      const { data, error } = await supabase.from('products').update(updates).eq('id', editingProduct.id).eq('user_id', user.id).select('*').single()
+      if (error) throw error
+      setUserProducts(prev => prev.map(product => product.id === editingProduct.id ? { ...product, ...data } as UserProduct : product))
+      toast({ title: 'Produto actualizado', description: 'As alterações foram guardadas com sucesso.' })
+      setEditingProduct(null)
+      await fetchUserProducts()
+    } catch (error: any) {
+      console.error('[AgriLink] Erro ao editar produto:', error)
+      toast({ title: 'Não foi possível guardar o produto', description: error?.message || 'Confirma os dados e tenta novamente.', variant: 'destructive' } as any)
+    } finally {
+      setSavingProductEdit(false)
+    }
+  }
+
   const deleteProduct = async (productId: string) => {
     if (!user) {
       requireAuth('remover um produto')
@@ -964,7 +1028,7 @@ const Profile = () => {
                 accent={r => r.status === 'active' ? T.g500 ?? T.g600 : r.status === 'inactive' ? T.goldL : '#EF4444'}
                 actions={r => (
                   <>
-                    <IconBtn icon={<Edit size={13} strokeWidth={1.75}/>} title={t('profile.editProduct')} />
+                    <IconBtn icon={<Edit size={13} strokeWidth={1.75}/>} title={t('profile.editProduct')} onClick={() => openProductEditor(r)} />
                     <IconBtn icon={<Share2 size={13} strokeWidth={1.75}/>} title={t('profile.promoteShare')} />
                     {r.status !== 'removed' && <IconBtn icon={<Trash2 size={13} strokeWidth={1.75}/>} danger onClick={() => deleteProduct(r.id)} title={t('profile.removeProduct')} />}
                   </>
@@ -1244,6 +1308,52 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      <Dialog open={!!editingProduct} onOpenChange={(open) => { if (!open && !savingProductEdit) setEditingProduct(null) }}>
+        <DialogContent style={{ maxWidth: 680, maxHeight: '90vh', overflowY: 'auto', borderRadius: 22, border: \`1px solid \${T.rule}\` }}>
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: FONT, fontSize: 19, fontWeight: 750, color: T.ink }}>Editar produto agrícola</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={(event) => { event.preventDefault(); void saveProductEdit() }} style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '8px 0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+              <Input label="Produto *" value={productEditForm.product_type} onChange={(e: any) => setProductEditForm(p => ({ ...p, product_type: e.target.value }))} required />
+              <Input label="Variedade" value={productEditForm.product_variety} onChange={(e: any) => setProductEditForm(p => ({ ...p, product_variety: e.target.value }))} />
+              <Input label="Quantidade disponível *" type="number" value={productEditForm.quantity} onChange={(e: any) => setProductEditForm(p => ({ ...p, quantity: e.target.value }))} required />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: T.ink }}>Unidade de venda *</label>
+                <select value={productEditForm.sale_unit} onChange={e => setProductEditForm(p => ({ ...p, sale_unit: e.target.value }))} style={{ height: 44, borderRadius: 12, border: \`1px solid \${T.rule}\`, padding: '0 12px', background: T.canvas, color: T.ink, font: 'inherit' }}>
+                  <option value="kg">Quilograma (kg)</option><option value="ton">Tonelada (t)</option><option value="unidade">Unidade</option><option value="caixa">Caixa</option><option value="saco">Saco</option><option value="litro">Litro</option>
+                </select>
+              </div>
+              <Input label="Preço por unidade (Kz) *" type="number" value={productEditForm.price} onChange={(e: any) => setProductEditForm(p => ({ ...p, price: e.target.value }))} required />
+              <Input label="Quantidade mínima de encomenda" type="number" value={productEditForm.min_order_quantity} onChange={(e: any) => setProductEditForm(p => ({ ...p, min_order_quantity: e.target.value }))} />
+              <Input label="Data de colheita" type="date" value={productEditForm.harvest_date} onChange={(e: any) => setProductEditForm(p => ({ ...p, harvest_date: e.target.value }))} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: T.ink }}>Província</label>
+                <select value={productEditForm.province_id} onChange={e => setProductEditForm(p => ({ ...p, province_id: e.target.value, municipality_id: '' }))} style={{ height: 44, borderRadius: 12, border: \`1px solid \${T.rule}\`, padding: '0 12px', background: T.canvas, color: T.ink, font: 'inherit' }}>
+                  <option value="">Seleccionar província</option>
+                  {angolaProvinces.map(province => <option key={province.id} value={province.id}>{province.name}</option>)}
+                </select>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: T.ink }}>Município</label>
+                <select value={productEditForm.municipality_id} onChange={e => setProductEditForm(p => ({ ...p, municipality_id: e.target.value }))} disabled={!productEditForm.province_id} style={{ height: 44, borderRadius: 12, border: \`1px solid \${T.rule}\`, padding: '0 12px', background: T.canvas, color: T.ink, font: 'inherit', opacity: productEditForm.province_id ? 1 : .55 }}>
+                  <option value="">Seleccionar município</option>
+                  {angolaProvinces.find(province => province.id === productEditForm.province_id)?.municipalities.map(municipality => <option key={municipality.id} value={municipality.id}>{municipality.name}</option>)}
+                </select>
+              </div>
+              <Input label="Categoria agrícola" value={productEditForm.category} onChange={(e: any) => setProductEditForm(p => ({ ...p, category: e.target.value }))} />
+              <Input label="Condição do produto" value={productEditForm.product_condition} onChange={(e: any) => setProductEditForm(p => ({ ...p, product_condition: e.target.value }))} />
+              <Input label="Tipo de embalagem" value={productEditForm.packaging_type} onChange={(e: any) => setProductEditForm(p => ({ ...p, packaging_type: e.target.value }))} />
+            </div>
+            <Textarea label="Descrição" value={productEditForm.description} onChange={(e: any) => setProductEditForm(p => ({ ...p, description: e.target.value.slice(0, 3000) }))} placeholder="Descreve a qualidade, apresentação e outros detalhes relevantes." rows={4} />
+            <DialogFooter style={{ gap: 8 }}>
+              <Btn variant="outline" onClick={() => setEditingProduct(null)} disabled={savingProductEdit}>Cancelar</Btn>
+              <Btn variant="primary" onClick={() => void saveProductEdit()} disabled={savingProductEdit}>{savingProductEdit ? 'A guardar…' : 'Guardar alterações'}</Btn>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!confirmAction} onOpenChange={(open) => { if (!open && !confirmBusy) setConfirmAction(null) }}>
         <DialogContent style={{ maxWidth: 430, borderRadius: 22, border: `1px solid ${T.rule}` }}>
