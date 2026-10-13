@@ -17,6 +17,7 @@ const Index = lazy(() => import("./pages/Index"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const Registration = lazy(() => import("./pages/Registration"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const ProformaInvoices = lazy(() => import("./pages/ProformaInvoices"));
 const TechnicalSheet = lazy(() => import("./pages/TechnicalSheet"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -287,6 +288,16 @@ const AppRoutes = () => {
             <OpenRoute>
               <PublishProduct />
             </OpenRoute>
+          }
+        />
+        <Route
+          path="/facturas-proforma"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <ProformaInvoices />
+              </AppLayout>
+            </ProtectedRoute>
           }
         />
         <Route
