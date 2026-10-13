@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf'
 import { supabase } from '../../integrations/supabase/client'
-import { addOfficialAgriLinkLogo } from '../../lib/pdfBranding'
+import { addOfficialAgriLinkLogo, downloadPdf } from '../../lib/pdfBranding'
 
 export interface MarketplaceTransactionHistoryEvent {
   event_id: string
@@ -174,5 +174,5 @@ export async function downloadMarketplaceTransactionReceipt(preOrderId: string) 
   y = addWrapped(doc, `Hash de validação: ${receipt.validation_hash}`, margin, y, width, 4.5)
   doc.setFontSize(8); doc.setTextColor(90)
   addWrapped(doc, 'O comprovante não substitui um documento bancário ou fiscal emitido pelo respetivo prestador. O estado apresentado é o estado registado pela AgriLink.', margin, y + 5, width, 4)
-  doc.save(`${receipt.receipt_number}.pdf`)
+  downloadPdf(doc, `${receipt.receipt_number}.pdf`)
 }
