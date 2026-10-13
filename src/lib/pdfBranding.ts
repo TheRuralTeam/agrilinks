@@ -28,7 +28,19 @@ export async function addOfficialAgriLinkLogo(
     reader.readAsDataURL(blob);
   });
 
-  doc.addImage(dataUrl, 'PNG', x, y, width, height);
+  // Fit the official asset into the target box without changing its proportions.
+  const image = doc.getImageProperties(dataUrl);
+  const scale = Math.min(width / image.width, height / image.height);
+  const renderedWidth = image.width * scale;
+  const renderedHeight = image.height * scale;
+  doc.addImage(
+    dataUrl,
+    'PNG',
+    x + (width - renderedWidth) / 2,
+    y + (height - renderedHeight) / 2,
+    renderedWidth,
+    renderedHeight,
+  );
 }
 
 /** Download a generated PDF through a Blob URL for consistent browser behaviour. */
