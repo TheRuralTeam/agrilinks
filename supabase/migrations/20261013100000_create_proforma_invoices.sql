@@ -58,6 +58,45 @@ CREATE POLICY "Issuer can delete own proforma invoices"
   ON public.proforma_invoices FOR DELETE TO authenticated
   USING (issuer_id = (SELECT auth.uid()));
 
+CREATE OR REPLACE FUNCTION public.validate_proforma_invoice_totals()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = pg_catalog, public
+AS $
+DECLARE
+  v_items_subtotal NUMERIC(18,2);
+BEGIN
+  IF jsonb_typeof(NEW.items) IS DISTINCT FROM 'array' OR jsonb_array_length(NEW.items) = 0 THEN
+    RAISE EXCEPTION 'A proforma deve conter pelo menos um produto' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT COALESCE(SUM(ROUND((item->>'quantity')::NUMERIC * (item->>'unit_price')::NUMERIC, 2)), 0)
+    INTO v_items_subtotal
+  FROM jsonb_array_elements(NEW.items) AS item;
+
+  IF v_items_subtotal <> NEW.products_subtotal THEN
+    RAISE EXCEPTION 'O subtotal não corresponde às linhas da proforma' USING ERRCODE = '22023';
+  END IF;
+
+  IF NEW.grand_total <> NEW.products_subtotal + NEW.freight_amount THEN
+    RAISE EXCEPTION 'O total da proforma não corresponde ao subtotal mais frete' USING ERRCODE = '22023';
+  END IF;
+
+  RETURN NEW;
+EXCEPTION
+  WHEN invalid_text_representation OR numeric_value_out_of_range THEN
+    RAISE EXCEPTION 'Quantidade ou preço inválido nas linhas da proforma' USING ERRCODE = '22023';
+END;
+$;
+
+DROP TRIGGER IF EXISTS validate_proforma_invoice_totals ON public.proforma_invoices;
+CREATE TRIGGER validate_proforma_invoice_totals
+  BEFORE INSERT OR UPDATE OF items, products_subtotal, freight_amount, grand_total
+  ON public.proforma_invoices
+  FOR EACH ROW EXECUTE FUNCTION public.validate_proforma_invoice_totals();
+
+REVOKE ALL ON FUNCTION public.validate_proforma_invoice_totals() FROM PUBLIC, anon, authenticated;
+
 COMMENT ON TABLE public.proforma_invoices IS
   'Propostas comerciais proforma AgriLink. Items e preços são snapshots no momento da emissão; acesso restrito ao emissor por RLS.';
 
