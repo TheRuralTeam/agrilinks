@@ -143,7 +143,7 @@ const TabBtn = ({ active, onClick, icon, label, badge, accent }: { active: boole
   </button>
 )
 
-const Btn = ({ children, onClick, variant = 'primary', disabled = false, size = 'md', style: extraStyle = {} }: any) => {
+const Btn = ({ children, onClick, variant = 'primary', disabled = false, size = 'md', type = 'button', style: extraStyle = {} }: any) => {
   const base: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
     borderRadius: 12, cursor: disabled ? 'not-allowed' : 'pointer',
@@ -161,7 +161,7 @@ const Btn = ({ children, onClick, variant = 'primary', disabled = false, size = 
     ghost:     { background: 'transparent', color: T.muted, border: 'none' },
   }
   return (
-    <button className="ag-btn" style={{ ...base, ...variants[variant] }} onClick={onClick} disabled={disabled}>{children}</button>
+    <button type={type} className="ag-btn" style={{ ...base, ...variants[variant] }} onClick={onClick} disabled={disabled}>{children}</button>
   )
 }
 
@@ -215,7 +215,7 @@ const StatusPill = ({ status }: { status: string }) => {
 }
 
 const IconBtn = ({ icon, title, danger = false, onClick }: { icon: React.ReactNode; title: string; danger?: boolean; onClick?: () => void }) => (
-  <button title={title} onClick={onClick} className="ag-icon-btn" style={{
+  <button type="button" title={title} onClick={(event) => { event.stopPropagation(); onClick?.() }} className="ag-icon-btn" style={{
     width: 30, height: 30, borderRadius: 9, border: 'none',
     background: danger ? '#FEF2F2' : T.g50, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
     color: danger ? '#DC2626' : T.muted, transition: `all 0.2s ${EASE}`,
@@ -725,6 +725,30 @@ const Profile = () => {
     })
   }
 
+  const shareProduct = async (product: UserProduct) => {
+    const unit = product.sale_unit || 'kg'
+    const shareUrl = window.location.origin + '/marketplace'
+    const shareText = [
+      'AgriLink — ' + product.product_type,
+      'Preço: ' + Number(product.price).toLocaleString('pt-AO') + ' Kz/' + unit,
+      'Disponível: ' + Number(product.quantity).toLocaleString('pt-AO') + ' ' + unit,
+      'Consulte o marketplace AgriLink: ' + shareUrl,
+    ].join('\n')
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'AgriLink — ' + product.product_type, text: shareText, url: shareUrl })
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareText)
+        toast({ title: 'Detalhes do produto copiados', description: 'Já podes partilhar a publicação com os teus clientes.' })
+      } else {
+        throw new Error('Este navegador não permite partilhar nem copiar automaticamente.')
+      }
+    } catch (error: any) {
+      if (error?.name === 'AbortError') return
+      console.error('[AgriLink] Erro ao partilhar produto:', error)
+      toast({ title: 'Não foi possível partilhar', description: error?.message || 'Tenta novamente.', variant: 'destructive' } as any)
+    }
+  }
   const acceptOrder = async (orderId: string) => {
     if (!user) {
       requireAuth('aceitar um pedido')
@@ -1029,7 +1053,7 @@ const Profile = () => {
                 actions={r => (
                   <>
                     <IconBtn icon={<Edit size={13} strokeWidth={1.75}/>} title={t('profile.editProduct')} onClick={() => openProductEditor(r)} />
-                    <IconBtn icon={<Share2 size={13} strokeWidth={1.75}/>} title={t('profile.promoteShare')} />
+                    <IconBtn icon={<Share2 size={13} strokeWidth={1.75}/>} title={t('profile.promoteShare')} onClick={() => void shareProduct(r)} />
                     {r.status !== 'removed' && <IconBtn icon={<Trash2 size={13} strokeWidth={1.75}/>} danger onClick={() => deleteProduct(r.id)} title={t('profile.removeProduct')} />}
                   </>
                 )}
@@ -1348,8 +1372,8 @@ const Profile = () => {
             </div>
             <Textarea label="Descrição" value={productEditForm.description} onChange={(e: any) => setProductEditForm(p => ({ ...p, description: e.target.value.slice(0, 3000) }))} placeholder="Descreve a qualidade, apresentação e outros detalhes relevantes." rows={4} />
             <DialogFooter style={{ gap: 8 }}>
-              <Btn variant="outline" onClick={() => setEditingProduct(null)} disabled={savingProductEdit}>Cancelar</Btn>
-              <Btn variant="primary" onClick={() => void saveProductEdit()} disabled={savingProductEdit}>{savingProductEdit ? 'A guardar…' : 'Guardar alterações'}</Btn>
+              <Btn type="button" variant="outline" onClick={() => setEditingProduct(null)} disabled={savingProductEdit}>Cancelar</Btn>
+              <Btn type="submit" variant="primary" disabled={savingProductEdit}>{savingProductEdit ? 'A guardar…' : 'Guardar alterações'}</Btn>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -1380,7 +1404,7 @@ const Profile = () => {
                   if (confirmAction.kind === 'delete-product') {
                     const { error } = await supabase.from('products').update({ status: 'removed' }).eq('id', confirmAction.id).eq('user_id', user.id)
                     if (error) throw error
-                    setUserProducts(prev => prev.map(p => p.id === confirmAction.id ? { ...p, status: 'removed' } : p))
+                    setUserProducts(prev => prev.filter(p => p.id !== confirmAction.id))
                     toast({ title: 'Produto removido', description: 'O produto foi retirado do seu catálogo.' })
                   } else {
                     const updatedOrder = await respondToPreOrder(confirmAction.id, 'rejected')
