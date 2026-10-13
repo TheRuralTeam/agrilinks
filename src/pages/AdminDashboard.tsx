@@ -1460,7 +1460,7 @@ const AdminDashboard = () => {
                   </div>
                 )}
                 <div className="flex flex-col-reverse gap-2 border-t border-[#E5EDE6] pt-4 sm:flex-row sm:justify-end">
-                  <Button variant="outline" onClick={() => { if (selectedOrder) void downloadMarketplaceTransactionReceipt(selectedOrder.id) }}>
+                  <Button variant="outline" onClick={async () => { if (!selectedOrder) return; try { await downloadMarketplaceTransactionReceipt(selectedOrder.id); toast.success("Comprovante PDF descarregado."); } catch (error) { toast.error(error instanceof Error ? error.message : "Não foi possível descarregar o comprovante PDF."); } }}>
                     <FileText className="mr-2 h-4 w-4" /> Comprovante PDF
                   </Button>
                   <Button variant="ghost" onClick={() => setSelectedOrder(null)}>Fechar</Button>
