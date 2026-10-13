@@ -674,7 +674,7 @@ const Profile = () => {
     if (!user || !editingProduct) return
     const quantity = Number(productEditForm.quantity)
     const price = Number(productEditForm.price)
-    const minOrder = productEditForm.min_order_quantity.trim() ? Number(productEditForm.min_order_quantity) : null
+    const minOrder = productEditForm.min_order_quantity.trim() ? Number(productEditForm.min_order_quantity) : (editingProduct.min_order_quantity ?? 1)
     if (!productEditForm.product_type.trim() || !Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(price) || price < 0 || (minOrder !== null && (!Number.isFinite(minOrder) || minOrder <= 0))) {
       toast({ title: 'Verifica os dados do produto', description: 'Indica o produto, uma quantidade positiva, um preço válido e uma quantidade mínima válida.', variant: 'destructive' })
       return
