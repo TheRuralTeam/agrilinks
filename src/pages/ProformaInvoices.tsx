@@ -172,7 +172,7 @@ const ProformaInvoices = () => {
     if (deliveryDate && deliveryDate < issueDate) { toast({ title: "Entrega inválida", description: "A data prevista de entrega não pode anteceder a emissão.", variant: "destructive" }); return; }
     setSaving(true);
     try {
-      const invoiceNumber = `PF-${issueDate.replaceAll("-", "")}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+      const invoiceNumber = `PF-${issueDate.replace(/-/g, "")}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
       const items = validLines.map((line) => ({
         product_id: line.product_id, product_name: line.product_name, unit: line.unit,
         quantity: String(line.qty), unit_price: String(line.price), available_quantity: line.available_quantity,
