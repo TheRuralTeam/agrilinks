@@ -403,7 +403,7 @@ const Profile = () => {
       if (prodError) throw prodError
       if (!userProductIds || userProductIds.length === 0) { setReceivedOrders([]); return }
       const productIds = userProductIds.map(p => p.id)
-      const { data: orders, error: ordersError } = await supabase.from('pre_orders').select('id, product_id, user_id, quantity, location, status, stock_fully_requested, created_at, updated_at, unit_price, total_price, payment_status').in('product_id', productIds).is('deleted_at', null).order('created_at', { ascending: false })
+      const { data: orders, error: ordersError } = await supabase.from('pre_orders').select('id, product_id, user_id, quantity, location, status, stock_fully_requested, created_at, updated_at, unit_price, total_price, reservation_expires_at, payment_status').in('product_id', productIds).is('deleted_at', null).order('created_at', { ascending: false })
       if (ordersError) throw ordersError
       const ordersWithDetails = await Promise.all((orders || []).map(async (order) => {
         const { data: product } = await supabase.from('products').select('product_type, price').eq('id', order.product_id).single()
@@ -460,7 +460,7 @@ const Profile = () => {
     if (!user?.id) { setBuyerPreOrders([]); return }
     try {
       const { data, error } = await supabase.from('pre_orders')
-        .select('id, product_id, quantity, location, status, created_at, updated_at, unit_price, total_price, payment_status')
+        .select('id, product_id, quantity, location, status, created_at, updated_at, unit_price, total_price, reservation_expires_at, payment_status')
         .eq('user_id', user.id).is('deleted_at', null).order('created_at', { ascending: false })
       if (error) throw error
       const rows = await Promise.all((data || []).map(async (order) => {
@@ -685,7 +685,7 @@ const Profile = () => {
         product_type: productEditForm.product_type.trim(),
         quantity,
         price,
-        harvest_date: productEditForm.harvest_date || null,
+        harvest_date: productEditForm.harvest_date || undefined,
         sale_unit: productEditForm.sale_unit || 'kg',
         min_order_quantity: minOrder,
         province_id: productEditForm.province_id || null,
