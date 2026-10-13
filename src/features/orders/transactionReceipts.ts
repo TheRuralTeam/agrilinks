@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf'
 import { supabase } from '../../integrations/supabase/client'
+import { addOfficialAgriLinkLogo } from '../../lib/pdfBranding'
 
 export interface MarketplaceTransactionHistoryEvent {
   event_id: string
@@ -89,6 +90,7 @@ export async function downloadMarketplaceTransactionReceipt(preOrderId: string) 
   const margin = 16
   const width = 210 - margin * 2
   let y = 18
+  await addOfficialAgriLinkLogo(doc, margin, 8, 25, 17)
 
   const section = (title: string) => {
     if (y > 255) { doc.addPage(); y = 18 }
@@ -97,8 +99,8 @@ export async function downloadMarketplaceTransactionReceipt(preOrderId: string) 
     doc.setFont('helvetica', 'normal'); doc.setFontSize(9)
   }
 
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.text('AgriLink', margin, y); y += 7
-  doc.setFontSize(12); doc.text('Comprovante de Operação / Pedido', margin, y); y += 7
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.text('AgriLink', margin + 30, y); y += 7
+  doc.setFontSize(11); doc.text('Comprovante de Operação / Pedido', margin + 30, y); y += 7
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9)
   doc.text(`Nº ${receipt.receipt_number}`, margin, y)
   doc.text(`Gerado em ${dateTime(receipt.generated_at)}`, 126, y); y += 7
