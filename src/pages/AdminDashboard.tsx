@@ -797,7 +797,8 @@ const AdminDashboard = () => {
       toast.success("Pré-compra aceite e preço do frete registado.");
     } catch (error) {
       console.error("Erro ao aceitar pré-compra com frete:", error);
-      toast.error(error instanceof Error ? error.message : "Não foi possível aceitar a pré-compra e definir o frete.");
+      const message = error && typeof error === "object" && "message" in error ? String((error as { message: unknown }).message) : "Não foi possível aceitar a pré-compra e definir o frete.";
+      toast.error(message);
     } finally {
       setUpdatingOrders((previous) => { const next = new Set(previous); next.delete(order.id); return next; });
     }
@@ -1353,7 +1354,7 @@ const AdminDashboard = () => {
                                   aria-label="Aceitar pedido"
                                   title="Aceitar pedido"
                                   onClick={(e) => { e.stopPropagation(); setAdminFreightPrice(""); setSelectedOrder(order); }}
-                                  disabled={updatingOrders.has(order.id) || isAdminPreOrderStatusFinal(order.status) || order.status === "accepted"}
+                                  disabled={updatingOrders.has(order.id) || (isAdminPreOrderStatusFinal(order.status) && order.status !== "expired") || order.status === "accepted"}
                                 >
                                   <Check className="h-4 w-4" />
                                 </Button>
@@ -1441,11 +1442,11 @@ const AdminDashboard = () => {
                   <div><span className="text-xs text-gray-500">Atualizado em</span><p className="font-medium">{selectedOrder.updated_at ? new Date(selectedOrder.updated_at).toLocaleString("pt-AO") : "—"}</p></div>
                   <div className="sm:col-span-2"><span className="text-xs text-gray-500">ID do cliente</span><p className="font-medium break-all">{selectedOrder.user_id}</p></div>
                 </div>
-                {(hasPermission("manage_orders") || isSupportAgent) && ["pending", "aguardando"].includes(selectedOrder.status) && (
+                {(hasPermission("manage_orders") || isSupportAgent) && ["pending", "aguardando", "expired"].includes(selectedOrder.status) && (
                   <div className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
                     <div>
                       <p className="font-semibold text-emerald-950">Aceitar pré-compra e definir frete</p>
-                      <p className="text-xs text-muted-foreground">Introduza o preço do transporte. O valor será registado na carga e apresentado no comprovativo actualizado.</p>
+                      <p className="text-xs text-muted-foreground">{selectedOrder.status === "expired" ? "Esta pré-compra expirou. Ao confirmar, o sistema voltará a validar o stock disponível antes de aceitar." : "Introduza o preço do transporte. O valor será registado na carga e apresentado no comprovativo actualizado."}</p>
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row">
                       <div className="flex-1 space-y-1">
