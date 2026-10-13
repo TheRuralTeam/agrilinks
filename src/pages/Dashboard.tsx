@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 import { Separator } from '../components/ui/separator'
-import { ArrowLeft, Users, Package, MapPin, Download, FileText, BarChart3, TrendingUp } from 'lucide-react'
+import { ArrowLeft, Users, Package, MapPin, Download, FileText, BarChart3, TrendingUp, Receipt } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../integrations/supabase/client'
 import Loader from '../components/ui/Loader'
@@ -167,6 +167,10 @@ const Dashboard = () => {
               <p className="text-muted-foreground">Painel administrativo da plataforma</p>
             </div>
           </div>
+          <div className="flex flex-wrap gap-2">
+          <Button onClick={() => navigate("/facturas-proforma")}>
+            <Receipt className="mr-2 h-4 w-4" /> Facturas proforma
+          </Button>
           <Button
             onClick={() => navigate('/ficharecebimento')}
             variant="outline"
@@ -174,6 +178,7 @@ const Dashboard = () => {
             <FileText className="mr-2 h-4 w-4" />
             Fichas de recebimento
           </Button>
+          </div>
         </div>
 
         {/* Statistics Cards */}
