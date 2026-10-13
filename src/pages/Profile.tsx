@@ -1310,7 +1310,7 @@ const Profile = () => {
       </div>
 
       <Dialog open={!!editingProduct} onOpenChange={(open) => { if (!open && !savingProductEdit) setEditingProduct(null) }}>
-        <DialogContent style={{ maxWidth: 680, maxHeight: '90vh', overflowY: 'auto', borderRadius: 22, border: \`1px solid \${T.rule}\` }}>
+        <DialogContent style={{ maxWidth: 680, maxHeight: '90vh', overflowY: 'auto', borderRadius: 22, border: `1px solid ${T.rule}` }}>
           <DialogHeader>
             <DialogTitle style={{ fontFamily: FONT, fontSize: 19, fontWeight: 750, color: T.ink }}>Editar produto agrícola</DialogTitle>
           </DialogHeader>
@@ -1321,7 +1321,7 @@ const Profile = () => {
               <Input label="Quantidade disponível *" type="number" value={productEditForm.quantity} onChange={(e: any) => setProductEditForm(p => ({ ...p, quantity: e.target.value }))} required />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <label style={{ fontSize: 12, fontWeight: 700, color: T.ink }}>Unidade de venda *</label>
-                <select value={productEditForm.sale_unit} onChange={e => setProductEditForm(p => ({ ...p, sale_unit: e.target.value }))} style={{ height: 44, borderRadius: 12, border: \`1px solid \${T.rule}\`, padding: '0 12px', background: T.canvas, color: T.ink, font: 'inherit' }}>
+                <select value={productEditForm.sale_unit} onChange={e => setProductEditForm(p => ({ ...p, sale_unit: e.target.value }))} style={{ height: 44, borderRadius: 12, border: `1px solid ${T.rule}`, padding: '0 12px', background: T.canvas, color: T.ink, font: 'inherit' }}>
                   <option value="kg">Quilograma (kg)</option><option value="ton">Tonelada (t)</option><option value="unidade">Unidade</option><option value="caixa">Caixa</option><option value="saco">Saco</option><option value="litro">Litro</option>
                 </select>
               </div>
@@ -1330,14 +1330,14 @@ const Profile = () => {
               <Input label="Data de colheita" type="date" value={productEditForm.harvest_date} onChange={(e: any) => setProductEditForm(p => ({ ...p, harvest_date: e.target.value }))} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <label style={{ fontSize: 12, fontWeight: 700, color: T.ink }}>Província</label>
-                <select value={productEditForm.province_id} onChange={e => setProductEditForm(p => ({ ...p, province_id: e.target.value, municipality_id: '' }))} style={{ height: 44, borderRadius: 12, border: \`1px solid \${T.rule}\`, padding: '0 12px', background: T.canvas, color: T.ink, font: 'inherit' }}>
+                <select value={productEditForm.province_id} onChange={e => setProductEditForm(p => ({ ...p, province_id: e.target.value, municipality_id: '' }))} style={{ height: 44, borderRadius: 12, border: `1px solid ${T.rule}`, padding: '0 12px', background: T.canvas, color: T.ink, font: 'inherit' }}>
                   <option value="">Seleccionar província</option>
                   {angolaProvinces.map(province => <option key={province.id} value={province.id}>{province.name}</option>)}
                 </select>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <label style={{ fontSize: 12, fontWeight: 700, color: T.ink }}>Município</label>
-                <select value={productEditForm.municipality_id} onChange={e => setProductEditForm(p => ({ ...p, municipality_id: e.target.value }))} disabled={!productEditForm.province_id} style={{ height: 44, borderRadius: 12, border: \`1px solid \${T.rule}\`, padding: '0 12px', background: T.canvas, color: T.ink, font: 'inherit', opacity: productEditForm.province_id ? 1 : .55 }}>
+                <select value={productEditForm.municipality_id} onChange={e => setProductEditForm(p => ({ ...p, municipality_id: e.target.value }))} disabled={!productEditForm.province_id} style={{ height: 44, borderRadius: 12, border: `1px solid ${T.rule}`, padding: '0 12px', background: T.canvas, color: T.ink, font: 'inherit', opacity: productEditForm.province_id ? 1 : .55 }}>
                   <option value="">Seleccionar município</option>
                   {angolaProvinces.find(province => province.id === productEditForm.province_id)?.municipalities.map(municipality => <option key={municipality.id} value={municipality.id}>{municipality.name}</option>)}
                 </select>
