@@ -134,6 +134,16 @@ export async function downloadMarketplaceTransactionReceipt(preOrderId: string) 
     y = addWrapped(doc, `Referência: ${receipt.p2p.transfer_reference ?? '—'}`, margin, y, width); y += 3
   }
 
+  if (receipt.freight || receipt.order) {
+    section('Resumo financeiro')
+    const productTotal = receipt.pre_order.total_price == null ? null : Number(receipt.pre_order.total_price)
+    const freightTotal = receipt.freight?.offered_price ?? receipt.freight?.driver_offered_price ?? receipt.order?.transport_fee ?? 0
+    y = addWrapped(doc, `Subtotal dos produtos: ${productTotal == null ? '—' : money(productTotal)}`, margin, y, width)
+    y = addWrapped(doc, `Preço do frete: ${money(Number(freightTotal))}`, margin, y, width)
+    y = addWrapped(doc, `Total geral estimado: ${productTotal == null ? '—' : money(productTotal + Number(freightTotal))}`, margin, y, width)
+    y += 3
+  }
+
   if (receipt.freight) {
     section('Logística')
     y = addWrapped(doc, `Estado: ${statusLabels[receipt.freight.status] ?? receipt.freight.status}`, margin, y, width)
