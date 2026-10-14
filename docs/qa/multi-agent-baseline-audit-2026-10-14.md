@@ -135,3 +135,37 @@ Esta passagem encontrou um bloqueio real ao avanço seguro: a reconciliação de
 - Idempotência demonstrada por testes de repetição e concorrência.
 - Sem regressões em sourcing, pré-compra, proforma, pagamento e GPS.
 - Nenhum deploy de produção declarado sem resultado verificável.
+
+
+## Terceira passagem — evidência por migration e ferramenta preventiva
+
+Foi feita uma verificação direcionada dos quatro grupos de prefixos duplicados, comparando os nomes dos ficheiros com as entradas disponíveis no ledger remoto. O resultado confirma que alguns ficheiros têm correspondências remotas sob versões diferentes; não permite concluir, apenas pelo ledger, que o conteúdo local é idêntico ao SQL aplicado.
+
+| Ficheiro local | Entrada no ledger remoto | Conclusão segura |
+|---|---|---|
+| `20261007090000_fix_pre_order_acceptance_terms.sql` | Não encontrada correspondência nominal direta na amostra consultada | Estado por confirmar; comparar o corpo de `respond_to_pre_order` e `admin_update_pre_order_status` com as definições remotas. |
+| `20261007090000_functional_hardening_signup_identity_notifications.sql` | Não encontrada correspondência nominal direta na amostra consultada | Estado por confirmar; inspecionar triggers, `handle_new_user`, `admin_set_user_type` e validação de identidade. |
+| `20261008130000_add_p2p_beneficiary_marketplace.sql` | Existem migrations P2P remotas com nomes diferentes; não foi provada equivalência integral | Não marcar como aplicada sem comparar tabelas, constraints, índices, políticas e funções P2P. |
+| `20261008130000_endurecer_execucao_funcoes_internas.sql` | `20261008124445`, nome remoto `20261008130000_endurecer_execucao_funcoes_internas` | Há correspondência nominal sob versão diferente. O conteúdo local revoga EXECUTE em funções ligadas a triggers e funções internas; confirmar privilégios atuais e conteúdo antes de qualquer reparação. |
+| `20261013100000_create_proforma_invoices.sql` | `20261013083057`, nome remoto `20261013100000_create_proforma_invoices` | Correspondência nominal sob versão diferente. A migration posterior de políticas administrativas também existe no ledger. |
+| `20261013100000_fix_marketplace_pre_order_result_types.sql` | `20261013083950`, nome remoto `fix_marketplace_pre_order_result_types` | Correspondência por nome sob versão diferente; confirmar definição remota de `create_marketplace_pre_order`. |
+| `20261013120000_admin_only_proformas.sql` | `20261013094717`, nome remoto `20261013120000_admin_only_proformas` | Correspondência nominal sob versão diferente; comparar as políticas remotas de `proforma_invoices`. |
+| `20261013120000_fix_freight_load_buyer_reference.sql` | `20261013093538`, nome remoto `fix_freight_load_buyer_reference` | Correspondência por nome sob versão diferente; confirmar a definição remota do trigger `set_freight_load_order_participants`. |
+
+### Ferramenta preventiva adicionada ao ramo de auditoria
+
+Foi adicionado `scripts/audit-migrations.mjs` e o comando `npm run audit:migrations`. A ferramenta é **somente de leitura** e reporta:
+- prefixos de versão duplicados;
+- nomes que não seguem `YYYYMMDDHHMMSS_nome.sql`;
+- ficheiros SQL vazios.
+
+Com `npm run audit:migrations -- --check`, os achados fazem o comando terminar com código diferente de zero, útil para uma futura verificação de CI. O modo normal é apenas informativo para não bloquear já o repositório enquanto os duplicados históricos não forem reconciliados.
+
+**Limite importante:** esta ferramenta não consulta o Supabase nem decide se uma migration foi aplicada. Não altera, renomeia ou executa SQL. A validação de execução e o estado do CI ainda têm de ser confirmados no ramo/PR.
+
+### Próximos passos seguros
+
+1. Comparar as definições remotas das funções e políticas listadas acima com os ficheiros locais (não apenas os nomes).
+2. Inspecionar migrations locais sem correspondência nominal e as entradas remotas históricas sem nome, procurando evidência estrutural.
+3. Executar a auditoria local e os gates existentes (`lint`, `type-check:strict`, `test`, `build`) num ambiente de desenvolvimento.
+4. Só depois propor um plano explícito de reconciliação do ledger, sem `db push` nem alteração de produção nesta fase.
