@@ -91,8 +91,10 @@ ALTER TABLE public.agent_approvals ENABLE ROW LEVEL SECURITY;
 -- Deliberately no policies for anon/authenticated: deny client access by default.
 REVOKE ALL ON TABLE public.agent_tasks, public.agent_events, public.agent_approvals
   FROM PUBLIC, anon, authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.agent_tasks, public.agent_events, public.agent_approvals
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.agent_tasks, public.agent_approvals
   TO service_role;
+-- Event history is append-only even for the trusted worker role.
+GRANT SELECT, INSERT ON TABLE public.agent_events TO service_role;
 GRANT USAGE, SELECT ON SEQUENCE public.agent_events_id_seq TO service_role;
 
 COMMIT;
