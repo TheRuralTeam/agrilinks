@@ -70,6 +70,7 @@ const AppHome = () => {
   const [mapModalOpen, setMapModalOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [orderData, setOrderData] = useState({ quantity: 1, location: '' })
+  const [deliveryCoordinates, setDeliveryCoordinates] = useState<{ latitude: number; longitude: number } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string>('all')
@@ -185,7 +186,7 @@ const AppHome = () => {
   const handleOpenMap = (p: Product) => { setSelectedProduct(p); setMapModalOpen(true) }
   const handleOpenPreOrder = (p: Product) => {
     if (!requireAct('fazer uma pré-compra')) return
-    setSelectedProduct(p); setOrderData({ quantity:1, location:'' }); setModalOpen(true)
+    setSelectedProduct(p); setOrderData({ quantity:1, location:'' }); setDeliveryCoordinates(null); setModalOpen(true)
   }
 
   const handlePreOrderSubmit = async () => {
@@ -205,6 +206,8 @@ const AppHome = () => {
         p_product_id: selectedProduct.id,
         p_quantity: quantity,
         p_location: orderData.location,
+        p_delivery_lat: deliveryCoordinates?.latitude ?? null,
+        p_delivery_lng: deliveryCoordinates?.longitude ?? null,
         p_idempotency_key: idempotencyKey,
       })
 
@@ -584,6 +587,7 @@ const AppHome = () => {
               <LocationAutocomplete
                 value={orderData.location}
                 onChange={location => setOrderData({ ...orderData, location })}
+                onSelectLocation={location => setDeliveryCoordinates(location ? { latitude: location.latitude, longitude: location.longitude } : null)}
                 placeholder="Ex.: Viana, Luanda ou Bairro/Zona"
                 inputStyle={{
                   height:42, borderRadius:10, border:`1px solid ${T.rule}`, padding:'0 12px 0 38px',
