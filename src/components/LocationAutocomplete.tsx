@@ -1,12 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { History, MapPin, Search } from 'lucide-react'
+import { History, LoaderCircle, MapPin, Search } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { getPreferredDeliveryLocation } from '../features/products/deliveryLocationPreference'
 import { getProvincesForCountry } from '../data/country-locations'
+import { geocodeAngolaLocation } from '../features/maps/geocodingService'
+
+export type SelectedGeocodedLocation = {
+  label: string
+  latitude: number
+  longitude: number
+}
 
 type LocationAutocompleteProps = {
   value: string
   onChange: (value: string) => void
+  onSelectLocation?: (location: SelectedGeocodedLocation) => void
   placeholder?: string
   disabled?: boolean
   inputClassName?: string
@@ -16,11 +24,12 @@ type LocationAutocompleteProps = {
 }
 
 const normalize = (value: string) =>
-  value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-AO').trim()
+  value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase('pt-AO').trim()
 
 export default function LocationAutocomplete({
   value,
   onChange,
+  onSelectLocation,
   placeholder = 'Município, bairro ou zona',
   disabled = false,
   inputClassName = '',
@@ -30,6 +39,9 @@ export default function LocationAutocomplete({
 }: LocationAutocompleteProps) {
   const [focused, setFocused] = useState(false)
   const [savedLocation, setSavedLocation] = useState<string | null>(null)
+  const [geocodedSuggestions, setGeocodedSuggestions] = useState<SelectedGeocodedLocation[]>([])
+  const [searchingPlaces, setSearchingPlaces] = useState(false)
+  const [geocodingUnavailable, setGeocodingUnavailable] = useState(false)
   const { user } = useAuth()
 
   useEffect(() => {
@@ -53,7 +65,58 @@ export default function LocationAutocomplete({
       window.removeEventListener('agrilink:delivery-location-saved', handleSavedLocation)
     }
   }, [user?.id])
-  const suggestions = useMemo(() => {
+
+  useEffect(() => {
+    const query = value.trim()
+    if (query.length < 3 || !focused || !navigator.onLine) {
+      setGeocodedSuggestions([])
+      setSearchingPlaces(false)
+      setGeocodingUnavailable(query.length >= 3 && !navigator.onLine)
+      return
+    }
+
+    let active = true
+    const timer = window.setTimeout(async () => {
+      setSearchingPlaces(true)
+      setGeocodingUnavailable(false)
+      try {
+        const { supabase } = await import('../integrations/supabase/client')
+        const { data, error } = await supabase.functions.invoke('geocoding-search', {
+          body: { query },
+        })
+        if (error) throw error
+        const results = Array.isArray(data?.results) ? data.results : []
+        const valid = results.flatMap((item: any) => {
+          const latitude = Number(item?.lat)
+          const longitude = Number(item?.lon)
+          if (!Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+              latitude < -18.5 || latitude > -4.2 || longitude < 11.4 || longitude > 24.2) return []
+          const label = typeof item?.display_name === 'string' ? item.display_name.trim() : ''
+          return label ? [{ label, latitude, longitude }] : []
+        })
+        if (active) {
+          setGeocodedSuggestions(valid.filter((item, index, all) =>
+            all.findIndex((candidate) => normalize(candidate.label) === normalize(item.label)) === index
+          ).slice(0, 8))
+        }
+      } catch (error) {
+        console.warn('[AgriLink] Pesquisa geográfica indisponível; mantém-se a pesquisa local.', error)
+        if (active) {
+          setGeocodedSuggestions([])
+          setGeocodingUnavailable(true)
+        }
+      } finally {
+        if (active) setSearchingPlaces(false)
+      }
+    }, 350)
+
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+    }
+  }, [value, focused])
+
+  const localSuggestions = useMemo(() => {
     const provinces = getProvincesForCountry('AO')
     const all = provinces.flatMap((province) => [
       { label: `${province.name}, Angola`, search: province.name },
@@ -72,6 +135,30 @@ export default function LocationAutocomplete({
       .slice(0, 7)
   }, [value])
 
+  const chooseGeocoded = (location: SelectedGeocodedLocation) => {
+    onChange(location.label)
+    onSelectLocation?.(location)
+    setFocused(false)
+  }
+
+  const chooseTextLocation = (label: string) => {
+    onChange(label)
+    setFocused(false)
+    if (!onSelectLocation || label.trim().length < 3 || !navigator.onLine) return
+    void geocodeAngolaLocation(label).then((result) => {
+      if (!result) return
+      const latitude = Number(result.lat)
+      const longitude = Number(result.lon)
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+          latitude < -18.5 || latitude > -4.2 || longitude < 11.4 || longitude > 24.2) return
+      onSelectLocation({ label: result.display_name || label, latitude, longitude })
+    }).catch((error) => {
+      console.warn('[AgriLink] Não foi possível localizar as coordenadas deste texto.', error)
+    })
+  }
+
+  const showList = focused && (geocodedSuggestions.length > 0 || localSuggestions.length > 0 || Boolean(savedLocation) || searchingPlaces)
+
   return (
     <div className="relative w-full">
       <div className="relative">
@@ -88,19 +175,23 @@ export default function LocationAutocomplete({
           placeholder={placeholder}
           aria-label="Local de entrega"
           aria-autocomplete="list"
-          aria-expanded={focused && (suggestions.length > 0 || Boolean(savedLocation))}
+          aria-expanded={showList}
           onFocus={() => { setFocused(true); onFocus?.() }}
           onBlur={() => { window.setTimeout(() => setFocused(false), 120); onBlur?.() }}
-          onChange={(event) => onChange(event.target.value)}
-          className={`w-full pl-10 pr-3 ${inputClassName}`}
+          onChange={(event) => {
+            onChange(event.target.value)
+            onSelectLocation?.({ label: '', latitude: Number.NaN, longitude: Number.NaN })
+          }}
+          className={`w-full pl-10 pr-10 ${inputClassName}`}
           style={inputStyle}
         />
+        {searchingPlaces && <LoaderCircle aria-label="A pesquisar locais" className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[#2c863b]" />}
       </div>
-      {focused && (suggestions.length > 0 || savedLocation) && (
+      {showList && (
         <div
           role="listbox"
           aria-label="Sugestões de localização em Angola"
-          className="absolute z-[80] mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-[#DCE8DD] bg-white py-1 shadow-xl"
+          className="absolute z-[80] mt-1 max-h-72 w-full overflow-y-auto rounded-xl border border-[#DCE8DD] bg-white py-1 shadow-xl"
         >
           {savedLocation && normalize(savedLocation) !== normalize(value) && (
             <button
@@ -109,7 +200,7 @@ export default function LocationAutocomplete({
               role="option"
               aria-selected={false}
               onMouseDown={(event) => event.preventDefault()}
-              onClick={() => { onChange(savedLocation); setFocused(false) }}
+              onClick={() => chooseTextLocation(savedLocation)}
               className="flex w-full items-start gap-2 border-b border-[#E5EDE6] px-3 py-2.5 text-left text-sm text-[#26382A] transition-colors hover:bg-[#F2FAF3]"
             >
               <History aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[#2c863b]" />
@@ -119,24 +210,46 @@ export default function LocationAutocomplete({
               </span>
             </button>
           )}
-          {suggestions.map((item) => (
+          {geocodedSuggestions.map((item) => (
+            <button
+              key={`geo-${item.label}`}
+              type="button"
+              role="option"
+              aria-selected={normalize(value) === normalize(item.label)}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => chooseGeocoded(item)}
+              className="flex w-full items-start gap-2 border-b border-[#E5EDE6] px-3 py-2.5 text-left text-sm text-[#26382A] transition-colors hover:bg-[#F2FAF3]"
+            >
+              <MapPin aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[#2c863b]" />
+              <span className="min-w-0">
+                <span className="block break-words">{item.label}</span>
+                <span className="mt-0.5 block text-[10px] text-[#2c863b]">Localização identificada · GPS disponível</span>
+              </span>
+            </button>
+          ))}
+          {localSuggestions.map((item) => (
             <button
               key={item.label}
               type="button"
               role="option"
               aria-selected={false}
               onMouseDown={(event) => event.preventDefault()}
-              onClick={() => { onChange(item.label); setFocused(false) }}
+              onClick={() => chooseTextLocation(item.label)}
               className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-[#26382A] transition-colors hover:bg-[#F2FAF3]"
             >
               <Search aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[#2c863b]" />
               <span>{item.label}</span>
             </button>
           ))}
+          {geocodingUnavailable && (
+            <p className="m-0 px-3 py-2 text-[11px] text-[#758A79]">
+              Pesquisa GPS indisponível neste momento. Pode manter o endereço escrito e confirmar as coordenadas no mapa antes da logística.
+            </p>
+          )}
         </div>
       )}
       <p className="mt-1.5 text-[11px] leading-4 text-[#758A79]">
-        Escreva município e bairro/zona. Pode escolher uma sugestão ou manter o texto livre. O texto fica no pedido autenticado e não é enviado a serviços externos de mapas.
+        Pesquise um endereço para obter coordenadas reais. Se não houver resultado, pode manter o texto; a rota terá de ser confirmada no mapa antes do transporte.
       </p>
     </div>
   )
