@@ -480,10 +480,7 @@ const ProximasCargas = () => {
       Math.abs(load.origin_lng) > 180 || Math.abs(load.destination_lng) > 180
     ) {
       toast.error('A rota GPS está incompleta. Confirme os pontos reais de origem e destino no mapa.');
-      setRouteSetupLoadId(load.id);
-      setRouteSetupOrigin(load.origin_lat == null || load.origin_lng == null ? null : [load.origin_lat, load.origin_lng]);
-      setRouteSetupDestination(load.destination_lat == null || load.destination_lng == null ? null : [load.destination_lat, load.destination_lng]);
-      setRouteSetupSelection(load.origin_lat == null || load.origin_lng == null ? 'origin' : 'destination');
+      void openRouteSetup(load);
       return;
     }
     setBusyId(load.id);
@@ -1265,7 +1262,7 @@ const ProximasCargas = () => {
                   </section>
                 )}
 
-                {tab === 'disponiveis' && load.pre_order_id && !hasCoordinates && (
+                {tab === 'disponiveis' && !hasCoordinates && (
                   <section style={{ marginTop: 12, padding: 12, border: `1px solid ${T.rule}`, borderRadius: 12, display: 'grid', gap: 8 }}>
                     <p style={{ margin: 0, fontSize: 12, color: T.mid, lineHeight: 1.5 }}>
                       Esta pré-compra não tem a rota GPS completa. Pode pesquisar locais já usados no mapa ou recuperar o destino original informado pelo comprador. Confirme a posição real no mapa antes de guardar.
