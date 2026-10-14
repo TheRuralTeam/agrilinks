@@ -185,4 +185,4 @@ Esta comparação é de metadados/definições, não um teste de execução. Ain
 
 ### Estado da validação automatizada
 
-O commit atual do ramo `feat/multi-agent-core-audit` é `9bee96621ae64133cc812e0ffa5a9332a40711ec`. A consulta ao estado de CI devolveu `pending` sem verificações individuais registadas; por isso, não se declara build, lint ou testes aprovados. O PR #30 continua aberto em draft.
+O commit do ramo no momento desta atualização é `0036803e9e243750a31a1ec4915ecf04d7f51176`. A consulta ao estado de CI devolveu `pending` sem verificações individuais registadas; por isso, não se declara build, lint ou testes aprovados. O PR #30 continua aberto em draft.
