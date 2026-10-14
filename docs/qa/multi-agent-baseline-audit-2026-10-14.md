@@ -70,6 +70,35 @@ Contagem remota: 163 funções `SECURITY DEFINER` no schema `public`; a consulta
 | A-05 | Dados de sourcing, preço, pagamentos e GPS têm sensibilidade operacional | Guardar no payload dos agentes apenas IDs e campos mínimos; obter dados atuais através de funções autorizadas. |
 | A-06 | Eventos repetidos ou concorrentes podem duplicar efeitos | Idempotency key, transições condicionais e testes de concorrência antes de ativar automação. |
 
+
+## Segunda passagem — reconciliação do ledger de migrations
+
+A comparação por nome entre os 165 ficheiros locais em `supabase/migrations` e as 184 entradas do ledger remoto encontrou:
+
+- **4 versões locais duplicadas**, cada uma usada por dois ficheiros.
+- **79 correspondências por nome** entre ficheiros locais e entradas remotas; **42 dessas correspondências têm versão diferente**.
+- **63 entradas remotas sem nome de migration** e vários ficheiros locais sem correspondência nominal no ledger. Os nomes em falta incluem migrations históricas identificadas por UUID, pelo que uma comparação só por nome não pode classificá-las com segurança.
+- Exemplos recentes: `fix_ambiguous_id_submit_freight_quote` está remoto em `20261014095710`, mas o ficheiro local começa por `20261014170000`; o mesmo padrão existe em várias migrations de sourcing, proforma e logística.
+- Duplicados locais:
+  - `20261007090000`: `fix_pre_order_acceptance_terms` e `functional_hardening_signup_identity_notifications`.
+  - `20261008130000`: `add_p2p_beneficiary_marketplace` e `endurecer_execucao_funcoes_internas`.
+  - `20261013100000`: `create_proforma_invoices` e `fix_marketplace_pre_order_result_types`.
+  - `20261013120000`: `admin_only_proformas` e `fix_freight_load_buyer_reference`.
+
+### Decisão de segurança
+
+**Não renomear automaticamente migrations nem executar `db push` nesta fase.** Uma renomeação de migration já aplicada pode levar o CLI a tentar executar DDL novamente; escolher um timestamp arbitrário para uma migration não aplicada pode alterar a ordem de dependências. O ledger remoto não contém checksums suficientes para provar equivalência de conteúdo.
+
+### Próxima ação de reconciliação
+
+1. Gerar inventário com nome, versão, conteúdo SQL e dependências de cada ficheiro local.
+2. Para cada entrada remota com nome, confirmar se o SQL local é o que produziu o estado remoto, comparando funções, tabelas, constraints, índices, triggers, grants e políticas.
+3. Identificar migrations locais sem equivalente remoto e verificar se estão pendentes ou se o seu conteúdo foi aplicado sob outra versão.
+4. Corrigir as quatro colisões de versão numa alteração isolada, preservando a ordem lógica e documentando as versões remotas já aplicadas.
+5. Só então validar `supabase migration list` / `db diff` num ambiente de desenvolvimento e avançar para a fundação multiagente.
+
+Esta passagem encontrou um bloqueio real ao avanço seguro: a reconciliação deve preceder a primeira migration do ecossistema de agentes.
+
 ## Plano incremental
 
 ### P0 — reconciliação (antes de DDL)
