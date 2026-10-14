@@ -8,6 +8,7 @@ const corsHeaders = {
 };
 
 type GeoResult = { lat: string; lon: string; display_name: string };
+type GeoProvider = "photon" | "nominatim";
 
 function respond(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: corsHeaders });
@@ -18,7 +19,7 @@ function inAngola(lat: number, lon: number) {
     lat >= -18.5 && lat <= -4.2 && lon >= 11.4 && lon <= 24.2;
 }
 
-function normalizeResults(items: any[], provider: "photon" | "nominatim"): GeoResult[] {
+function normalizeResults(items: any[], provider: GeoProvider): GeoResult[] {
   return items.flatMap((item: any) => {
     const lat = provider === "photon" ? Number(item?.geometry?.coordinates?.[1]) : Number(item?.lat);
     const lon = provider === "photon" ? Number(item?.geometry?.coordinates?.[0]) : Number(item?.lon);
@@ -26,7 +27,7 @@ function normalizeResults(items: any[], provider: "photon" | "nominatim"): GeoRe
 
     if (provider === "photon") {
       const p = item?.properties ?? {};
-      const country = String(p.country ?? "").toLowerCase();
+      const country = String(p.country ?? "").trim().toLowerCase();
       if (country && country !== "angola") return [];
       const label = [p.name, p.district, p.city, p.state, p.country]
         .filter((part, index, all) => typeof part === "string" && part.trim() && all.indexOf(part) === index)
@@ -38,18 +39,43 @@ function normalizeResults(items: any[], provider: "photon" | "nominatim"): GeoRe
   });
 }
 
-async function searchPhoton(query: string): Promise<GeoResult[]> {
+async function fetchPhoton(query: string, includeLanguage: boolean): Promise<GeoResult[]> {
   const url = new URL("https://photon.komoot.io/api/");
   url.searchParams.set("q", query);
-  url.searchParams.set("lang", "pt");
   url.searchParams.set("limit", "8");
+  if (includeLanguage) url.searchParams.set("lang", "pt");
+
   const response = await fetch(url, {
-    headers: { "Accept": "application/json", "User-Agent": "AgriLink/1.0" },
+    headers: { "Accept": "application/json", "User-Agent": "AgriLink/1.0 (agrilink.ao)" },
     signal: AbortSignal.timeout(7000),
   });
-  if (!response.ok) throw new Error(`Photon HTTP ${response.status}`);
+  if (!response.ok) {
+    const detail = (await response.text().catch(() => "")).slice(0, 180);
+    throw new Error(`Photon HTTP ${response.status}${detail ? `: ${detail}` : ""}`);
+  }
   const payload = await response.json();
   return normalizeResults(Array.isArray(payload?.features) ? payload.features : [], "photon");
+}
+
+async function searchPhoton(raw: string, queryWithCountry: string): Promise<GeoResult[]> {
+  // Try the localized, country-qualified query first, then simpler variants if a provider rejects it.
+  const attempts: Array<{ query: string; language: boolean }> = [
+    { query: queryWithCountry, language: true },
+    { query: raw, language: true },
+    { query: raw, language: false },
+  ];
+  let lastError: unknown;
+  for (const attempt of attempts) {
+    try {
+      const results = await fetchPhoton(attempt.query, attempt.language);
+      if (results.length) return results;
+    } catch (error) {
+      lastError = error;
+      console.warn("[geocoding-search] Tentativa Photon falhou:", error);
+    }
+  }
+  if (lastError) throw lastError;
+  return [];
 }
 
 async function searchNominatim(query: string): Promise<GeoResult[]> {
@@ -61,10 +87,13 @@ async function searchNominatim(query: string): Promise<GeoResult[]> {
   url.searchParams.set("addressdetails", "1");
   url.searchParams.set("accept-language", "pt");
   const response = await fetch(url, {
-    headers: { "Accept": "application/json", "User-Agent": "AgriLink/1.0 (Angola agricultural marketplace)" },
+    headers: { "Accept": "application/json", "User-Agent": "AgriLink/1.0 (agrilink.ao; support@agrilink.ao)" },
     signal: AbortSignal.timeout(5000),
   });
-  if (!response.ok) throw new Error(`Nominatim HTTP ${response.status}`);
+  if (!response.ok) {
+    const detail = (await response.text().catch(() => "")).slice(0, 180);
+    throw new Error(`Nominatim HTTP ${response.status}${detail ? `: ${detail}` : ""}`);
+  }
   const payload = await response.json();
   return normalizeResults(Array.isArray(payload) ? payload : [], "nominatim");
 }
@@ -75,27 +104,29 @@ serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => null);
-    const raw = typeof body?.query === "string" ? body.query.trim() : "";
-    if (raw.length < 3) return respond({ results: [] });
+    const raw = typeof body?.query === "string" ? body.query.trim().replace(/\s+/g, " ") : "";
+    if (raw.length < 3) return respond({ results: [], provider: "none" });
     if (raw.length > 180) return respond({ error: "QUERY_TOO_LONG" }, 400);
 
     const query = /\bAngola\b/i.test(raw) ? raw : `${raw}, Angola`;
 
-    // Photon is primary because Nominatim is returning HTTP 403 from Supabase Edge.
     try {
-      const results = await searchPhoton(query);
+      const results = await searchPhoton(raw, query);
       if (results.length) return respond({ results, provider: "photon" });
     } catch (error) {
-      console.warn("[geocoding-search] Photon indisponível:", error);
+      console.warn("[geocoding-search] Photon indisponível após tentativas:", error);
     }
 
     try {
       const results = await searchNominatim(query);
-      return respond({ results, provider: "nominatim" });
+      if (results.length) return respond({ results, provider: "nominatim" });
     } catch (error) {
-      console.error("[geocoding-search] Os provedores geográficos falharam:", error);
-      return respond({ error: "GEOCODING_PROVIDER_UNAVAILABLE", results: [] }, 502);
+      console.error("[geocoding-search] Nominatim indisponível:", error);
     }
+
+    // A third-party outage should not surface as an Edge Function 502 in the app.
+    // An empty result is explicit and lets the UI ask for a more precise address or GPS point.
+    return respond({ results: [], provider: "unavailable", degraded: true });
   } catch (error) {
     console.error("[geocoding-search] Pedido inválido:", error);
     return respond({ error: "GEOCODING_REQUEST_FAILED" }, 400);
