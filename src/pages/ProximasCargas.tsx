@@ -11,6 +11,7 @@ import {
   PackageCheck,
   Plus,
   Route,
+  Search,
   Weight,
   X,
   Download,
@@ -52,6 +53,12 @@ interface FreightLoad {
   destination_lat: number | null;
   destination_lng: number | null;
   in_transit_at: string | null;
+}
+
+interface RouteLocationSuggestion {
+  label: string;
+  point: FreightCoordinate | null;
+  source: 'mapa' | 'pre-compra';
 }
 
 interface FreightLoadLocation {
@@ -139,6 +146,9 @@ const ProximasCargas = () => {
   const [routeSetupOrigin, setRouteSetupOrigin] = useState<FreightCoordinate | null>(null);
   const [routeSetupDestination, setRouteSetupDestination] = useState<FreightCoordinate | null>(null);
   const [routeSetupSelection, setRouteSetupSelection] = useState<FreightPointSelection>('destination');
+  const [routeSetupDestinationLabel, setRouteSetupDestinationLabel] = useState('');
+  const [routeSetupDestinationSearch, setRouteSetupDestinationSearch] = useState('');
+  const [routeSetupSuggestions, setRouteSetupSuggestions] = useState<RouteLocationSuggestion[]>([]);
   const locationWatchId = useRef<number | null>(null);
   const lastLocationWriteAt = useRef(0);
 
@@ -493,6 +503,54 @@ const ProximasCargas = () => {
     } catch (error: any) {
       toast.error(error?.message || 'Não foi possível enviar a proposta de transporte.');
     } finally { setBusyId(null); }
+  };
+
+  const openRouteSetup = async (load: FreightLoad) => {
+    setRouteSetupLoadId(load.id);
+    setRouteSetupOrigin(load.origin_lat == null || load.origin_lng == null ? null : [load.origin_lat, load.origin_lng]);
+    setRouteSetupDestination(load.destination_lat == null || load.destination_lng == null ? null : [load.destination_lat, load.destination_lng]);
+    setRouteSetupSelection(load.origin_lat == null || load.origin_lng == null ? 'origin' : 'destination');
+
+    const suggestions: RouteLocationSuggestion[] = loads.flatMap((item) => {
+      const points: RouteLocationSuggestion[] = [];
+      if (item.origin_label?.trim()) points.push({
+        label: item.origin_label.trim(),
+        point: item.origin_lat != null && item.origin_lng != null ? [item.origin_lat, item.origin_lng] : null,
+        source: 'mapa',
+      });
+      if (item.destination_label?.trim()) points.push({
+        label: item.destination_label.trim(),
+        point: item.destination_lat != null && item.destination_lng != null ? [item.destination_lat, item.destination_lng] : null,
+        source: 'mapa',
+      });
+      return points;
+    });
+
+    let buyerDestination = load.destination_label?.trim() || '';
+    let buyerPoint: FreightCoordinate | null = load.destination_lat != null && load.destination_lng != null
+      ? [load.destination_lat, load.destination_lng]
+      : null;
+    if (load.pre_order_id) {
+      const { data, error } = await supabase
+        .from('pre_orders')
+        .select('location,destination_lat,destination_lng')
+        .eq('id', load.pre_order_id)
+        .maybeSingle();
+      if (!error && data) {
+        if (typeof data.location === 'string' && data.location.trim()) buyerDestination = data.location.trim();
+        if (data.destination_lat != null && data.destination_lng != null) {
+          buyerPoint = [Number(data.destination_lat), Number(data.destination_lng)];
+          setRouteSetupDestination(buyerPoint);
+        }
+      }
+    }
+    if (buyerDestination) suggestions.unshift({ label: buyerDestination, point: buyerPoint, source: 'pre-compra' });
+    const uniqueSuggestions = suggestions.filter((item, index, all) =>
+      all.findIndex((candidate) => candidate.label.toLocaleLowerCase('pt-AO') === item.label.toLocaleLowerCase('pt-AO')) === index
+    );
+    setRouteSetupSuggestions(uniqueSuggestions);
+    setRouteSetupDestinationLabel(buyerDestination);
+    setRouteSetupDestinationSearch(buyerDestination);
   };
 
   const saveRouteCoordinates = async (load: FreightLoad) => {
@@ -1209,23 +1267,59 @@ const ProximasCargas = () => {
                 {tab === 'disponiveis' && load.pre_order_id && !hasCoordinates && (
                   <section style={{ marginTop: 12, padding: 12, border: `1px solid ${T.rule}`, borderRadius: 12, display: 'grid', gap: 8 }}>
                     <p style={{ margin: 0, fontSize: 12, color: T.mid, lineHeight: 1.5 }}>
-                      Esta pré-compra não tem a rota GPS completa. Confirme os pontos reais de recolha e entrega no mapa para continuar.
+                      Esta pré-compra não tem a rota GPS completa. Pode pesquisar locais já usados no mapa ou recuperar o destino original informado pelo comprador. Confirme a posição real no mapa antes de guardar.
                     </p>
                     <div style={{ display: 'grid', gap: 4, fontSize: 12, color: T.ink }}>
                       <div><strong>Recolha:</strong> {load.origin_label}</div>
-                      <div><strong>Entrega:</strong> {load.destination_label}</div>
+                      <div><strong>Destino registado:</strong> {load.destination_label}</div>
                     </div>
                     {routeSetupLoadId !== load.id ? (
-                      <button type="button" onClick={() => {
-                        setRouteSetupLoadId(load.id);
-                        setRouteSetupOrigin(load.origin_lat == null || load.origin_lng == null ? null : [load.origin_lat, load.origin_lng]);
-                        setRouteSetupDestination(load.destination_lat == null || load.destination_lng == null ? null : [load.destination_lat, load.destination_lng]);
-                        setRouteSetupSelection(load.origin_lat == null || load.origin_lng == null ? 'origin' : 'destination');
-                      }} style={{ padding: '10px 12px', border: `1px solid ${T.green}`, borderRadius: 10, background: T.white, color: T.green, fontFamily: FONT, fontWeight: 800, cursor: 'pointer' }}>
+                      <button type="button" onClick={() => void openRouteSetup(load)} style={{ padding: '10px 12px', border: `1px solid ${T.green}`, borderRadius: 10, background: T.white, color: T.green, fontFamily: FONT, fontWeight: 800, cursor: 'pointer' }}>
                         Corrigir rota GPS
                       </button>
                     ) : (
                       <>
+                        <label style={{ display: 'grid', gap: 6, fontSize: 12, color: T.ink, fontWeight: 800 }}>
+                          Pesquisar ponto de entrega
+                          <div style={{ position: 'relative' }}>
+                            <Search size={15} style={{ position: 'absolute', left: 10, top: 13, color: T.muted }} />
+                            <input
+                              value={routeSetupDestinationSearch}
+                              onChange={(event) => setRouteSetupDestinationSearch(event.target.value)}
+                              placeholder="Pesquisar localizações do mapa ou destino da pré-compra"
+                              style={{ ...formInputStyle, paddingLeft: 32 }}
+                              maxLength={180}
+                              aria-label="Pesquisar ponto de entrega"
+                              aria-autocomplete="list"
+                            />
+                          </div>
+                        </label>
+                        <div role="listbox" aria-label="Sugestões de pontos de entrega" style={{ display: 'grid', gap: 4, maxHeight: 180, overflowY: 'auto' }}>
+                          {routeSetupSuggestions
+                            .filter((item) => !routeSetupDestinationSearch.trim() || item.label.toLocaleLowerCase('pt-AO').includes(routeSetupDestinationSearch.trim().toLocaleLowerCase('pt-AO')))
+                            .slice(0, 8)
+                            .map((item, index) => (
+                              <button
+                                key={item.source + item.label + index}
+                                type="button"
+                                role="option"
+                                onClick={() => {
+                                  setRouteSetupDestinationLabel(item.label);
+                                  setRouteSetupDestinationSearch(item.label);
+                                  if (item.point) setRouteSetupDestination(item.point);
+                                  else setRouteSetupDestination(null);
+                                  setRouteSetupSelection('destination');
+                                }}
+                                style={{ textAlign: 'left', padding: '9px 10px', border: `1px solid ${T.rule}`, borderRadius: 8, background: routeSetupDestinationLabel === item.label ? T.g50 : T.white, color: T.ink, cursor: 'pointer', fontFamily: FONT, fontSize: 12 }}
+                              >
+                                <span style={{ display: 'block', fontWeight: 800 }}>{item.label}</span>
+                                <span style={{ display: 'block', marginTop: 3, color: T.muted, fontSize: 10 }}>{item.source === 'pre-compra' ? 'Localização original do comprador' : item.point ? 'Local já marcado no mapa · coordenadas disponíveis' : 'Local registado sem coordenadas GPS'}</span>
+                              </button>
+                            ))}
+                          {routeSetupSuggestions.filter((item) => !routeSetupDestinationSearch.trim() || item.label.toLocaleLowerCase('pt-AO').includes(routeSetupDestinationSearch.trim().toLocaleLowerCase('pt-AO'))).length === 0 && (
+                            <p style={{ margin: 0, padding: 8, fontSize: 11, color: T.muted }}>Sem sugestões correspondentes. Pode continuar a escrever o nome do local e marcar o ponto exacto no mapa.</p>
+                          )}
+                        </div>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button type="button" onClick={() => setRouteSetupSelection('origin')} style={{ flex: 1, padding: 8, borderRadius: 8, border: `1px solid ${T.rule}`, background: routeSetupSelection === 'origin' ? T.g50 : T.white, color: T.green, fontFamily: FONT, fontWeight: 800 }}>
                             {routeSetupOrigin ? 'Alterar origem' : 'Marcar origem'}
@@ -1234,15 +1328,26 @@ const ProximasCargas = () => {
                             {routeSetupDestination ? 'Alterar destino' : 'Marcar destino'}
                           </button>
                         </div>
-                        <p style={{ margin: 0, fontSize: 11, color: T.muted }}>Selecione um ponto acima e toque no mapa. Confirme os locais reais, sem estimar coordenadas.</p>
+                        <p style={{ margin: 0, fontSize: 11, color: T.muted }}>Ao escolher um local sem GPS, seleccione “Marcar destino” e toque no ponto real no mapa. O nome pesquisado será mantido como descrição do destino.</p>
                         <div style={{ overflow: 'hidden', border: `1px solid ${T.rule}`, borderRadius: 8 }}>
                           <FreightRouteMap
                             origin={routeSetupOrigin}
                             destination={routeSetupDestination}
                             activeSelection={routeSetupSelection}
-                            onSelectPoint={(coordinate) => routeSetupSelection === 'origin' ? setRouteSetupOrigin(coordinate) : setRouteSetupDestination(coordinate)}
+                            onSelectPoint={(coordinate) => {
+                              if (routeSetupSelection === 'origin') {
+                                setRouteSetupOrigin(coordinate);
+                              } else {
+                                setRouteSetupDestination(coordinate);
+                                if (!routeSetupDestinationLabel.trim()) setRouteSetupDestinationLabel(formatCoordinateLabel(coordinate));
+                              }
+                            }}
                             height={250}
                           />
+                        </div>
+                        <div style={{ display: 'grid', gap: 4, fontSize: 12, color: T.ink }}>
+                          <div><strong>Destino seleccionado:</strong> {routeSetupDestinationLabel || 'Ainda não definido'}</div>
+                          <div><strong>Coordenadas:</strong> {routeSetupDestination ? formatCoordinateLabel(routeSetupDestination) : 'Por confirmar no mapa'}</div>
                         </div>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button type="button" onClick={() => setRouteSetupLoadId(null)} style={{ flex: 1, padding: 10, border: `1px solid ${T.rule}`, borderRadius: 8, background: T.white, color: T.mid, fontFamily: FONT, fontWeight: 800 }}>Cancelar</button>
@@ -1255,7 +1360,7 @@ const ProximasCargas = () => {
                   </section>
                 )}
 
-                {tab === 'disponiveis' ? (
+{tab === 'disponiveis' ? (
                   <button
                     disabled={busyId === load.id || tooHeavy}
                     onClick={() => load.pre_order_id ? void submitQuote(load) : void accept(load)}
