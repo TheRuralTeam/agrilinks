@@ -1483,7 +1483,26 @@ const AdminDashboard = () => {
               <div className="space-y-1"><label className="text-sm font-medium">Produto</label><Input value={productEditForm.product_type} onChange={(e) => setProductEditForm((p) => ({ ...p, product_type: e.target.value }))} /></div>
               <div className="space-y-1"><label className="text-sm font-medium">Unidade de venda</label><select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={productEditForm.sale_unit} onChange={(e) => setProductEditForm((p) => ({ ...p, sale_unit: e.target.value }))}><option value="kg">Quilograma (kg)</option><option value="tonelada">Tonelada</option><option value="unidade">Unidade</option><option value="caixa">Caixa</option><option value="saco">Saco</option><option value="litro">Litro</option></select></div>
               <div className="space-y-1"><label className="text-sm font-medium">Quantidade disponível</label><Input type="number" min="1" step="1" value={productEditForm.quantity} onChange={(e) => setProductEditForm((p) => ({ ...p, quantity: e.target.value }))} /></div>
-              <div className="space-y-1"><label className="text-sm font-medium">Preço por {productEditForm.sale_unit} (Kz)</label><Input type="number" min="0.01" step="any" value={productEditForm.price} onChange={(e) => setProductEditForm((p) => ({ ...p, price: e.target.value }))} /></div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Preço por {productEditForm.sale_unit} (Kz)</label>
+                <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-muted-foreground">Antes</span>
+                    <span className="font-medium tabular-nums">{Number(editingProduct?.price ?? 0).toLocaleString("pt-AO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kz/{editingProduct?.sale_unit || editingProduct?.unit || "kg"}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-muted-foreground">Agora</span>
+                    <span className="font-semibold tabular-nums">{Number(productEditForm.price || 0).toLocaleString("pt-AO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kz/{productEditForm.sale_unit}</span>
+                  </div>
+                  {Number(productEditForm.price) !== Number(editingProduct?.price ?? 0) && Number(productEditForm.price) > 0 && (
+                    <div className={`rounded-md px-2.5 py-2 text-xs font-semibold ${Number(productEditForm.price) > Number(editingProduct?.price ?? 0) ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>
+                      {Number(productEditForm.price) > Number(editingProduct?.price ?? 0) ? "Preço subiu" : "Preço baixou"} em {Math.abs(((Number(productEditForm.price) - Number(editingProduct?.price ?? 0)) / Math.max(Number(editingProduct?.price ?? 0), 0.01)) * 100).toLocaleString("pt-AO", { maximumFractionDigits: 1 })}%.
+                    </div>
+                  )}
+                </div>
+                <Input type="number" min="0.01" step="any" value={productEditForm.price} onChange={(e) => setProductEditForm((p) => ({ ...p, price: e.target.value }))} />
+                <p className="text-xs text-muted-foreground">Se o preço mudar, os clientes que já fizeram pré-compra deste produto receberão um email com o preço anterior e o actual.</p>
+              </div>
               <div className="space-y-1"><label className="text-sm font-medium">Quantidade mínima por encomenda</label><Input type="number" min="1" step="1" value={productEditForm.min_order_quantity} onChange={(e) => setProductEditForm((p) => ({ ...p, min_order_quantity: e.target.value }))} /></div>
               {(productEditForm.sale_unit === 'caixa' || productEditForm.sale_unit === 'saco') && <div className="space-y-1"><label className="text-sm font-medium">Peso por embalagem (kg)</label><Input type="number" min="0.001" step="any" value={productEditForm.package_weight_kg} onChange={(e) => setProductEditForm((p) => ({ ...p, package_weight_kg: e.target.value }))} placeholder="Opcional" /></div>}
               <div className="space-y-1"><label className="text-sm font-medium">Variedade</label><Input value={productEditForm.product_variety} onChange={(e) => setProductEditForm((p) => ({ ...p, product_variety: e.target.value }))} /></div>
