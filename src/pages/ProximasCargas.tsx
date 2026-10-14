@@ -376,6 +376,105 @@ const ProximasCargas = () => {
     setSharingLocationFor(null);
   };
 
+  const startLocationSharing = (load: FreightLoad) => {
+    if (!requireAct('partilhar a localização desta carga')) return;
+    if (load.driver_id !== user?.id || load.status !== 'in_transit') {
+      toast.error('A localização só pode ser partilhada pelo motorista durante o transporte.');
+      return;
+    }
+    if (!navigator.geolocation) {
+      toast.error('Este dispositivo não disponibiliza localização GPS.');
+      return;
+    }
+
+    stopLocationSharing();
+    lastLocationWriteAt.current = 0;
+    locationRetryNoticeShown.current = false;
+    setSharingLocationFor(load.id);
+
+    const persistLocation = async (location: FreightLoadLocation) => {
+      if (!navigator.onLine) {
+        pendingLocationRef.current[load.id] = location;
+        setDriverLocations((previous) => ({ ...previous, [load.id]: location }));
+        return;
+      }
+
+      const { error } = await supabase.rpc('record_freight_load_location', {
+        p_freight_load_id: load.id,
+        p_latitude: location.latitude,
+        p_longitude: location.longitude,
+        p_accuracy_m: location.accuracy_m as number,
+        p_speed_mps: location.speed_mps as number,
+        p_heading_deg: location.heading_deg as number,
+        p_record_history: true,
+      });
+
+      if (error) {
+        if (error.code === '42501' || error.code === '22023') {
+          toast.error('A partilha GPS foi recusada pelo servidor. Confirme que esta carga está atribuída a si e em trânsito.');
+          stopLocationSharing();
+          return;
+        }
+        pendingLocationRef.current[load.id] = location;
+        setDriverLocations((previous) => ({ ...previous, [load.id]: location }));
+        if (!locationRetryNoticeShown.current) {
+          toast.error('Sem confirmação do servidor. A última posição será reenviada quando a ligação voltar.');
+          locationRetryNoticeShown.current = true;
+        }
+        return;
+      }
+
+      delete pendingLocationRef.current[load.id];
+      setDriverLocations((previous) => ({ ...previous, [load.id]: location }));
+      if (locationRetryNoticeShown.current) {
+        toast.success('Ligação restabelecida. A posição GPS voltou a ser sincronizada.');
+        locationRetryNoticeShown.current = false;
+      }
+    };
+
+    const flushPending = () => {
+      const pending = pendingLocationRef.current[load.id];
+      if (pending) void persistLocation(pending);
+    };
+    onlineFlushHandlerRef.current = flushPending;
+    window.addEventListener('online', flushPending);
+
+    locationWatchId.current = navigator.geolocation.watchPosition(
+      async (position) => {
+        if (Date.now() - lastLocationWriteAt.current < 15000) return;
+        lastLocationWriteAt.current = Date.now();
+        const location: FreightLoadLocation = {
+          freight_load_id: load.id,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy_m: Number.isFinite(position.coords.accuracy) ? position.coords.accuracy : null,
+          speed_mps: position.coords.speed != null && position.coords.speed >= 0 ? position.coords.speed : null,
+          heading_deg: position.coords.heading != null && position.coords.heading >= 0 ? position.coords.heading : null,
+          recorded_at: new Date().toISOString(),
+        };
+        if (!Number.isFinite(location.latitude) || !Number.isFinite(location.longitude) ||
+            location.latitude < -90 || location.latitude > 90 ||
+            location.longitude < -180 || location.longitude > 180) {
+          toast.error('O dispositivo devolveu coordenadas GPS inválidas. A partilha foi interrompida.');
+          stopLocationSharing();
+          return;
+        }
+        await persistLocation(location);
+      },
+      (error) => {
+        toast.error(
+          error.code === error.PERMISSION_DENIED
+            ? 'Permita o acesso à localização para partilhar o trajeto.'
+            : error.code === error.TIMEOUT
+              ? 'A leitura GPS demorou demasiado. Verifique o sinal e tente novamente.'
+              : 'Não foi possível obter a localização do motorista.'
+        );
+        stopLocationSharing();
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
+    );
+  };
+
   const submitQuote = async (load: FreightLoad) => {
     if (!requireAct('propor o preço de uma carga')) return;
     if (!user?.id || load.created_by === user.id) return;
