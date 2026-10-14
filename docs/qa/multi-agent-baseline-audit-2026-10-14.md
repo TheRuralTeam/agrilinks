@@ -41,6 +41,17 @@ A primeira entrega deve ser uma fundação segura e aditiva: contratos de tarefa
 - O centro de operações não deve consultar tabelas internas diretamente a partir do browser. A leitura e as ações devem passar por endpoints autenticados que confirmem permissões e filtrem por entidade/participante.
 - Não foram executadas ações de mutação, DDL ou deploy durante esta auditoria.
 
+
+### Revisão adicional de grants e RPCs
+
+A consulta de privilégios no projeto remoto identificou **9 funções `SECURITY DEFINER` com argumentos que são executáveis pelo papel SQL `anon`**: `accept_freight_load`, `admin_set_product_status`, `advance_freight_load`, `confirm_freight_handover`, `confirm_freight_receipt`, `create_freight_settlement_if_ready`, `submit_public_contact`, `update_freight_tracking_location` e `validate_agent_code`.
+
+Isto **não demonstra, por si só, que as funções permitam operações não autorizadas**: algumas podem validar `auth.uid()` internamente e outras, como contacto público ou validação de código, podem ter uma razão legítima para acesso anónimo. Contudo, as funções de logística e administração devem ser revistas individualmente e o acesso `anon` revogado quando não for um requisito explícito. Não alterar grants em massa sem validar os clientes que as invocam e os checks internos.
+
+A consulta também encontrou privilégios de tabela concedidos a `anon` em algumas tabelas, incluindo `admin_permissions`, `audit_logs`, `freight_loads`, `products` e `sourcing_requests`. A política RLS pode impedir a operação, mas o princípio de mínimo privilégio exige verificar a combinação de GRANT + RLS. Exemplo: a política de leitura de `audit_logs` exige `has_role(auth.uid(), 'admin')`; por isso o grant sozinho não é prova de leitura anónima. A tabela `freight_loads` tem política de leitura ampla para o papel `authenticated`, que deve ser avaliada quanto à exposição de dados operacionais, mantendo a intenção comercial de listar cargas abertas.
+
+Contagem remota: 163 funções `SECURITY DEFINER` no schema `public`; a consulta não encontrou nenhuma sem configuração explícita de `search_path`. Isto é uma baseline de metadados, não uma auditoria completa do corpo das 163 funções. O foco da próxima revisão deve ser a matriz de EXECUTE grants, validação de identidade/entidade, transições de estado e funções chamadas por workflows de agentes.
+
 ## Riscos e decisões
 
 | ID | Risco | Tratamento proposto |
