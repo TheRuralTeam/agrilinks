@@ -104,6 +104,7 @@ const SearchPage = () => {
   const [identityDialogOpen, setIdentityDialogOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [orderData, setOrderData] = useState({ quantity: 1, location: '' })
+  const [deliveryCoordinates, setDeliveryCoordinates] = useState<{ latitude: number; longitude: number } | null>(null)
 
   const searchData = React.useCallback(async (term: string, province?: string, category?: string) => {
     setLoading(true)
@@ -186,6 +187,7 @@ const SearchPage = () => {
   const handleOpenPreOrder = (product: Product) => {
     setSelectedProduct(product)
     setOrderData({ quantity: 1, location: '' })
+    setDeliveryCoordinates(null)
     setPreOrderModalOpen(true)
   }
 
@@ -221,6 +223,8 @@ const SearchPage = () => {
         p_product_id: selectedProduct.id,
         p_quantity: quantity,
         p_location: orderData.location,
+        p_delivery_lat: deliveryCoordinates?.latitude ?? null,
+        p_delivery_lng: deliveryCoordinates?.longitude ?? null,
         p_idempotency_key: idempotencyKey,
       })
 
@@ -549,6 +553,7 @@ const SearchPage = () => {
               <LocationAutocomplete
                 value={orderData.location}
                 onChange={(location) => setOrderData({ ...orderData, location })}
+                onSelectLocation={(location) => setDeliveryCoordinates(location ? { latitude: location.latitude, longitude: location.longitude } : null)}
                 placeholder="Ex.: Viana, Luanda ou Bairro/Zona"
                 inputClassName="h-10 rounded-xl border-none text-sm text-[#111714] placeholder:text-[#758A79] outline-none"
                 inputStyle={{ background: 'rgba(118,118,128,0.08)' }}
