@@ -525,34 +525,109 @@ const ProximasCargas = () => {
   const submitQuote = async (load: FreightLoad) => {
     if (!requireAct('propor o preço de uma carga')) return;
     if (!user?.id || load.created_by === user.id) return;
-    if (
-      load.origin_lat == null || load.origin_lng == null ||
-      load.destination_lat == null || load.destination_lng == null ||
-      !Number.isFinite(load.origin_lat) || !Number.isFinite(load.origin_lng) ||
-      !Number.isFinite(load.destination_lat) || !Number.isFinite(load.destination_lng) ||
-      Math.abs(load.origin_lat) > 90 || Math.abs(load.destination_lat) > 90 ||
-      Math.abs(load.origin_lng) > 180 || Math.abs(load.destination_lng) > 180
-    ) {
-      toast.error('A rota GPS está incompleta. Confirme os pontos reais de origem e destino no mapa.');
-      void openRouteSetup(load);
-      return;
-    }
     setBusyId(load.id);
     try {
-      const route = await calculateFreightRoute([load.origin_lat,load.origin_lng],[load.destination_lat,load.destination_lng]);
+      let originPoint: FreightCoordinate | null =
+        load.origin_lat != null && load.origin_lng != null &&
+        Number.isFinite(load.origin_lat) && Number.isFinite(load.origin_lng) &&
+        Math.abs(load.origin_lat) <= 90 && Math.abs(load.origin_lng) <= 180
+          ? [load.origin_lat, load.origin_lng]
+          : null;
+      let destinationPoint: FreightCoordinate | null =
+        load.destination_lat != null && load.destination_lng != null &&
+        Number.isFinite(load.destination_lat) && Number.isFinite(load.destination_lng) &&
+        Math.abs(load.destination_lat) <= 90 && Math.abs(load.destination_lng) <= 180
+          ? [load.destination_lat, load.destination_lng]
+          : null;
+      let destinationText = load.destination_label?.trim() || '';
+
+      // Recover the buyer's original delivery details before geocoding, without asking the driver to fix the map.
+      if (load.pre_order_id && (!destinationPoint || !destinationText)) {
+        const { data, error } = await supabase
+          .from('pre_orders')
+          .select('location,destination_lat,destination_lng')
+          .eq('id', load.pre_order_id)
+          .maybeSingle();
+        if (error) throw error;
+        if (data) {
+          if (typeof data.location === 'string' && data.location.trim()) destinationText = data.location.trim();
+          const latitude = Number(data.destination_lat);
+          const longitude = Number(data.destination_lng);
+          if (data.destination_lat != null && data.destination_lng != null &&
+              Number.isFinite(latitude) && Number.isFinite(longitude) &&
+              Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180) {
+            destinationPoint = [latitude, longitude];
+          }
+        }
+      }
+
+      const geocodeLabel = async (label: string): Promise<{ point: FreightCoordinate; label: string } | null> => {
+        if (!label.trim()) return null;
+        const { data, error } = await supabase.functions.invoke('geocoding-search', {
+          body: { query: label.trim() },
+        });
+        if (error) throw error;
+        const item = Array.isArray(data?.results) ? data.results.find((candidate: any) => {
+          const latitude = Number(candidate?.lat);
+          const longitude = Number(candidate?.lon);
+          return Number.isFinite(latitude) && Number.isFinite(longitude) &&
+            latitude >= -18.5 && latitude <= -4.2 && longitude >= 11.4 && longitude <= 24.2 &&
+            typeof candidate?.display_name === 'string' && candidate.display_name.trim();
+        }) : null;
+        if (!item) return null;
+        return { point: [Number(item.lat), Number(item.lon)], label: String(item.display_name).trim() };
+      };
+
+      let resolvedOriginLabel = load.origin_label?.trim() || '';
+      if (!originPoint) {
+        const resolved = await geocodeLabel(resolvedOriginLabel);
+        if (resolved) {
+          originPoint = resolved.point;
+          resolvedOriginLabel = resolvedOriginLabel || resolved.label;
+        }
+      }
+      if (!destinationPoint) {
+        const resolved = await geocodeLabel(destinationText);
+        if (resolved) {
+          destinationPoint = resolved.point;
+          destinationText = destinationText || resolved.label;
+        }
+      }
+
+      if (!originPoint || !destinationPoint) {
+        toast.error('Não foi possível localizar automaticamente a origem ou o destino. Confirme se o endereço do comprador está completo.');
+        return;
+      }
+
+      // Persist coordinates recovered from the buyer's saved address, so the map and later tracking use the same route.
+      if (
+        load.origin_lat !== originPoint[0] || load.origin_lng !== originPoint[1] ||
+        load.destination_lat !== destinationPoint[0] || load.destination_lng !== destinationPoint[1]
+      ) {
+        const { error } = await supabase.rpc('set_freight_load_route_details' as never, {
+          p_freight_load_id: load.id,
+          p_origin_lat: originPoint[0],
+          p_origin_lng: originPoint[1],
+          p_destination_lat: destinationPoint[0],
+          p_destination_lng: destinationPoint[1],
+          p_destination_label: (destinationText || load.destination_label || 'Destino do comprador').slice(0, 180),
+        } as never);
+        if (error) throw error;
+      }
+
+      const route = await calculateFreightRoute(originPoint, destinationPoint);
       const { error } = await supabase.rpc('submit_freight_quote', {
         p_freight_load_id: load.id,
         p_price_method: 'suggested',
-        // O preço manual é NULL no método sugerido; a função SQL aceita este valor.
         p_manual_price: null as unknown as number,
         p_route_distance_km: route.distanceKm,
         p_route_duration_minutes: route.durationMinutes,
       });
       if (error) throw error;
-      toast.success('Preço de transporte enviado ao comprador para aprovação.');
+      toast.success('Carga aceite. O preço de transporte foi enviado ao comprador para aprovação.');
       await fetchLoads();
     } catch (error: any) {
-      toast.error(error?.message || 'Não foi possível enviar a proposta de transporte.');
+      toast.error(error?.message || 'Não foi possível aceitar a carga e calcular o frete.');
     } finally { setBusyId(null); }
   };
 
