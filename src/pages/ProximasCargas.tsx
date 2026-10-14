@@ -1513,10 +1513,10 @@ const ProximasCargas = () => {
                     }}
                   >
                     {busyId === load.id
-                      ? (load.pre_order_id ? 'A calcular…' : 'A aceitar…')
+                      ? (load.pre_order_id ? 'A aceitar e calcular frete…' : 'A aceitar…')
                       : tooHeavy
                         ? 'Capacidade insuficiente'
-                        : load.pre_order_id ? 'Calcular e propor preço' : 'Aceitar carga'}
+                        : load.pre_order_id ? 'Aceitar carga e propor frete' : 'Aceitar carga'}
                   </button>
                 ) : isAssignedDriver && load.status === 'accepted' ? (
                   <div style={{ display: 'grid', gap: 8, marginTop: 14 }}>
