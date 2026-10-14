@@ -68,8 +68,9 @@ const STATUS_LABEL: Record<string, string> = {
   available: 'Disponível',
   open: 'Disponível',
   agendado: 'Agendada',
-  accepted: 'Aceite',
-  in_transit: 'Em trânsito',
+  accepted: 'Aceite · a caminho da recolha',
+  at_pickup: 'No local de recolha · confirmar carga',
+  in_transit: 'Em trânsito · GPS',
   delivered: 'Entregue',
   cancelled: 'Cancelada',
 };
@@ -488,7 +489,7 @@ const ProximasCargas = () => {
     const { error } = await supabase.rpc('accept_freight_load', { p_freight_load_id: load.id });
     setBusyId(null);
     if (error) {
-      toast.error('Não foi possível aceitar esta carga.');
+      toast.error(error.message || 'Não foi possível aceitar esta carga.');
       return;
     }
     toast.success('Carga aceite. Boa viagem!');
@@ -501,7 +502,7 @@ const ProximasCargas = () => {
       toast.error('Só o motorista atribuído pode atualizar esta carga.');
       return;
     }
-    const nextStatus = load.status === 'accepted' ? 'in_transit' : 'delivered';
+    const nextStatus = load.status === 'accepted' ? 'at_pickup' : load.status === 'at_pickup' ? 'in_transit' : 'delivered';
     setBusyId(load.id);
     const { error } = await supabase.rpc('advance_freight_load_status', { p_freight_load_id: load.id, p_status: nextStatus });
     setBusyId(null);
@@ -510,7 +511,8 @@ const ProximasCargas = () => {
       return;
     }
     if (nextStatus === 'delivered' && sharingLocationFor === load.id) stopLocationSharing();
-    fetchLoads();
+    if (nextStatus === 'in_transit') startLocationSharing({ ...load, status: 'in_transit' });
+    await fetchLoads();
   };
 
   const visible = loads.filter((load) => {
@@ -1167,7 +1169,7 @@ const ProximasCargas = () => {
                 {tab === 'disponiveis' ? (
                   <button
                     disabled={busyId === load.id || tooHeavy}
-                    onClick={() => submitQuote(load)}
+                    onClick={() => load.pre_order_id ? void submitQuote(load) : void accept(load)}
                     style={{
                       marginTop: 14,
                       width: '100%',
@@ -1183,30 +1185,69 @@ const ProximasCargas = () => {
                     }}
                   >
                     {busyId === load.id
-                      ? 'A calcular…'
+                      ? (load.pre_order_id ? 'A calcular…' : 'A aceitar…')
                       : tooHeavy
                         ? 'Capacidade insuficiente'
-                        : 'Calcular e propor preço'}
+                        : load.pre_order_id ? 'Calcular e propor preço' : 'Aceitar carga'}
                   </button>
-                ) : load.status === 'accepted' || load.status === 'in_transit' ? (
+                ) : isAssignedDriver && load.status === 'accepted' ? (
+                  <div style={{ display: 'grid', gap: 8, marginTop: 14 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (load.origin_lat == null || load.origin_lng == null) {
+                          toast.error('Esta carga não tem coordenadas GPS de recolha.');
+                          return;
+                        }
+                        const url = `https://www.google.com/maps/dir/?api=1&destination=${load.origin_lat},${load.origin_lng}&travelmode=driving`;
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                      }}
+                      style={{
+                        width: '100%', padding: '11px 14px', borderRadius: 12,
+                        border: `1px solid ${T.rule}`, background: T.white, color: T.green,
+                        fontFamily: FONT, fontSize: 13, fontWeight: 800, cursor: 'pointer',
+                      }}
+                    >
+                      <Navigation size={15} style={{ verticalAlign: 'middle', marginRight: 7 }} />
+                      Navegar até à recolha
+                    </button>
+                    <button
+                      disabled={busyId === load.id}
+                      onClick={() => void advance(load)}
+                      style={{
+                        width: '100%', padding: '12px 16px', borderRadius: 12,
+                        border: 'none', background: T.green, color: T.white,
+                        fontFamily: FONT, fontSize: 14, fontWeight: 800, cursor: 'pointer',
+                      }}
+                    >
+                      {busyId === load.id ? 'A actualizar…' : 'Confirmar chegada à recolha'}
+                    </button>
+                  </div>
+                ) : isAssignedDriver && load.status === 'at_pickup' ? (
                   <button
                     disabled={busyId === load.id}
-                    onClick={() => advance(load)}
+                    onClick={() => void advance(load)}
                     style={{
-                      marginTop: 14,
-                      width: '100%',
-                      padding: '12px 16px',
-                      borderRadius: 14,
-                      border: `1.5px solid ${T.green}`,
-                      background: T.white,
-                      color: T.green,
-                      fontFamily: FONT,
-                      fontSize: 14,
-                      fontWeight: 800,
-                      cursor: 'pointer',
+                      marginTop: 14, width: '100%', padding: '12px 16px',
+                      borderRadius: 14, border: 'none', background: T.green,
+                      color: T.white, fontFamily: FONT, fontSize: 14,
+                      fontWeight: 800, cursor: 'pointer',
                     }}
                   >
-                    {load.status === 'accepted' ? 'Iniciar transporte' : 'Marcar como entregue'}
+                    {busyId === load.id ? 'A confirmar…' : 'Confirmar que estou com a carga · iniciar GPS'}
+                  </button>
+                ) : isAssignedDriver && load.status === 'in_transit' ? (
+                  <button
+                    disabled={busyId === load.id}
+                    onClick={() => void advance(load)}
+                    style={{
+                      marginTop: 14, width: '100%', padding: '12px 16px',
+                      borderRadius: 14, border: `1.5px solid ${T.green}`,
+                      background: T.white, color: T.green, fontFamily: FONT,
+                      fontSize: 14, fontWeight: 800, cursor: 'pointer',
+                    }}
+                  >
+                    {busyId === load.id ? 'A actualizar…' : 'Marcar como entregue'}
                   </button>
                 ) : null}
               </article>
