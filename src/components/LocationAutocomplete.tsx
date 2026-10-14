@@ -14,7 +14,7 @@ export type SelectedGeocodedLocation = {
 type LocationAutocompleteProps = {
   value: string
   onChange: (value: string) => void
-  onSelectLocation?: (location: SelectedGeocodedLocation) => void
+  onSelectLocation?: (location: SelectedGeocodedLocation | null) => void
   placeholder?: string
   disabled?: boolean
   inputClassName?: string
@@ -180,7 +180,7 @@ export default function LocationAutocomplete({
           onBlur={() => { window.setTimeout(() => setFocused(false), 120); onBlur?.() }}
           onChange={(event) => {
             onChange(event.target.value)
-            onSelectLocation?.({ label: '', latitude: Number.NaN, longitude: Number.NaN })
+            onSelectLocation?.(null)
           }}
           className={`w-full pl-10 pr-10 ${inputClassName}`}
           style={inputStyle}
