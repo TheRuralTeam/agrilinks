@@ -169,3 +169,20 @@ Com `npm run audit:migrations -- --check`, os achados fazem o comando terminar c
 2. Inspecionar migrations locais sem correspondência nominal e as entradas remotas históricas sem nome, procurando evidência estrutural.
 3. Executar a auditoria local e os gates existentes (`lint`, `type-check:strict`, `test`, `build`) num ambiente de desenvolvimento.
 4. Só depois propor um plano explícito de reconciliação do ledger, sem `db push` nem alteração de produção nesta fase.
+
+
+### Comparação de definições atuais: pré-compra e proformas
+
+A consulta read-only ao catálogo PostgreSQL confirmou quatro definições remotas relevantes: `create_marketplace_pre_order`, `respond_to_pre_order`, `admin_update_pre_order_status` e `set_freight_load_order_participants`, além das políticas RLS de `proforma_invoices`.
+
+- A definição remota de `create_marketplace_pre_order` corresponde funcionalmente ao ficheiro local de correção de tipos nos elementos centrais observados: valida autenticação, quantidade, localização, coordenadas, stock, vendedor, origem GPS e idempotência; devolve os tipos da RPC esperados.
+- A definição remota atual de `respond_to_pre_order` contém verificações de estado de pagamento e reserva de stock que não aparecem na versão inicial de `20261007090000_fix_pre_order_acceptance_terms.sql` consultada. A função remota também atualiza subtotal/total e regista auditoria. Isto mostra que o ficheiro local, isoladamente, não representa toda a evolução posterior da função; é preciso localizar as migrations que a alteraram antes de classificar o histórico.
+- A versão remota de `admin_update_pre_order_status` verifica permissões administrativas/de suporte, pagamento não liquidado, disponibilidade e reserva de stock. Não assumir que o corpo do ficheiro duplicado local é o corpo final em produção.
+- A função remota `set_freight_load_order_participants` usa `pre_orders.user_id` para identificar o comprador e atribui `buyer_id`/ `supplier_id` à carga, coerente com o propósito declarado na migration local.
+- As políticas atuais de `proforma_invoices` são as políticas administrativas de SELECT/INSERT/UPDATE/DELETE; as políticas iniciais de acesso pelo emissor não aparecem na lista atual. A alteração posterior parece estar refletida no esquema remoto consultado.
+
+Esta comparação é de metadados/definições, não um teste de execução. Ainda falta localizar todas as migrations posteriores que modificaram estas funções e comparar o SQL completo de cada uma.
+
+### Estado da validação automatizada
+
+O commit atual do ramo `feat/multi-agent-core-audit` é `9bee96621ae64133cc812e0ffa5a9332a40711ec`. A consulta ao estado de CI devolveu `pending` sem verificações individuais registadas; por isso, não se declara build, lint ou testes aprovados. O PR #30 continua aberto em draft.
