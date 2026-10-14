@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { History, LoaderCircle, MapPin, Search } from 'lucide-react'
+import { Crosshair, History, LoaderCircle, MapPin, Search } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { getPreferredDeliveryLocation } from '../features/products/deliveryLocationPreference'
 import { getProvincesForCountry } from '../data/country-locations'
@@ -42,6 +42,8 @@ export default function LocationAutocomplete({
   const [geocodedSuggestions, setGeocodedSuggestions] = useState<SelectedGeocodedLocation[]>([])
   const [searchingPlaces, setSearchingPlaces] = useState(false)
   const [geocodingUnavailable, setGeocodingUnavailable] = useState(false)
+  const [locatingGps, setLocatingGps] = useState(false)
+  const [gpsMessage, setGpsMessage] = useState<string | null>(null)
   const { user } = useAuth()
 
   useEffect(() => {
@@ -135,6 +137,35 @@ export default function LocationAutocomplete({
       .slice(0, 7)
   }, [value])
 
+  const useCurrentGps = () => {
+    setGpsMessage(null)
+    if (!navigator.geolocation) {
+      setGpsMessage('Este dispositivo não disponibiliza geolocalização.')
+      return
+    }
+    setLocatingGps(true)
+    navigator.geolocation.getCurrentPosition((position) => {
+      const latitude = position.coords.latitude
+      const longitude = position.coords.longitude
+      setLocatingGps(false)
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -18.5 || latitude > -4.2 || longitude < 11.4 || longitude > 24.2) {
+        setGpsMessage('A posição GPS está fora da área operacional da AgriLink em Angola.')
+        return
+      }
+      const label = `GPS confirmado: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+      onChange(label)
+      onSelectLocation?.({ label, latitude, longitude })
+      setFocused(false)
+    }, (error) => {
+      setLocatingGps(false)
+      setGpsMessage(error.code === error.PERMISSION_DENIED
+        ? 'Permita o acesso à localização nas definições do navegador.'
+        : error.code === error.TIMEOUT
+          ? 'A leitura GPS demorou demasiado. Tente novamente num local com melhor sinal.'
+          : 'Não foi possível obter GPS. Verifique o sinal e tente novamente.')
+    }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 })
+  }
+
   const chooseGeocoded = (location: SelectedGeocodedLocation) => {
     onChange(location.label)
     onSelectLocation?.(location)
@@ -182,11 +213,17 @@ export default function LocationAutocomplete({
             onChange(event.target.value)
             onSelectLocation?.(null)
           }}
-          className={`w-full pl-10 pr-10 ${inputClassName}`}
+          className={`w-full pl-10 pr-20 ${inputClassName}`}
           style={inputStyle}
         />
-        {searchingPlaces && <LoaderCircle aria-label="A pesquisar locais" className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[#2c863b]" />}
+        <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+          {searchingPlaces && <LoaderCircle aria-label="A pesquisar locais" className="h-4 w-4 animate-spin text-[#2c863b]" />}
+          <button type="button" disabled={disabled || locatingGps} onClick={useCurrentGps} aria-label="Usar a minha localização GPS" title="Usar a minha localização GPS" className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#2c863b] hover:bg-[#F2FAF3] disabled:opacity-50">
+            {locatingGps ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
+      {gpsMessage && <p role="status" className="mt-1 text-[11px] leading-4 text-[#9A5B00]">{gpsMessage}</p>}
       {showList && (
         <div
           role="listbox"
