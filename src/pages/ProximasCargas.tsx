@@ -58,7 +58,7 @@ interface FreightLoad {
 interface RouteLocationSuggestion {
   label: string;
   point: FreightCoordinate | null;
-  source: 'mapa' | 'pre-compra';
+  source: 'mapa' | 'pre-compra' | 'geocoding';
 }
 
 interface FreightLoadLocation {
@@ -149,6 +149,8 @@ const ProximasCargas = () => {
   const [routeSetupDestinationLabel, setRouteSetupDestinationLabel] = useState('');
   const [routeSetupDestinationSearch, setRouteSetupDestinationSearch] = useState('');
   const [routeSetupSuggestions, setRouteSetupSuggestions] = useState<RouteLocationSuggestion[]>([]);
+  const [routeSetupGeocodedSuggestions, setRouteSetupGeocodedSuggestions] = useState<RouteLocationSuggestion[]>([]);
+  const [routeSetupSearchingPlaces, setRouteSetupSearchingPlaces] = useState(false);
   const locationWatchId = useRef<number | null>(null);
   const lastLocationWriteAt = useRef(0);
   const pendingLocationRef = useRef<Record<string, FreightLoadLocation>>({});
@@ -156,6 +158,51 @@ const ProximasCargas = () => {
   const locationRetryNoticeShown = useRef(false);
 
   const capacity = (userProfile as any)?.load_capacity_kg as number | null | undefined;
+
+  // The route-repair search must query the geocoder, not only filter previously saved places.
+  useEffect(() => {
+    const query = routeSetupDestinationSearch.trim();
+    if (!routeSetupLoadId || query.length < 3 || !navigator.onLine) {
+      setRouteSetupGeocodedSuggestions([]);
+      setRouteSetupSearchingPlaces(false);
+      return;
+    }
+
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      setRouteSetupSearchingPlaces(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('geocoding-search', {
+          body: { query },
+        });
+        if (error) throw error;
+        const results: RouteLocationSuggestion[] = (Array.isArray(data?.results) ? data.results : [])
+          .flatMap((item: any) => {
+            const latitude = Number(item?.lat);
+            const longitude = Number(item?.lon);
+            const label = typeof item?.display_name === 'string' ? item.display_name.trim() : '';
+            if (!label || !Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+                latitude < -18.5 || latitude > -4.2 || longitude < 11.4 || longitude > 24.2) return [];
+            return [{ label, point: [latitude, longitude] as FreightCoordinate, source: 'geocoding' as const }];
+          });
+        if (active) {
+          setRouteSetupGeocodedSuggestions(results.filter((item, index, all) =>
+            all.findIndex((candidate) => candidate.label.toLocaleLowerCase('pt-AO') === item.label.toLocaleLowerCase('pt-AO')) === index
+          ).slice(0, 8));
+        }
+      } catch (error) {
+        console.warn('[AgriLink] Geocodificação indisponível ao corrigir rota GPS.', error);
+        if (active) setRouteSetupGeocodedSuggestions([]);
+      } finally {
+        if (active) setRouteSetupSearchingPlaces(false);
+      }
+    }, 350);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [routeSetupDestinationSearch, routeSetupLoadId]);
 
   useEffect(() => {
     if (!origin || !destination) {
@@ -553,6 +600,7 @@ const ProximasCargas = () => {
       all.findIndex((candidate) => candidate.label.toLocaleLowerCase('pt-AO') === item.label.toLocaleLowerCase('pt-AO')) === index
     );
     setRouteSetupSuggestions(uniqueSuggestions);
+    setRouteSetupGeocodedSuggestions([]);
     setRouteSetupDestinationLabel(buyerDestination);
     setRouteSetupDestinationSearch(buyerDestination);
   };
@@ -1305,7 +1353,7 @@ const ProximasCargas = () => {
                           </div>
                         </label>
                         <div role="listbox" aria-label="Sugestões de pontos de entrega" style={{ display: 'grid', gap: 4, maxHeight: 180, overflowY: 'auto' }}>
-                          {routeSetupSuggestions
+                          {([...routeSetupGeocodedSuggestions, ...routeSetupSuggestions])
                             .filter((item) => !routeSetupDestinationSearch.trim() || item.label.toLocaleLowerCase('pt-AO').includes(routeSetupDestinationSearch.trim().toLocaleLowerCase('pt-AO')))
                             .slice(0, 8)
                             .map((item, index) => (
@@ -1323,12 +1371,13 @@ const ProximasCargas = () => {
                                 style={{ textAlign: 'left', padding: '9px 10px', border: `1px solid ${T.rule}`, borderRadius: 8, background: routeSetupDestinationLabel === item.label ? T.g50 : T.white, color: T.ink, cursor: 'pointer', fontFamily: FONT, fontSize: 12 }}
                               >
                                 <span style={{ display: 'block', fontWeight: 800 }}>{item.label}</span>
-                                <span style={{ display: 'block', marginTop: 3, color: T.muted, fontSize: 10 }}>{item.source === 'pre-compra' ? 'Localização original do comprador' : item.point ? 'Local já marcado no mapa · coordenadas disponíveis' : 'Local registado sem coordenadas GPS'}</span>
+                                <span style={{ display: 'block', marginTop: 3, color: T.muted, fontSize: 10 }}>{item.source === 'geocoding' ? 'Resultado geográfico · ajuste o ponto exacto no mapa' : item.source === 'pre-compra' ? 'Localização original do comprador' : item.point ? 'Local já marcado no mapa · coordenadas disponíveis' : 'Local registado sem coordenadas GPS'}</span>
                               </button>
                             ))}
-                          {routeSetupSuggestions.filter((item) => !routeSetupDestinationSearch.trim() || item.label.toLocaleLowerCase('pt-AO').includes(routeSetupDestinationSearch.trim().toLocaleLowerCase('pt-AO'))).length === 0 && (
+                          {([...routeSetupGeocodedSuggestions, ...routeSetupSuggestions]).filter((item) => !routeSetupDestinationSearch.trim() || item.label.toLocaleLowerCase('pt-AO').includes(routeSetupDestinationSearch.trim().toLocaleLowerCase('pt-AO'))).length === 0 && !routeSetupSearchingPlaces && (
                             <p style={{ margin: 0, padding: 8, fontSize: 11, color: T.muted }}>Sem sugestões correspondentes. Pode continuar a escrever o nome do local e marcar o ponto exacto no mapa.</p>
                           )}
+                          {routeSetupSearchingPlaces && <p style={{ margin: 0, padding: 8, fontSize: 11, color: T.muted }}>A pesquisar locais em Angola…</p>}
                         </div>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button type="button" onClick={() => setRouteSetupSelection('origin')} style={{ flex: 1, padding: 8, borderRadius: 8, border: `1px solid ${T.rule}`, background: routeSetupSelection === 'origin' ? T.g50 : T.white, color: T.green, fontFamily: FONT, fontWeight: 800 }}>
@@ -1338,7 +1387,7 @@ const ProximasCargas = () => {
                             {routeSetupDestination ? 'Alterar destino' : 'Marcar destino'}
                           </button>
                         </div>
-                        <p style={{ margin: 0, fontSize: 11, color: T.muted }}>Ao escolher um local sem GPS, seleccione “Marcar destino” e toque no ponto real no mapa. O nome pesquisado será mantido como descrição do destino.</p>
+                        <p style={{ margin: 0, fontSize: 11, color: T.muted }}>Os resultados da pesquisa ajudam a centrar o ponto, mas podem representar uma zona ampla. Ajuste sempre o marcador ao local exacto no mapa antes de guardar.</p>
                         <div style={{ overflow: 'hidden', border: `1px solid ${T.rule}`, borderRadius: 8 }}>
                           <FreightRouteMap
                             origin={routeSetupOrigin}
