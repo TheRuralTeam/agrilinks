@@ -135,6 +135,10 @@ const ProximasCargas = () => {
   } | null>(null);
   const [driverLocations, setDriverLocations] = useState<Record<string, FreightLoadLocation>>({});
   const [sharingLocationFor, setSharingLocationFor] = useState<string | null>(null);
+  const [routeSetupLoadId, setRouteSetupLoadId] = useState<string | null>(null);
+  const [routeSetupOrigin, setRouteSetupOrigin] = useState<FreightCoordinate | null>(null);
+  const [routeSetupDestination, setRouteSetupDestination] = useState<FreightCoordinate | null>(null);
+  const [routeSetupSelection, setRouteSetupSelection] = useState<FreightPointSelection>('destination');
   const locationWatchId = useRef<number | null>(null);
   const lastLocationWriteAt = useRef(0);
 
@@ -457,8 +461,20 @@ const ProximasCargas = () => {
   const submitQuote = async (load: FreightLoad) => {
     if (!requireAct('propor o preço de uma carga')) return;
     if (!user?.id || load.created_by === user.id) return;
-    if (!load.origin_lat || !load.origin_lng || !load.destination_lat || !load.destination_lng) {
-      toast.error('Esta carga não tem uma rota GPS válida.'); return;
+    if (
+      load.origin_lat == null || load.origin_lng == null ||
+      load.destination_lat == null || load.destination_lng == null ||
+      !Number.isFinite(load.origin_lat) || !Number.isFinite(load.origin_lng) ||
+      !Number.isFinite(load.destination_lat) || !Number.isFinite(load.destination_lng) ||
+      Math.abs(load.origin_lat) > 90 || Math.abs(load.destination_lat) > 90 ||
+      Math.abs(load.origin_lng) > 180 || Math.abs(load.destination_lng) > 180
+    ) {
+      toast.error('A rota GPS está incompleta. Confirme os pontos reais de origem e destino no mapa.');
+      setRouteSetupLoadId(load.id);
+      setRouteSetupOrigin(load.origin_lat == null || load.origin_lng == null ? null : [load.origin_lat, load.origin_lng]);
+      setRouteSetupDestination(load.destination_lat == null || load.destination_lng == null ? null : [load.destination_lat, load.destination_lng]);
+      setRouteSetupSelection(load.origin_lat == null || load.origin_lng == null ? 'origin' : 'destination');
+      return;
     }
     setBusyId(load.id);
     try {
@@ -477,6 +493,30 @@ const ProximasCargas = () => {
     } catch (error: any) {
       toast.error(error?.message || 'Não foi possível enviar a proposta de transporte.');
     } finally { setBusyId(null); }
+  };
+
+  const saveRouteCoordinates = async (load: FreightLoad) => {
+    if (!requireAct('confirmar a rota GPS da carga')) return;
+    if (!routeSetupOrigin || !routeSetupDestination) {
+      toast.error('Marque a origem e o destino reais no mapa.');
+      return;
+    }
+    setBusyId(load.id);
+    const { error } = await supabase.rpc('set_freight_load_route_coordinates' as never, {
+      p_freight_load_id: load.id,
+      p_origin_lat: routeSetupOrigin[0],
+      p_origin_lng: routeSetupOrigin[1],
+      p_destination_lat: routeSetupDestination[0],
+      p_destination_lng: routeSetupDestination[1],
+    } as never);
+    setBusyId(null);
+    if (error) {
+      toast.error(error.message || 'Não foi possível guardar as coordenadas GPS.');
+      return;
+    }
+    setRouteSetupLoadId(null);
+    toast.success('Rota GPS guardada. Já pode calcular e propor o frete.');
+    await fetchLoads();
   };
 
   const accept = async (load: FreightLoad) => {
@@ -1162,6 +1202,51 @@ const ProximasCargas = () => {
                           minute: '2-digit',
                         })}
                       </span>
+                    )}
+                  </section>
+                )}
+
+                {tab === 'disponiveis' && load.pre_order_id && !hasCoordinates && (
+                  <section style={{ marginTop: 12, padding: 12, border: `1px solid ${T.rule}`, borderRadius: 12, display: 'grid', gap: 8 }}>
+                    <p style={{ margin: 0, fontSize: 12, color: T.mid, lineHeight: 1.5 }}>
+                      Esta pré-compra não tem a rota GPS completa. Confirme os pontos reais de recolha e entrega no mapa para continuar.
+                    </p>
+                    {routeSetupLoadId !== load.id ? (
+                      <button type="button" onClick={() => {
+                        setRouteSetupLoadId(load.id);
+                        setRouteSetupOrigin(load.origin_lat == null || load.origin_lng == null ? null : [load.origin_lat, load.origin_lng]);
+                        setRouteSetupDestination(load.destination_lat == null || load.destination_lng == null ? null : [load.destination_lat, load.destination_lng]);
+                        setRouteSetupSelection(load.origin_lat == null || load.origin_lng == null ? 'origin' : 'destination');
+                      }} style={{ padding: '10px 12px', border: `1px solid ${T.green}`, borderRadius: 10, background: T.white, color: T.green, fontFamily: FONT, fontWeight: 800, cursor: 'pointer' }}>
+                        Corrigir rota GPS
+                      </button>
+                    ) : (
+                      <>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button type="button" onClick={() => setRouteSetupSelection('origin')} style={{ flex: 1, padding: 8, borderRadius: 8, border: `1px solid ${T.rule}`, background: routeSetupSelection === 'origin' ? T.g50 : T.white, color: T.green, fontFamily: FONT, fontWeight: 800 }}>
+                            {routeSetupOrigin ? 'Alterar origem' : 'Marcar origem'}
+                          </button>
+                          <button type="button" onClick={() => setRouteSetupSelection('destination')} style={{ flex: 1, padding: 8, borderRadius: 8, border: `1px solid ${T.rule}`, background: routeSetupSelection === 'destination' ? T.g50 : T.white, color: T.green, fontFamily: FONT, fontWeight: 800 }}>
+                            {routeSetupDestination ? 'Alterar destino' : 'Marcar destino'}
+                          </button>
+                        </div>
+                        <p style={{ margin: 0, fontSize: 11, color: T.muted }}>Selecione um ponto acima e toque no mapa. Confirme os locais reais, sem estimar coordenadas.</p>
+                        <div style={{ overflow: 'hidden', border: `1px solid ${T.rule}`, borderRadius: 8 }}>
+                          <FreightRouteMap
+                            origin={routeSetupOrigin}
+                            destination={routeSetupDestination}
+                            activeSelection={routeSetupSelection}
+                            onSelectPoint={(coordinate) => routeSetupSelection === 'origin' ? setRouteSetupOrigin(coordinate) : setRouteSetupDestination(coordinate)}
+                            height={250}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button type="button" onClick={() => setRouteSetupLoadId(null)} style={{ flex: 1, padding: 10, border: `1px solid ${T.rule}`, borderRadius: 8, background: T.white, color: T.mid, fontFamily: FONT, fontWeight: 800 }}>Cancelar</button>
+                          <button type="button" disabled={busyId === load.id || !routeSetupOrigin || !routeSetupDestination} onClick={() => void saveRouteCoordinates(load)} style={{ flex: 1, padding: 10, border: 'none', borderRadius: 8, background: T.green, color: T.white, fontFamily: FONT, fontWeight: 800, opacity: !routeSetupOrigin || !routeSetupDestination ? 0.5 : 1 }}>
+                            {busyId === load.id ? 'A guardar…' : 'Guardar rota GPS'}
+                          </button>
+                        </div>
+                      </>
                     )}
                   </section>
                 )}
