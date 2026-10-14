@@ -186,3 +186,39 @@ Esta comparação é de metadados/definições, não um teste de execução. Ain
 ### Estado da validação automatizada
 
 O estado do ramo foi consultado após as atualizações documentadas; confirmar o HEAD e o estado de CI diretamente no PR antes de usar estes dados como gate de merge. A consulta ao estado de CI devolveu `pending` sem verificações individuais registadas; por isso, não se declara build, lint ou testes aprovados. O PR #30 continua aberto em draft.
+
+
+## Quarta passagem — privilégios RPC e primeira migration aditiva (não aplicada)
+
+### Privilégios remotos observados
+
+A consulta a `has_function_privilege` e aos corpos das funções confirmou:
+
+- `create_freight_settlement_if_ready(uuid)` está executável por `anon` e `authenticated`, apesar de funcionar como helper interno chamado por `confirm_freight_handover` e `confirm_freight_receipt`. A função só cria um registo de settlement quando as confirmações já existem e o frete é positivo, mas a exposição direta é desnecessária e pode permitir invocações arbitrárias/repetidas do helper.
+- A RPC legada `advance_freight_load(uuid)` também está executável por `anon` e `authenticated`. O frontend encontrado usa `advance_freight_load_status(uuid,text)`; a função legada faz transições automáticas accepted → in_transit → delivered sem as validações adicionais do fluxo atual.
+- `accept_freight_load`, `confirm_freight_handover`, `confirm_freight_receipt` e `update_freight_tracking_location` também aceitam execução de `anon` ao nível de privilégios, embora os corpos verifiquem `auth.uid()` e identidade/atribuição. O acesso anónimo não é necessário para estas ações autenticadas.
+- As funções de processamento da fila de email e o rate limiter interno estão corretamente limitados a `service_role` na consulta.
+
+### Migration de hardening preparada
+
+Foi criado `20261014190000_restrict_internal_freight_rpc_execution.sql`, que:
+1. revoga execução da RPC logística legada a clientes;
+2. torna `create_freight_settlement_if_ready` interno, mantendo `service_role` como executor direto;
+3. restringe as RPCs de aceite, confirmações e localização a utilizadores autenticados.
+
+O frontend consultado não chama a RPC logística legada. As funções de confirmação continuam a invocar o helper internamente como funções `SECURITY DEFINER`, pelo que a revogação de privilégios de cliente não elimina essas chamadas internas.
+
+### Migration aditiva de orquestração preparada
+
+Foi criado `20261014191000_create_multi_agent_orchestration_tables.sql`, ainda **não aplicado**, com:
+- `agent_tasks`: fila idempotente de tarefas, risco, modo de autonomia, tentativas e resultado;
+- `agent_events`: registo append-only de eventos;
+- `agent_approvals`: pedidos de aprovação humana e decisão;
+- índices de despacho, histórico e aprovações pendentes;
+- RLS ativa e sem políticas para `anon`/`authenticated`, com privilégios explícitos apenas para `service_role`.
+
+A migration é aditiva e não altera as tabelas comerciais existentes. Ainda requer validação num projeto de desenvolvimento antes de qualquer aplicação. O worker/Edge Function, a máquina de estados, a idempotência operacional e os testes ainda não foram implementados.
+
+### Bloqueio de execução continua válido
+
+As duas migrations foram adicionadas apenas ao ramo de trabalho. **Não foram executadas contra Supabase, não houve deploy funcional e não se afirma que estejam testadas.** Devido às colisões históricas e às divergências de versões do ledger, não aplicar estas migrations até validar o histórico num ambiente de desenvolvimento e confirmar o estado do CI.
