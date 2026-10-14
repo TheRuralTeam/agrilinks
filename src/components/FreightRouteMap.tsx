@@ -44,7 +44,8 @@ function FitFreightBounds({
   destination,
   route,
   driverLocation,
-}: Pick<FreightRouteMapProps, 'origin' | 'destination' | 'route' | 'driverLocation'>) {
+  activeSelection,
+}: Pick<FreightRouteMapProps, 'origin' | 'destination' | 'route' | 'driverLocation' | 'activeSelection'>) {
   const map = useMap();
 
   useEffect(() => {
@@ -54,7 +55,10 @@ function FitFreightBounds({
           (coordinate): coordinate is FreightCoordinate => coordinate !== null
         );
 
-    if (points.length > 1) {
+    if (activeSelection && (!origin || !destination)) {
+      // Missing endpoints must be easy to set even when the known point is in another province.
+      map.setView(luandaCenter, 6);
+    } else if (points.length > 1) {
       const bounds = L.latLngBounds(
         points.map(([latitude, longitude]) => L.latLng(latitude, longitude))
       );
@@ -62,7 +66,7 @@ function FitFreightBounds({
     } else if (points.length === 1) {
       map.setView(points[0], 13);
     }
-  }, [destination, driverLocation, map, origin, route]);
+  }, [activeSelection, destination, driverLocation, map, origin, route]);
 
   return null;
 }
@@ -95,6 +99,7 @@ export function FreightRouteMap({
         destination={destination}
         route={route}
         driverLocation={driverLocation}
+        activeSelection={activeSelection}
       />
       {route?.coordinates.length ? (
         <Polyline
