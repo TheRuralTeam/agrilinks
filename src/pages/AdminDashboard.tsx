@@ -1583,7 +1583,10 @@ const AdminDashboard = () => {
                             'bg-gray-100 text-gray-700'
                           }`}>
                             {(product as any).status === 'pending_approval' ? 'Pendente' :
-                             (product as any).status === 'active' ? 'Aprovado' :
+                             (product as any).status === 'active' ? 'Disponível' :
+                             (product as any).status === 'sold' ? 'Vendido' :
+                             (product as any).status === 'unavailable' ? 'Indisponível' :
+                             (product as any).status === 'inactive' ? 'Inactivo' :
                              (product as any).status === 'rejected' ? 'Rejeitado' : (product as any).status}
                           </span>
                         </TableCell>
