@@ -1211,6 +1211,10 @@ const ProximasCargas = () => {
                     <p style={{ margin: 0, fontSize: 12, color: T.mid, lineHeight: 1.5 }}>
                       Esta pré-compra não tem a rota GPS completa. Confirme os pontos reais de recolha e entrega no mapa para continuar.
                     </p>
+                    <div style={{ display: 'grid', gap: 4, fontSize: 12, color: T.ink }}>
+                      <div><strong>Recolha:</strong> {load.origin_label}</div>
+                      <div><strong>Entrega:</strong> {load.destination_label}</div>
+                    </div>
                     {routeSetupLoadId !== load.id ? (
                       <button type="button" onClick={() => {
                         setRouteSetupLoadId(load.id);
