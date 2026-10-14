@@ -1,0 +1,90 @@
+# Auditoria de baseline — ecossistema multiagente AgriLink
+
+**Data:** 2026-10-14  
+**Repositório:** `TheRuralTeam/agrilinks`  
+**Base auditada:** ramo `main`, commit `5daa0ca5f5f75a0777fd8636724e418fdbb6b16f`  
+**Supabase:** projeto `AgriLink`, ref `oqcrfqtlfqwrxxmsjpaf`, PostgreSQL 17.6  
+**Âmbito:** leitura do repositório, migrations, rotas/permissões e metadados do esquema remoto. Não foram feitas alterações à base de dados nem deploy.
+
+## Resumo executivo
+
+O projeto já possui os principais domínios de negócio que a rede multiagente precisa de coordenar: utilizadores, produtos, sourcing e cotações, pré-compras/encomendas, faturas proforma, cargas, eventos e localizações GPS, notificações, conversas e estruturas de pagamentos. A abordagem correta é orquestrar os workflows existentes, não criar um segundo marketplace paralelo.
+
+A primeira entrega deve ser uma fundação segura e aditiva: contratos de tarefas/eventos, autorização no backend, idempotência, auditoria e um centro de operações em modo de observação. A execução autónoma de alterações de negócio fica fora da primeira fase.
+
+## Evidências observadas
+
+### Código e navegação
+- `src/App.tsx` usa React Router e rotas lazy-loaded; já há rotas de aplicação e administração.
+- A rota `/admindashboard` usa `PermissionRoute` com `view_analytics`; a lixeira de pedidos usa `manage_orders` e admite suporte.
+- `src/features/auth/authorization.ts` define as permissões administrativas: `manage_users`, `manage_products`, `manage_orders`, `manage_support`, `manage_sourcing`, `view_analytics`, `manage_admins`.
+- O tipo de utilizador inclui os papéis humanos `agente`, `agricultor`, `comprador` e `motorista`; a administração também é representada por permissões/flags. Não reutilizar `user_type = agente` para agentes de software.
+- `package.json` disponibiliza `lint`, `type-check:strict`, `test` e `build`; estes serão os gates mínimos de validação.
+- Não foi identificado um módulo dedicado de orquestração multiagente no código pesquisado. Existem capacidades especializadas já implementadas, incluindo análise de mercado, notificações, sourcing, pagamentos e logística.
+
+### Estado de Git
+- HEAD de `main`: `5daa0ca5f5f75a0777fd8636724e418fdbb6b16f`, commit de 2026-10-14 09:57:34Z, mensagem “Corrige referência ambígua em proposta de frete”.
+- A API de branches reportou `protected: false` e verificações obrigatórias desativadas para `main`. Isto aumenta o risco de alterações diretas sem gates obrigatórios. Não foi alterada a configuração do repositório.
+- O ramo contém migrations recentes de sourcing, proformas, estado dos produtos e GPS/logística, incluindo a correção da ambiguidade em `submit_freight_quote`.
+
+### Esquema remoto e migrações
+- O projeto remoto está ativo e em PostgreSQL 17.6.
+- A inspeção do esquema confirma tabelas de negócio como `users`, `products`, `orders`, `pre_orders`, `freight_loads`, `freight_load_events`, `freight_load_location_history`, `sourcing_requests`, `sourcing_supplier_quotes`, `proforma_invoices`, `notifications`, `conversations`, `payment_intents`, `transactions` e outras.
+- O histórico remoto contém a migration `fix_ambiguous_id_submit_freight_quote` sob versão `20261014095710`, enquanto o ficheiro versionado correspondente tem prefixo `20261014170000`. Também existem diferenças semelhantes entre prefixos de migrations de logística. Os nomes correspondem, mas os IDs de versão não. Antes de `db push`, reset ou aplicação automática, é necessário reconciliar o ledger remoto com os ficheiros e confirmar os conteúdos aplicados; não assumir que a diferença é segura.
+- O tipo `Database` em `src/integrations/supabase/types.ts` é gerado e volumoso. Deve ser comparado com os tipos gerados diretamente a partir do esquema remoto antes de adicionar novas entidades.
+- A base tem várias funções `SECURITY DEFINER`, incluindo RPCs de administração, sourcing, pagamentos e logística. As funções existentes são o perímetro de execução das operações sensíveis e devem ser reutilizadas, com revisão individual de `search_path`, grants, validação de identidade e transições de estado.
+
+### Segurança/RLS
+- RLS está ativo em tabelas de negócio inspecionadas.
+- O advisor de segurança reportou 19 tabelas com RLS ativo e sem políticas (nível INFO). Algumas parecem ser tabelas internas de filas, limites, cache, códigos de verificação ou configuração. Isto não é, por si só, prova de vulnerabilidade: é necessário confirmar grants e uso exclusivo por Edge Functions/RPCs antes de adicionar políticas.
+- O inventário de políticas mostra políticas em tabelas de utilizadores, mensagens, notificações, produtos, encomendas, pré-compras e sourcing. Algumas usam o papel SQL `public`; a segurança depende da expressão completa da política e dos privilégios de tabela. Não conceder permissões novas de forma ampla.
+- O centro de operações não deve consultar tabelas internas diretamente a partir do browser. A leitura e as ações devem passar por endpoints autenticados que confirmem permissões e filtrem por entidade/participante.
+- Não foram executadas ações de mutação, DDL ou deploy durante esta auditoria.
+
+## Riscos e decisões
+
+| ID | Risco | Tratamento proposto |
+|---|---|---|
+| A-01 | IDs de versão do ledger remoto não coincidem com prefixos de alguns ficheiros locais | Fazer reconciliação migration a migration e validar estado/definições antes de qualquer `db push`. |
+| A-02 | `main` não tem proteção/CI obrigatório reportado pela API | Recomendar proteção de branch e checks obrigatórios antes do primeiro merge de código executável. |
+| A-03 | Funções `SECURITY DEFINER` atravessam fronteiras de autorização | Inventariar grants, `search_path`, `auth.uid()`, checks de papel e validação de entidade para cada RPC que o agente possa invocar. |
+| A-04 | Advisor assinala 19 tabelas RLS sem políticas | Confirmar privilégios efetivos e se o acesso é exclusivamente server-side; não adicionar políticas indiscriminadas. |
+| A-05 | Dados de sourcing, preço, pagamentos e GPS têm sensibilidade operacional | Guardar no payload dos agentes apenas IDs e campos mínimos; obter dados atuais através de funções autorizadas. |
+| A-06 | Eventos repetidos ou concorrentes podem duplicar efeitos | Idempotency key, transições condicionais e testes de concorrência antes de ativar automação. |
+
+## Plano incremental
+
+### P0 — reconciliação (antes de DDL)
+- Comparar migrations locais/remotas por nome, definição e versão.
+- Gerar e comparar tipos TypeScript a partir do esquema remoto.
+- Inventariar policies, grants e funções privilegiadas envolvidas em sourcing, encomendas, fretes e administração.
+- Estabelecer testes de regressão dos fluxos existentes e registar os erros já conhecidos separadamente.
+
+### P1 — núcleo interno de tarefas
+- Introduzir, numa migration aditiva, tarefas, eventos append-only e aprovações; sem alterar tabelas de negócio existentes.
+- Tabelas internas com RLS e sem acesso direto a `anon`/`authenticated`; endpoints server-side validam o utilizador e aplicam o filtro de acesso.
+- Catálogo de capacidades versionado no código, schemas de entrada/saída e política por risco.
+- Testes de isolamento, grants, idempotência, transições e auditoria.
+
+### P2 — centro de operações em modo de observação
+- Rota lazy-loaded dentro do painel administrativo.
+- Acesso de leitura com `view_analytics`; ações futuras exigem permissões específicas como `manage_orders` ou `manage_sourcing`.
+- Mostrar estados, evidências, política aplicada, resultados e erros sanitizados; não expor chain-of-thought, segredos nem dados de outras entidades.
+
+### P3 — primeiro workflow controlado
+- Workflow de sourcing apenas consultivo: validar pedido, identificar campos em falta, consultar ofertas existentes e preparar proposta.
+- O utilizador confirma a proposta. Nenhuma alteração autónoma de stock, preço, pedido, pagamento ou estado de carga.
+
+### P4 — integração de logística
+- Consumir eventos e RPCs existentes para aceitação, recolha, viagem e entrega.
+- Não aceitar uma carga, alterar preço, iniciar viagem nem confirmar entrega em nome de um utilizador sem regra explícita e autorização.
+- Localização ativa apenas durante a operação e com as permissões aplicáveis.
+
+## Critérios de aceitação da primeira entrega executável
+
+- `lint`, `type-check:strict`, testes e `build` aprovados.
+- Migração aplicada primeiro num ambiente/branch de desenvolvimento após reconciliar o ledger.
+- RLS e grants testados por papel; nenhum acesso cruzado entre entidades.
+- Idempotência demonstrada por testes de repetição e concorrência.
+- Sem regressões em sourcing, pré-compra, proforma, pagamento e GPS.
+- Nenhum deploy de produção declarado sem resultado verificável.
