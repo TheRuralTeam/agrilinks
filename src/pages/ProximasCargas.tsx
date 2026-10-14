@@ -560,12 +560,13 @@ const ProximasCargas = () => {
       return;
     }
     setBusyId(load.id);
-    const { error } = await supabase.rpc('set_freight_load_route_coordinates' as never, {
+    const { error } = await supabase.rpc('set_freight_load_route_details' as never, {
       p_freight_load_id: load.id,
       p_origin_lat: routeSetupOrigin[0],
       p_origin_lng: routeSetupOrigin[1],
       p_destination_lat: routeSetupDestination[0],
       p_destination_lng: routeSetupDestination[1],
+      p_destination_label: routeSetupDestinationLabel.trim() || load.destination_label,
     } as never);
     setBusyId(null);
     if (error) {
@@ -1285,7 +1286,12 @@ const ProximasCargas = () => {
                             <Search size={15} style={{ position: 'absolute', left: 10, top: 13, color: T.muted }} />
                             <input
                               value={routeSetupDestinationSearch}
-                              onChange={(event) => setRouteSetupDestinationSearch(event.target.value)}
+                              onChange={(event) => {
+                                const value = event.target.value;
+                                setRouteSetupDestinationSearch(value);
+                                setRouteSetupDestinationLabel(value);
+                                setRouteSetupDestination(null);
+                              }}
                               placeholder="Pesquisar localizações do mapa ou destino da pré-compra"
                               style={{ ...formInputStyle, paddingLeft: 32 }}
                               maxLength={180}
