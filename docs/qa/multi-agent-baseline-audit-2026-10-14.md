@@ -52,6 +52,13 @@ A consulta também encontrou privilégios de tabela concedidos a `anon` em algum
 
 Contagem remota: 163 funções `SECURITY DEFINER` no schema `public`; a consulta não encontrou nenhuma sem configuração explícita de `search_path`. Isto é uma baseline de metadados, não uma auditoria completa do corpo das 163 funções. O foco da próxima revisão deve ser a matriz de EXECUTE grants, validação de identidade/entidade, transições de estado e funções chamadas por workflows de agentes.
 
+
+### Achados concretos de maior prioridade
+
+1. **RPC legado `advance_freight_load(uuid)`** — o corpo remoto permite que o motorista atribuído passe de `accepted` diretamente para `in_transit` e depois para `delivered`. Não valida `payment_status = paid`, aprovação da proposta de frete nem a etapa explícita `at_pickup`. A pesquisa no frontend encontrou a chamada ao RPC mais recente `advance_freight_load_status(uuid,text)`, não ao RPC legado. Antes de revogar a função, confirmar todos os consumidores (incluindo automações externas); se não houver consumidor legítimo, revogar `EXECUTE` de `PUBLIC`, `anon` e `authenticated` numa migration separada e testada.
+2. **RPC interno `create_freight_settlement_if_ready(uuid)`** — é `SECURITY DEFINER`, executável por `anon` e não verifica `auth.uid()`. A lógica só cria a liquidação se a carga tiver todas as confirmações exigidas e preço positivo, e usa `ON CONFLICT DO NOTHING`; mesmo assim, deve ser apenas uma função interna chamada por funções de confirmação autorizadas. Rever grants e revogar acesso direto de cliente depois de verificar triggers/consumidores.
+3. **RPCs de negócio com EXECUTE concedido a `anon`** — `accept_freight_load`, `admin_set_product_status`, `advance_freight_load`, `confirm_freight_handover`, `confirm_freight_receipt`, `create_freight_settlement_if_ready` e `update_freight_tracking_location` exigem revisão/grants mínimos. A maioria valida autenticação ou papel dentro do corpo, mas isso não substitui a remoção de privilégios desnecessários. `submit_public_contact` e `validate_agent_code` podem precisar de acesso público limitado e devem ser avaliadas separadamente.
+
 ## Riscos e decisões
 
 | ID | Risco | Tratamento proposto |
