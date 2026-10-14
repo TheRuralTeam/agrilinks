@@ -185,4 +185,4 @@ Esta comparação é de metadados/definições, não um teste de execução. Ain
 
 ### Estado da validação automatizada
 
-O commit do ramo no momento desta atualização é `0036803e9e243750a31a1ec4915ecf04d7f51176`. A consulta ao estado de CI devolveu `pending` sem verificações individuais registadas; por isso, não se declara build, lint ou testes aprovados. O PR #30 continua aberto em draft.
+O estado do ramo foi consultado após as atualizações documentadas; confirmar o HEAD e o estado de CI diretamente no PR antes de usar estes dados como gate de merge. A consulta ao estado de CI devolveu `pending` sem verificações individuais registadas; por isso, não se declara build, lint ou testes aprovados. O PR #30 continua aberto em draft.
