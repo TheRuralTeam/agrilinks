@@ -1626,6 +1626,33 @@ const AdminDashboard = () => {
                                   </>
                                 )}
                                 {hasPermission("manage_products") && (
+                                  <>
+                                    {([
+                                      { status: "sold", label: "Marcar como vendido", icon: CheckCircle, className: "text-blue-700" },
+                                      { status: "unavailable", label: "Marcar como indisponível", icon: XCircle, className: "text-amber-700" },
+                                      { status: "active", label: "Voltar a disponibilizar", icon: Package, className: "text-green-700" },
+                                    ] as const).filter((option) => (product as any).status !== option.status).map((option) => (
+                                      <DropdownMenuItem
+                                        key={option.status}
+                                        className={option.className}
+                                        onClick={async () => {
+                                          if (!hasPermission("manage_products")) return toast.error("Não tem permissão para alterar o estado dos produtos.");
+                                          const { data, error } = await supabase.rpc("admin_set_product_status", {
+                                            p_product_id: product.id,
+                                            p_status: option.status,
+                                          });
+                                          if (error) return toast.error(error.message || "Não foi possível alterar o estado do produto.");
+                                          if (data !== true) return toast.error("O estado do produto não foi alterado. Actualize a página e tente novamente.");
+                                          setProducts((prev) => prev.map((p: any) => p.id === product.id ? { ...p, status: option.status } : p));
+                                          toast.success(option.status === "sold" ? "Produto marcado como vendido." : option.status === "unavailable" ? "Produto marcado como indisponível." : "Produto voltou a estar disponível.");
+                                        }}
+                                      >
+                                        <option.icon className="mr-2 h-4 w-4" /> {option.label}
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </>
+                                )}
+                                {hasPermission("manage_products") && (
                                   <DropdownMenuItem onClick={() => {
                                     setProductEditForm({
                                       product_type: product.product_type || '', quantity: String(product.quantity ?? ''), price: String(product.price ?? ''),
