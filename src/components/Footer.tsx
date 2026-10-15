@@ -10,7 +10,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
           <div>
-            <h3 className="text-2xl font-bold mb-4 text-accent">OrbisLink</h3>
+            <h3 className="text-2xl font-bold mb-4 text-accent">AgriLink</h3>
             <p className="text-white/70 mb-4 text-sm leading-relaxed">
               Conectando produtores a grandes compradores com transparência,
               qualidade e eficiência no mercado agrícola.
@@ -88,7 +88,7 @@ const Footer = () => {
               </div>
               <div className="flex items-center gap-3">
                 <FontAwesomeIcon icon={faEnvelope} className="h-4 w-4 text-accent shrink-0" />
-                <span className="text-white/70 text-sm">contacts.orbislink@gmail.com</span>
+                <span className="text-white/70 text-sm">Contacte-nos através da área de suporte da plataforma.</span>
               </div>
               <div className="flex items-start gap-3">
                 <FontAwesomeIcon icon={faLocationDot} className="h-4 w-4 text-accent shrink-0 mt-0.5" />
