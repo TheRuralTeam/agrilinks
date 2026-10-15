@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, BarChart3, Truck, ArrowRight, Package, Globe, ShieldCheck, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import orbisLinkLogo from "@/assets/orbislink-logo.png";
+import agrilinkLogo from "../../../src/assets/LogoAgriLinkOfficiallNoBackground.png";
 
 // --- Branding Tokens ---
 import { T } from '@/lib/brand';
@@ -47,8 +47,8 @@ const Login = () => {
           {/* Logo & Tagline */}
           <div className="text-center mb-12 animate-in fade-in zoom-in-95 duration-700">
             <img 
-              src={orbisLinkLogo} 
-              alt="OrbisLink" 
+              src={agrilinkLogo} 
+              alt="AgriLink" 
               className="h-20 lg:h-24 mx-auto mb-6 drop-shadow-sm"
             />
             <h3 className="text-xl lg:text-2xl font-black tracking-tight" style={{ color: T.ink }}>
