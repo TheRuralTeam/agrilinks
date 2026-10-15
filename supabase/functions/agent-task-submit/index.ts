@@ -111,7 +111,20 @@ Deno.serve(async (req: Request) => {
 
   if (submitError) {
     if (submitError.code === "23505") {
-      return jsonResponse({ error: "Tarefa com esta chave de idempotência já existe." }, 409);
+      // Two concurrent requests can both pass the initial lookup. Re-read the
+      // unique key after the conflict so retries by the same owner stay
+      // idempotent, without disclosing another user's task.
+      const { data: raced } = await db.from("agent_tasks")
+        .select("id, status, task_type, requested_by")
+        .eq("idempotency_key", idempotencyKey)
+        .maybeSingle();
+      if (raced?.requested_by === authData.user.id) {
+        return jsonResponse({
+          task: { id: raced.id, status: raced.status, task_type: raced.task_type },
+          reused: true,
+        }, 200);
+      }
+      return jsonResponse({ error: "Chave de idempotência já utilizada." }, 409);
     }
     console.error("Agent task submission failed", submitError.code);
     return jsonResponse({ error: "Não foi possível criar a tarefa." }, 500);
