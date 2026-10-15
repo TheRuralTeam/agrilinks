@@ -4288,6 +4288,10 @@ export type Database = {
         Args: { p_product_id: string }
         Returns: boolean
       }
+      admin_set_product_status: {
+        Args: { p_product_id: string; p_status: string }
+        Returns: boolean
+      }
       admin_update_product: {
         Args: {
           p_product_id: string
