@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS public.agent_tasks (
     'missing_information_check', 'notification_draft', 'admin_review'
   )),
   status text NOT NULL DEFAULT 'queued' CHECK (status IN (
-    'queued', 'running', 'awaiting_approval', 'succeeded', 'failed', 'cancelled'
+    'queued', 'running', 'waiting_approval', 'completed', 'failed', 'cancelled'
   )),
   risk_level text NOT NULL DEFAULT 'low' CHECK (risk_level IN ('low', 'medium', 'high')),
   autonomy_mode text NOT NULL DEFAULT 'observe' CHECK (autonomy_mode IN ('observe', 'suggest', 'execute_low_risk')),
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS public.agent_tasks (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CHECK (
-    status <> 'succeeded' OR completed_at IS NOT NULL
+    status <> 'completed' OR completed_at IS NOT NULL
   )
 );
 
@@ -93,7 +93,7 @@ REVOKE ALL ON TABLE public.agent_tasks, public.agent_events, public.agent_approv
   FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.agent_tasks, public.agent_approvals
   TO service_role;
--- Event history is append-only even for the trusted worker role.
+-- Event history is append-only for the application worker role.
 GRANT SELECT, INSERT ON TABLE public.agent_events TO service_role;
 GRANT USAGE, SELECT ON SEQUENCE public.agent_events_id_seq TO service_role;
 
