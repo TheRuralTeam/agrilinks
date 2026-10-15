@@ -61,12 +61,12 @@
     "password": "Moténya",
     "confirmPassword": "Kondimisa moténya",
     "forgotPassword": "Naboli moténya?",
-    "loginTitle": "Kozala na OrbisLink",
+    "loginTitle": "Kozala na AgriLink",
     "loginDescription": "Koma na compte yako",
     "noAccount": "Oza te na compte? Koma na:"
   },
   "home": {
-    "welcome": "Mbote na OrbisLink",
+    "welcome": "Mbote na AgriLink",
     "subtitle": "Kobenda bato ya kobuka na bonyama",
     "featuredProducts": "Mikanda ya ntina",
     "nearYou": "Pené na yo",
