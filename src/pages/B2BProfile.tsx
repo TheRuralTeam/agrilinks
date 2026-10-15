@@ -270,7 +270,7 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
         console.error('AgriLink agent intake was not queued', agentError.message);
         toast.info('Pedido registado. A verificação automática não foi iniciada; a equipa AgriLink continuará a receber a solicitação.');
       } else {
-        toast.success('Solicitação enviada. A AgriLink iniciou a verificação automática dos dados para revisão humana.');
+        toast.success('Solicitação registada. A verificação automática foi solicitada; o processamento ainda depende da confirmação do serviço.');
       }
       setRfqOpen(false);
       setRfqForm({ productName: '', quantity: '', unit: 'kg', qualitySpecification: '', deliveryProvinceId: '', deliveryMunicipalityId: '', deliveryLocation: '', deliveryDate: '', description: '' });
