@@ -167,7 +167,7 @@ RETURNS SETOF public.agent_tasks
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
-AS $
+AS $$
 DECLARE
   v_task public.agent_tasks;
 BEGIN
@@ -220,7 +220,7 @@ BEGIN
   RETURN NEXT v_task;
   RETURN;
 END;
-$;
+$$;
 
 REVOKE ALL ON FUNCTION public.finish_agent_task(uuid, text, text, jsonb, text, integer, text, jsonb)
   FROM PUBLIC, anon, authenticated;
