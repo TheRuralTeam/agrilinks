@@ -61,12 +61,12 @@
     "password": "Mochi",
     "confirmPassword": "Kondimisa mochi",
     "forgotPassword": "Wabuila mochi?",
-    "loginTitle": "Kukota na OrbisLink",
+    "loginTitle": "Kukota na AgriLink",
     "loginDescription": "Kukota account yako",
     "noAccount": "Wau te na account? Funda na:"
   },
   "home": {
-    "welcome": "Mbote na OrbisLink",
+    "welcome": "Mbote na AgriLink",
     "subtitle": "Kufundila bantu bampau",
     "featuredProducts": "Mikanda ya nku",
     "nearYou": "Pene na yoi",
