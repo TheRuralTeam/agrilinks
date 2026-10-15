@@ -59,7 +59,7 @@
     "noAccount": "Não tem conta? Cadastre-se como:",
     "farmerAgentBuyer": "Fornecedor, Agente ou Comprador",
     "viewSite": "Ver site institucional",
-    "termsLink": "Termos de Publicidade OrbisLink",
+    "termsLink": "Termos de Publicidade AgriLink",
     "recoverPassword": "Recuperar Senha",
     "recoverDescription": "Digite seu email para receber um link de recuperação",
     "sendLink": "Enviar Link",
@@ -69,7 +69,7 @@
     "understood": "Entendi"
   },
   "registration": {
-    "title": "Cadastro OrbisLink",
+    "title": "Cadastro AgriLink",
     "subtitle": "Crie sua conta na plataforma",
     "infoTitle": "Informações de Cadastro",
     "userType": "Tipo de Usuário",
@@ -98,7 +98,7 @@
     "alreadyHaveAccount": "Já tem conta?",
     "loginHere": "Entre aqui",
     "accountCreated": "Conta criada com sucesso!",
-    "welcomeMessage": "Bem-vindo à OrbisLink!"
+    "welcomeMessage": "Bem-vindo à AgriLink!"
   },
   "profile": {
     "title": "Meu Perfil",
@@ -116,14 +116,14 @@
     "copyCode": "Copiar Código",
     "codeShared": "Código partilhado!",
     "codeCopied": "Código copiado!",
-    "shareMessage": "Cadastre-se na OrbisLink usando meu código de agente",
+    "shareMessage": "Cadastre-se na AgriLink usando meu código de agente",
     "totalReferrals": "Total de Indicações",
     "totalPoints": "Total de Pontos",
     "activeProducts": "Produtos Ativos",
     "totalViews": "Total de Visualizações",
     "totalInterests": "Total de Interesses",
     "sourcing": "Pedidos Especiais",
-    "sourcingDescription": "Solicite produtos específicos e a OrbisLink negociará por si",
+    "sourcingDescription": "Solicite produtos agrícolas específicos e acompanhe o pedido na plataforma",
     "loadingProfile": "Carregando perfil...",
     "fullName": "Nome Completo",
     "phone": "Telefone",
@@ -182,8 +182,8 @@
     "rejected": "Rejeitado"
   },
   "sourcing": {
-    "title": "OrbisLink Sourcing",
-    "subtitle": "Deixe a OrbisLink encontrar os melhores produtos para você",
+    "title": "AgriLink Sourcing",
+    "subtitle": "Registe a sua necessidade e acompanhe o estado do pedido",
     "newRequest": "Novo Pedido",
     "productName": "Nome do Produto",
     "productNamePlaceholder": "Ex: Milho, Feijão, Tomate...",
@@ -196,7 +196,7 @@
     "myRequests": "Meus Pedidos",
     "noRequests": "Você ainda não tem pedidos de sourcing",
     "requestSent": "Pedido enviado com sucesso!",
-    "requestSentMessage": "A equipa OrbisLink entrará em contacto consigo em breve.",
+    "requestSentMessage": "Pedido registado. Acompanhe o estado na área Meus Pedidos.",
     "status": {
       "pending": "Pendente",
       "processing": "Em Processamento",
@@ -212,7 +212,7 @@
     "transactions": "Transações",
     "notifications": "Notificações",
     "fichas": "Fichas",
-    "sourcing": "OrbisLink Sourcing",
+    "sourcing": "AgriLink Sourcing",
     "sourcingRequests": "Pedidos de Sourcing",
     "noSourcingRequests": "Nenhum pedido de sourcing",
     "updateStatus": "Atualizar Status",
@@ -461,7 +461,7 @@
     "settings": "Configurações"
   },
   "home": {
-    "welcome": "Bem-vindo à OrbisLink",
+    "welcome": "Bem-vindo à AgriLink",
     "subtitle": "Conectando fornecedores e compradores",
     "featuredProducts": "Produtos em Destaque",
     "recentProducts": "Produtos Recentes",
@@ -511,6 +511,6 @@
     "transactions": "Transações"
   },
   "footer": {
-    "copyright": "© OrbisLink Lda 2025 — Todos os direitos reservados."
+    "copyright": "© AgriLink — Todos os direitos reservados."
   }
 }
