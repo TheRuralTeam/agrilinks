@@ -61,12 +61,12 @@
     "password": "Pasi",
     "confirmPassword": "Kudimina pasi",
     "forgotPassword": "Wahumbala pasi?",
-    "loginTitle": "Kukota na OrbisLink",
+    "loginTitle": "Kukota na AgriLink",
     "loginDescription": "Kukota account yako",
     "noAccount": "Longa te na account? Bala na:"
   },
   "home": {
-    "welcome": "Mbote na OrbisLink",
+    "welcome": "Mbote na AgriLink",
     "subtitle": "Kukwata na yina yongola",
     "featuredProducts": "Mbandu ya ntembwa",
     "nearYou": "Pene na yove",
