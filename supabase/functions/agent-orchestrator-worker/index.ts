@@ -174,6 +174,35 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
     }
   }
 
+  // Active marketplace listings can help discovery, but are explicitly unverified leads, not confirmed supplier quotes.
+  const { data: listingData, error: listingsError } = await db
+    .from("products")
+    .select("id, product_type, quantity, sale_unit, min_order_quantity, price, province_id, municipality_id, status")
+    .eq("status", "active")
+    .ilike("product_type", request.product_name)
+    .limit(100);
+  if (listingsError) throw listingsError;
+  const marketplaceCandidates = (listingData ?? []).filter((listing: any) =>
+    listing.status === "active" &&
+    normalizeProductName(listing.product_type) === normalizeProductName(request.product_name) &&
+    (!listing.sale_unit || normalizeProductName(listing.sale_unit) === normalizeProductName(request.unit))
+  ).map((listing: any) => {
+    const sameMunicipality = Boolean(request.delivery_municipality_id && listing.municipality_id === request.delivery_municipality_id);
+    const sameProvince = Boolean(request.delivery_province_id && listing.province_id === request.delivery_province_id);
+    return {
+      product_id: listing.id,
+      quantity_listed: listing.quantity,
+      unit_listed: listing.sale_unit,
+      minimum_order_quantity: listing.min_order_quantity,
+      listed_price: listing.price,
+      province_id: listing.province_id,
+      municipality_id: listing.municipality_id,
+      location_match: sameMunicipality ? "same_municipality" : sameProvince ? "same_province" : "other_location",
+      verification_status: "unverified_marketplace_listing",
+      note: "Publicação activa, mas stock, preço actual e disponibilidade para este pedido ainda precisam de confirmação.",
+    };
+  });
+
   const { data: supplierData, error: suppliersError } = await db
     .from("sourcing_supplier_leads")
     .select("id, company_name, product_name, province_id, municipality_id, locality, verification_status")
@@ -246,7 +275,9 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
     ? "confirmed_quotes_found"
     : suppliers.length
       ? "verified_suppliers_found_needs_quote"
-      : "no_verified_supplier_match";
+      : marketplaceCandidates.length
+        ? "marketplace_listings_need_verification"
+        : "no_verified_supplier_match";
 
   return {
     outcome,
@@ -256,6 +287,8 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
     unit: request.unit,
     delivery_date: request.delivery_date,
     delivery_location: request.delivery_location,
+    marketplace_candidates: marketplaceCandidates,
+    marketplace_listing_count: marketplaceCandidates.length,
     verified_supplier_candidates: suppliers.map((supplier) => ({
       id: supplier.id,
       company_name: supplier.company_name,
@@ -275,7 +308,9 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
       ? `Foram encontradas ${quotes.length} cotações confirmadas e ainda válidas de fornecedores verificados. ${fullyCoveredPricedQuotes.length ? "Existe pelo menos uma cotação com cobertura integral da quantidade." : "Nenhuma cotação com preço confirmado cobre integralmente a quantidade pedida."} É necessária revisão humana antes de apresentar uma proposta ao comprador.`
       : suppliers.length
         ? `Foram encontrados ${suppliers.length} fornecedores confirmados para o produto, mas não existe cotação confirmada e válida para este pedido.`
-        : "Não existe fornecedor confirmado compatível na base de dados. É necessária pesquisa e verificação humana; não foram inventados fornecedores nem preços.",
+        : marketplaceCandidates.length
+          ? `Foram encontradas ${marketplaceCandidates.length} publicações activas compatíveis no marketplace. São pistas de descoberta, não fornecedores nem preços confirmados; é necessária verificação humana.`
+          : "Não existe fornecedor confirmado nem publicação activa compatível na base de dados. É necessária pesquisa e verificação humana; não foram inventados fornecedores nem preços.",
     side_effects: [],
   };
 }
