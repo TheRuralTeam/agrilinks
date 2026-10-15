@@ -42,7 +42,7 @@
 ## Limitações e próximos passos
 
 - Sem scheduler, uma falha no despacho pode deixar uma tarefa em fila até outra invocação. A opção actual evita custos adicionais; a recuperação operacional deve ser observada e re-tentada por um mecanismo autorizado.
-- Descoberta de fornecedores e comparação de cotações continuam a devolver `integration_required` até existirem integrações reais.
+- Descoberta e comparação consultam apenas fornecedores e cotações confirmados já existentes; não contactam fornecedores. Continua obrigatório validar o resultado com um pedido real autorizado.
 - A reconciliação histórica das migrations permanece incompleta. Não executar `supabase db push` até concluir a auditoria das versões e confirmar equivalência SQL.
 - Os avisos de segurança do Supabase devem ser analisados por finding. Não adicionar políticas de leitura pública a tabelas internas apenas para silenciar o aviso de RLS sem políticas.
 - A aprovação de um check de Vercel valida o deploy web correspondente; não prova o teste ponta a ponta das Edge Functions.
