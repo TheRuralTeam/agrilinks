@@ -99,38 +99,26 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Limite de tarefas activas atingido." }, 429);
   }
 
-  const { data: task, error: insertError } = await db.from("agent_tasks").insert({
-    task_type: taskType,
-    status: "queued",
-    risk_level: taskType === "notification_draft" ? "medium" : "low",
-    autonomy_mode: autonomyMode,
-    requested_by: authData.user.id,
-    idempotency_key: idempotencyKey,
-    input_payload: payload,
-    priority: 50,
-  }).select("id, task_type, status, autonomy_mode, created_at").single();
+  const riskLevel = taskType === "notification_draft" ? "medium" : "low";
+  const { data: submitted, error: submitError } = await db.rpc("submit_agent_task", {
+    p_task_type: taskType,
+    p_risk_level: riskLevel,
+    p_autonomy_mode: autonomyMode,
+    p_requested_by: authData.user.id,
+    p_idempotency_key: idempotencyKey,
+    p_input_payload: payload,
+  });
 
-  if (insertError) {
-    // A concurrent request may have won the unique idempotency key race.
-    if (insertError.code === "23505") {
+  if (submitError) {
+    if (submitError.code === "23505") {
       return jsonResponse({ error: "Tarefa com esta chave de idempotência já existe." }, 409);
     }
-    console.error("Agent task insert failed", insertError.code);
+    console.error("Agent task submission failed", submitError.code);
     return jsonResponse({ error: "Não foi possível criar a tarefa." }, 500);
   }
 
-  const { error: eventError } = await db.from("agent_events").insert({
-    task_id: task.id,
-    event_type: "task_submitted",
-    actor_type: "human",
-    actor_id: authData.user.id,
-    payload: { task_type: taskType, autonomy_mode: autonomyMode },
-  });
-  if (eventError) {
-    // Keep the task queued; worker completion is still safe, but surface that
-    // the audit event could not be recorded rather than silently claiming full success.
-    console.error("Agent submission event insert failed", eventError.code);
-  }
+  const task = Array.isArray(submitted) ? submitted[0] : null;
+  if (!task) return jsonResponse({ error: "Não foi possível confirmar a tarefa criada." }, 500);
 
-  return jsonResponse({ task, reused: false, audit_event_recorded: !eventError }, 202);
+  return jsonResponse({ task: { id: task.id, task_type: task.task_type, status: task.status, autonomy_mode: task.autonomy_mode, created_at: task.created_at }, reused: false, audit_event_recorded: true }, 202);
 });
