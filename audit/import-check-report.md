@@ -41,7 +41,7 @@ Resultado: imports detectados como 'missing' (lista parcial — o output complet
 - src/pages/EmailConfirmation.tsx -> '@/components/ui/card'
 - src/pages/EmailConfirmation.tsx -> '@/components/ui/button'
 - src/pages/EmailConfirmation.tsx -> '@/components/ui/input'
-- src/pages/EmailConfirmation.tsx -> '@/assets/orbislink-logo.png'
+- src/pages/EmailConfirmation.tsx -> '@/assets/agrilink-logo.png'
 - src/pages/EmailConfirmation.tsx -> '@/hooks/use-toast'
 - src/pages/EmailConfirmation.tsx -> '@/contexts/AuthContext'
 - src/pages/FarmerForm.tsx -> '@/components/ui/button'
