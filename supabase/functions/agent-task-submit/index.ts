@@ -167,5 +167,5 @@ Deno.serve(async (req: Request) => {
   // The task remains durable in Postgres if dispatch fails and can be retried later.
   EdgeRuntime.waitUntil(dispatchWorker(supabaseUrl, serviceRoleKey));
 
-  return jsonResponse({ task: { id: task.id, task_type: task.task_type, status: task.status, autonomy_mode: task.autonomy_mode, created_at: task.created_at }, reused: false, audit_event_recorded: true, worker_dispatch: "scheduled" }, 202);
+  return jsonResponse({ task: { id: task.id, task_type: task.task_type, status: task.status, autonomy_mode: task.autonomy_mode, created_at: task.created_at }, reused: false, audit_event_recorded: true, worker_dispatch: "dispatch_requested" }, 202);
 });
