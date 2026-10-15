@@ -104,7 +104,7 @@ interface SourcingAgentTaskStatus {
   completed_at: string | null;
 }
 function agentStatusLabel(task?: SourcingAgentTaskStatus) {
-  if (!task) return 'A aguardar verificação';
+  if (!task) return 'Tarefa automática ainda não confirmada';
   if (task.status === 'queued') return 'Na fila de processamento';
   if (task.status === 'running') return 'A analisar o pedido';
   if (task.status === 'failed') return 'Falha no processamento';
@@ -1203,7 +1203,7 @@ const Profile = () => {
                     return <span style={{ fontSize: 12 }}>{[province?.name, municipality?.name, r.delivery_location].filter(Boolean).join(' · ') || '—'}</span>;
                   } },
                   { key: 'data', label: t('sourcing.deliveryDate'), render: r => new Date(r.delivery_date).toLocaleDateString('pt-AO') },
-                  { key: 'estado', label: 'Estado', render: r => <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 5 }}><StatusPill status={r.status} /><span title={sourcingAgentStatuses[r.id]?.summary || ''} style={{ fontSize: 11, color: T.mid, maxWidth: 240 }}>{agentStatusLabel(sourcingAgentStatuses[r.id])}</span><button type="button" onClick={() => void refreshAgentStatuses([r])} style={{ border: 0, padding: 0, background: 'transparent', color: T.g600, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Actualizar estado do agente</button>{sourcingAgentStatuses[r.id]?.prior_context && <span style={{ fontSize: 10, color: T.faint }}>Histórico comparável: {sourcingAgentStatuses[r.id].prior_context?.similar_completed_requests ?? 0} pedido(s)</span>}</div> },
+                  { key: 'estado', label: 'Estado', render: r => <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 5 }}><StatusPill status={r.status} /><span title={sourcingAgentStatuses[r.id]?.summary || ''} style={{ fontSize: 11, color: T.mid, maxWidth: 240 }}>{agentStatusLabel(sourcingAgentStatuses[r.id])}</span>{sourcingAgentStatuses[r.id]?.summary && <span style={{ fontSize: 10, color: T.faint, maxWidth: 240 }}>{sourcingAgentStatuses[r.id].summary}</span>}<button type="button" onClick={() => void refreshAgentStatuses([r])} style={{ border: 0, padding: 0, background: 'transparent', color: T.g600, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Actualizar estado do agente</button>{sourcingAgentStatuses[r.id]?.prior_context && <span style={{ fontSize: 10, color: T.faint }}>Histórico comparável: {sourcingAgentStatuses[r.id].prior_context?.similar_completed_requests ?? 0} pedido(s)</span>}</div> },
                 ]}
                 rows={sourcingRequests}
                 keyField={r => r.id}
