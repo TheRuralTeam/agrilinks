@@ -90,3 +90,6 @@ content_path = "./supabase/templates/identity_linked_notification.html"
 [auth.email.notification.identity_unlinked]
 subject = "Foi removido um método de acesso da sua conta"
 content_path = "./supabase/templates/identity_unlinked_notification.html"
+
+[functions.agent-task-status]
+verify_jwt = true
