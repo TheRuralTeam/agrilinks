@@ -237,6 +237,11 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
     );
   const fullyCoveredPricedQuotes = pricedQuotes.filter((quote) => quote.covers_requested_quantity);
   const partialPricedQuotes = pricedQuotes.filter((quote) => !quote.covers_requested_quantity);
+  const quoteCurrencies = [...new Set(pricedQuotes.map((quote) => String(quote.currency ?? "unknown")))];
+  const priceComparisonByCurrency = quoteCurrencies.map((currency) => {
+    const currencyQuotes = pricedQuotes.filter((quote) => String(quote.currency ?? "unknown") === currency);
+    return { currency, quotes: currencyQuotes, lowest_full_coverage: currencyQuotes.find((quote) => quote.covers_requested_quantity) ?? null, lowest_partial: currencyQuotes.find((quote) => !quote.covers_requested_quantity) ?? null };
+  });
   const outcome = quotes.length
     ? "confirmed_quotes_found"
     : suppliers.length
@@ -260,10 +265,11 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
       location_match: supplier.location_match,
     })),
     confirmed_quotes: quotes,
-    recommended_confirmed_quote: pricedQuotes.length ? pricedQuotes[0] : null,
-    lowest_confirmed_price: fullyCoveredPricedQuotes.length ? fullyCoveredPricedQuotes.sort((a, b) => Number(a.unit_price) - Number(b.unit_price))[0] : null,
-    lowest_partial_quote: !fullyCoveredPricedQuotes.length && partialPricedQuotes.length ? partialPricedQuotes.sort((a, b) => Number(a.unit_price) - Number(b.unit_price))[0] : null,
-    comparison_method: "Prioriza cobertura integral da quantidade, compatibilidade com a data de entrega e só depois preço; a menor cotação parcial nunca é apresentada como suficiente para o pedido completo.",
+    recommended_confirmed_quote: quoteCurrencies.length === 1 && pricedQuotes.length ? pricedQuotes[0] : null,
+    lowest_confirmed_price: quoteCurrencies.length === 1 && fullyCoveredPricedQuotes.length ? fullyCoveredPricedQuotes.sort((a, b) => Number(a.unit_price) - Number(b.unit_price))[0] : null,
+    lowest_partial_quote: quoteCurrencies.length === 1 && !fullyCoveredPricedQuotes.length && partialPricedQuotes.length ? partialPricedQuotes.sort((a, b) => Number(a.unit_price) - Number(b.unit_price))[0] : null,
+    price_comparison_by_currency: priceComparisonByCurrency,
+    comparison_method: "Agrupa moedas separadamente; dentro de cada moeda prioriza cobertura integral da quantidade, compatibilidade com a data de entrega e depois preço. Nunca compara valores de moedas diferentes nem apresenta cotação parcial como suficiente.",
     prior_context: priorContext,
     summary: quotes.length
       ? `Foram encontradas ${quotes.length} cotações confirmadas e ainda válidas de fornecedores verificados. ${fullyCoveredPricedQuotes.length ? "Existe pelo menos uma cotação com cobertura integral da quantidade." : "Nenhuma cotação com preço confirmado cobre integralmente a quantidade pedida."} É necessária revisão humana antes de apresentar uma proposta ao comprador.`
