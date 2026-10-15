@@ -14,6 +14,11 @@ GRANT EXECUTE ON FUNCTION public.create_freight_settlement_if_ready(uuid)
 
 -- These RPCs are intended for signed-in users. The function bodies still
 -- perform actor/ownership checks; removing anon EXECUTE is defense in depth.
+-- Administrative product moderation is authenticated-only; its body also
+-- verifies admin/root-admin identity before updating the product.
+REVOKE EXECUTE ON FUNCTION public.admin_set_product_status(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_set_product_status(uuid, text) TO authenticated;
+
 REVOKE EXECUTE ON FUNCTION public.accept_freight_load(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.accept_freight_load(uuid) TO authenticated;
 
