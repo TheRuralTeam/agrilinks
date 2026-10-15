@@ -1,7 +1,7 @@
 # Núcleo multiagente AgriLink — implementação e estado
 
 **Data:** 2026-10-15  
-**Estado:** esquema e RPCs aplicados em produção; Edge Functions ainda não implantadas.
+**Estado:** esquema/RPCs aplicados; ambas as Edge Functions activas em produção; integração inicial do formulário B2B de sourcing implementada.
 
 ## Submissão autenticada — `agent-task-submit`
 
@@ -10,6 +10,7 @@
 - Aceita apenas `observe` e `suggest`; não aceita execução autónoma pedida pelo cliente.
 - Limita o corpo a 32 KiB, valida objectos JSON, exige chave de idempotência e limita a 10 tarefas activas por utilizador.
 - A tarefa e o evento inicial são criados pela RPC `submit_agent_task` na mesma transacção.
+- Após a submissão, a função agenda a invocação do worker em segundo plano com `EdgeRuntime.waitUntil`; o segredo permanece apenas no runtime servidor.
 - Chaves de idempotência de outros utilizadores não revelam informação privada.
 
 ## Worker consultivo — `agent-orchestrator-worker`
@@ -29,18 +30,19 @@ Foram aplicadas as migrations `20261015211625`, `20261015211638`, `2026101521164
 - As RPCs sensíveis auditadas de frete/moderação já não permitem execução por `anon`; as operações de utilizadores autenticados mantêm os grants previstos.
 - O histórico de migrations anteriores ainda tem colisões locais. Não executar `db push` até concluir a reconciliação histórica.
 
-## Ainda por activar
+## Verificações pendentes
 
-- As Edge Functions não foram implantadas.
-- `AGENT_WORKER_SECRET` não foi configurado; a ferramenta disponível nesta sessão não permite gerir segredos de Edge Functions.
-- Não existe agendamento do worker nem interface de submissão ligada ao núcleo.
-- Não há integração real de descoberta de fornecedores/preços.
+- As duas funções estão activas, mas ainda não existe evidência de um teste funcional ponta a ponta com uma tarefa real de sourcing; não foi criado um pedido comercial artificial em produção.
+- O formulário B2B submete o pedido comercial primeiro e, separadamente, tenta enfileirar a tarefa. Se a submissão do agente falhar, o pedido de sourcing mantém-se válido e a interface informa que a verificação automática não foi iniciada.
+- Não existe agendamento periódico. O worker é activado após uma submissão; uma falha de invocação deixa a tarefa persistida em fila até uma nova tentativa de activação.
+- Descoberta de fornecedores e comparação de preços reais continuam dependentes de integrações verificadas.
 
 ## Próximos passos
 
-1. Configurar o segredo interno no Supabase.
-2. Implantar e testar as duas Edge Functions, incluindo JWT inválido, segredo ausente, idempotência concorrente, lease expirada e retries.
-3. Integrar a submissão na interface apenas depois dos testes.
-4. Reconciliar as migrations históricas restantes antes de usar `db push`.
+1. Validar runtime com testes autenticados e não autenticados, segredo incorrecto, idempotência concorrente, lease expirada e retries.
+2. Confirmar build/CI do commit de integração e testar uma solicitação de sourcing controlada, com autorização operacional.
+3. Reconciliar as migrations históricas restantes antes de usar `db push`.
+
+A implantação activa não substitui testes de runtime nem comprova a integração com dados reais.
 
 O CI verde valida código e build, mas não substitui testes de runtime das Edge Functions nem comprova a integração com dados reais.
