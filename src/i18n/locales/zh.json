@@ -61,12 +61,12 @@
     "password": "密码",
     "confirmPassword": "确认密码",
     "forgotPassword": "忘记密码？",
-    "loginTitle": "登录 OrbisLink",
+    "loginTitle": "登录 AgriLink",
     "loginDescription": "登录以访问你的账户",
     "noAccount": "还没有账户？请注册："
   },
   "home": {
-    "welcome": "欢迎来到 OrbisLink",
+    "welcome": "欢迎来到 AgriLink",
     "subtitle": "连接供应商和买家",
     "featuredProducts": "精选产品",
     "nearYou": "附近",
