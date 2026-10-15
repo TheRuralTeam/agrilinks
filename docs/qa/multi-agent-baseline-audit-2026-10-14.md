@@ -222,3 +222,14 @@ A migration é aditiva e não altera as tabelas comerciais existentes. Ainda req
 ### Bloqueio de execução continua válido
 
 As duas migrations foram adicionadas apenas ao ramo de trabalho. **Não foram executadas contra Supabase, não houve deploy funcional e não se afirma que estejam testadas.** Devido às colisões históricas e às divergências de versões do ledger, não aplicar estas migrations até validar o histórico num ambiente de desenvolvimento e confirmar o estado do CI.
+
+
+## Quinta passagem — consistência de estados e CI preventivo
+
+Foi corrigida uma divergência no contrato de estados da tabela proposta `agent_tasks`: a migration passa agora a usar `waiting_approval` e `completed`, alinhados com a máquina de estados documentada na arquitetura. O timestamp `completed_at` é obrigatório quando o estado é `completed`.
+
+O workflow `.github/workflows/ci.yml` inclui agora `npm run audit:migrations` como etapa informativa antes dos gates existentes. Não usa `--check` deliberadamente: os duplicados históricos já identificados continuam por reconciliar e não devem ser convertidos num bloqueio de CI sem plano de correção. A etapa apenas torna os achados visíveis no log; não comprova o estado do ledger remoto.
+
+A migration de hardening e a migration de orquestração continuam propostas apenas no ramo. O esquema remoto foi novamente consultado em modo read-only: as três tabelas `agent_tasks`, `agent_events` e `agent_approvals` ainda não existem. Também se confirmou que `advance_freight_load(uuid)` e `create_freight_settlement_if_ready(uuid)` continuam com EXECUTE para `anon` no ambiente remoto; a migration proposta visa corrigir isso, mas **não foi aplicada**.
+
+A atualização do workflow deverá ser validada pelo próprio GitHub Actions após o push/commit. Até existir um run com os passos executados e resultados observáveis, lint, type-check, testes e build continuam sem confirmação.
