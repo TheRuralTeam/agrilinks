@@ -203,12 +203,12 @@ export const changeLanguage = (countryCodeOrLanguage: string) => {
   localStorage.setItem('agrilink_language', lang)
 
   const countryCode = Object.entries(countryToLanguage).find(([, language]) => language === lang)?.[0] ?? 'AO'
-  localStorage.setItem('orbislink_country', countryCode)
+  localStorage.setItem('agrilink_country', countryCode)
 }
 
 export const getSavedCountry = () => {
   try {
-    return localStorage.getItem('orbislink_country') || 'AO'
+    return localStorage.getItem('agrilink_country') || 'AO'
   } catch {
     return 'AO'
   }
