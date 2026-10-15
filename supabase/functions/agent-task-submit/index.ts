@@ -1,3 +1,4 @@
+/// <reference types="jsr:@supabase/functions-js/edge-runtime.d.ts" />
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 import { corsHeaders, jsonResponse } from "../_shared/http.ts";
