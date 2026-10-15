@@ -153,4 +153,79 @@ $$;
 REVOKE ALL ON FUNCTION public.claim_agent_task(text, integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.claim_agent_task(text, integer) TO service_role;
 
+CREATE OR REPLACE FUNCTION public.finish_agent_task(
+  p_task_id uuid,
+  p_worker_id text,
+  p_status text,
+  p_result_payload jsonb DEFAULT NULL,
+  p_error_code text DEFAULT NULL,
+  p_retry_seconds integer DEFAULT NULL,
+  p_event_type text DEFAULT NULL,
+  p_event_payload jsonb DEFAULT '{}'::jsonb
+)
+RETURNS SETOF public.agent_tasks
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $
+DECLARE
+  v_task public.agent_tasks;
+BEGIN
+  IF p_task_id IS NULL
+     OR p_worker_id IS NULL
+     OR length(btrim(p_worker_id)) < 3
+     OR length(p_worker_id) > 120 THEN
+    RAISE EXCEPTION 'invalid_worker_context' USING ERRCODE = '22023';
+  END IF;
+
+  IF p_status NOT IN ('completed', 'queued', 'failed') THEN
+    RAISE EXCEPTION 'invalid_task_transition' USING ERRCODE = '22023';
+  END IF;
+
+  IF p_event_type NOT IN (
+    'task_completed_consultative', 'task_retry_scheduled', 'task_failed', 'task_rejected'
+  ) THEN
+    RAISE EXCEPTION 'invalid_task_event' USING ERRCODE = '22023';
+  END IF;
+
+  IF p_event_payload IS NULL OR jsonb_typeof(p_event_payload) <> 'object'
+     OR (p_result_payload IS NOT NULL AND jsonb_typeof(p_result_payload) <> 'object') THEN
+    RAISE EXCEPTION 'invalid_task_result' USING ERRCODE = '22023';
+  END IF;
+
+  IF p_status = 'queued' AND (p_retry_seconds IS NULL OR p_retry_seconds < 1 OR p_retry_seconds > 3600) THEN
+    RAISE EXCEPTION 'invalid_retry_delay' USING ERRCODE = '22023';
+  END IF;
+
+  UPDATE public.agent_tasks AS t
+  SET status = p_status,
+      result_payload = CASE WHEN p_status = 'completed' THEN p_result_payload ELSE t.result_payload END,
+      error_code = p_error_code,
+      locked_at = NULL,
+      available_at = CASE WHEN p_status = 'queued' THEN now() + make_interval(secs => p_retry_seconds) ELSE t.available_at END,
+      completed_at = CASE WHEN p_status = 'completed' THEN now() ELSE NULL END,
+      updated_at = now()
+  WHERE t.id = p_task_id
+    AND t.status = 'running'
+    AND t.assigned_agent = p_worker_id
+  RETURNING t.* INTO v_task;
+
+  IF v_task.id IS NULL THEN
+    RAISE EXCEPTION 'task_lease_lost' USING ERRCODE = '40001';
+  END IF;
+
+  INSERT INTO public.agent_events (task_id, event_type, actor_type, payload)
+  VALUES (v_task.id, p_event_type, 'system', p_event_payload);
+
+  RETURN NEXT v_task;
+  RETURN;
+END;
+$;
+
+REVOKE ALL ON FUNCTION public.finish_agent_task(uuid, text, text, jsonb, text, integer, text, jsonb)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.finish_agent_task(uuid, text, text, jsonb, text, integer, text, jsonb)
+  TO service_role;
+
+
 COMMIT;
