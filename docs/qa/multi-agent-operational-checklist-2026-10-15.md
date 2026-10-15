@@ -12,7 +12,7 @@
 - [x] A criação da tarefa e do evento inicial usa uma RPC atómica.
 - [x] O worker mantém comportamento consultivo e não altera stock, produtos, pré-compras, frete, pagamentos ou mensagens.
 - [x] A validação do pedido de sourcing foi extraída para um módulo reutilizável e foram adicionados testes unitários ao CI.
-- [x] O worker foi actualizado para a versão 3 com a mesma validação partilhada.
+- [x] O worker está activo na versão 5 e usa a validação partilhada.\n- [x] A função de submissão está activa na versão 7; a resposta distingue pedido de despacho de processamento confirmado.\n- [x] A interface B2B não afirma que a verificação já começou quando só foi solicitado o despacho.
 - [ ] Ainda não foi concluído um teste ponta a ponta com um utilizador autenticado.
 - [ ] A tabela `agent_tasks` estava vazia na verificação de 2026-10-15; não há ainda resultado real para inspeccionar.
 - [ ] Não há agendamento periódico: a activação depende de uma submissão ou re-tentativa que invoque o worker.
@@ -36,7 +36,7 @@
 - Um pedido válido gera no máximo uma tarefa por chave de idempotência.
 - O resultado é auditável por tarefa e eventos.
 - Falhas transitórias podem ser re-tentadas segundo o mecanismo existente; uma tarefa em fila não deve ser considerada processada sem um resultado persistido.
-- A interface não afirma que fornecedores foram contactados nem que preços foram consultados. Essas capacidades só podem ser activadas depois de integrar fontes reais e verificáveis.
+- A interface não afirma que o processamento já terminou, que fornecedores foram contactados nem que preços foram consultados. Essas capacidades só podem ser activadas depois de integrar fontes reais e verificáveis.
 - Nenhum segredo de serviço é enviado ao browser, incluído no payload do cliente ou escrito nos logs.
 
 ## Limitações e próximos passos
