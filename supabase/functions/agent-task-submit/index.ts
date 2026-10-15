@@ -25,7 +25,7 @@ async function dispatchWorker(supabaseUrl: string, serviceRoleKey: string): Prom
   }
 
   try {
-    const response = await fetch(`${supabaseUrl.replace(/\\/+$/, "")}/functions/v1/agent-orchestrator-worker`, {
+    const response = await fetch(`${supabaseUrl.replace(/\/+$/, "")}/functions/v1/agent-orchestrator-worker`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
