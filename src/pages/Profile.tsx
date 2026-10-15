@@ -98,6 +98,7 @@ interface SourcingAgentTaskStatus {
   outcome: string | null;
   summary: string | null;
   verified_supplier_count: number;
+  marketplace_listing_count: number;
   confirmed_quote_count: number;
   prior_context: { similar_completed_requests: number; previous_outcomes: Array<{ outcome: string; count: number }> } | null;
   error_code: string | null;
@@ -113,6 +114,7 @@ function agentStatusLabel(task?: SourcingAgentTaskStatus) {
   switch (task.outcome) {
     case 'confirmed_quotes_found': case 'quotes_compared': return 'Cotações confirmadas encontradas';
     case 'verified_suppliers_found_needs_quote': return 'Fornecedor confirmado; falta cotação';
+    case 'marketplace_listings_need_verification': return 'Publicações encontradas; falta verificar';
     case 'no_verified_supplier_match': return 'Sem fornecedor confirmado compatível';
     case 'needs_information': return 'Faltam informações';
     case 'request_not_found': return 'Pedido não localizado para análise';
@@ -1203,7 +1205,7 @@ const Profile = () => {
                     return <span style={{ fontSize: 12 }}>{[province?.name, municipality?.name, r.delivery_location].filter(Boolean).join(' · ') || '—'}</span>;
                   } },
                   { key: 'data', label: t('sourcing.deliveryDate'), render: r => new Date(r.delivery_date).toLocaleDateString('pt-AO') },
-                  { key: 'estado', label: 'Estado', render: r => <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 5 }}><StatusPill status={r.status} /><span title={sourcingAgentStatuses[r.id]?.summary || ''} style={{ fontSize: 11, color: T.mid, maxWidth: 240 }}>{agentStatusLabel(sourcingAgentStatuses[r.id])}</span>{sourcingAgentStatuses[r.id]?.summary && <span style={{ fontSize: 10, color: T.faint, maxWidth: 240 }}>{sourcingAgentStatuses[r.id].summary}</span>}<button type="button" onClick={() => void refreshAgentStatuses([r])} style={{ border: 0, padding: 0, background: 'transparent', color: T.g600, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Actualizar estado do agente</button>{sourcingAgentStatuses[r.id]?.prior_context && <span style={{ fontSize: 10, color: T.faint }}>Histórico comparável: {sourcingAgentStatuses[r.id].prior_context?.similar_completed_requests ?? 0} pedido(s)</span>}</div> },
+                  { key: 'estado', label: 'Estado', render: r => <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 5 }}><StatusPill status={r.status} /><span title={sourcingAgentStatuses[r.id]?.summary || ''} style={{ fontSize: 11, color: T.mid, maxWidth: 240 }}>{agentStatusLabel(sourcingAgentStatuses[r.id])}</span>{sourcingAgentStatuses[r.id]?.summary && <span style={{ fontSize: 10, color: T.faint, maxWidth: 240 }}>{sourcingAgentStatuses[r.id].summary}</span>}<button type="button" onClick={() => void refreshAgentStatuses([r])} style={{ border: 0, padding: 0, background: 'transparent', color: T.g600, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Actualizar estado do agente</button>{sourcingAgentStatuses[r.id] && (sourcingAgentStatuses[r.id].verified_supplier_count > 0 || sourcingAgentStatuses[r.id].marketplace_listing_count > 0 || sourcingAgentStatuses[r.id].confirmed_quote_count > 0) && <span style={{ fontSize: 10, color: T.faint }}>{sourcingAgentStatuses[r.id].verified_supplier_count} fornecedor(es) confirmado(s) · {sourcingAgentStatuses[r.id].marketplace_listing_count} publicação(ões) a verificar · {sourcingAgentStatuses[r.id].confirmed_quote_count} cotação(ões) confirmada(s)</span>}{sourcingAgentStatuses[r.id]?.prior_context && <span style={{ fontSize: 10, color: T.faint }}>Histórico comparável: {sourcingAgentStatuses[r.id].prior_context?.similar_completed_requests ?? 0} pedido(s)</span>}</div> },
                 ]}
                 rows={sourcingRequests}
                 keyField={r => r.id}
