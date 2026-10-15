@@ -92,6 +92,34 @@ interface SourcingQuote {
   expected_delivery_date: string | null; valid_until: string | null; quality_notes: string | null; confirmed_at: string | null
 }
 
+interface SourcingAgentTaskStatus {
+  request_id: string;
+  status: 'queued' | 'running' | 'waiting_approval' | 'completed' | 'failed' | 'cancelled';
+  outcome: string | null;
+  summary: string | null;
+  verified_supplier_count: number;
+  confirmed_quote_count: number;
+  prior_context: { similar_completed_requests: number; previous_outcomes: Array<{ outcome: string; count: number }> } | null;
+  error_code: string | null;
+  completed_at: string | null;
+}
+function agentStatusLabel(task?: SourcingAgentTaskStatus) {
+  if (!task) return 'A aguardar verificação';
+  if (task.status === 'queued') return 'Na fila de processamento';
+  if (task.status === 'running') return 'A analisar o pedido';
+  if (task.status === 'failed') return 'Falha no processamento';
+  if (task.status === 'cancelled') return 'Processamento cancelado';
+  if (task.status === 'waiting_approval') return 'A aguardar revisão humana';
+  switch (task.outcome) {
+    case 'confirmed_quotes_found': case 'quotes_compared': return 'Cotações confirmadas encontradas';
+    case 'verified_suppliers_found_needs_quote': return 'Fornecedor confirmado; falta cotação';
+    case 'no_verified_supplier_match': return 'Sem fornecedor confirmado compatível';
+    case 'needs_information': return 'Faltam informações';
+    case 'request_not_found': return 'Pedido não localizado para análise';
+    default: return 'Análise concluída; requer revisão';
+  }
+}
+
 /* ════════════════════════════════════════════════════════════════════════════
    MICRO COMPONENTS
    ════════════════════════════════════════════════════════════════════════════ */
@@ -354,6 +382,7 @@ const Profile = () => {
 
   const [sourcingRequests, setSourcingRequests] = useState<SourcingRequest[]>([])
   const [sourcingQuotes, setSourcingQuotes] = useState<SourcingQuote[]>([])
+  const [sourcingAgentStatuses, setSourcingAgentStatuses] = useState<Record<string, SourcingAgentTaskStatus>>({})
   const [sourcingQuotesLoading, setSourcingQuotesLoading] = useState(false)
   const [showSourcingForm, setShowSourcingForm] = useState(false)
   const [sourcingForm, setSourcingForm] = useState({ product_name: '', quantity: '', unit: 'kg', quality_specification: '', delivery_province_id: '', delivery_municipality_id: '', delivery_location: '', delivery_date: '', description: '' })
@@ -416,14 +445,33 @@ const Profile = () => {
     } catch (error) { console.error(error) }
   }, [user?.id])
 
+  const refreshAgentStatuses = React.useCallback(async (requests: SourcingRequest[]) => {
+    if (!user?.id || requests.length === 0) return
+    try {
+      const { data, error } = await supabase.functions.invoke('agent-task-status', {
+        body: { request_ids: requests.map((request) => request.id) },
+      })
+      if (error) throw error
+      const next: Record<string, SourcingAgentTaskStatus> = {}
+      for (const task of (data?.tasks || []) as SourcingAgentTaskStatus[]) {
+        if (task.request_id) next[task.request_id] = task
+      }
+      setSourcingAgentStatuses((previous) => ({ ...previous, ...next }))
+    } catch (error) {
+      console.error('[AgriLink Agents] Não foi possível actualizar o estado dos agentes:', error)
+    }
+  }, [user?.id])
+
   const fetchSourcingRequests = React.useCallback(async () => {
-    if (!user?.id) { setSourcingRequests([]); return }
+    if (!user?.id) { setSourcingRequests([]); setSourcingAgentStatuses({}); return }
     try {
       const { data, error } = await supabase.from('sourcing_requests').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
       if (error) throw error
-      setSourcingRequests(data || [])
+      const requests = (data || []) as SourcingRequest[]
+      setSourcingRequests(requests)
+      await refreshAgentStatuses(requests)
     } catch (error) { console.error(error) }
-  }, [user?.id])
+  }, [user?.id, refreshAgentStatuses])
 
   const fetchSourcingQuotes = React.useCallback(async () => {
     const requestIds = sourcingRequests.map((request) => request.id)
@@ -1155,7 +1203,7 @@ const Profile = () => {
                     return <span style={{ fontSize: 12 }}>{[province?.name, municipality?.name, r.delivery_location].filter(Boolean).join(' · ') || '—'}</span>;
                   } },
                   { key: 'data', label: t('sourcing.deliveryDate'), render: r => new Date(r.delivery_date).toLocaleDateString('pt-AO') },
-                  { key: 'estado', label: 'Estado', align: 'right', render: r => <StatusPill status={r.status} /> },
+                  { key: 'estado', label: 'Estado', render: r => <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 5 }}><StatusPill status={r.status} /><span title={sourcingAgentStatuses[r.id]?.summary || ''} style={{ fontSize: 11, color: T.mid, maxWidth: 240 }}>{agentStatusLabel(sourcingAgentStatuses[r.id])}</span><button type="button" onClick={() => void refreshAgentStatuses([r])} style={{ border: 0, padding: 0, background: 'transparent', color: T.g600, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Actualizar estado do agente</button>{sourcingAgentStatuses[r.id]?.prior_context && <span style={{ fontSize: 10, color: T.faint }}>Histórico comparável: {sourcingAgentStatuses[r.id].prior_context?.similar_completed_requests ?? 0} pedido(s)</span>}</div> },
                 ]}
                 rows={sourcingRequests}
                 keyField={r => r.id}
