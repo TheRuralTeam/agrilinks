@@ -25,6 +25,11 @@ describe('AgriLink agent capability policy', () => {
     ]);
   });
 
+  it('marks notification drafts as medium risk', () => {
+    expect(AGENT_CAPABILITIES.notification_draft.riskLevel).toBe('medium');
+    expect(isAutonomyModeAllowed('notification_draft', 'execute_low_risk')).toBe(false);
+  });
+
   it('allows low-risk execution mode only for allowlisted capabilities', () => {
     expect(isAutonomyModeAllowed('quote_comparison', 'execute_low_risk')).toBe(true);
     expect(isAutonomyModeAllowed('admin_review', 'execute_low_risk')).toBe(false);
