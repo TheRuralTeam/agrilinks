@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 import { corsHeaders, jsonResponse } from "../_shared/http.ts";
+import { validateSourcingPayload } from "../_shared/agent-task-validation.ts";
 
 type TaskType =
   | "sourcing_intake"
@@ -35,20 +36,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function nonEmptyString(value: unknown): boolean {
-  return typeof value === "string" && value.trim().length > 0;
-}
-
-function validatePayload(payload: Record<string, unknown>) {
-  const missing: string[] = [];
-  if (!nonEmptyString(payload.product_name)) missing.push("product_name");
-  if (!(typeof payload.quantity === "number" && Number.isFinite(payload.quantity) && payload.quantity > 0)) {
-    missing.push("quantity");
-  }
-  if (!nonEmptyString(payload.unit)) missing.push("unit");
-  if (!nonEmptyString(payload.delivery_location)) missing.push("delivery_location");
-  return missing;
-}
 
 function buildConsultativeResult(task: AgentTask): Record<string, unknown> {
   const payload = isRecord(task.input_payload) ? task.input_payload : {};
@@ -57,7 +44,7 @@ function buildConsultativeResult(task: AgentTask): Record<string, unknown> {
   // payment, messaging, inventory, product, pre-order, or freight mutations.
   switch (task.task_type) {
     case "sourcing_intake": {
-      const missing = validatePayload(payload);
+      const missing = validateSourcingPayload(payload);
       return {
         mode: "consultative",
         outcome: missing.length ? "needs_information" : "ready_for_human_review",
@@ -69,7 +56,7 @@ function buildConsultativeResult(task: AgentTask): Record<string, unknown> {
       };
     }
     case "missing_information_check": {
-      const missing = validatePayload(payload);
+      const missing = validateSourcingPayload(payload);
       return {
         mode: "consultative",
         outcome: missing.length ? "needs_information" : "no_required_fields_missing",
