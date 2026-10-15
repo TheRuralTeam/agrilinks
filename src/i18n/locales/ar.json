@@ -61,12 +61,12 @@
     "password": "كلمة المرور",
     "confirmPassword": "تأكيد كلمة المرور",
     "forgotPassword": "هل نسيت كلمة المرور؟",
-    "loginTitle": "تسجيل الدخول إلى OrbisLink",
+    "loginTitle": "تسجيل الدخول إلى AgriLink",
     "loginDescription": "سجل الدخول للوصول إلى حسابك",
     "noAccount": "ليس لديك حساب؟ سجل الآن:"
   },
   "home": {
-    "welcome": "مرحبًا في OrbisLink",
+    "welcome": "مرحبًا في AgriLink",
     "subtitle": "ربط الموردين والمشترين",
     "featuredProducts": "منتجات مميزة",
     "nearYou": "قريب منك",
