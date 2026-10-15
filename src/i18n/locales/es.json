@@ -70,7 +70,7 @@
     "noAccount": "¿No tiene cuenta? Regístrese como:",
     "farmerAgentBuyer": "Proveedor, agente o comprador",
     "viewSite": "Ver sitio institucional",
-    "termsLink": "Términos de publicidad de OrbisLink",
+    "termsLink": "Términos de publicidad de AgriLink",
     "recoverPassword": "Recuperar contraseña",
     "recoverDescription": "Introduzca su correo para recibir un enlace de recuperación",
     "sendLink": "Enviar enlace",
@@ -80,7 +80,7 @@
     "understood": "Entendido"
   },
   "registration": {
-    "title": "Registro de OrbisLink",
+    "title": "Registro de AgriLink",
     "subtitle": "Cree su cuenta en la plataforma",
     "infoTitle": "Información del registro",
     "userType": "Tipo de usuario",
@@ -109,7 +109,7 @@
     "alreadyHaveAccount": "¿Ya tiene cuenta?",
     "loginHere": "Inicie sesión aquí",
     "accountCreated": "¡Cuenta creada con éxito!",
-    "welcomeMessage": "¡Bienvenido a OrbisLink!"
+    "welcomeMessage": "¡Bienvenido a AgriLink!"
   },
   "profile": {
     "title": "Mi perfil",
@@ -127,14 +127,14 @@
     "copyCode": "Copiar código",
     "codeShared": "¡Código compartido!",
     "codeCopied": "¡Código copiado!",
-    "shareMessage": "Regístrese en OrbisLink con mi código de agente",
+    "shareMessage": "Regístrese en AgriLink con mi código de agente",
     "totalReferrals": "Total de referencias",
     "totalPoints": "Total de puntos",
     "activeProducts": "Productos activos",
     "totalViews": "Total de visitas",
     "totalInterests": "Total de intereses",
     "sourcing": "Pedidos especiales",
-    "sourcingDescription": "Solicite productos específicos y OrbisLink negociará por usted",
+    "sourcingDescription": "Solicite productos agrícolas y siga el estado de su solicitud en la plataforma",
     "loadingProfile": "Cargando perfil...",
     "fullName": "Nombre completo",
     "phone": "Teléfono",
@@ -193,8 +193,8 @@
     "rejected": "Rechazado"
   },
   "sourcing": {
-    "title": "OrbisLink Sourcing",
-    "subtitle": "Deje que OrbisLink encuentre los mejores productos para usted",
+    "title": "AgriLink Sourcing",
+    "subtitle": "Registre su necesidad y consulte el estado de la solicitud",
     "newRequest": "Nueva solicitud",
     "productName": "Nombre del producto",
     "productNamePlaceholder": "Ej.: maíz, frijoles, tomates...",
@@ -207,7 +207,7 @@
     "myRequests": "Mis solicitudes",
     "noRequests": "Todavía no tiene solicitudes de sourcing",
     "requestSent": "¡Solicitud enviada con éxito!",
-    "requestSentMessage": "El equipo de OrbisLink se pondrá en contacto con usted pronto.",
+    "requestSentMessage": "Solicitud registrada. Consulte el estado en Mis Solicitudes.",
     "status": {
       "pending": "Pendiente",
       "processing": "Procesando",
@@ -223,7 +223,7 @@
     "transactions": "Transacciones",
     "notifications": "Notificaciones",
     "fichas": "Fichas",
-    "sourcing": "OrbisLink Sourcing",
+    "sourcing": "AgriLink Sourcing",
     "sourcingRequests": "Solicitudes de sourcing",
     "noSourcingRequests": "No hay solicitudes de sourcing",
     "updateStatus": "Actualizar estado",
