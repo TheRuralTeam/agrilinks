@@ -1,4 +1,4 @@
-# Plano para concluir as traduções do OrbisLink
+# Plano para concluir as traduções do AgriLink
 
 **Auditoria das chaves JSON:** 2 de outubro de 2026
 **Objetivo:** permitir que qualquer idioma disponível seja selecionado sem conteúdo visível ausente, texto no idioma errado ou interface quebrada.
