@@ -30,6 +30,41 @@ type TaskType =
   | "notification_draft"
   | "admin_review";
 
+type SourcingRequestRow = {
+  id: string;
+  product_name: string;
+  quantity: number | string;
+  unit: string;
+  delivery_date: string;
+  delivery_province_id: string | null;
+  delivery_municipality_id: string | null;
+  delivery_location: string | null;
+};
+type SupplierRow = {
+  id: string;
+  company_name: string;
+  product_name: string;
+  province_id: string | null;
+  municipality_id: string | null;
+  locality: string | null;
+  verification_status: string;
+};
+type SupplierQuoteRow = {
+  id: string;
+  sourcing_request_id: string;
+  supplier_id: string;
+  available_quantity: number | string;
+  unit: string;
+  unit_price: number | string | null;
+  currency: string;
+  availability_status: string;
+  confirmation_status: string;
+  expected_delivery_date: string | null;
+  valid_until: string | null;
+  quality_notes: string | null;
+  confirmed_at: string | null;
+};
+
 type AgentTask = {
   id: string;
   task_type: TaskType;
@@ -76,23 +111,25 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any): P
     return { outcome: "needs_information", missing_fields: ["sourcing_request_id"], verified_supplier_candidates: [], confirmed_quotes: [], side_effects: [] };
   }
 
-  const { data: request, error: requestError } = await db
+  const { data: requestData, error: requestError } = await db
     .from("sourcing_requests")
     .select("id, product_name, quantity, unit, delivery_date, delivery_province_id, delivery_municipality_id, delivery_location")
     .eq("id", requestId)
     .maybeSingle();
   if (requestError) throw requestError;
+  const request = requestData as SourcingRequestRow | null;
   if (!request) {
     return { outcome: "request_not_found", sourcing_request_id: requestId, verified_supplier_candidates: [], confirmed_quotes: [], side_effects: [] };
   }
 
-  const { data: supplierRows, error: suppliersError } = await db
+  const { data: supplierData, error: suppliersError } = await db
     .from("sourcing_supplier_leads")
     .select("id, company_name, product_name, province_id, municipality_id, locality, verification_status")
     .eq("verification_status", "confirmed")
     .ilike("product_name", request.product_name)
     .limit(100);
   if (suppliersError) throw suppliersError;
+  const supplierRows = (supplierData ?? []) as SupplierRow[];
 
   const normalize = (value: unknown) => typeof value === "string" ? value.trim().toLocaleLowerCase("pt-AO") : "";
   const suppliers = (supplierRows ?? []).filter((supplier) =>
@@ -100,7 +137,7 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any): P
   );
   const supplierById = new Map(suppliers.map((supplier) => [supplier.id, supplier]));
 
-  const { data: quoteRows, error: quotesError } = await db
+  const { data: quoteData, error: quotesError } = await db
     .from("sourcing_supplier_quotes")
     .select("id, sourcing_request_id, supplier_id, available_quantity, unit, unit_price, currency, availability_status, confirmation_status, expected_delivery_date, valid_until, quality_notes, confirmed_at")
     .eq("sourcing_request_id", request.id)
@@ -109,8 +146,9 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any): P
     .or(`valid_until.is.null,valid_until.gte.${currentLuandaDate()}`)
     .limit(100);
   if (quotesError) throw quotesError;
+  const quoteRows = (quoteData ?? []) as SupplierQuoteRow[];
 
-  const quotes = (quoteRows ?? [])
+  const quotes = quoteRows
     .filter((quote) => supplierById.has(quote.supplier_id) && quote.unit === request.unit)
     .map((quote) => ({
       id: quote.id,
@@ -161,7 +199,7 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any): P
   };
 }
 
-async function buildConsultativeResult(task: AgentTask, db: ReturnType<typeof createClient>): Promise<Record<string, unknown>> {
+async function buildConsultativeResult(task: AgentTask, db: any): Promise<Record<string, unknown>> {
   const payload = isRecord(task.input_payload) ? task.input_payload : {};
 
   // The worker reads only existing records and never contacts suppliers or changes commercial data.
