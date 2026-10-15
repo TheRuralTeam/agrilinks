@@ -46,3 +46,11 @@ Foram aplicadas as migrations `20261015211625`, `20261015211638`, `2026101521164
 A implantação activa não substitui testes de runtime nem comprova a integração com dados reais.
 
 O CI verde valida código e build, mas não substitui testes de runtime das Edge Functions nem comprova a integração com dados reais.
+
+
+## Actualização de validação — 2026-10-15
+
+- A validação dos campos de sourcing passou para `supabase/functions/_shared/agent-task-validation.ts` e tem testes unitários incluídos no CI.
+- O worker foi actualizado e está activo na versão 3.
+- A verificação de produção continuou sem tarefas em `agent_tasks`; por isso, a execução ponta a ponta continua pendente e não é declarada concluída.
+- Foi criado o checklist operacional `docs/qa/multi-agent-operational-checklist-2026-10-15.md` com critérios de aceitação e passos para teste controlado.
