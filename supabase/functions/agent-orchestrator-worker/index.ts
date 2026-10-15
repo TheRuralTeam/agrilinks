@@ -185,8 +185,16 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
 
   const normalize = (value: unknown) => typeof value === "string" ? value.trim().toLocaleLowerCase("pt-AO") : "";
   const suppliers = (supplierRows ?? []).filter((supplier) =>
-    supplier.verification_status === "confirmed" && normalize(supplier.product_name) === normalize(request.product_name)
-  );
+    supplier.verification_status === "confirmed" && normalizeProductName(supplier.product_name) === normalizeProductName(request.product_name)
+  ).map((supplier) => {
+    const sameMunicipality = Boolean(request.delivery_municipality_id && supplier.municipality_id === request.delivery_municipality_id);
+    const sameProvince = Boolean(request.delivery_province_id && supplier.province_id === request.delivery_province_id);
+    return {
+      ...supplier,
+      location_match: sameMunicipality ? "same_municipality" : sameProvince ? "same_province" : "other_location",
+      location_rank: sameMunicipality ? 0 : sameProvince ? 1 : 2,
+    };
+  }).sort((a, b) => a.location_rank - b.location_rank || a.company_name.localeCompare(b.company_name, "pt-AO"));
   const supplierById = new Map(suppliers.map((supplier) => [supplier.id, supplier]));
 
   const { data: quoteData, error: quotesError } = await db
@@ -216,9 +224,19 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
       quality_notes: quote.quality_notes,
       confirmed_at: quote.confirmed_at,
       covers_requested_quantity: Number(quote.available_quantity) >= Number(request.quantity),
+      quantity_coverage_ratio: Number(quote.available_quantity) / Number(request.quantity),
+      meets_requested_delivery_date: !request.delivery_date || !quote.expected_delivery_date || quote.expected_delivery_date <= request.delivery_date,
     }));
 
-  const pricedQuotes = quotes.filter((quote) => typeof quote.unit_price === "number").sort((a, b) => Number(a.unit_price) - Number(b.unit_price));
+  const pricedQuotes = quotes
+    .filter((quote) => quote.unit_price !== null && quote.unit_price !== undefined && Number.isFinite(Number(quote.unit_price)) && Number(quote.unit_price) >= 0)
+    .sort((a, b) =>
+      Number(b.covers_requested_quantity) - Number(a.covers_requested_quantity) ||
+      Number(b.meets_requested_delivery_date) - Number(a.meets_requested_delivery_date) ||
+      Number(a.unit_price) - Number(b.unit_price)
+    );
+  const fullyCoveredPricedQuotes = pricedQuotes.filter((quote) => quote.covers_requested_quantity);
+  const partialPricedQuotes = pricedQuotes.filter((quote) => !quote.covers_requested_quantity);
   const outcome = quotes.length
     ? "confirmed_quotes_found"
     : suppliers.length
@@ -239,12 +257,16 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
       province_id: supplier.province_id,
       municipality_id: supplier.municipality_id,
       locality: supplier.locality,
+      location_match: supplier.location_match,
     })),
     confirmed_quotes: quotes,
-    lowest_confirmed_price: pricedQuotes.length ? pricedQuotes[0] : null,
+    recommended_confirmed_quote: pricedQuotes.length ? pricedQuotes[0] : null,
+    lowest_confirmed_price: fullyCoveredPricedQuotes.length ? fullyCoveredPricedQuotes.sort((a, b) => Number(a.unit_price) - Number(b.unit_price))[0] : null,
+    lowest_partial_quote: !fullyCoveredPricedQuotes.length && partialPricedQuotes.length ? partialPricedQuotes.sort((a, b) => Number(a.unit_price) - Number(b.unit_price))[0] : null,
+    comparison_method: "Prioriza cobertura integral da quantidade, compatibilidade com a data de entrega e só depois preço; a menor cotação parcial nunca é apresentada como suficiente para o pedido completo.",
     prior_context: priorContext,
     summary: quotes.length
-      ? `Foram encontradas ${quotes.length} cotações confirmadas e ainda válidas de fornecedores verificados. É necessária revisão humana antes de apresentar uma proposta ao comprador.`
+      ? `Foram encontradas ${quotes.length} cotações confirmadas e ainda válidas de fornecedores verificados. ${fullyCoveredPricedQuotes.length ? "Existe pelo menos uma cotação com cobertura integral da quantidade." : "Nenhuma cotação com preço confirmado cobre integralmente a quantidade pedida."} É necessária revisão humana antes de apresentar uma proposta ao comprador.`
       : suppliers.length
         ? `Foram encontrados ${suppliers.length} fornecedores confirmados para o produto, mas não existe cotação confirmada e válida para este pedido.`
         : "Não existe fornecedor confirmado compatível na base de dados. É necessária pesquisa e verificação humana; não foram inventados fornecedores nem preços.",
