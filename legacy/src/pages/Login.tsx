@@ -98,7 +98,7 @@ const Login = () => {
               </div>
             </Card>
 
-            {/* Equipa OrbisLink Card */}
+            {/* Equipa AgriLink Card */}
             <Card 
               className="group border-none shadow-sm hover:shadow-xl transition-all duration-500 rounded-[2rem] overflow-hidden cursor-pointer"
               style={{ backgroundColor: T.white }}
@@ -117,7 +117,7 @@ const Login = () => {
                     <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: T.muted }}>Administração</span>
                   </div>
                   <CardTitle className="text-2xl font-black mb-3" style={{ color: T.ink }}>
-                    Equipa OrbisLink
+                    Equipa AgriLink
                   </CardTitle>
                   <CardDescription className="text-sm font-medium mb-6 leading-relaxed" style={{ color: T.mid }}>
                     Aceda ao painel de controlo central para gerir operações, logística e inteligência de mercado.
@@ -166,7 +166,7 @@ const Login = () => {
               Conectando mercados • Movendo economias
             </p>
             <p className="text-[10px] mt-4" style={{ color: T.muted }}>
-              © <span className="font-black" style={{ color: T.g700 }}>OrbisLink Lda</span> 2025
+              © <span className="font-black" style={{ color: T.g700 }}>AgriLink Lda</span> 2025
             </p>
           </div>
         </div>
