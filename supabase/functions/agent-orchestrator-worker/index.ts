@@ -303,15 +303,22 @@ async function buildConsultativeResult(task: AgentTask, db: any): Promise<Record
     case "quote_comparison": {
       const matches = await findSourcingMatches(payload, db, task.requested_by);
       const quotes = Array.isArray(matches.confirmed_quotes) ? matches.confirmed_quotes as Array<Record<string, unknown>> : [];
-      const pricedQuotes = quotes.filter((quote) => typeof quote.unit_price === "number")
-        .sort((a, b) => Number(a.unit_price) - Number(b.unit_price));
+      const pricedQuotes = quotes.filter((quote) => quote.unit_price !== null && quote.unit_price !== undefined && Number.isFinite(Number(quote.unit_price)) && Number(quote.unit_price) >= 0);
+      const currencies = [...new Set(pricedQuotes.map((quote) => String(quote.currency ?? "unknown")))];
+      const priceComparisonByCurrency = currencies.map((currency) => {
+        const currencyQuotes = pricedQuotes.filter((quote) => String(quote.currency ?? "unknown") === currency)
+          .sort((a, b) => Number(b.covers_requested_quantity) - Number(a.covers_requested_quantity) || Number(b.meets_requested_delivery_date) - Number(a.meets_requested_delivery_date) || Number(a.unit_price) - Number(b.unit_price));
+        return { currency, quotes: currencyQuotes };
+      });
       return {
         mode: "consultative",
         ...matches,
-        outcome: pricedQuotes.length ? "quotes_compared" : matches.outcome,
-        price_comparison: pricedQuotes,
+        outcome: pricedQuotes.length ? (currencies.length > 1 ? "quotes_compared_by_currency" : "quotes_compared") : matches.outcome,
+        price_comparison_by_currency: priceComparisonByCurrency,
         comparison_note: pricedQuotes.length
-          ? "Comparação ordenada apenas por preços confirmados, na mesma unidade e com validade vigente. Considere também qualidade, entrega e quantidade."
+          ? currencies.length > 1
+            ? "Cotações separadas por moeda; não foi calculado um vencedor global sem taxa de câmbio verificável. Dentro de cada moeda, a ordenação considera cobertura, entrega e preço."
+            : "Comparação de cotações confirmadas da mesma moeda e unidade, com validade vigente; considera cobertura integral da quantidade, data de entrega e preço."
           : "Não há preços confirmados e válidos suficientes para uma comparação de preços.",
         side_effects: [],
       };
