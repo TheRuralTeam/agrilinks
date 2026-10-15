@@ -1,3 +1,4 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 import { corsHeaders, jsonResponse } from "../_shared/http.ts";
 
@@ -14,6 +15,33 @@ const MAX_ACTIVE_TASKS_PER_USER = 10;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+async function dispatchWorker(supabaseUrl: string, serviceRoleKey: string): Promise<void> {
+  const workerSecret = Deno.env.get("AGENT_WORKER_SECRET");
+  if (!workerSecret) {
+    console.error("Agent worker dispatch skipped: required secret is missing");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${supabaseUrl.replace(/\\/+$/, "")}/functions/v1/agent-orchestrator-worker`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": serviceRoleKey,
+        "Authorization": `Bearer ${serviceRoleKey}`,
+        "x-agent-worker-secret": workerSecret,
+      },
+      body: "{}",
+    });
+    await response.text();
+    if (!response.ok) {
+      console.error("Agent worker dispatch failed", { status: response.status });
+    }
+  } catch {
+    console.error("Agent worker dispatch failed: network or runtime error");
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -83,6 +111,7 @@ Deno.serve(async (req: Request) => {
     const { data: owned } = await db.from("agent_tasks").select("id, status, task_type")
       .eq("id", existing.id).eq("requested_by", authData.user.id).maybeSingle();
     if (!owned) return jsonResponse({ error: "Chave de idempotência já utilizada." }, 409);
+    if (owned.status === "queued") EdgeRuntime.waitUntil(dispatchWorker(supabaseUrl, serviceRoleKey));
     return jsonResponse({ task: owned, reused: true }, 200);
   }
 
@@ -133,5 +162,9 @@ Deno.serve(async (req: Request) => {
   const task = Array.isArray(submitted) ? submitted[0] : null;
   if (!task) return jsonResponse({ error: "Não foi possível confirmar a tarefa criada." }, 500);
 
-  return jsonResponse({ task: { id: task.id, task_type: task.task_type, status: task.status, autonomy_mode: task.autonomy_mode, created_at: task.created_at }, reused: false, audit_event_recorded: true }, 202);
+  // Start the worker without blocking the authenticated submission response.
+  // The task remains durable in Postgres if dispatch fails and can be retried later.
+  EdgeRuntime.waitUntil(dispatchWorker(supabaseUrl, serviceRoleKey));
+
+  return jsonResponse({ task: { id: task.id, task_type: task.task_type, status: task.status, autonomy_mode: task.autonomy_mode, created_at: task.created_at }, reused: false, audit_event_recorded: true, worker_dispatch: "scheduled" }, 202);
 });
