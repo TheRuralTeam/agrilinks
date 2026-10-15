@@ -22,6 +22,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Verificar tipos das Edge Functions multiagente
+        run: deno check supabase/functions/agent-task-submit/index.ts supabase/functions/agent-orchestrator-worker/index.ts
+
       - name: Auditar nomes das migrations (informativo)
         run: npm run audit:migrations
 
