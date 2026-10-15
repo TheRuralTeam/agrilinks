@@ -1462,7 +1462,7 @@ const Profile = () => {
               </label>
               <Select value={i18n.language} onValueChange={(value) => {
                 i18n.changeLanguage(value)
-                localStorage.setItem('orbislink_language', value)
+                localStorage.setItem('agrilink_language', value)
                 toast({ title: t('common.success'), description: t('common.languageChanged') || 'Idioma alterado.' })
               }}>
                 <SelectTrigger style={{ borderRadius: 12, border: `1px solid ${T.rule}`, height: 42, fontSize: 13, fontFamily: 'inherit' }}>
