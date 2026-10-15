@@ -524,7 +524,7 @@ const Profile = () => {
     }
     setSubmittingSourcing(true)
     try {
-      const { error } = await supabase.from('sourcing_requests').insert({
+      const { data: sourcingRequest, error } = await supabase.from('sourcing_requests').insert({
         user_id: user.id,
         product_name: sourcingForm.product_name,
         quantity,
@@ -535,13 +535,37 @@ const Profile = () => {
         delivery_location: sourcingForm.delivery_location.trim() || null,
         delivery_date: sourcingForm.delivery_date,
         description: sourcingForm.description.trim() || null,
-      })
+        status: 'pending',
+      }).select('id').single()
       if (error) throw error
-      // A notificação administrativa é criada pelo trigger da base de dados após o INSERT.
-      toast({ title: t('sourcing.requestSent'), description: t('sourcing.requestSentMessage') })
+
+      // The commercial request remains valid even if the consultative agent is unavailable.
+      const { error: agentError } = await supabase.functions.invoke('agent-task-submit', {
+        body: {
+          task_type: 'sourcing_intake',
+          autonomy_mode: 'suggest',
+          idempotency_key: `sourcing-${sourcingRequest.id}`,
+          input_payload: {
+            sourcing_request_id: sourcingRequest.id,
+            product_name: sourcingForm.product_name,
+            quantity,
+            unit: sourcingForm.unit,
+            delivery_location: sourcingForm.delivery_location.trim() || [angolaProvinces.find(p => p.id === sourcingForm.delivery_province_id)?.municipalities.find(m => m.id === sourcingForm.delivery_municipality_id)?.name, angolaProvinces.find(p => p.id === sourcingForm.delivery_province_id)?.name].filter(Boolean).join(', '),
+            delivery_date: sourcingForm.delivery_date,
+            quality_specification: sourcingForm.quality_specification.trim() || null,
+          },
+        },
+      })
+      if (agentError) {
+        console.error('AgriLink sourcing intake was not queued', agentError.message)
+        toast({ title: 'Pedido registado', description: 'A verificação automática não foi iniciada. Pode acompanhar o pedido em Meus Pedidos.' })
+      } else {
+        toast({ title: 'Pedido registado', description: 'A verificação automática foi solicitada. O resultado ficará disponível após o processamento do serviço.' })
+      }
       setSourcingForm({ product_name: '', quantity: '', unit: 'kg', quality_specification: '', delivery_province_id: '', delivery_municipality_id: '', delivery_location: '', delivery_date: '', description: '' })
       setShowSourcingForm(false)
-      fetchSourcingRequests()
+      await fetchSourcingRequests()
+      navigate('/perfil?tab=sourcing', { replace: true })
     } catch (error: any) {
       toast({ title: 'Erro', description: error.message || 'Erro ao enviar pedido', variant: 'destructive' })
     } finally { setSubmittingSourcing(false) }
