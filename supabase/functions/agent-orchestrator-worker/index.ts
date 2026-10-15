@@ -1,6 +1,25 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-import { corsHeaders, jsonResponse } from "../_shared/http.ts";
-import { validateSourcingPayload } from "../_shared/agent-task-validation.ts";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-agent-worker-secret",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function jsonResponse(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function validateSourcingPayload(payload: Record<string, unknown>): string[] {
+  const missing: string[] = [];
+  if (typeof payload.product_name !== "string" || payload.product_name.trim().length === 0) missing.push("product_name");
+  if (!(typeof payload.quantity === "number" && Number.isFinite(payload.quantity) && payload.quantity > 0)) missing.push("quantity");
+  if (typeof payload.unit !== "string" || payload.unit.trim().length === 0) missing.push("unit");
+  if (typeof payload.delivery_location !== "string" || payload.delivery_location.trim().length === 0) missing.push("delivery_location");
+  return missing;
+}
 
 type TaskType =
   | "sourcing_intake"
