@@ -67,6 +67,7 @@ Deno.serve(async (req: Request) => {
       ? task.idempotency_key.slice("sourcing-".length)
       : null;
     const candidates = Array.isArray(result.verified_supplier_candidates) ? result.verified_supplier_candidates.length : 0;
+    const marketplaceListings = Number(result.marketplace_listing_count ?? (Array.isArray(result.marketplace_candidates) ? result.marketplace_candidates.length : 0));
     const quotes = Array.isArray(result.confirmed_quotes) ? result.confirmed_quotes.length : 0;
     const priorContext = isRecord(result.prior_context) ? {
       similar_completed_requests: Number(result.prior_context.similar_completed_requests ?? 0),
@@ -80,6 +81,7 @@ Deno.serve(async (req: Request) => {
       outcome: typeof result.outcome === "string" ? result.outcome : null,
       summary: typeof result.summary === "string" ? result.summary : null,
       verified_supplier_count: candidates,
+      marketplace_listing_count: marketplaceListings,
       confirmed_quote_count: quotes,
       prior_context: priorContext,
       error_code: task.error_code,
