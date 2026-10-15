@@ -182,10 +182,14 @@ BEGIN
     RAISE EXCEPTION 'invalid_task_transition' USING ERRCODE = '22023';
   END IF;
 
-  IF p_event_type NOT IN (
-    'task_completed_consultative', 'task_retry_scheduled', 'task_failed', 'task_rejected'
+  -- Enforce a consistent state/event pair. Explicitly reject NULL because
+  -- SQL's three-valued logic would otherwise make "NULL NOT IN (...)" unknown.
+  IF p_event_type IS NULL OR NOT (
+    (p_status = 'completed' AND p_event_type = 'task_completed_consultative')
+    OR (p_status = 'queued' AND p_event_type = 'task_retry_scheduled')
+    OR (p_status = 'failed' AND p_event_type IN ('task_failed', 'task_rejected'))
   ) THEN
-    RAISE EXCEPTION 'invalid_task_event' USING ERRCODE = '22023';
+    RAISE EXCEPTION 'invalid_task_transition_event' USING ERRCODE = '22023';
   END IF;
 
   IF p_event_payload IS NULL OR jsonb_typeof(p_event_payload) <> 'object'
