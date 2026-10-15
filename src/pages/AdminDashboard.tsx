@@ -1488,7 +1488,7 @@ const AdminDashboard = () => {
                 <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="text-muted-foreground">Antes</span>
-                    <span className="font-medium tabular-nums">{Number(editingProduct?.price ?? 0).toLocaleString("pt-AO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kz/{editingProduct?.sale_unit || editingProduct?.unit || "kg"}</span>
+                    <span className="font-medium tabular-nums">{Number(editingProduct?.price ?? 0).toLocaleString("pt-AO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kz/{editingProduct?.sale_unit || "kg"}</span>
                   </div>
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="text-muted-foreground">Agora</span>
