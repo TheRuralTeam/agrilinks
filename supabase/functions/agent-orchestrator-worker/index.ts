@@ -74,6 +74,7 @@ type AgentTask = {
   input_payload: Record<string, unknown>;
   attempt_count: number;
   assigned_agent: string | null;
+  requested_by: string | null;
 };
 
 const MAX_TASKS_PER_INVOCATION = 5;
@@ -86,6 +87,12 @@ const TASK_TYPES = new Set<TaskType>([
   "notification_draft",
   "admin_review",
 ]);
+
+function normalizeProductName(value: unknown): string {
+  return typeof value === "string"
+    ? value.trim().toLocaleLowerCase("pt-AO").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/\\s+/g, " ")
+    : "";
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -105,7 +112,7 @@ function currentLuandaDate(): string {
   return `${year}-${month}-${day}`;
 }
 
-async function findSourcingMatches(payload: Record<string, unknown>, db: any): Promise<Record<string, unknown>> {
+async function findSourcingMatches(payload: Record<string, unknown>, db: any, requestedBy: string | null): Promise<Record<string, unknown>> {
   const requestId = typeof payload.sourcing_request_id === "string" ? payload.sourcing_request_id : "";
   if (!requestId) {
     return { outcome: "needs_information", missing_fields: ["sourcing_request_id"], verified_supplier_candidates: [], confirmed_quotes: [], side_effects: [] };
@@ -120,6 +127,51 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any): P
   const request = requestData as SourcingRequestRow | null;
   if (!request) {
     return { outcome: "request_not_found", sourcing_request_id: requestId, verified_supplier_candidates: [], confirmed_quotes: [], side_effects: [] };
+  }
+
+  // Personalised history is context only. Never reuse historical prices as current quotes.
+  let priorContext: Record<string, unknown> = {
+    similar_completed_requests: 0,
+    previous_outcomes: [],
+    reused_historical_prices: false,
+  };
+  if (requestedBy) {
+    try {
+      const { data: history, error: historyError } = await db
+        .from("agent_tasks")
+        .select("input_payload, result_payload, created_at")
+        .eq("requested_by", requestedBy)
+        .eq("task_type", "sourcing_intake")
+        .eq("status", "completed")
+        .order("created_at", { ascending: false })
+        .limit(30);
+      if (historyError) throw historyError;
+      const productKey = normalizeProductName(request.product_name);
+      const similar = (history ?? []).filter((item: any) =>
+        normalizeProductName(item.input_payload?.product_name) === productKey
+      ).slice(0, 10);
+      const outcomeCounts = new Map<string, number>();
+      for (const item of similar) {
+        const outcome = typeof item.result_payload?.outcome === "string" ? item.result_payload.outcome : "unknown";
+        outcomeCounts.set(outcome, (outcomeCounts.get(outcome) ?? 0) + 1);
+      }
+      priorContext = {
+        similar_completed_requests: similar.length,
+        previous_outcomes: [...outcomeCounts.entries()].map(([outcome, count]) => ({ outcome, count })),
+        last_similar_request_at: similar[0]?.created_at ?? null,
+        reused_historical_prices: false,
+        note: similar.length
+          ? "Histórico do mesmo utilizador e produto usado apenas para contexto; preços e disponibilidade antigos não são tratados como actuais."
+          : "Sem histórico anterior comparável para este produto.",
+      };
+    } catch {
+      priorContext = {
+        similar_completed_requests: 0,
+        previous_outcomes: [],
+        reused_historical_prices: false,
+        note: "Histórico anterior indisponível; análise baseada apenas nos dados actuais confirmados.",
+      };
+    }
   }
 
   const { data: supplierData, error: suppliersError } = await db
@@ -190,6 +242,7 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any): P
     })),
     confirmed_quotes: quotes,
     lowest_confirmed_price: pricedQuotes.length ? pricedQuotes[0] : null,
+    prior_context: priorContext,
     summary: quotes.length
       ? `Foram encontradas ${quotes.length} cotações confirmadas e ainda válidas de fornecedores verificados. É necessária revisão humana antes de apresentar uma proposta ao comprador.`
       : suppliers.length
@@ -209,7 +262,7 @@ async function buildConsultativeResult(task: AgentTask, db: any): Promise<Record
       if (missing.length) {
         return { mode: "consultative", outcome: "needs_information", missing_fields: missing, side_effects: [] };
       }
-      const matches = await findSourcingMatches(payload, db);
+      const matches = await findSourcingMatches(payload, db, task.requested_by);
       return {
         mode: "consultative",
         ...matches,
