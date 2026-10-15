@@ -229,7 +229,11 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
         rfqForm.description.trim() ? `Observações: ${rfqForm.description.trim()}` : '',
       ].filter(Boolean).join('\\n\\n');
 
-      const { error } = await supabase.from('sourcing_requests').insert({
+      const selectedProvince = angolaProvinces.find(province => province.id === rfqForm.deliveryProvinceId);
+      const selectedMunicipality = selectedProvince?.municipalities.find(municipality => municipality.id === rfqForm.deliveryMunicipalityId);
+      const deliveryLocation = rfqForm.deliveryLocation.trim() || [selectedMunicipality?.name, selectedProvince?.name].filter(Boolean).join(', ');
+
+      const { data: sourcingRequest, error } = await supabase.from('sourcing_requests').insert({
         user_id: user.id,
         product_name: productName,
         quantity,
@@ -237,14 +241,37 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
         quality_specification: rfqForm.qualitySpecification.trim() || null,
         delivery_province_id: rfqForm.deliveryProvinceId,
         delivery_municipality_id: rfqForm.deliveryMunicipalityId,
-        delivery_location: rfqForm.deliveryLocation.trim() || null,
+        delivery_location: deliveryLocation || null,
         delivery_date: rfqForm.deliveryDate,
         description: details || null,
         status: 'pending',
-      });
+      }).select('id').single();
       if (error) throw error;
 
-      toast.success('Solicitação de cotação enviada à equipa AgriLink.');
+      // The sourcing request is the source of truth. Agent submission is
+      // supplementary and must never roll back or hide a successfully saved RFQ.
+      const { error: agentError } = await supabase.functions.invoke('agent-task-submit', {
+        body: {
+          task_type: 'sourcing_intake',
+          autonomy_mode: 'suggest',
+          idempotency_key: `sourcing-${sourcingRequest.id}`,
+          input_payload: {
+            sourcing_request_id: sourcingRequest.id,
+            product_name: productName,
+            quantity,
+            unit: rfqForm.unit,
+            delivery_location: deliveryLocation,
+            delivery_date: rfqForm.deliveryDate,
+            quality_specification: rfqForm.qualitySpecification.trim() || null,
+          },
+        },
+      });
+      if (agentError) {
+        console.error('AgriLink agent intake was not queued', agentError.message);
+        toast.info('Pedido registado. A verificação automática não foi iniciada; a equipa AgriLink continuará a receber a solicitação.');
+      } else {
+        toast.success('Solicitação enviada. A AgriLink iniciou a verificação automática dos dados para revisão humana.');
+      }
       setRfqOpen(false);
       setRfqForm({ productName: '', quantity: '', unit: 'kg', qualitySpecification: '', deliveryProvinceId: '', deliveryMunicipalityId: '', deliveryLocation: '', deliveryDate: '', description: '' });
     } catch (error) {
