@@ -61,12 +61,12 @@
     "password": "Пароль",
     "confirmPassword": "Подтвердите пароль",
     "forgotPassword": "Забыли пароль?",
-    "loginTitle": "Вход в OrbisLink",
+    "loginTitle": "Вход в AgriLink",
     "loginDescription": "Войдите в свой аккаунт",
     "noAccount": "Нет аккаунта? Зарегистрируйтесь:"
   },
   "home": {
-    "welcome": "Добро пожаловать в OrbisLink",
+    "welcome": "Добро пожаловать в AgriLink",
     "subtitle": "Связываем поставщиков и покупателей",
     "featuredProducts": "Избранные товары",
     "nearYou": "Рядом с вами",
