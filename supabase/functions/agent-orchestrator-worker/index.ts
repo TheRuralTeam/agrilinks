@@ -1,3 +1,4 @@
+/// <reference types="jsr:@supabase/functions-js/edge-runtime.d.ts" />
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -69,7 +70,7 @@ function currentLuandaDate(): string {
   return `${year}-${month}-${day}`;
 }
 
-async function findSourcingMatches(payload: Record<string, unknown>, db: ReturnType<typeof createClient>): Promise<Record<string, unknown>> {
+async function findSourcingMatches(payload: Record<string, unknown>, db: any): Promise<Record<string, unknown>> {
   const requestId = typeof payload.sourcing_request_id === "string" ? payload.sourcing_request_id : "";
   if (!requestId) {
     return { outcome: "needs_information", missing_fields: ["sourcing_request_id"], verified_supplier_candidates: [], confirmed_quotes: [], side_effects: [] };
