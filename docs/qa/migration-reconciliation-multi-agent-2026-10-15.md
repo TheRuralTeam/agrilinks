@@ -1,61 +1,46 @@
-# Reconciliação do histórico de migrations — AgriLink
+# Reconciliação de migrations — AgriLink
 
 **Data:** 2026-10-15  
-**Ramo:** `feat/multi-agent-core-audit`  
-**Supabase project ref:** `oqcrfqtlfqwrxxmsjpaf`  
-**Tipo de trabalho:** leitura do histórico remoto e dos ficheiros locais; nenhuma alteração foi aplicada à base de dados.
+**Project ref:** `oqcrfqtlfqwrxxmsjpaf`
 
-## Resultado executivo
+## Estado actual
 
-**Não executar `supabase db push` nem aplicar as migrations multiagente/hardening em produção neste momento.** O ledger remoto e os nomes/versões locais não estão suficientemente reconciliados. O facto de uma migration existir no ledger sob um nome parecido não comprova que o seu conteúdo seja idêntico ao ficheiro local.
+As quatro migrations abaixo foram aplicadas com sucesso no Supabase de produção e o ledger remoto foi consultado depois da aplicação:
 
-A listagem remota confirma que as migrations de proforma, tipos de pré-compra, políticas administrativas e referência do comprador do frete aparecem com versões remotas diferentes das versões que constam nos nomes locais.
+| Versão remota | Migration | Estado |
+| --- | --- | --- |
+| `20261015211625` | `restrict_internal_freight_rpc_execution` | Aplicada e verificada |
+| `20261015211638` | `create_multi_agent_orchestration_tables` | Aplicada e verificada |
+| `20261015211647` | `add_agent_task_claim_rpc` | Aplicada e verificada |
+| `20261015211704` | `atomic_agent_task_submission` | Aplicada e verificada |
 
-## Colisões locais de versão
+Os ficheiros locais foram alinhados com estas versões remotas. A consulta read-only confirmou RLS activo e sem SELECT para `anon`/`authenticated` nas tabelas `agent_tasks`, `agent_events` e `agent_approvals`. Também confirmou que as RPCs internas de tarefas só podem ser executadas por `service_role`, e que as RPCs sensíveis de frete/moderação já não permitem execução por `anon`.
 
-Há quatro prefixos de 14 dígitos usados por mais de um ficheiro local:
+## Colisões históricas ainda por resolver
 
-| Prefixo em colisão | Ficheiros locais |
+O histórico anterior continua a ter colisões locais e diferenças de nomes/versões remotas. As correspondências abaixo não devem ser renomeadas automaticamente sem comparação do histórico Git, SQL e esquema actual:
+
+| Prefixo local em colisão | Ficheiros |
 | --- | --- |
 | `20261007090000` | `fix_pre_order_acceptance_terms`; `functional_hardening_signup_identity_notifications` |
 | `20261008130000` | `add_p2p_beneficiary_marketplace`; `endurecer_execucao_funcoes_internas` |
 | `20261013100000` | `create_proforma_invoices`; `fix_marketplace_pre_order_result_types` |
 | `20261013120000` | `admin_only_proformas`; `fix_freight_load_buyer_reference` |
 
-Estas colisões devem ser tratadas como problema de histórico, não corrigidas por renomeação automática. Alterar o prefixo pode fazer o CLI considerar uma migration antiga como nova e repetir DDL ou alterar permissões.
+Correspondências conhecidas no ledger remoto incluem `20261008124445`, `20261013083057`, `20261013083950`, `20261013093538` e `20261013094717`. O nome semelhante não prova equivalência de conteúdo.
 
-## Correspondências de nomes vistas no ledger remoto
+## Limites operacionais
 
-| Nome local relevante | Versão/nome que aparece no ledger remoto |
-| --- | --- |
-| `endurecer_execucao_funcoes_internas` | `20261008124445` / `20261008130000_endurecer_execucao_funcoes_internas` |
-| `create_proforma_invoices` | `20261013083057` / `20261013100000_create_proforma_invoices` |
-| `fix_marketplace_pre_order_result_types` | `20261013083950` / `fix_marketplace_pre_order_result_types` |
-| `admin_only_proformas` | `20261013094717` / `20261013120000_admin_only_proformas` |
-| `fix_freight_load_buyer_reference` | `20261013093538` / `fix_freight_load_buyer_reference` |
+- Não executar `supabase db push` enquanto as colisões históricas não forem reconciliadas.
+- Não foi criada branch Supabase, projecto, infraestrutura ou serviço pago.
+- As Edge Functions multiagente ainda não foram implantadas; o worker não está activo.
+- A implantação do worker exige configurar com segurança o segredo `AGENT_WORKER_SECRET`; a ferramenta disponível nesta sessão não permite gerir segredos de Edge Functions.
+- Descoberta de fornecedores e comparação de cotações continuam sem integração a dados reais.
 
-Os nomes são indícios de correspondência, não prova de equivalência de conteúdo. O ledger também contém versões anteriores sem nomes descritivos, pelo que a reconciliação deve considerar o histórico Git, o SQL local e o esquema/definições remotos.
+## Próximos passos
 
-## Sequência segura de reconciliação
-
-1. Exportar e guardar o ledger remoto e o esquema remoto como artefactos de auditoria, sem escrita.
-2. Para cada versão remota com nome correspondente, comparar o SQL local com a definição/efeito atualmente observável no esquema remoto e com os commits históricos. Marcar cada caso como **confirmado**, **divergente** ou **não verificável**.
-3. Confirmar as migrations sem nome descritivo antigas através do histórico Git e dos objetos atuais; não inferir equivalência apenas pela data.
-4. **Restrições operacionais actuais:** não criar branch/base Supabase de desenvolvimento, projecto, serviço ou infraestrutura adicional. Continuar apenas com revisão estática e consultas read-only ao esquema/ledger já existente.
-5. Documentar cada migration como confirmada, divergente ou não verificável com a evidência disponível. Se não for possível provar equivalência sem executar SQL, manter o caso bloqueado — não inferir sincronização.
-6. Qualquer teste de execução de migrations ou reparação do ledger fica adiado até existir um ambiente já disponível e autorização explícita. Nunca usar produção como ambiente de teste nem editar manualmente o ledger como atalho.
-
-## Migrations do núcleo multiagente
-
-As migrations `20261014190000_restrict_internal_freight_rpc_execution.sql` e `20261014191000_create_multi_agent_orchestration_tables.sql` permanecem propostas no ramo de trabalho. A consulta remota anterior confirmou que `agent_tasks`, `agent_events` e `agent_approvals` ainda não existem no projeto. Não foram aplicadas.
-
-A auditoria remota também identificou permissões `EXECUTE` de `anon` em algumas RPCs de frete/moderação que esta migration de hardening pretende restringir. **Essas permissões continuam por corrigir na base remota** enquanto a migration não for validada e aplicada.
-
-## Critério para sair desta fase
-
-- [ ] Cada migration local tem estado de reconciliação documentado.
-- [ ] Nenhuma colisão é resolvida apenas renomeando ficheiros.
-- [ ] As migrations novas passam numa base isolada já existente e autorizada; não criar infraestrutura para satisfazer este item.
-- [x] Os grants das RPCs sensíveis foram consultados em produção em modo read-only; as permissões excessivas ainda estão por corrigir.
-- [ ] O fluxo de CI passa no SHA final e a revisão de segurança fica registada.
-- [ ] O ledger e o esquema remoto estão reconciliados com evidência suficiente; até lá, não executar migrations.
+1. Reconciliar as migrations históricas restantes sem alterar o ledger manualmente.
+2. Configurar `AGENT_WORKER_SECRET` no gestor de segredos do Supabase.
+3. Implantar as Edge Functions e testar autenticação, idempotência, lease/retry e fluxos de erro.
+4. Só depois ligar a submissão à interface da AgriLink e activar invocação do worker; não criar cron/serviço adicional sem necessidade validada.
+5. Confirmar CI no último commit antes de integrar o código em `main`.
