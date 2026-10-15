@@ -905,7 +905,7 @@ const AdminDashboard = () => {
     }
     setAnalyzingMarket(true);
     try {
-      const savedLang = localStorage.getItem('orbislink_language') || 'pt';
+      const savedLang = localStorage.getItem('agrilink_language') || 'pt';
       const { data, error } = await supabase.functions.invoke('market-analysis', {
         body: { products, language: savedLang }
       });
