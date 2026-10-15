@@ -41,9 +41,9 @@ Os nomes são indícios de correspondência, não prova de equivalência de cont
 1. Exportar e guardar o ledger remoto e o esquema remoto como artefactos de auditoria, sem escrita.
 2. Para cada versão remota com nome correspondente, comparar o SQL local com a definição/efeito atualmente observável no esquema remoto e com os commits históricos. Marcar cada caso como **confirmado**, **divergente** ou **não verificável**.
 3. Confirmar as migrations sem nome descritivo antigas através do histórico Git e dos objetos atuais; não inferir equivalência apenas pela data.
-4. Criar uma base/branch de desenvolvimento isolada, restaurar nela uma cópia adequada do esquema e testar migrations novas nessa base.
-5. Só depois de obter um mapa inequívoco, decidir se é necessário reparar o histórico com procedimento explícito e aprovado. Não editar manualmente o ledger de produção como atalho.
-6. Aplicar as novas migrations primeiro no ambiente de desenvolvimento e validar grants, RLS, RPCs e workflows antes de qualquer decisão sobre produção.
+4. **Restrições operacionais actuais:** não criar branch/base Supabase de desenvolvimento, projecto, serviço ou infraestrutura adicional. Continuar apenas com revisão estática e consultas read-only ao esquema/ledger já existente.
+5. Documentar cada migration como confirmada, divergente ou não verificável com a evidência disponível. Se não for possível provar equivalência sem executar SQL, manter o caso bloqueado — não inferir sincronização.
+6. Qualquer teste de execução de migrations ou reparação do ledger fica adiado até existir um ambiente já disponível e autorização explícita. Nunca usar produção como ambiente de teste nem editar manualmente o ledger como atalho.
 
 ## Migrations do núcleo multiagente
 
@@ -55,6 +55,7 @@ A auditoria remota também identificou permissões `EXECUTE` de `anon` em alguma
 
 - [ ] Cada migration local tem estado de reconciliação documentado.
 - [ ] Nenhuma colisão é resolvida apenas renomeando ficheiros.
-- [ ] As migrations novas passam numa base de desenvolvimento.
-- [ ] Os grants finais são verificados com consultas read-only.
-- [ ] O fluxo de CI passa e a revisão de segurança fica registada.
+- [ ] As migrations novas passam numa base isolada já existente e autorizada; não criar infraestrutura para satisfazer este item.
+- [x] Os grants das RPCs sensíveis foram consultados em produção em modo read-only; as permissões excessivas ainda estão por corrigir.
+- [ ] O fluxo de CI passa no SHA final e a revisão de segurança fica registada.
+- [ ] O ledger e o esquema remoto estão reconciliados com evidência suficiente; até lá, não executar migrations.
