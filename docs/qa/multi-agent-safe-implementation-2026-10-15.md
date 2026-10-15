@@ -19,7 +19,7 @@
 - Usa `service_role` apenas no runtime da Edge Function.
 - Processa no máximo cinco tarefas por invocação; usa leases, `FOR UPDATE SKIP LOCKED`, até cinco tentativas e backoff.
 - Só produz resultados consultivos. Não envia mensagens, contacta fornecedores, altera produtos/stock, aceita pré-compras/cargas ou confirma pagamentos.
-- Descoberta de fornecedores e comparação de cotações devolvem `integration_required` até existir integração a dados reais verificados.
+- Descoberta e comparação consultam apenas fornecedores confirmados e cotações confirmadas e ainda válidas já registadas na base de dados. Não contactam fornecedores nem criam cotações.
 
 ## Base de dados — aplicado e verificado
 
