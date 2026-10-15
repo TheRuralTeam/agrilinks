@@ -75,8 +75,8 @@ export const AGENT_CAPABILITIES: Readonly<Record<AgentTaskType, AgentCapability>
   },
   notification_draft: {
     taskType: 'notification_draft',
-    riskLevel: 'low',
-    allowedModes: LOW_RISK_MODES,
+    riskLevel: 'medium',
+    allowedModes: CONSULTATIVE_MODES,
     description: 'Preparar um rascunho de notificação; o envio é uma ação separada.',
   },
   admin_review: {
