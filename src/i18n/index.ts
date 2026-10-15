@@ -162,7 +162,7 @@ const detectBrowserLanguage = (): string => {
 
 const getSavedLanguage = () => {
   try {
-    const saved = localStorage.getItem('orbislink_language')
+    const saved = localStorage.getItem('agrilink_language')
     if (saved && supportedLanguages.includes(saved as keyof typeof languageCatalog)) {
       return saved
     }
@@ -200,7 +200,7 @@ i18n
 export const changeLanguage = (countryCodeOrLanguage: string) => {
   const lang = resolveLanguageCode(countryCodeOrLanguage)
   i18n.changeLanguage(lang)
-  localStorage.setItem('orbislink_language', lang)
+  localStorage.setItem('agrilink_language', lang)
 
   const countryCode = Object.entries(countryToLanguage).find(([, language]) => language === lang)?.[0] ?? 'AO'
   localStorage.setItem('orbislink_country', countryCode)
