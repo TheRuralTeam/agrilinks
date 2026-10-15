@@ -10,7 +10,7 @@ import { faTractor, faUserTie, faCartShopping, faTruck } from "@fortawesome/free
 import { getProvincesForCountry, getProvinceLabel, getMunicipalityLabel } from "../data/country-locations";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../integrations/supabase/client";
-import orbisLinkLogo from "../assets/LogoAgriLinkOfficiallNoBackground.png";
+import agrilinkLogo from "../assets/LogoAgriLinkOfficiallNoBackground.png";
 import autenticar from '../assets/auth1.jpg'
 
 // Imagem partilhada com o ecrã de Login para manter a mesma identidade visual.
@@ -324,7 +324,7 @@ const Registration = () => {
     return (
       <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: T.canvas, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
         <div style={{ width: '100%', maxWidth: 480, background: T.white, border: `1px solid ${T.rule}`, borderRadius: 24, padding: 32, boxShadow: T.shadowLg }}>
-          <img src={orbisLinkLogo} alt="AgriLink" style={{ height: 48, margin: '0 auto 24px', display: 'block' }} />
+          <img src={agrilinkLogo} alt="AgriLink" style={{ height: 48, margin: '0 auto 24px', display: 'block' }} />
           <h1 style={{ margin: 0, textAlign: 'center', color: T.ink, fontSize: 25, fontWeight: 800 }}>Criar conta AgriLink</h1>
           <p style={{ margin: '10px 0 24px', textAlign: 'center', color: T.muted, fontSize: 14 }}>Use o botão no email para confirmar a sua conta.</p>
           <form onSubmit={handleOtpRegistration} style={{ display: 'grid', gap: 16 }}>
@@ -411,7 +411,7 @@ const Registration = () => {
 
           <div className="mb-10 flex justify-center lg:justify-start">
             <img
-              src={orbisLinkLogo}
+              src={agrilinkLogo}
               alt="AgriLink"
               style={{ height: 104, display: 'block', filter: 'drop-shadow(0 2px 10px rgba(0,0,0,0.08))' }}
             />
