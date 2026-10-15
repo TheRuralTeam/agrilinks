@@ -90,7 +90,7 @@ const TASK_TYPES = new Set<TaskType>([
 
 function normalizeProductName(value: unknown): string {
   return typeof value === "string"
-    ? value.trim().toLocaleLowerCase("pt-AO").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/\\s+/g, " ")
+    ? value.trim().toLocaleLowerCase("pt-AO").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ")
     : "";
 }
 
