@@ -10,7 +10,7 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-const STORAGE_KEY = 'orbislink-theme';
+const STORAGE_KEY = 'agrilink-theme';
 
 const applyTheme = (t: Theme) => {
   const root = document.documentElement;
