@@ -19,7 +19,7 @@
 - Usa `service_role` apenas no runtime da Edge Function.
 - Processa no máximo cinco tarefas por invocação; usa leases, `FOR UPDATE SKIP LOCKED`, até cinco tentativas e backoff.
 - Só produz resultados consultivos. Não envia mensagens, contacta fornecedores, altera produtos/stock, aceita pré-compras/cargas ou confirma pagamentos.
-- Descoberta e comparação consultam apenas fornecedores confirmados e cotações confirmadas e ainda válidas já registadas na base de dados. Não contactam fornecedores nem criam cotações.
+- Descoberta e comparação consultam apenas fornecedores confirmados e cotações confirmadas e ainda válidas já registadas na base de dados. A análise prioriza localização, cobertura integral da quantidade e data de entrega; preços são comparados dentro da mesma moeda. O agente usa o histórico concluído do mesmo utilizador e produto apenas como contexto, nunca como prova de preço ou disponibilidade actual. Não contacta fornecedores nem cria cotações.
 
 ## Base de dados — aplicado e verificado
 
