@@ -268,12 +268,13 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
       });
       if (agentError) {
         console.error('AgriLink agent intake was not queued', agentError.message);
-        toast.info('Pedido registado. A verificação automática não foi iniciada; a equipa AgriLink continuará a receber a solicitação.');
+        toast.info('Pedido registado, mas a verificação automática não foi iniciada. Pode acompanhar o pedido em Meus Pedidos.');
       } else {
-        toast.success('Solicitação registada. A verificação automática foi solicitada; o processamento ainda depende da confirmação do serviço.');
+        toast.success('Pedido registado. Pode acompanhar o estado e as actualizações na área Meus Pedidos.');
       }
       setRfqOpen(false);
       setRfqForm({ productName: '', quantity: '', unit: 'kg', qualitySpecification: '', deliveryProvinceId: '', deliveryMunicipalityId: '', deliveryLocation: '', deliveryDate: '', description: '' });
+      navigate('/perfil?tab=sourcing');
     } catch (error) {
       console.error('Erro ao enviar solicitação de cotação:', error);
       toast.error(error instanceof Error ? error.message : 'Não foi possível enviar a solicitação.');
