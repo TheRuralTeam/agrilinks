@@ -108,21 +108,6 @@ function buildConsultativeResult(task: AgentTask): Record<string, unknown> {
   }
 }
 
-async function appendEvent(
-  db: ReturnType<typeof createClient>,
-  taskId: string,
-  eventType: string,
-  payload: Record<string, unknown>,
-) {
-  const { error } = await db.from("agent_events").insert({
-    task_id: taskId,
-    event_type: eventType,
-    actor_type: "system",
-    payload,
-  });
-  if (error) throw error;
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -162,13 +147,17 @@ Deno.serve(async (req: Request) => {
       if (!task) break;
 
       if (!TASK_TYPES.has(task.task_type)) {
-        await db.from("agent_tasks").update({
-          status: "failed",
-          error_code: "TASK_TYPE_NOT_ALLOWED",
-          locked_at: null,
-          updated_at: new Date().toISOString(),
-        }).eq("id", task.id);
-        await appendEvent(db, task.id, "task_rejected", { reason: "TASK_TYPE_NOT_ALLOWED" });
+        const { error: finishError } = await db.rpc("finish_agent_task", {
+          p_task_id: task.id,
+          p_worker_id: WORKER_ID,
+          p_status: "failed",
+          p_result_payload: null,
+          p_error_code: "TASK_TYPE_NOT_ALLOWED",
+          p_retry_seconds: null,
+          p_event_type: "task_rejected",
+          p_event_payload: { reason: "TASK_TYPE_NOT_ALLOWED" },
+        });
+        if (finishError) throw finishError;
         outcomes.push({ task_id: task.id, outcome: "rejected" });
         processed += 1;
         continue;
@@ -177,31 +166,32 @@ Deno.serve(async (req: Request) => {
       try {
         const result = buildConsultativeResult(task);
         const outcome = String(result.outcome ?? "completed");
-        const { error: updateError } = await db.from("agent_tasks").update({
-          status: "completed",
-          result_payload: result,
-          error_code: null,
-          locked_at: null,
-          completed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }).eq("id", task.id).eq("status", "running").eq("assigned_agent", WORKER_ID);
-        if (updateError) throw updateError;
-        await appendEvent(db, task.id, "task_completed_consultative", { outcome, attempt_count: task.attempt_count });
+        const { error: finishError } = await db.rpc("finish_agent_task", {
+          p_task_id: task.id,
+          p_worker_id: WORKER_ID,
+          p_status: "completed",
+          p_result_payload: result,
+          p_error_code: null,
+          p_retry_seconds: null,
+          p_event_type: "task_completed_consultative",
+          p_event_payload: { outcome, attempt_count: task.attempt_count },
+        });
+        if (finishError) throw finishError;
         outcomes.push({ task_id: task.id, outcome });
       } catch (taskError) {
         const errorCode = "TASK_PROCESSING_ERROR";
         const terminal = task.attempt_count >= MAX_ATTEMPTS;
-        await db.from("agent_tasks").update({
-          status: terminal ? "failed" : "queued",
-          error_code: errorCode,
-          locked_at: null,
-          available_at: new Date(Date.now() + Math.min(300, 2 ** task.attempt_count * 5) * 1000).toISOString(),
-          updated_at: new Date().toISOString(),
-        }).eq("id", task.id).eq("status", "running").eq("assigned_agent", WORKER_ID);
-        await appendEvent(db, task.id, terminal ? "task_failed" : "task_retry_scheduled", {
-          error_code: errorCode,
-          attempt_count: task.attempt_count,
+        const { error: finishError } = await db.rpc("finish_agent_task", {
+          p_task_id: task.id,
+          p_worker_id: WORKER_ID,
+          p_status: terminal ? "failed" : "queued",
+          p_result_payload: null,
+          p_error_code: errorCode,
+          p_retry_seconds: terminal ? null : Math.min(300, 2 ** task.attempt_count * 5),
+          p_event_type: terminal ? "task_failed" : "task_retry_scheduled",
+          p_event_payload: { error_code: errorCode, attempt_count: task.attempt_count },
         });
+        if (finishError) throw finishError;
         outcomes.push({ task_id: task.id, outcome: terminal ? "failed" : "retry_scheduled" });
         // Avoid logging payloads or error messages that may contain personal data.
         console.error("Agent task processing failed", { taskId: task.id, error: String(taskError).slice(0, 160) });
