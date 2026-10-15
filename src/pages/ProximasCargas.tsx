@@ -1227,7 +1227,7 @@ const ProximasCargas = () => {
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
                   <button
                     type="button"
-                    onClick={() => void downloadLoadPdf(load)}
+                    onClick={() => void downloadFreightLoadPdf(load)}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
