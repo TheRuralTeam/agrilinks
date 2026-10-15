@@ -30,6 +30,9 @@ jobs:
       - name: Verificar tipos das Edge Functions multiagente
         run: deno check --node-modules-dir=none supabase/functions/agent-task-submit/index.ts supabase/functions/agent-orchestrator-worker/index.ts
 
+      - name: Testar validação das tarefas multiagente
+        run: deno test --node-modules-dir=none supabase/functions/_shared/agent-task-validation.test.ts
+
       - name: Auditar nomes das migrations (informativo)
         run: npm run audit:migrations
 
