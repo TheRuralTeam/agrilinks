@@ -560,7 +560,7 @@ const Profile = () => {
         console.error('AgriLink sourcing intake was not queued', agentError.message)
         toast({ title: 'Pedido registado', description: 'A verificação automática não foi iniciada. Pode acompanhar o pedido em Meus Pedidos.' })
       } else {
-        toast({ title: 'Pedido registado', description: 'A verificação automática foi solicitada. O resultado ficará disponível após o processamento do serviço.' })
+        toast({ title: 'Pedido registado', description: 'A verificação automática foi solicitada. Acompanhe o estado do pedido em Meus Pedidos.' })
       }
       setSourcingForm({ product_name: '', quantity: '', unit: 'kg', quality_specification: '', delivery_province_id: '', delivery_municipality_id: '', delivery_location: '', delivery_date: '', description: '' })
       setShowSourcingForm(false)
