@@ -43,11 +43,11 @@ Por isso:
 
 ## Activação dos agentes
 
-O esquema e as RPCs estão aplicados. As Edge Functions `agent-task-submit` e `agent-orchestrator-worker` ainda não estão implantadas. O worker exige o segredo `AGENT_WORKER_SECRET`; as ferramentas disponíveis nesta sessão permitem implantar funções, mas não configurar segredos de Edge Functions. Não implantar apenas a função de submissão, porque isso aceitaria tarefas sem processamento. Depois de configurar o segredo no gestor de segredos do Supabase, implantar ambas e testar autenticação, idempotência, lease/retry e erros antes de ligar a interface ou activar invocação do worker.
+As tabelas e RPCs estão aplicadas e as Edge Functions `agent-task-submit` e `agent-orchestrator-worker` estão activas em produção. O utilizador confirmou a criação do segredo `AGENT_WORKER_SECRET`. A função de submissão foi actualizada para activar o worker em segundo plano após a criação de uma tarefa. O formulário B2B de sourcing também foi ligado à submissão consultiva, sem tornar o sucesso do pedido comercial dependente do agente. Ainda falta comprovar o fluxo ponta a ponta com uma tarefa real; os registos consultados não mostram chamadas das funções no intervalo verificado. Não existe agendamento periódico e não foi criada infraestrutura paga.
 
 ## Próximos passos
 
 1. Recuperar do histórico Git/backup as migrations remotas sem ficheiro local e confirmar equivalência por SQL/esquema.
-2. Configurar `AGENT_WORKER_SECRET` no Supabase Dashboard, sem o partilhar no chat.
-3. Implantar ambas as Edge Functions e testar o processamento real.
-4. Só depois ligar a submissão à interface. Não criar cron/worker pago ou infra-estrutura adicional sem necessidade validada.
+2. Executar testes de runtime para autenticação, segredo incorrecto, idempotência concorrente, leases e retries.
+3. Validar uma solicitação de sourcing controlada e confirmar evento, resultado e estado final da tarefa.
+4. Não criar cron/worker pago ou infraestrutura adicional sem necessidade validada.
