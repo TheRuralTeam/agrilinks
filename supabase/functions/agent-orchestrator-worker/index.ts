@@ -22,7 +22,6 @@ type AgentTask = {
 
 const MAX_TASKS_PER_INVOCATION = 5;
 const MAX_ATTEMPTS = 5;
-const WORKER_ID = "consultative-worker-v1";
 const TASK_TYPES = new Set<TaskType>([
   "sourcing_intake",
   "supplier_discovery",
@@ -131,6 +130,9 @@ Deno.serve(async (req: Request) => {
   const db = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+  // A unique ID per invocation prevents an expired lease from being completed
+  // by an older concurrent invocation that reused the same worker identity.
+  const workerId = `consultative-worker-${crypto.randomUUID()}`;
 
   let processed = 0;
   const outcomes: Array<{ task_id: string; outcome: string }> = [];
@@ -138,7 +140,7 @@ Deno.serve(async (req: Request) => {
   try {
     for (let i = 0; i < MAX_TASKS_PER_INVOCATION; i += 1) {
       const { data: claimed, error: claimError } = await db.rpc("claim_agent_task", {
-        p_worker_id: WORKER_ID,
+        p_worker_id: workerId,
         p_lease_seconds: 90,
       });
       if (claimError) throw claimError;
@@ -149,7 +151,7 @@ Deno.serve(async (req: Request) => {
       if (!TASK_TYPES.has(task.task_type)) {
         const { error: finishError } = await db.rpc("finish_agent_task", {
           p_task_id: task.id,
-          p_worker_id: WORKER_ID,
+          p_worker_id: workerId,
           p_status: "failed",
           p_result_payload: null,
           p_error_code: "TASK_TYPE_NOT_ALLOWED",
@@ -168,7 +170,7 @@ Deno.serve(async (req: Request) => {
         const outcome = String(result.outcome ?? "completed");
         const { error: finishError } = await db.rpc("finish_agent_task", {
           p_task_id: task.id,
-          p_worker_id: WORKER_ID,
+          p_worker_id: workerId,
           p_status: "completed",
           p_result_payload: result,
           p_error_code: null,
@@ -183,7 +185,7 @@ Deno.serve(async (req: Request) => {
         const terminal = task.attempt_count >= MAX_ATTEMPTS;
         const { error: finishError } = await db.rpc("finish_agent_task", {
           p_task_id: task.id,
-          p_worker_id: WORKER_ID,
+          p_worker_id: workerId,
           p_status: terminal ? "failed" : "queued",
           p_result_payload: null,
           p_error_code: errorCode,
@@ -201,7 +203,7 @@ Deno.serve(async (req: Request) => {
 
     return jsonResponse({
       ok: true,
-      worker: WORKER_ID,
+      worker: workerId,
       mode: "consultative",
       processed,
       outcomes,
