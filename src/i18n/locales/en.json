@@ -59,7 +59,7 @@
     "noAccount": "Don't have an account? Register as:",
     "farmerAgentBuyer": "Supplier, Agent or Buyer",
     "viewSite": "View institutional site",
-    "termsLink": "OrbisLink Advertising Terms",
+    "termsLink": "AgriLink Advertising Terms",
     "recoverPassword": "Recover Password",
     "recoverDescription": "Enter your email to receive a recovery link",
     "sendLink": "Send Link",
@@ -69,7 +69,7 @@
     "understood": "Got it"
   },
   "registration": {
-    "title": "OrbisLink Registration",
+    "title": "AgriLink Registration",
     "subtitle": "Create your account on the platform",
     "infoTitle": "Registration Information",
     "userType": "User Type",
@@ -98,7 +98,7 @@
     "alreadyHaveAccount": "Already have an account?",
     "loginHere": "Login here",
     "accountCreated": "Account created successfully!",
-    "welcomeMessage": "Welcome to OrbisLink!"
+    "welcomeMessage": "Welcome to AgriLink!"
   },
   "profile": {
     "title": "My Profile",
@@ -116,14 +116,14 @@
     "copyCode": "Copy Code",
     "codeShared": "Code shared!",
     "codeCopied": "Code copied!",
-    "shareMessage": "Sign up at OrbisLink using my agent code",
+    "shareMessage": "Sign up at AgriLink using my agent code",
     "totalReferrals": "Total Referrals",
     "totalPoints": "Total Points",
     "activeProducts": "Active Products",
     "totalViews": "Total Views",
     "totalInterests": "Total Interests",
     "sourcing": "Special Orders",
-    "sourcingDescription": "Request specific products and OrbisLink will negotiate for you",
+    "sourcingDescription": "Request agricultural products and track the request on the platform",
     "loadingProfile": "Loading profile...",
     "fullName": "Full Name",
     "phone": "Phone",
@@ -182,8 +182,8 @@
     "rejected": "Rejected"
   },
   "sourcing": {
-    "title": "OrbisLink Sourcing",
-    "subtitle": "Let OrbisLink find the best products for you",
+    "title": "AgriLink Sourcing",
+    "subtitle": "Submit your need and track the request status",
     "newRequest": "New Request",
     "productName": "Product Name",
     "productNamePlaceholder": "E.g.: Corn, Beans, Tomatoes...",
@@ -196,7 +196,7 @@
     "myRequests": "My Requests",
     "noRequests": "You don't have any sourcing requests yet",
     "requestSent": "Request sent successfully!",
-    "requestSentMessage": "The OrbisLink team will contact you soon.",
+    "requestSentMessage": "Request recorded. Track its status in My Requests.",
     "status": {
       "pending": "Pending",
       "processing": "Processing",
@@ -212,7 +212,7 @@
     "transactions": "Transactions",
     "notifications": "Notifications",
     "fichas": "Cards",
-    "sourcing": "OrbisLink Sourcing",
+    "sourcing": "AgriLink Sourcing",
     "sourcingRequests": "Sourcing Requests",
     "noSourcingRequests": "No sourcing requests",
     "updateStatus": "Update Status",
@@ -461,7 +461,7 @@
     "settings": "Settings"
   },
   "home": {
-    "welcome": "Welcome to OrbisLink",
+    "welcome": "Welcome to AgriLink",
     "subtitle": "Connecting suppliers and buyers",
     "featuredProducts": "Featured Products",
     "recentProducts": "Recent Products",
@@ -511,6 +511,6 @@
     "transactions": "Transactions"
   },
   "footer": {
-    "copyright": "© OrbisLink Lda 2025 — All rights reserved."
+    "copyright": "© AgriLink Lda 2025 — All rights reserved."
   }
 }
