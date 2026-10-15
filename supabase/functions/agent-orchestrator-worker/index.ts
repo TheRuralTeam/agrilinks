@@ -271,9 +271,9 @@ async function buildConsultativeResult(task: AgentTask, db: any): Promise<Record
       };
     }
     case "supplier_discovery":
-      return { mode: "consultative", ...(await findSourcingMatches(payload, db)), side_effects: [] };
+      return { mode: "consultative", ...(await findSourcingMatches(payload, db, task.requested_by)), side_effects: [] };
     case "quote_comparison": {
-      const matches = await findSourcingMatches(payload, db);
+      const matches = await findSourcingMatches(payload, db, task.requested_by);
       const quotes = Array.isArray(matches.confirmed_quotes) ? matches.confirmed_quotes as Array<Record<string, unknown>> : [];
       const pricedQuotes = quotes.filter((quote) => typeof quote.unit_price === "number")
         .sort((a, b) => Number(a.unit_price) - Number(b.unit_price));
