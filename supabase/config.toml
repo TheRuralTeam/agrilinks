@@ -24,6 +24,9 @@ verify_jwt = true
 [functions.agent-orchestrator-worker]
 verify_jwt = false
 
+[functions.agent-task-submit]
+verify_jwt = true
+
 [functions.send-order-update-email]
 verify_jwt = true
 
