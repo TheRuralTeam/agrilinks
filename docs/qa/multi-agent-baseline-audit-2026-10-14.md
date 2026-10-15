@@ -233,3 +233,35 @@ O workflow `.github/workflows/ci.yml` inclui agora `npm run audit:migrations` co
 A migration de hardening e a migration de orquestração continuam propostas apenas no ramo. O esquema remoto foi novamente consultado em modo read-only: as três tabelas `agent_tasks`, `agent_events` e `agent_approvals` ainda não existem. Também se confirmou que `advance_freight_load(uuid)` e `create_freight_settlement_if_ready(uuid)` continuam com EXECUTE para `anon` no ambiente remoto; a migration proposta visa corrigir isso, mas **não foi aplicada**.
 
 A atualização do workflow deverá ser validada pelo próprio GitHub Actions após o push/commit. Até existir um run com os passos executados e resultados observáveis, lint, type-check, testes e build continuam sem confirmação.
+
+
+## Sexta passagem — política de capacidades e gates de CI
+
+### Catálogo de capacidades em código
+
+Foram adicionados `src/lib/agents/capabilities.ts` e os testes `src/lib/agents/capabilities.test.ts`. O módulo é puro e não chama Supabase, não executa operações comerciais e não ativa tarefas. Define:
+- allowlist dos seis tipos de tarefa que correspondem ao contrato SQL;
+- modos de autonomia por capacidade;
+- classificação explícita de ações de negócio;
+- bloqueio de execução autónoma para notificações enviadas, edição/publicação de produtos, aceitação de pré-compra, definição de frete, alterações de stock, confirmação de pagamento, transições de frete, permissões e suspensão de contas;
+- testes que rejeitam tipos de tarefa desconhecidos e verificam as barreiras de autonomia.
+
+Este catálogo é uma barreira de política no código, não substitui autorização server-side, RLS, verificação do ator, nem os RPCs existentes. A política deve ser reavaliada quando forem ligados endpoints reais.
+
+### Correções de TypeScript
+
+O primeiro CI após introduzir a auditoria de migrations identificou seis erros de tipos existentes no ramo. Foram corrigidos:
+- referência ao campo `unit` inexistente no tipo local de produto;
+- assinatura TypeScript em falta para a RPC remota `admin_set_product_status(uuid, text) returns boolean`, confirmada no catálogo remoto;
+- coordenadas nulas passadas a argumentos tipados como opcionais;
+- chamada a `downloadLoadPdf` substituída pelo utilitário existente `downloadFreightLoadPdf`.
+
+O run `38773383812` passou com lint, type-check, testes e build. O run mais recente após o catálogo de capacidades e a atualização da migration de hardening, `38773873182`, também terminou com conclusão `success`: instalação, auditoria informativa, lint, type-check, testes e build passaram.
+
+### Hardening adicional de RPC administrativa
+
+A consulta read-only ao corpo remoto de `admin_set_product_status` confirmou que a função verifica `auth.uid()` e o papel admin/root-admin, mas o privilégio SQL `anon EXECUTE` também estava concedido. A migration proposta `20261014190000_restrict_internal_freight_rpc_execution.sql` foi ampliada para revogar execução a `PUBLIC`/ `anon` e conceder execução a `authenticated`. A alteração não foi aplicada ao projeto remoto; o estado dos grants em produção permanece inalterado.
+
+### Estado e limite atual
+
+O CI verde valida o código do ramo, mas não prova que o SQL proposto execute sem erros contra a base real. As colisões de prefixos e divergências do ledger continuam a bloquear aplicação de migrations. O PR continua draft, e as tabelas multiagente ainda não existem no Supabase remoto. Não foi ativado worker, Edge Function ou centro de operações.
