@@ -148,6 +148,7 @@ Deno.serve(async (req: Request) => {
         .eq("idempotency_key", idempotencyKey)
         .maybeSingle();
       if (raced?.requested_by === authData.user.id) {
+        if (raced.status === "queued") EdgeRuntime.waitUntil(dispatchWorker(supabaseUrl, serviceRoleKey));
         return jsonResponse({
           task: { id: raced.id, status: raced.status, task_type: raced.task_type },
           reused: true,
