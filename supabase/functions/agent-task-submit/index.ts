@@ -30,30 +30,28 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-async function dispatchWorker(supabaseUrl: string, serviceRoleKey: string): Promise<void> {
+async function dispatchWorker(supabaseUrl: string, serviceRoleKey: string): Promise<string> {
   const workerSecret = Deno.env.get("AGENT_WORKER_SECRET");
-  if (!workerSecret) {
-    console.error("Agent worker dispatch skipped: required secret is missing");
-    return;
-  }
 
   try {
-    const response = await fetch(`${supabaseUrl.replace(/\/+$/, "")}/functions/v1/agent-orchestrator-worker`, {
+    const workerUrl = supabaseUrl.replace(/\/+$/, "") + "/functions/v1/agent-orchestrator-worker";
+    const response = await fetch(workerUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "apikey": serviceRoleKey,
-        "Authorization": `Bearer ${serviceRoleKey}`,
-        "x-agent-worker-secret": workerSecret,
+        "Authorization": "Bearer " + serviceRoleKey,
+        ...(workerSecret ? { "x-agent-worker-secret": workerSecret } : {}),
       },
       body: "{}",
     });
     await response.text();
-    if (!response.ok) {
-      console.error("Agent worker dispatch failed", { status: response.status });
-    }
-  } catch {
-    console.error("Agent worker dispatch failed: network or runtime error");
+    if (!response.ok) console.error("Agent worker dispatch failed", { status: response.status });
+    return "http_" + response.status;
+  } catch (error) {
+    const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    console.error("Agent worker dispatch failed: network or runtime error", detail.slice(0, 240));
+    return "network_error";
   }
 }
 
@@ -124,8 +122,17 @@ Deno.serve(async (req: Request) => {
     const { data: owned } = await db.from("agent_tasks").select("id, status, task_type")
       .eq("id", existing.id).eq("requested_by", authData.user.id).maybeSingle();
     if (!owned) return jsonResponse({ error: "Chave de idempotência já utilizada." }, 409);
-    if (owned.status === "queued") EdgeRuntime.waitUntil(dispatchWorker(supabaseUrl, serviceRoleKey));
-    return jsonResponse({ task: owned, reused: true }, 200);
+    const workerDispatch = owned.status === "queued" ? await dispatchWorker(supabaseUrl, serviceRoleKey) : "not_queued";
+    if (owned.status === "queued" && !workerDispatch.startsWith("http_2")) {
+      return jsonResponse({
+        error: "A tarefa continua guardada, mas a execução automática ainda não foi confirmada.",
+        task: owned,
+        reused: true,
+        worker_dispatch: workerDispatch,
+        retryable: true,
+      }, 503);
+    }
+    return jsonResponse({ task: owned, reused: true, worker_dispatch: workerDispatch }, 200);
   }
 
   const { count, error: countError } = await db
@@ -161,10 +168,20 @@ Deno.serve(async (req: Request) => {
         .eq("idempotency_key", idempotencyKey)
         .maybeSingle();
       if (raced?.requested_by === authData.user.id) {
-        if (raced.status === "queued") EdgeRuntime.waitUntil(dispatchWorker(supabaseUrl, serviceRoleKey));
+        const workerDispatch = raced.status === "queued" ? await dispatchWorker(supabaseUrl, serviceRoleKey) : "not_queued";
+        if (raced.status === "queued" && !workerDispatch.startsWith("http_2")) {
+          return jsonResponse({
+            error: "A tarefa continua guardada, mas a execução automática ainda não foi confirmada.",
+            task: { id: raced.id, status: raced.status, task_type: raced.task_type },
+            reused: true,
+            worker_dispatch: workerDispatch,
+            retryable: true,
+          }, 503);
+        }
         return jsonResponse({
           task: { id: raced.id, status: raced.status, task_type: raced.task_type },
           reused: true,
+          worker_dispatch: workerDispatch,
         }, 200);
       }
       return jsonResponse({ error: "Chave de idempotência já utilizada." }, 409);
@@ -176,9 +193,19 @@ Deno.serve(async (req: Request) => {
   const task = Array.isArray(submitted) ? submitted[0] : null;
   if (!task) return jsonResponse({ error: "Não foi possível confirmar a tarefa criada." }, 500);
 
-  // Start the worker without blocking the authenticated submission response.
-  // The task remains durable in Postgres if dispatch fails and can be retried later.
-  EdgeRuntime.waitUntil(dispatchWorker(supabaseUrl, serviceRoleKey));
+  // Await dispatch and do not report successful automation when the worker rejected
+  // the call or the network failed. The task remains durable and can be retried idempotently.
+  const workerDispatch = await dispatchWorker(supabaseUrl, serviceRoleKey);
+  if (!workerDispatch.startsWith("http_2")) {
+    return jsonResponse({
+      error: "A tarefa foi guardada, mas a execução automática ainda não foi confirmada.",
+      task: { id: task.id, task_type: task.task_type, status: task.status, autonomy_mode: task.autonomy_mode, created_at: task.created_at },
+      reused: false,
+      audit_event_recorded: true,
+      worker_dispatch: workerDispatch,
+      retryable: true,
+    }, 503);
+  }
 
-  return jsonResponse({ task: { id: task.id, task_type: task.task_type, status: task.status, autonomy_mode: task.autonomy_mode, created_at: task.created_at }, reused: false, audit_event_recorded: true, worker_dispatch: "dispatch_requested" }, 202);
+  return jsonResponse({ task: { id: task.id, task_type: task.task_type, status: task.status, autonomy_mode: task.autonomy_mode, created_at: task.created_at }, reused: false, audit_event_recorded: true, worker_dispatch: workerDispatch }, 202);
 });
