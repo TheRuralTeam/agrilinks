@@ -648,6 +648,15 @@ const Profile = () => {
     setLoading(false)
   }, [user, userProfile, isGuest, fetchAgentStats, fetchBuyerStats, fetchBuyerPreOrders, fetchFichasRecebimento, fetchReceivedOrders, fetchSourcingRequests, fetchUserProducts, fetchBuyerFreightQuotes])
 
+  // Refresh sourcing agent results while the buyer is viewing the sourcing tab.
+  useEffect(() => {
+    if (!user?.id || isGuest || userProfile?.user_type !== 'comprador' || activeTab !== 'sourcing' || sourcingRequests.length === 0) return
+    const refreshStatuses = () => { void refreshAgentStatuses(sourcingRequests) }
+    refreshStatuses()
+    const timer = window.setInterval(refreshStatuses, 15000)
+    return () => window.clearInterval(timer)
+  }, [user?.id, isGuest, userProfile?.user_type, activeTab, sourcingRequests, refreshAgentStatuses])
+
   useEffect(() => {
     if (!authenticatedUserId || isGuest) {
       setWalletBalance(null)
