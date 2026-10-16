@@ -608,7 +608,7 @@ const Profile = () => {
       })
       if (agentError) {
         console.error('AgriLink sourcing intake was not queued', agentError.message)
-        toast({ title: 'Pedido registado', description: 'A verificação automática não foi iniciada. Pode acompanhar o pedido em Meus Pedidos.' })
+        toast({ title: 'Pedido registado', description: 'A execução automática ainda não foi confirmada. Acompanhe o estado em Meus Pedidos.' })
       } else {
         toast({ title: 'Pedido registado', description: 'A verificação automática foi solicitada. Acompanhe o estado do pedido em Meus Pedidos.' })
       }
