@@ -268,7 +268,7 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
       });
       if (agentError) {
         console.error('AgriLink agent intake was not queued', agentError.message);
-        toast.info('Pedido registado, mas a verificação automática não foi iniciada. Pode acompanhar o pedido em Meus Pedidos.');
+        toast.info('Pedido registado. A execução automática ainda não foi confirmada; acompanhe o estado em Meus Pedidos.');
       } else {
         toast.success('Pedido registado. Pode acompanhar o estado e as actualizações na área Meus Pedidos.');
       }
