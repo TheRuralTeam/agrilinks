@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-agent-worker-secret",
@@ -39,6 +40,7 @@ type SourcingRequestRow = {
   delivery_province_id: string | null;
   delivery_municipality_id: string | null;
   delivery_location: string | null;
+  status: string;
 };
 type SupplierRow = {
   id: string;
@@ -120,13 +122,25 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
 
   const { data: requestData, error: requestError } = await db
     .from("sourcing_requests")
-    .select("id, product_name, quantity, unit, delivery_date, delivery_province_id, delivery_municipality_id, delivery_location")
+    .select("id, product_name, quantity, unit, delivery_date, delivery_province_id, delivery_municipality_id, delivery_location, status")
     .eq("id", requestId)
     .maybeSingle();
   if (requestError) throw requestError;
   const request = requestData as SourcingRequestRow | null;
   if (!request) {
     return { outcome: "request_not_found", sourcing_request_id: requestId, verified_supplier_candidates: [], confirmed_quotes: [], side_effects: [] };
+  }
+  // A rejected or closed sourcing request must never trigger new supplier analysis.
+  if (request.status !== "pending") {
+    return {
+      outcome: request.status === "rejected" ? "request_rejected" : "request_not_active",
+      sourcing_request_id: requestId,
+      request_status: request.status,
+      verified_supplier_candidates: [],
+      confirmed_quotes: [],
+      side_effects: [],
+      note: "Pedido encerrado; nenhuma pesquisa de fornecedores foi executada.",
+    };
   }
 
   // Personalised history is context only. Never reuse historical prices as current quotes.
@@ -394,12 +408,21 @@ Deno.serve(async (req: Request) => {
 
   const configuredSecret = Deno.env.get("AGENT_WORKER_SECRET");
   const suppliedSecret = req.headers.get("x-agent-worker-secret");
-  if (!configuredSecret || !suppliedSecret || suppliedSecret !== configuredSecret) {
-    return jsonResponse({ error: "Não autorizado." }, 401);
-  }
-
+  const authorization = req.headers.get("authorization") ?? "";
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+  // Permit only server-to-server dispatch authenticated with the project's service-role key,
+  // or the existing dedicated worker secret. Never accept the public anon key as worker auth.
+  const serviceRoleAuthorized = Boolean(
+    serviceRoleKey && authorization === `Bearer ${serviceRoleKey}`
+  );
+  const dedicatedSecretAuthorized = Boolean(
+    configuredSecret && suppliedSecret && suppliedSecret === configuredSecret
+  );
+  if (!serviceRoleAuthorized && !dedicatedSecretAuthorized) {
+    return jsonResponse({ error: "Não autorizado." }, 401);
+  }
   if (!supabaseUrl || !serviceRoleKey) {
     return jsonResponse({ error: "Configuração interna incompleta." }, 503);
   }
@@ -476,6 +499,44 @@ Deno.serve(async (req: Request) => {
         console.error("Agent task processing failed", { taskId: task.id, error: String(taskError).slice(0, 160) });
       }
       processed += 1;
+    }
+
+    // Inspect the durable queue after every run. This also schedules a continuation
+    // when a retry is not available yet, including after an invocation processes zero tasks.
+    const { data: nextQueuedTask, error: queueCheckError } = await db
+      .from("agent_tasks")
+      .select("available_at")
+      .eq("status", "queued")
+      .order("available_at", { ascending: true })
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (queueCheckError) {
+      console.error("Agent queue continuation check failed", queueCheckError.code);
+    } else if (nextQueuedTask) {
+      const nextAvailableAt = Date.parse(String(nextQueuedTask.available_at));
+      const delayMs = Number.isFinite(nextAvailableAt)
+        ? Math.max(250, Math.min(85000, nextAvailableAt - Date.now() + 250))
+        : 1000;
+      EdgeRuntime.waitUntil((async () => {
+        try {
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          const continuationUrl = supabaseUrl.replace(/\/+$/, "") + "/functions/v1/agent-orchestrator-worker";
+          const continuation = await fetch(continuationUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "apikey": serviceRoleKey,
+              "Authorization": "Bearer " + serviceRoleKey,
+            },
+            body: "{}",
+          });
+          await continuation.text();
+          if (!continuation.ok) console.error("Agent worker continuation failed", { status: continuation.status });
+        } catch (continuationError) {
+          console.error("Agent worker continuation failed", String(continuationError).slice(0, 160));
+        }
+      })());
     }
 
     return jsonResponse({
