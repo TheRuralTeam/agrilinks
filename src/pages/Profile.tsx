@@ -473,6 +473,46 @@ const Profile = () => {
     }
   }, [user?.id])
 
+  const reanalyzeSourcingRequest = React.useCallback(async (request: SourcingRequest) => {
+    if (!user?.id) {
+      toast({ title: 'Sessão necessária', description: 'Inicie sessão para actualizar a análise do agente.', variant: 'destructive' });
+      return;
+    }
+    try {
+      const { data, error } = await supabase.functions.invoke('agent-task-submit', {
+        body: {
+          task_type: 'sourcing_intake',
+          autonomy_mode: 'suggest',
+          idempotency_key: `sourcing-${request.id}-refresh-${Date.now()}`,
+          input_payload: {
+            sourcing_request_id: request.id,
+            product_name: request.product_name,
+            quantity: Number(request.quantity),
+            unit: request.unit,
+            delivery_location: request.delivery_location || [request.delivery_municipality_id, request.delivery_province_id].filter(Boolean).join(', '),
+            delivery_date: request.delivery_date,
+            quality_specification: request.quality_specification || null,
+          },
+        },
+      });
+      if (error) throw error;
+      await refreshAgentStatuses([request]);
+      toast({
+        title: 'Análise actualizada',
+        description: data?.task?.status === 'completed'
+          ? 'A análise foi executada. O estado apresentado foi actualizado.'
+          : 'A nova análise foi enviada para processamento. Actualize novamente dentro de alguns segundos para ver o resultado.',
+      });
+    } catch (error: any) {
+      console.error('[AgriLink Agents] Falha ao reprocessar pedido:', error);
+      toast({
+        title: 'Não foi possível actualizar o agente',
+        description: error?.message || 'Verifique a ligação e tente novamente.',
+        variant: 'destructive',
+      });
+    }
+  }, [user?.id, refreshAgentStatuses]);
+
   const fetchSourcingRequests = React.useCallback(async () => {
     if (!user?.id) { setSourcingRequests([]); setSourcingAgentStatuses({}); return }
     try {
@@ -1223,7 +1263,7 @@ const Profile = () => {
                     return <span style={{ fontSize: 12 }}>{[province?.name, municipality?.name, r.delivery_location].filter(Boolean).join(' · ') || '—'}</span>;
                   } },
                   { key: 'data', label: t('sourcing.deliveryDate'), render: r => new Date(r.delivery_date).toLocaleDateString('pt-AO') },
-                  { key: 'estado', label: 'Estado', render: r => <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 5 }}><StatusPill status={r.status} /><span title={sourcingAgentStatuses[r.id]?.summary || ''} style={{ fontSize: 11, color: T.mid, maxWidth: 240 }}>{agentStatusLabel(sourcingAgentStatuses[r.id])}</span>{sourcingAgentStatuses[r.id]?.summary && <span style={{ fontSize: 10, color: T.faint, maxWidth: 240 }}>{sourcingAgentStatuses[r.id].summary}</span>}<button type="button" onClick={() => void refreshAgentStatuses([r])} style={{ border: 0, padding: 0, background: 'transparent', color: T.g600, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Actualizar estado do agente</button>{sourcingAgentStatuses[r.id] && (sourcingAgentStatuses[r.id].verified_supplier_count > 0 || sourcingAgentStatuses[r.id].marketplace_listing_count > 0 || sourcingAgentStatuses[r.id].confirmed_quote_count > 0) && <span style={{ fontSize: 10, color: T.faint }}>{sourcingAgentStatuses[r.id].verified_supplier_count} fornecedor(es) confirmado(s) · {sourcingAgentStatuses[r.id].marketplace_listing_count} publicação(ões) a verificar · {sourcingAgentStatuses[r.id].confirmed_quote_count} cotação(ões) confirmada(s)</span>}{(sourcingAgentStatuses[r.id]?.stock_match_details?.length ?? 0) > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxWidth: 240 }}>{sourcingAgentStatuses[r.id]?.stock_match_details?.slice(0, 3).map((match, matchIndex) => <span key={match.product_id || `${r.id}-stock-${matchIndex}`} style={{ fontSize: 10, color: match.partial_quantity ? '#9a6700' : T.mid }}>Stock estimado: {Number(match.available_quantity_estimate).toLocaleString('pt-AO')} {match.unit || r.unit} — {match.partial_quantity ? 'parcial' : 'quantidade indicada suficiente'}; aguarda confirmação.</span>)}{(sourcingAgentStatuses[r.id]?.stock_match_details?.length ?? 0) > 3 && <span style={{ fontSize: 10, color: T.faint }}>Mais correspondências disponíveis na análise automática.</span>}<span style={{ fontSize: 9, color: T.faint }}>Estimativa baseada na publicação e nas reservas registadas; não confirma stock físico.</span></div>}{sourcingAgentStatuses[r.id]?.prior_context && <span style={{ fontSize: 10, color: T.faint }}>Histórico comparável: {sourcingAgentStatuses[r.id].prior_context?.similar_completed_requests ?? 0} pedido(s)</span>}</div> },
+                  { key: 'estado', label: 'Estado', render: r => <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 5 }}><StatusPill status={r.status} /><span title={sourcingAgentStatuses[r.id]?.summary || ''} style={{ fontSize: 11, color: T.mid, maxWidth: 240 }}>{agentStatusLabel(sourcingAgentStatuses[r.id])}</span>{sourcingAgentStatuses[r.id]?.summary && <span style={{ fontSize: 10, color: T.faint, maxWidth: 240 }}>{sourcingAgentStatuses[r.id].summary}</span>}<button type="button" onClick={() => void reanalyzeSourcingRequest(r)} style={{ border: 0, padding: 0, background: 'transparent', color: T.g600, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Actualizar estado do agente</button>{sourcingAgentStatuses[r.id] && (sourcingAgentStatuses[r.id].verified_supplier_count > 0 || sourcingAgentStatuses[r.id].marketplace_listing_count > 0 || sourcingAgentStatuses[r.id].confirmed_quote_count > 0) && <span style={{ fontSize: 10, color: T.faint }}>{sourcingAgentStatuses[r.id].verified_supplier_count} fornecedor(es) confirmado(s) · {sourcingAgentStatuses[r.id].marketplace_listing_count} publicação(ões) a verificar · {sourcingAgentStatuses[r.id].confirmed_quote_count} cotação(ões) confirmada(s)</span>}{(sourcingAgentStatuses[r.id]?.stock_match_details?.length ?? 0) > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxWidth: 240 }}>{sourcingAgentStatuses[r.id]?.stock_match_details?.slice(0, 3).map((match, matchIndex) => <span key={match.product_id || `${r.id}-stock-${matchIndex}`} style={{ fontSize: 10, color: match.partial_quantity ? '#9a6700' : T.mid }}>Stock estimado: {Number(match.available_quantity_estimate).toLocaleString('pt-AO')} {match.unit || r.unit} — {match.partial_quantity ? 'parcial' : 'quantidade indicada suficiente'}; aguarda confirmação.</span>)}{(sourcingAgentStatuses[r.id]?.stock_match_details?.length ?? 0) > 3 && <span style={{ fontSize: 10, color: T.faint }}>Mais correspondências disponíveis na análise automática.</span>}<span style={{ fontSize: 9, color: T.faint }}>Estimativa baseada na publicação e nas reservas registadas; não confirma stock físico.</span></div>}{sourcingAgentStatuses[r.id]?.prior_context && <span style={{ fontSize: 10, color: T.faint }}>Histórico comparável: {sourcingAgentStatuses[r.id].prior_context?.similar_completed_requests ?? 0} pedido(s)</span>}</div> },
                 ]}
                 rows={sourcingRequests}
                 keyField={r => r.id}
