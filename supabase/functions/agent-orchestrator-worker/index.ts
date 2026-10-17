@@ -116,7 +116,7 @@ function currentLuandaDate(): string {
 }
 
 async function notifySourcingMatchCandidates(db: any, request: SourcingRequestRow, candidates: Array<Record<string, unknown>>): Promise<Record<string, unknown>> {
-  const positiveCandidates = candidates.filter((candidate) => Number(candidate.available_quantity_estimate) > 0);
+  const positiveCandidates = candidates.filter((candidate) => candidate.unit_compatible === true && candidate.meets_minimum_order !== false && Number(candidate.available_quantity_estimate) > 0);
   if (!positiveCandidates.length) return { buyer_notified: false, suppliers_notified: 0, emails_queued: 0 };
 
   const supplierIds = [...new Set(positiveCandidates
@@ -298,7 +298,7 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
   for (let offset = 0; ; offset += pageSize) {
     const { data: listingPage, error: listingsError } = await db
       .from("products")
-      .select("id, user_id, product_type, quantity, reserved_quantity, sale_unit, min_order_quantity, price, province_id, municipality_id, status")
+      .select("id, user_id, product_type, quantity, reserved_quantity, sale_unit, min_order_quantity, package_weight_kg, price, province_id, municipality_id, status")
       .eq("status", "active")
       .order("id", { ascending: true })
       .range(offset, offset + pageSize - 1);
@@ -306,32 +306,68 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
     listingData.push(...(listingPage ?? []));
     if ((listingPage ?? []).length < pageSize) break;
   }
-  const marketplaceCandidates = (listingData ?? []).filter((listing: any) =>
+  const sameProductListings = (listingData ?? []).filter((listing: any) =>
     listing.status === "active" &&
     listing.user_id !== request.user_id &&
     normalizeProductName(listing.product_type) === normalizeProductName(request.product_name) &&
-    (!listing.sale_unit || normalizeProductName(listing.sale_unit) === normalizeProductName(request.unit)) &&
     Math.max(0, Number(listing.quantity ?? 0) - Number(listing.reserved_quantity ?? 0)) > 0
-  ).map((listing: any) => {
+  );
+
+  // Keep same-product listings visible even when sale units differ. A unit mismatch
+  // is a potential lead, not a confirmed quantity match; never silently discard it.
+  const marketplaceCandidates = sameProductListings.map((listing: any) => {
     const sameMunicipality = Boolean(request.delivery_municipality_id && listing.municipality_id === request.delivery_municipality_id);
     const sameProvince = Boolean(request.delivery_province_id && listing.province_id === request.delivery_province_id);
     const availableQuantityEstimate = Math.max(0, Number(listing.quantity ?? 0) - Number(listing.reserved_quantity ?? 0));
+    const listedUnit = typeof listing.sale_unit === "string" ? listing.sale_unit.trim() : "";
+    const requestedUnit = String(request.unit ?? "").trim();
+    const unitCompatible = !listedUnit || normalizeProductName(listedUnit) === normalizeProductName(requestedUnit);
+    const packageWeightKg = Number(listing.package_weight_kg);
+    const isKgRequestAndBoxListing =
+      normalizeProductName(requestedUnit) === "kg" &&
+      normalizeProductName(listedUnit) === "caixa";
+    const conversionPossible = isKgRequestAndBoxListing && Number.isFinite(packageWeightKg) && packageWeightKg > 0;
+    const estimatedQuantityInRequestedUnit = unitCompatible
+      ? availableQuantityEstimate
+      : conversionPossible ? availableQuantityEstimate * packageWeightKg : null;
+    const minimumOrder = Number(listing.min_order_quantity ?? 0);
+    const minimumOrderInRequestedUnit = unitCompatible
+      ? minimumOrder
+      : conversionPossible ? minimumOrder * packageWeightKg : null;
+    const coversRequestedQuantity = estimatedQuantityInRequestedUnit !== null &&
+      estimatedQuantityInRequestedUnit >= Number(request.quantity);
+    const meetsMinimumOrder = minimumOrderInRequestedUnit === null ||
+      Number(request.quantity) >= minimumOrderInRequestedUnit;
     return {
       product_id: listing.id,
       supplier_user_id: listing.user_id,
       quantity_listed: listing.quantity,
       reserved_quantity: listing.reserved_quantity ?? 0,
       available_quantity_estimate: availableQuantityEstimate,
-      unit_listed: listing.sale_unit,
+      estimated_quantity_in_requested_unit: estimatedQuantityInRequestedUnit,
+      unit_listed: listedUnit || null,
+      requested_unit: requestedUnit,
+      unit_compatible: unitCompatible,
+      unit_conversion_possible: conversionPossible,
+      package_weight_kg: Number.isFinite(packageWeightKg) && packageWeightKg > 0 ? packageWeightKg : null,
       minimum_order_quantity: listing.min_order_quantity,
+      minimum_order_in_requested_unit: minimumOrderInRequestedUnit,
+      meets_minimum_order: meetsMinimumOrder,
+      match_type: unitCompatible ? "same_product_unit_compatible" : "same_product_unit_needs_clarification",
+      clarification_required: !unitCompatible,
+      clarification_reason: !unitCompatible
+        ? conversionPossible
+          ? "Conversão estimada possível pelo peso por caixa registado; confirmar peso líquido, quantidade mínima e stock com o fornecedor."
+          : "Mesmo produto, mas unidade diferente. O peso por caixa não está registado ou não permite conversão; não é possível confirmar cobertura em " + requestedUnit + "."
+        : null,
       listed_price: listing.price,
       province_id: listing.province_id,
       municipality_id: listing.municipality_id,
       location_match: sameMunicipality ? "same_municipality" : sameProvince ? "same_province" : "other_location",
-      covers_requested_quantity: availableQuantityEstimate >= Number(request.quantity),
-      partial_quantity: availableQuantityEstimate < Number(request.quantity),
+      covers_requested_quantity: unitCompatible ? availableQuantityEstimate >= Number(request.quantity) : (conversionPossible ? coversRequestedQuantity : null),
+      partial_quantity: unitCompatible ? availableQuantityEstimate < Number(request.quantity) : false,
       verification_status: "unverified_marketplace_listing",
-      note: "Quantidade estimada com base na publicação menos reservas registadas; o fornecedor ainda tem de confirmar o stock físico e a disponibilidade.",
+      note: "Quantidade estimada com base na publicação menos reservas registadas; não constitui confirmação de stock físico. Unidades diferentes exigem esclarecimento e validação do fornecedor.",
     };
   });
 
@@ -407,10 +443,10 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
     const currencyQuotes = pricedQuotes.filter((quote) => String(quote.currency ?? "unknown") === currency);
     return { currency, quotes: currencyQuotes, lowest_full_coverage: currencyQuotes.find((quote) => quote.covers_requested_quantity) ?? null, lowest_partial: currencyQuotes.find((quote) => !quote.covers_requested_quantity) ?? null };
   });
-  const fullStockMatches = marketplaceCandidates.filter((candidate: any) => candidate.covers_requested_quantity);
-  const partialStockMatches = marketplaceCandidates.filter((candidate: any) => candidate.partial_quantity);
+  const fullStockMatches = marketplaceCandidates.filter((candidate: any) => candidate.unit_compatible === true && candidate.covers_requested_quantity === true && candidate.meets_minimum_order !== false);
+  const partialStockMatches = marketplaceCandidates.filter((candidate: any) => candidate.unit_compatible === true && candidate.partial_quantity === true);
   let notificationSummary: Record<string, unknown> = { buyer_notified: false, suppliers_notified: 0, emails_queued: 0 };
-  if (taskType === "sourcing_intake" && marketplaceCandidates.length) {
+  if (taskType === "sourcing_intake" && marketplaceCandidates.some((candidate: any) => candidate.unit_compatible === true)) {
     try {
       notificationSummary = await notifySourcingMatchCandidates(db, request, marketplaceCandidates);
     } catch (notificationError) {
@@ -423,9 +459,11 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
     ? "confirmed_quotes_found"
     : suppliers.length
       ? "verified_suppliers_found_needs_quote"
-      : marketplaceCandidates.length
+      : marketplaceCandidates.some((candidate: any) => candidate.unit_compatible === true)
         ? "marketplace_listings_need_verification"
-        : "no_verified_supplier_match";
+        : marketplaceCandidates.length
+          ? "marketplace_listings_need_clarification"
+          : "no_verified_supplier_match";
 
   return {
     outcome,
@@ -437,6 +475,7 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
     delivery_location: request.delivery_location,
     marketplace_candidates: marketplaceCandidates,
     marketplace_listing_count: marketplaceCandidates.length,
+    marketplace_unit_clarification_count: marketplaceCandidates.filter((candidate: any) => candidate.clarification_required).length,
     full_stock_matches: fullStockMatches,
     partial_stock_matches: partialStockMatches,
     match_notification_summary: notificationSummary,
@@ -459,9 +498,11 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
       ? `Foram encontradas ${quotes.length} cotações confirmadas e ainda válidas de fornecedores verificados. ${fullyCoveredPricedQuotes.length ? "Existe pelo menos uma cotação com cobertura integral da quantidade." : "Nenhuma cotação com preço confirmado cobre integralmente a quantidade pedida."} É necessária revisão humana antes de apresentar uma proposta ao comprador.`
       : suppliers.length
         ? `Foram encontrados ${suppliers.length} fornecedores confirmados para o produto, mas não existe cotação confirmada e válida para este pedido.`
-        : marketplaceCandidates.length
-          ? `Foram encontradas ${marketplaceCandidates.length} publicações activas compatíveis no marketplace. São pistas de descoberta, não fornecedores nem preços confirmados; é necessária verificação humana.`
-          : "Não existe fornecedor confirmado nem publicação activa compatível na base de dados. É necessária pesquisa e verificação humana; não foram inventados fornecedores nem preços.",
+        : marketplaceCandidates.some((candidate: any) => candidate.unit_compatible === true)
+          ? `Foram encontradas ${marketplaceCandidates.filter((candidate: any) => candidate.unit_compatible === true).length} publicação(ões) activa(s) com unidade compatível e ${marketplaceCandidates.filter((candidate: any) => candidate.clarification_required).length} oferta(s) do mesmo produto que exigem esclarecimento da unidade. As publicações são pistas, não stock físico nem preço confirmado.`
+          : marketplaceCandidates.length
+            ? `Foi encontrada uma publicação activa do mesmo produto, mas a unidade de venda difere do pedido. A oferta foi mantida como correspondência potencial; é necessário confirmar peso por caixa, quantidade mínima e disponibilidade com o fornecedor.`
+            : "Não existe fornecedor confirmado nem publicação activa do mesmo produto na base de dados. É necessária pesquisa e verificação humana; não foram inventados fornecedores nem preços.",
     side_effects: [],
   };
 }
