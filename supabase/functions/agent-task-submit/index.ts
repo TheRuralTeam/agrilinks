@@ -31,17 +31,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 async function dispatchWorker(supabaseUrl: string, serviceRoleKey: string): Promise<string> {
-  const workerSecret = Deno.env.get("AGENT_WORKER_SECRET");
-
   try {
-    const workerUrl = supabaseUrl.replace(/\/+$/, "") + "/functions/v1/agent-orchestrator-worker";
+    const workerUrl = supabaseUrl.replace(/\\/+$/, "") + "/functions/v1/agent-orchestrator-worker";
+    // The worker accepts the service-role credential. Do not forward the optional
+    // shared secret as a header: malformed/non-ByteString secret values can make
+    // fetch fail before the request reaches the worker.
     const response = await fetch(workerUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "apikey": serviceRoleKey,
         "Authorization": "Bearer " + serviceRoleKey,
-        ...(workerSecret ? { "x-agent-worker-secret": workerSecret } : {}),
       },
       body: "{}",
     });
