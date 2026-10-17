@@ -53,9 +53,10 @@ Deno.serve(async (req: Request) => {
   const keys = requestIds.map((id) => `sourcing-${id}`);
   const { data, error } = await db
     .from("agent_tasks")
-    .select("id, idempotency_key, task_type, status, result_payload, error_code, created_at, completed_at")
+    .select("id, idempotency_key, input_payload, task_type, status, result_payload, error_code, created_at, completed_at")
     .eq("requested_by", authData.user.id)
-    .in("idempotency_key", keys);
+    .in("input_payload->>sourcing_request_id", requestIds)
+    .order("created_at", { ascending: false });
   if (error) {
     console.error("Agent task status lookup failed", error.code);
     return jsonResponse({ error: "Não foi possível consultar o estado dos agentes." }, 500);
@@ -84,11 +85,23 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  const tasks = (data ?? []).map((task) => {
+  const latestByRequest = new Map<string, any>();
+  for (const task of data ?? []) {
+    const payloadRequestId = isRecord(task.input_payload) && typeof task.input_payload.sourcing_request_id === "string"
+      ? task.input_payload.sourcing_request_id
+      : (typeof task.idempotency_key === "string" && task.idempotency_key.startsWith("sourcing-")
+        ? task.idempotency_key.slice("sourcing-".length)
+        : null);
+    if (payloadRequestId && !latestByRequest.has(payloadRequestId)) latestByRequest.set(payloadRequestId, task);
+  }
+  const tasks = [...latestByRequest.values()].map((task) => {
     const result = isRecord(task.result_payload) ? task.result_payload : {};
-    const requestId = task.idempotency_key.startsWith("sourcing-")
-      ? task.idempotency_key.slice("sourcing-".length)
+    const payloadRequestId = isRecord(task.input_payload) && typeof task.input_payload.sourcing_request_id === "string"
+      ? task.input_payload.sourcing_request_id
       : null;
+    const requestId = payloadRequestId ?? (task.idempotency_key.startsWith("sourcing-")
+      ? task.idempotency_key.slice("sourcing-".length)
+      : null);
     const candidates = Array.isArray(result.verified_supplier_candidates) ? result.verified_supplier_candidates.length : 0;
     const marketplaceListings = Number(result.marketplace_listing_count ?? (Array.isArray(result.marketplace_candidates) ? result.marketplace_candidates.length : 0));
     const quotes = Array.isArray(result.confirmed_quotes) ? result.confirmed_quotes.length : 0;
