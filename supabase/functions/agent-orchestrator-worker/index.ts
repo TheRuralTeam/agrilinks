@@ -293,13 +293,19 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
   }
 
   // Active marketplace listings can help discovery, but are explicitly unverified leads, not confirmed supplier quotes.
-  const { data: listingData, error: listingsError } = await db
-    .from("products")
-    .select("id, user_id, product_type, quantity, reserved_quantity, sale_unit, min_order_quantity, price, province_id, municipality_id, status")
-    .eq("status", "active")
-    .ilike("product_type", request.product_name)
-    .limit(100);
-  if (listingsError) throw listingsError;
+  const listingData: any[] = [];
+  const pageSize = 500;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data: listingPage, error: listingsError } = await db
+      .from("products")
+      .select("id, user_id, product_type, quantity, reserved_quantity, sale_unit, min_order_quantity, price, province_id, municipality_id, status")
+      .eq("status", "active")
+      .order("id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (listingsError) throw listingsError;
+    listingData.push(...(listingPage ?? []));
+    if ((listingPage ?? []).length < pageSize) break;
+  }
   const marketplaceCandidates = (listingData ?? []).filter((listing: any) =>
     listing.status === "active" &&
     listing.user_id !== request.user_id &&
@@ -329,14 +335,18 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
     };
   });
 
-  const { data: supplierData, error: suppliersError } = await db
-    .from("sourcing_supplier_leads")
-    .select("id, company_name, product_name, province_id, municipality_id, locality, verification_status")
-    .eq("verification_status", "confirmed")
-    .ilike("product_name", request.product_name)
-    .limit(100);
-  if (suppliersError) throw suppliersError;
-  const supplierRows = (supplierData ?? []) as SupplierRow[];
+  const supplierRows: SupplierRow[] = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const { data: supplierPage, error: suppliersError } = await db
+      .from("sourcing_supplier_leads")
+      .select("id, company_name, product_name, province_id, municipality_id, locality, verification_status")
+      .eq("verification_status", "confirmed")
+      .order("id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (suppliersError) throw suppliersError;
+    supplierRows.push(...((supplierPage ?? []) as SupplierRow[]));
+    if ((supplierPage ?? []).length < pageSize) break;
+  }
 
   const normalize = (value: unknown) => typeof value === "string" ? value.trim().toLocaleLowerCase("pt-AO") : "";
   const suppliers = (supplierRows ?? []).filter((supplier) =>
