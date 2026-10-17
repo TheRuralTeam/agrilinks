@@ -92,6 +92,20 @@ Deno.serve(async (req: Request) => {
     const candidates = Array.isArray(result.verified_supplier_candidates) ? result.verified_supplier_candidates.length : 0;
     const marketplaceListings = Number(result.marketplace_listing_count ?? (Array.isArray(result.marketplace_candidates) ? result.marketplace_candidates.length : 0));
     const quotes = Array.isArray(result.confirmed_quotes) ? result.confirmed_quotes.length : 0;
+    const fullStockMatches = Array.isArray(result.full_stock_matches) ? result.full_stock_matches.length : 0;
+    const partialStockMatches = Array.isArray(result.partial_stock_matches) ? result.partial_stock_matches.length : 0;
+    const stockMatchDetails = Array.isArray(result.marketplace_candidates)
+      ? result.marketplace_candidates.slice(0, 10).filter(isRecord).map((candidate) => ({
+          product_id: typeof candidate.product_id === "string" ? candidate.product_id : null,
+          available_quantity_estimate: Number(candidate.available_quantity_estimate ?? 0),
+          unit: typeof candidate.unit_listed === "string" ? candidate.unit_listed : (typeof result.unit === "string" ? result.unit : null),
+          covers_requested_quantity: candidate.covers_requested_quantity === true,
+          partial_quantity: candidate.partial_quantity === true,
+          location_match: typeof candidate.location_match === "string" ? candidate.location_match : "unknown",
+          listed_price: candidate.listed_price ?? null,
+          verification_status: "unverified_marketplace_listing",
+        }))
+      : [];
     const priorContext = isRecord(result.prior_context) ? {
       similar_completed_requests: Number(result.prior_context.similar_completed_requests ?? 0),
       previous_outcomes: Array.isArray(result.prior_context.previous_outcomes) ? result.prior_context.previous_outcomes : [],
@@ -106,6 +120,9 @@ Deno.serve(async (req: Request) => {
       verified_supplier_count: candidates,
       marketplace_listing_count: marketplaceListings,
       confirmed_quote_count: quotes,
+      full_stock_match_count: fullStockMatches,
+      partial_stock_match_count: partialStockMatches,
+      stock_match_details: stockMatchDetails,
       prior_context: priorContext,
       error_code: task.error_code,
       created_at: task.created_at,
