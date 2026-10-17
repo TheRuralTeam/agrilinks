@@ -412,17 +412,6 @@ Deno.serve(async (req: Request) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-  // Permit only server-to-server dispatch authenticated with the project's service-role key,
-  // or the existing dedicated worker secret. Never accept the public anon key as worker auth.
-  const serviceRoleAuthorized = Boolean(
-    serviceRoleKey && authorization === `Bearer ${serviceRoleKey}`
-  );
-  const dedicatedSecretAuthorized = Boolean(
-    configuredSecret && suppliedSecret && suppliedSecret === configuredSecret
-  );
-  if (!serviceRoleAuthorized && !dedicatedSecretAuthorized) {
-    return jsonResponse({ error: "Não autorizado." }, 401);
-  }
   if (!supabaseUrl || !serviceRoleKey) {
     return jsonResponse({ error: "Configuração interna incompleta." }, 503);
   }
@@ -430,6 +419,28 @@ Deno.serve(async (req: Request) => {
   const db = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+
+  const serviceRoleAuthorized = authorization === `Bearer ${serviceRoleKey}`;
+  let dedicatedSecretAuthorized = Boolean(
+    configuredSecret && suppliedSecret && suppliedSecret === configuredSecret
+  );
+
+  // The scheduled database worker reads its shared secret from Vault. Verify it
+  // through a service-role-only RPC; never trust the public anon key by itself.
+  if (!serviceRoleAuthorized && !dedicatedSecretAuthorized && suppliedSecret) {
+    try {
+      const { data, error } = await db.rpc("verify_agent_worker_secret", {
+        p_secret: suppliedSecret,
+      });
+      dedicatedSecretAuthorized = !error && data === true;
+    } catch {
+      dedicatedSecretAuthorized = false;
+    }
+  }
+
+  if (!serviceRoleAuthorized && !dedicatedSecretAuthorized) {
+    return jsonResponse({ error: "Não autorizado." }, 401);
+  }
   // A unique ID per invocation prevents an expired lease from being completed
   // by an older concurrent invocation that reused the same worker identity.
   const workerId = `consultative-worker-${crypto.randomUUID()}`;
