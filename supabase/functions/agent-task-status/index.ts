@@ -61,6 +61,29 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Não foi possível consultar o estado dos agentes." }, 500);
   }
 
+  // If a queued task is found, use the authenticated status poll to recover
+  // tasks whose original dispatch failed before reaching the worker.
+  if ((data ?? []).some((task) => task.status === "queued")) {
+    try {
+      const workerUrl = supabaseUrl.replace(/\/+$/, "") + "/functions/v1/agent-orchestrator-worker";
+      const workerResponse = await fetch(workerUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": serviceRoleKey,
+          "Authorization": "Bearer " + serviceRoleKey,
+        },
+        body: "{}",
+      });
+      await workerResponse.text();
+      if (!workerResponse.ok) {
+        console.error("Queued agent task recovery dispatch failed", { status: workerResponse.status });
+      }
+    } catch (dispatchError) {
+      console.error("Queued agent task recovery dispatch failed", String(dispatchError).slice(0, 160));
+    }
+  }
+
   const tasks = (data ?? []).map((task) => {
     const result = isRecord(task.result_payload) ? task.result_payload : {};
     const requestId = task.idempotency_key.startsWith("sourcing-")
