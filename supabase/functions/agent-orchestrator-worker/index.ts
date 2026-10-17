@@ -33,6 +33,7 @@ type TaskType =
 
 type SourcingRequestRow = {
   id: string;
+  user_id: string;
   product_name: string;
   quantity: number | string;
   unit: string;
@@ -114,7 +115,110 @@ function currentLuandaDate(): string {
   return `${year}-${month}-${day}`;
 }
 
-async function findSourcingMatches(payload: Record<string, unknown>, db: any, requestedBy: string | null): Promise<Record<string, unknown>> {
+async function notifySourcingMatchCandidates(db: any, request: SourcingRequestRow, candidates: Array<Record<string, unknown>>): Promise<Record<string, unknown>> {
+  const positiveCandidates = candidates.filter((candidate) => Number(candidate.available_quantity_estimate) > 0);
+  if (!positiveCandidates.length) return { buyer_notified: false, suppliers_notified: 0, emails_queued: 0 };
+
+  const supplierIds = [...new Set(positiveCandidates
+    .map((candidate) => typeof candidate.supplier_user_id === "string" ? candidate.supplier_user_id : "")
+    .filter((id) => id && id !== request.user_id))];
+  const recipientIds = [...new Set([request.user_id, ...supplierIds])];
+  const { data: users, error: usersError } = await db
+    .from("users")
+    .select("id, full_name, email, email_verified")
+    .in("id", recipientIds);
+  if (usersError) throw usersError;
+  const userById = new Map((users ?? []).map((user: any) => [user.id, user]));
+  let buyerNotified = false;
+  let suppliersNotified = 0;
+  let emailsQueued = 0;
+
+  const buyerKey = `sourcing_match:${request.id}:buyer`;
+  const buyerUser = userById.get(request.user_id) as any;
+  const highestEstimate = Math.max(...positiveCandidates.map((candidate) => Number(candidate.available_quantity_estimate)));
+  const fullMatches = positiveCandidates.filter((candidate) => candidate.covers_requested_quantity === true).length;
+  const partialMatches = positiveCandidates.filter((candidate) => candidate.partial_quantity === true).length;
+  const buyerTitle = "Correspondência encontrada para o seu pedido";
+  const buyerMessage = `Encontrámos ${positiveCandidates.length} publicação(ões) activa(s) de ${request.product_name}. O maior stock estimado registado é ${highestEstimate} ${request.unit}, para um pedido de ${request.quantity} ${request.unit}. ${fullMatches ? fullMatches + " publicação(ões) indicam quantidade suficiente" : "Nenhuma publicação indica, neste momento, quantidade suficiente"}. ${partialMatches ? partialMatches + " têm quantidade parcial." : ""} Estes valores vêm das publicações e reservas registadas, não constituem confirmação de stock físico. Aguarde a confirmação do fornecedor antes de comprar.`;
+  const { data: existingBuyerNotification, error: buyerLookupError } = await db
+    .from("notifications")
+    .select("id")
+    .eq("user_id", request.user_id)
+    .contains("metadata", { dedupe_key: buyerKey })
+    .limit(1)
+    .maybeSingle();
+  if (buyerLookupError) throw buyerLookupError;
+  if (!existingBuyerNotification) {
+    const { error: insertBuyerError } = await db.from("notifications").insert({
+      user_id: request.user_id,
+      type: "sourcing_match",
+      title: buyerTitle,
+      message: buyerMessage,
+      metadata: { dedupe_key: buyerKey, sourcing_request_id: request.id, product_name: request.product_name, requested_quantity: request.quantity, unit: request.unit, candidate_count: positiveCandidates.length, highest_estimated_quantity: highestEstimate, verification_status: "listing_estimate_unconfirmed" },
+    });
+    if (insertBuyerError) throw insertBuyerError;
+    buyerNotified = true;
+  }
+  if (buyerUser?.email && buyerUser.email_verified === true) {
+    const { error: buyerEmailError } = await db.from("email_outbox").upsert({
+      dedupe_key: buyerKey + ":email",
+      recipient: buyerUser.email,
+      subject: buyerTitle,
+      template: "notification",
+      payload: { full_name: buyerUser.full_name ?? "Utilizador AgriLink", title: buyerTitle, message: buyerMessage },
+      status: "pending",
+      priority: 3,
+    }, { onConflict: "dedupe_key", ignoreDuplicates: true });
+    if (buyerEmailError) throw buyerEmailError;
+    emailsQueued += 1;
+  }
+
+  for (const supplierId of supplierIds) {
+    const supplierUser = userById.get(supplierId) as any;
+    if (!supplierUser) continue;
+    const supplierCandidates = positiveCandidates.filter((candidate) => candidate.supplier_user_id === supplierId);
+    const supplierEstimate = Math.max(...supplierCandidates.map((candidate) => Number(candidate.available_quantity_estimate)));
+    const supplierKey = `sourcing_match:${request.id}:supplier:${supplierId}`;
+    const supplierTitle = "Pedido de sourcing compatível com a sua publicação";
+    const supplierMessage = `Há um pedido de ${request.quantity} ${request.unit} de ${request.product_name}. A sua publicação indica cerca de ${supplierEstimate} ${request.unit} disponíveis após reservas registadas. Confirme o stock físico actual e indique a quantidade que consegue fornecer. Esta notificação não aceita o pedido nem cria uma venda; a disponibilidade e o preço precisam de confirmação.`;
+    const { data: existingSupplierNotification, error: supplierLookupError } = await db
+      .from("notifications")
+      .select("id")
+      .eq("user_id", supplierId)
+      .contains("metadata", { dedupe_key: supplierKey })
+      .limit(1)
+      .maybeSingle();
+    if (supplierLookupError) throw supplierLookupError;
+    if (!existingSupplierNotification) {
+      const { error: insertSupplierError } = await db.from("notifications").insert({
+        user_id: supplierId,
+        type: "sourcing_match",
+        title: supplierTitle,
+        message: supplierMessage,
+        metadata: { dedupe_key: supplierKey, sourcing_request_id: request.id, product_name: request.product_name, requested_quantity: request.quantity, estimated_available_quantity: supplierEstimate, unit: request.unit, verification_status: "supplier_confirmation_required" },
+      });
+      if (insertSupplierError) throw insertSupplierError;
+      suppliersNotified += 1;
+    }
+    if (supplierUser.email && supplierUser.email_verified === true) {
+      const { error: supplierEmailError } = await db.from("email_outbox").upsert({
+        dedupe_key: supplierKey + ":email",
+        recipient: supplierUser.email,
+        subject: supplierTitle,
+        template: "notification",
+        payload: { full_name: supplierUser.full_name ?? "Fornecedor AgriLink", title: supplierTitle, message: supplierMessage },
+        status: "pending",
+        priority: 3,
+      }, { onConflict: "dedupe_key", ignoreDuplicates: true });
+      if (supplierEmailError) throw supplierEmailError;
+      emailsQueued += 1;
+    }
+  }
+
+  return { buyer_notified: buyerNotified, suppliers_notified: suppliersNotified, emails_queued: emailsQueued, verification_status: "listing_estimates_only" };
+}
+
+async function findSourcingMatches(payload: Record<string, unknown>, db: any, requestedBy: string | null, taskType?: TaskType): Promise<Record<string, unknown>> {
   const requestId = typeof payload.sourcing_request_id === "string" ? payload.sourcing_request_id : "";
   if (!requestId) {
     return { outcome: "needs_information", missing_fields: ["sourcing_request_id"], verified_supplier_candidates: [], confirmed_quotes: [], side_effects: [] };
@@ -122,7 +226,7 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
 
   const { data: requestData, error: requestError } = await db
     .from("sourcing_requests")
-    .select("id, product_name, quantity, unit, delivery_date, delivery_province_id, delivery_municipality_id, delivery_location, status")
+    .select("id, user_id, product_name, quantity, unit, delivery_date, delivery_province_id, delivery_municipality_id, delivery_location, status")
     .eq("id", requestId)
     .maybeSingle();
   if (requestError) throw requestError;
@@ -191,29 +295,37 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
   // Active marketplace listings can help discovery, but are explicitly unverified leads, not confirmed supplier quotes.
   const { data: listingData, error: listingsError } = await db
     .from("products")
-    .select("id, product_type, quantity, sale_unit, min_order_quantity, price, province_id, municipality_id, status")
+    .select("id, user_id, product_type, quantity, reserved_quantity, sale_unit, min_order_quantity, price, province_id, municipality_id, status")
     .eq("status", "active")
     .ilike("product_type", request.product_name)
     .limit(100);
   if (listingsError) throw listingsError;
   const marketplaceCandidates = (listingData ?? []).filter((listing: any) =>
     listing.status === "active" &&
+    listing.user_id !== request.user_id &&
     normalizeProductName(listing.product_type) === normalizeProductName(request.product_name) &&
-    (!listing.sale_unit || normalizeProductName(listing.sale_unit) === normalizeProductName(request.unit))
+    (!listing.sale_unit || normalizeProductName(listing.sale_unit) === normalizeProductName(request.unit)) &&
+    Math.max(0, Number(listing.quantity ?? 0) - Number(listing.reserved_quantity ?? 0)) > 0
   ).map((listing: any) => {
     const sameMunicipality = Boolean(request.delivery_municipality_id && listing.municipality_id === request.delivery_municipality_id);
     const sameProvince = Boolean(request.delivery_province_id && listing.province_id === request.delivery_province_id);
+    const availableQuantityEstimate = Math.max(0, Number(listing.quantity ?? 0) - Number(listing.reserved_quantity ?? 0));
     return {
       product_id: listing.id,
+      supplier_user_id: listing.user_id,
       quantity_listed: listing.quantity,
+      reserved_quantity: listing.reserved_quantity ?? 0,
+      available_quantity_estimate: availableQuantityEstimate,
       unit_listed: listing.sale_unit,
       minimum_order_quantity: listing.min_order_quantity,
       listed_price: listing.price,
       province_id: listing.province_id,
       municipality_id: listing.municipality_id,
       location_match: sameMunicipality ? "same_municipality" : sameProvince ? "same_province" : "other_location",
+      covers_requested_quantity: availableQuantityEstimate >= Number(request.quantity),
+      partial_quantity: availableQuantityEstimate < Number(request.quantity),
       verification_status: "unverified_marketplace_listing",
-      note: "Publicação activa, mas stock, preço actual e disponibilidade para este pedido ainda precisam de confirmação.",
+      note: "Quantidade estimada com base na publicação menos reservas registadas; o fornecedor ainda tem de confirmar o stock físico e a disponibilidade.",
     };
   });
 
@@ -285,6 +397,18 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
     const currencyQuotes = pricedQuotes.filter((quote) => String(quote.currency ?? "unknown") === currency);
     return { currency, quotes: currencyQuotes, lowest_full_coverage: currencyQuotes.find((quote) => quote.covers_requested_quantity) ?? null, lowest_partial: currencyQuotes.find((quote) => !quote.covers_requested_quantity) ?? null };
   });
+  const fullStockMatches = marketplaceCandidates.filter((candidate: any) => candidate.covers_requested_quantity);
+  const partialStockMatches = marketplaceCandidates.filter((candidate: any) => candidate.partial_quantity);
+  let notificationSummary: Record<string, unknown> = { buyer_notified: false, suppliers_notified: 0, emails_queued: 0 };
+  if (taskType === "sourcing_intake" && marketplaceCandidates.length) {
+    try {
+      notificationSummary = await notifySourcingMatchCandidates(db, request, marketplaceCandidates);
+    } catch (notificationError) {
+      console.error("Sourcing match notification failed", { requestId: request.id, error: String(notificationError).slice(0, 160) });
+      notificationSummary = { buyer_notified: false, suppliers_notified: 0, emails_queued: 0, error: "notification_delivery_failed" };
+    }
+  }
+
   const outcome = quotes.length
     ? "confirmed_quotes_found"
     : suppliers.length
@@ -303,6 +427,9 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
     delivery_location: request.delivery_location,
     marketplace_candidates: marketplaceCandidates,
     marketplace_listing_count: marketplaceCandidates.length,
+    full_stock_matches: fullStockMatches,
+    partial_stock_matches: partialStockMatches,
+    match_notification_summary: notificationSummary,
     verified_supplier_candidates: suppliers.map((supplier) => ({
       id: supplier.id,
       company_name: supplier.company_name,
@@ -339,7 +466,7 @@ async function buildConsultativeResult(task: AgentTask, db: any): Promise<Record
       if (missing.length) {
         return { mode: "consultative", outcome: "needs_information", missing_fields: missing, side_effects: [] };
       }
-      const matches = await findSourcingMatches(payload, db, task.requested_by);
+      const matches = await findSourcingMatches(payload, db, task.requested_by, task.task_type);
       return {
         mode: "consultative",
         ...matches,
@@ -348,9 +475,9 @@ async function buildConsultativeResult(task: AgentTask, db: any): Promise<Record
       };
     }
     case "supplier_discovery":
-      return { mode: "consultative", ...(await findSourcingMatches(payload, db, task.requested_by)), side_effects: [] };
+      return { mode: "consultative", ...(await findSourcingMatches(payload, db, task.requested_by, task.task_type)), side_effects: [] };
     case "quote_comparison": {
-      const matches = await findSourcingMatches(payload, db, task.requested_by);
+      const matches = await findSourcingMatches(payload, db, task.requested_by, task.task_type);
       const quotes = Array.isArray(matches.confirmed_quotes) ? matches.confirmed_quotes as Array<Record<string, unknown>> : [];
       const pricedQuotes = quotes.filter((quote) => quote.unit_price !== null && quote.unit_price !== undefined && Number.isFinite(Number(quote.unit_price)) && Number(quote.unit_price) >= 0);
       const currencies = [...new Set(pricedQuotes.map((quote) => String(quote.currency ?? "unknown")))];
