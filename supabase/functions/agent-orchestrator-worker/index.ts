@@ -321,7 +321,8 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
     const availableQuantityEstimate = Math.max(0, Number(listing.quantity ?? 0) - Number(listing.reserved_quantity ?? 0));
     const listedUnit = typeof listing.sale_unit === "string" ? listing.sale_unit.trim() : "";
     const requestedUnit = String(request.unit ?? "").trim();
-    const unitCompatible = !listedUnit || normalizeProductName(listedUnit) === normalizeProductName(requestedUnit);
+    // Missing units are unknown, not compatible: never compare quantities across an unspecified unit.
+    const unitCompatible = Boolean(listedUnit && requestedUnit) && normalizeProductName(listedUnit) === normalizeProductName(requestedUnit);
     const packageWeightKg = Number(listing.package_weight_kg);
     const isKgRequestAndBoxListing =
       normalizeProductName(requestedUnit) === "kg" &&
@@ -358,7 +359,7 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
       clarification_reason: !unitCompatible
         ? conversionPossible
           ? "Conversão estimada possível pelo peso por caixa registado; confirmar peso líquido, quantidade mínima e stock com o fornecedor."
-          : "Mesmo produto, mas unidade diferente. O peso por caixa não está registado ou não permite conversão; não é possível confirmar cobertura em " + requestedUnit + "."
+          : "Mesmo produto, mas a unidade da publicação está ausente ou é diferente. O peso por caixa não está registado ou não permite conversão; não é possível confirmar cobertura em " + requestedUnit + "."
         : null,
       listed_price: listing.price,
       province_id: listing.province_id,
