@@ -399,6 +399,7 @@ const Profile = () => {
   const [sourcingRequests, setSourcingRequests] = useState<SourcingRequest[]>([])
   const [sourcingQuotes, setSourcingQuotes] = useState<SourcingQuote[]>([])
   const [sourcingAgentStatuses, setSourcingAgentStatuses] = useState<Record<string, SourcingAgentTaskStatus>>({})
+  const [reanalyzingSourcingIds, setReanalyzingSourcingIds] = useState<Record<string, boolean>>({})
   const [sourcingQuotesLoading, setSourcingQuotesLoading] = useState(false)
   const [showSourcingForm, setShowSourcingForm] = useState(false)
   const [sourcingForm, setSourcingForm] = useState({ product_name: '', quantity: '', unit: 'kg', quality_specification: '', delivery_province_id: '', delivery_municipality_id: '', delivery_location: '', delivery_date: '', description: '' })
@@ -483,12 +484,15 @@ const Profile = () => {
       toast({ title: 'Sessão necessária', description: 'Inicie sessão para actualizar a análise do agente.', variant: 'destructive' });
       return;
     }
+    if (reanalyzingSourcingIds[request.id]) return;
+
+    setReanalyzingSourcingIds((previous) => ({ ...previous, [request.id]: true }));
     try {
       const { data, error } = await supabase.functions.invoke('agent-task-submit', {
         body: {
           task_type: 'sourcing_intake',
           autonomy_mode: 'suggest',
-          idempotency_key: `sourcing-${request.id}-refresh-${Date.now()}`,
+          idempotency_key: 'sourcing-' + request.id + '-refresh-' + Date.now(),
           input_payload: {
             sourcing_request_id: request.id,
             product_name: request.product_name,
@@ -501,12 +505,15 @@ const Profile = () => {
         },
       });
       if (error) throw error;
+
+      // Give the durable task a moment to run before refreshing its visible status.
+      await new Promise((resolve) => window.setTimeout(resolve, 1200));
       await refreshAgentStatuses([request]);
       toast({
-        title: 'Análise actualizada',
+        title: data?.task?.status === 'completed' ? 'Análise concluída' : 'Análise enviada',
         description: data?.task?.status === 'completed'
-          ? 'A análise foi executada. O estado apresentado foi actualizado.'
-          : 'A nova análise foi enviada para processamento. Actualize novamente dentro de alguns segundos para ver o resultado.',
+          ? 'A análise terminou e o estado do agente foi actualizado.'
+          : 'A tarefa foi aceite. O estado foi consultado; se ainda estiver em processamento, aguarde alguns segundos antes de tentar novamente.',
       });
     } catch (error: any) {
       console.error('[AgriLink Agents] Falha ao reprocessar pedido:', error);
@@ -515,8 +522,10 @@ const Profile = () => {
         description: error?.message || 'Verifique a ligação e tente novamente.',
         variant: 'destructive',
       });
+    } finally {
+      setReanalyzingSourcingIds((previous) => ({ ...previous, [request.id]: false }));
     }
-  }, [user?.id, refreshAgentStatuses]);
+  }, [user?.id, refreshAgentStatuses, reanalyzingSourcingIds]);
 
   const fetchSourcingRequests = React.useCallback(async () => {
     if (!user?.id) { setSourcingRequests([]); setSourcingAgentStatuses({}); return }
@@ -1268,7 +1277,7 @@ const Profile = () => {
                     return <span style={{ fontSize: 12 }}>{[province?.name, municipality?.name, r.delivery_location].filter(Boolean).join(' · ') || '—'}</span>;
                   } },
                   { key: 'data', label: t('sourcing.deliveryDate'), render: r => new Date(r.delivery_date).toLocaleDateString('pt-AO') },
-                  { key: 'estado', label: 'Estado', render: r => <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 5 }}><StatusPill status={r.status} /><span title={sourcingAgentStatuses[r.id]?.summary || ''} style={{ fontSize: 11, color: T.mid, maxWidth: 240 }}>{agentStatusLabel(sourcingAgentStatuses[r.id])}</span>{sourcingAgentStatuses[r.id]?.summary && <span style={{ fontSize: 10, color: T.faint, maxWidth: 240 }}>{sourcingAgentStatuses[r.id].summary}</span>}<button type="button" onClick={() => void reanalyzeSourcingRequest(r)} style={{ border: 0, padding: 0, background: 'transparent', color: T.g600, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Actualizar estado do agente</button>{sourcingAgentStatuses[r.id] && (sourcingAgentStatuses[r.id].verified_supplier_count > 0 || sourcingAgentStatuses[r.id].marketplace_listing_count > 0 || sourcingAgentStatuses[r.id].confirmed_quote_count > 0) && <span style={{ fontSize: 10, color: T.faint }}>{sourcingAgentStatuses[r.id].verified_supplier_count} fornecedor(es) confirmado(s) · {sourcingAgentStatuses[r.id].marketplace_listing_count} publicação(ões) a verificar · {sourcingAgentStatuses[r.id].confirmed_quote_count} cotação(ões) confirmada(s)</span>}{(sourcingAgentStatuses[r.id]?.stock_match_details?.length ?? 0) > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxWidth: 240 }}>{sourcingAgentStatuses[r.id]?.stock_match_details?.slice(0, 3).map((match, matchIndex) => <span key={match.product_id || `${r.id}-stock-${matchIndex}`} style={{ fontSize: 10, color: match.partial_quantity ? '#9a6700' : T.mid }}>Stock estimado: {Number(match.available_quantity_estimate).toLocaleString('pt-AO')} {match.unit || r.unit} — {match.clarification_required ? 'unidade por confirmar' : match.partial_quantity ? 'quantidade parcial' : match.covers_requested_quantity ? 'quantidade indicada suficiente' : 'quantidade por confirmar'}; aguarda confirmação.</span>)}{(sourcingAgentStatuses[r.id]?.stock_match_details?.length ?? 0) > 3 && <span style={{ fontSize: 10, color: T.faint }}>Mais correspondências disponíveis na análise automática.</span>}<span style={{ fontSize: 9, color: T.faint }}>Estimativa baseada na publicação e nas reservas registadas; não confirma stock físico.</span></div>}{sourcingAgentStatuses[r.id]?.prior_context && <span style={{ fontSize: 10, color: T.faint }}>Histórico comparável: {sourcingAgentStatuses[r.id].prior_context?.similar_completed_requests ?? 0} pedido(s)</span>}</div> },
+                  { key: 'estado', label: 'Estado', render: r => <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 5 }}><StatusPill status={r.status} /><span title={sourcingAgentStatuses[r.id]?.summary || ''} style={{ fontSize: 11, color: T.mid, maxWidth: 240 }}>{agentStatusLabel(sourcingAgentStatuses[r.id])}</span>{sourcingAgentStatuses[r.id]?.summary && <span style={{ fontSize: 10, color: T.faint, maxWidth: 240 }}>{sourcingAgentStatuses[r.id].summary}</span>}<button type="button" disabled={!!reanalyzingSourcingIds[r.id]} onClick={() => void reanalyzeSourcingRequest(r)} aria-live="polite" style={{ border: 0, padding: 0, background: 'transparent', color: reanalyzingSourcingIds[r.id] ? T.faint : T.g600, fontSize: 11, fontWeight: 700, cursor: reanalyzingSourcingIds[r.id] ? 'wait' : 'pointer', opacity: reanalyzingSourcingIds[r.id] ? 0.7 : 1 }}>{reanalyzingSourcingIds[r.id] ? 'A analisar…' : 'Actualizar estado do agente'}</button>{sourcingAgentStatuses[r.id] && (sourcingAgentStatuses[r.id].verified_supplier_count > 0 || sourcingAgentStatuses[r.id].marketplace_listing_count > 0 || sourcingAgentStatuses[r.id].confirmed_quote_count > 0) && <span style={{ fontSize: 10, color: T.faint }}>{sourcingAgentStatuses[r.id].verified_supplier_count} fornecedor(es) confirmado(s) · {sourcingAgentStatuses[r.id].marketplace_listing_count} publicação(ões) a verificar · {sourcingAgentStatuses[r.id].confirmed_quote_count} cotação(ões) confirmada(s)</span>}{(sourcingAgentStatuses[r.id]?.stock_match_details?.length ?? 0) > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxWidth: 240 }}>{sourcingAgentStatuses[r.id]?.stock_match_details?.slice(0, 3).map((match, matchIndex) => <span key={match.product_id || `${r.id}-stock-${matchIndex}`} style={{ fontSize: 10, color: match.partial_quantity ? '#9a6700' : T.mid }}>Stock estimado: {Number(match.available_quantity_estimate).toLocaleString('pt-AO')} {match.unit || r.unit} — {match.clarification_required ? 'unidade por confirmar' : match.partial_quantity ? 'quantidade parcial' : match.covers_requested_quantity ? 'quantidade indicada suficiente' : 'quantidade por confirmar'}; aguarda confirmação.</span>)}{(sourcingAgentStatuses[r.id]?.stock_match_details?.length ?? 0) > 3 && <span style={{ fontSize: 10, color: T.faint }}>Mais correspondências disponíveis na análise automática.</span>}<span style={{ fontSize: 9, color: T.faint }}>Estimativa baseada na publicação e nas reservas registadas; não confirma stock físico.</span></div>}{sourcingAgentStatuses[r.id]?.prior_context && <span style={{ fontSize: 10, color: T.faint }}>Histórico comparável: {sourcingAgentStatuses[r.id].prior_context?.similar_completed_requests ?? 0} pedido(s)</span>}</div> },
                 ]}
                 rows={sourcingRequests}
                 keyField={r => r.id}
