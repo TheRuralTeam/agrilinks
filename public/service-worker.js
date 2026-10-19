@@ -13,26 +13,51 @@ self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
     await Promise.all(APP_SHELL.map(async (url) => {
+      const critical = url === '/' || url === '/index.html';
       try {
         const response = await fetch(url, { cache: 'reload' });
-        await cacheIfSafe(cache, url, response);
-      } catch { /* A falha de um recurso opcional não deve bloquear a instalação. */ }
+        if (!response.ok || response.type !== 'basic') {
+          if (critical) throw new Error(`Não foi possível preparar o shell offline: ${url}`);
+          return;
+        }
+        const cacheControl = response.headers.get('Cache-Control') || '';
+        if (/(?:^|,)\\s*no-store\\b/i.test(cacheControl)) {
+          if (critical) throw new Error(`O shell da aplicação não pode ser guardado offline: ${url}`);
+          return;
+        }
+        if (critical) {
+          // O HTML é um recurso estático da aplicação; guardamo-lo como fallback
+          // mesmo quando exige revalidação online, para manter o shell acessível offline.
+          await cache.put(url, response.clone());
+        } else {
+          await cacheIfSafe(cache, url, response);
+        }
+      } catch (error) {
+        if (critical) throw error;
+      }
     }));
 
-    // Gerado pelo Vite durante o build: guarda também os chunks lazy e estilos,
-    // para permitir abrir rotas já compiladas mesmo sem rede.
-    try {
-      const manifestResponse = await fetch('/precache-manifest.json', { cache: 'no-store' });
-      if (manifestResponse.ok) {
-        const assets = await manifestResponse.json();
-        await Promise.all((Array.isArray(assets) ? assets : []).map(async (url) => {
-          try {
-            const response = await fetch(url, { cache: 'reload' });
-            await cacheIfSafe(cache, url, response);
-          } catch { /* Recurso individual indisponível: continua com os restantes. */ }
-        }));
+    // O manifesto e todos os chunks emitidos pelo build são obrigatórios para
+    // activar a nova versão. Se algum recurso falhar, a instalação aborta e a
+    // versão anterior continua activa em vez de apagar a cache funcional.
+    const manifestResponse = await fetch('/precache-manifest.json', { cache: 'no-store' });
+    if (!manifestResponse.ok) throw new Error('O manifesto de recursos offline não está disponível.');
+    const assets = await manifestResponse.json();
+    if (!Array.isArray(assets)) throw new Error('O manifesto de recursos offline é inválido.');
+    await Promise.all(assets.map(async (url) => {
+      if (typeof url !== 'string' || !url.startsWith('/') || url.startsWith('//')) {
+        throw new Error('O manifesto contém um recurso inválido.');
       }
-    } catch { /* Compatibilidade com deploys que ainda não incluem o manifesto. */ }
+      const response = await fetch(url, { cache: 'reload' });
+      if (!response.ok || response.type !== 'basic') {
+        throw new Error(`Não foi possível guardar o recurso offline: ${url}`);
+      }
+      const cacheControl = response.headers.get('Cache-Control') || '';
+      if (/(?:^|,)\\s*(?:no-store|private)\\b/i.test(cacheControl)) {
+        throw new Error(`O recurso não pode ser guardado offline: ${url}`);
+      }
+      await cache.put(url, response.clone());
+    }));
     await self.skipWaiting();
   })());
 });
