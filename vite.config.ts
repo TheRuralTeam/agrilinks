@@ -7,9 +7,33 @@ function offlinePrecacheManifest(): Plugin {
   return {
     name: "agrilink-offline-precache",
     generateBundle(_options, bundle) {
-      const assets = Object.keys(bundle)
-        .filter((file) => /\.(?:js|css|woff2?|ttf|svg|png|jpe?g|webp|ico)$/i.test(file))
-        .map((file) => `/${file}`);
+      // Pré-cache apenas o grafo estático do ponto de entrada. Chunks de rotas
+      // carregadas sob demanda (mapas, gráficos, PDFs e áreas administrativas)
+      // são guardados pela estratégia runtime quando o utilizador os visita.
+      // Assim, a primeira instalação offline não descarrega toda a aplicação.
+      const staticChunks = new Set<string>();
+      const visitStaticChunk = (fileName: string) => {
+        if (staticChunks.has(fileName)) return;
+        const output = bundle[fileName];
+        if (!output || output.type !== "chunk") return;
+        staticChunks.add(fileName);
+        output.imports.forEach(visitStaticChunk);
+      };
+
+      for (const output of Object.values(bundle)) {
+        if (output.type === "chunk" && output.isEntry) {
+          visitStaticChunk(output.fileName);
+        }
+      }
+
+      const assets = Object.keys(bundle).filter((file) => {
+        const output = bundle[file];
+        if (output?.type === "chunk") return staticChunks.has(file);
+        // Estilos, fontes e imagens estáticas são pequenos recursos do shell.
+        // Os chunks JS dinâmicos não entram nesta lista.
+        return /\.(?:css|woff2?|ttf|svg|png|jpe?g|webp|ico)$/i.test(file);
+      }).map((file) => `/${file}`);
+
       this.emitFile({
         type: "asset",
         fileName: "precache-manifest.json",
