@@ -83,8 +83,11 @@ export async function offlineAwareFetch(input: RequestInfo | URL, init?: Request
   const method = (init?.method ?? request?.method ?? 'GET').toUpperCase();
   const headers = new Headers(init?.headers ?? request?.headers);
   const userId = getUserIdFromAuthorization(headers.get('Authorization'));
+  const configuredSupabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const isSupabaseOrigin = (configuredSupabaseUrl && url.origin === new URL(configuredSupabaseUrl).origin) ||
+    url.hostname.endsWith('.supabase.co');
   const canCache = method === 'GET' &&
-    url.origin === new URL(import.meta.env.VITE_SUPABASE_URL || 'https://invalid.local').origin &&
+    isSupabaseOrigin &&
     url.pathname.startsWith('/rest/v1/') &&
     !url.pathname.includes('/rpc/') &&
     !headers.has('Range') &&
@@ -119,6 +122,10 @@ export async function offlineAwareFetch(input: RequestInfo | URL, init?: Request
       const cached = await readResponse(cacheId);
       if (cached) {
         const responseHeaders = new Headers(cached.headers);
+        responseHeaders.delete('content-length');
+        responseHeaders.delete('content-encoding');
+        responseHeaders.delete('transfer-encoding');
+        responseHeaders.delete('connection');
         responseHeaders.set('X-AgriLink-Offline-Cache', 'true');
         return new Response(cached.body, {
           status: cached.status,
