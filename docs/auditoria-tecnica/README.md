@@ -184,3 +184,28 @@ Esta documentação reflete uma revisão estática inicial. Não foram executado
 - [Dashboard: migration de sourcing](https://github.com/TheRuralTeam/agrilink-dashboard/blob/feature/sourcing-workflow/supabase/migrations/20261010000100_sourcing_workflow.sql)
 - [Dashboard: mock data](https://github.com/TheRuralTeam/agrilink-dashboard/blob/main/src/data/mockData.js)
 - [Dashboard: autenticação local](https://github.com/TheRuralTeam/agrilink-dashboard/blob/main/src/pages/Login.jsx)
+
+
+## Atualização da auditoria — 19 de outubro de 2026
+
+Esta atualização resulta de uma segunda leitura estática dos ficheiros versionados. Não houve execução de aplicação, consulta a Supabase remoto, teste de pagamentos, alteração de código funcional ou deploy.
+
+### Evidências adicionais confirmadas
+
+- **Dashboard — KPIs demonstrativos:** `src/hooks/useKPIs.js` importa `mockKPIs`, aguarda um atraso artificial e define os indicadores a partir desse objeto. O pedido de API está comentado. A presença de números demonstrativos como receita e operações deve ser tratada como risco de apresentação de dados fictícios caso este ecrã seja utilizado como painel operacional.
+- **Dashboard — alertas demonstrativos:** `src/hooks/useAlerts.js` faz o mesmo com `mockAlerts`; não consulta uma fonte de alertas real.
+- **Dashboard — autenticação de fallback:** `src/pages/Login.jsx` chama `signIn` no estado local quando as variáveis públicas de configuração Supabase não existem. `src/store/useAuth.js` mantém apenas um objeto de utilizador em Zustand, sem persistência nem validação de sessão. Isto não demonstra por si só que a versão publicada esteja configurada assim; exige verificar a configuração de build e bloquear explicitamente o modo local em produção.
+- **Dashboard — cliente Supabase sem configuração:** `src/lib/supabase.js` disponibiliza um fallback que devolve listas vazias para leituras e erros para algumas escritas. Um ecrã pode, por isso, parecer funcional sem backend, dependendo do fluxo.
+- **Sourcing — falha parcial potencial:** em `src/pages/Sourcing.jsx`, `createOffer()` verifica o erro do INSERT de `sourcing_offers`, mas não verifica o resultado do UPDATE seguinte a `sourcing_requests`. A interface pode anunciar sucesso mesmo que a alteração do estado do pedido falhe.
+- **Sourcing — concorrência potencial:** a função `accept_sourcing_offer` bloqueia a linha da proposta selecionada, mas a verificação de compra ativa consulta o pedido sem bloquear a linha do pedido e a migration não define uma restrição única que impeça estruturalmente duas compras não canceladas para o mesmo pedido. Duas aceitações concorrentes de propostas diferentes podem, portanto, passar pela verificação antes de qualquer INSERT ser visível à outra transação. Isto é uma inferência estática; não foi reproduzida.
+- **Sourcing — permissões a confirmar:** a migration concede operações CRUD a `authenticated`, confiando nas políticas RLS administrativas. É necessário validar também as políticas preexistentes de `sourcing_requests`, as permissões de `users_public` e o comportamento por chamada direta à API. A migration é da branch `feature/sourcing-workflow` do dashboard, não prova que tenha sido aplicada no projeto remoto.
+
+### Próxima ordem recomendada (sem alterações funcionais)
+
+1. Inventariar todas as páginas do dashboard e marcar cada componente como dados reais, simulados ou mistos.
+2. Verificar o comportamento de build de produção sem credenciais: o login local deve falhar de forma segura, não conceder uma sessão aparente.
+3. Rever todas as políticas RLS relevantes e testar papéis em ambiente isolado, sem dados reais.
+4. Preparar teste de concorrência para aceitação de propostas e confirmar uma regra de unicidade/serialização por pedido antes de qualquer correção.
+5. Registar o erro do UPDATE de estado no fluxo de criação de proposta como caso de teste de falha parcial.
+6. Só depois de haver ambiente isolado e autorização explícita, executar testes dinâmicos. Não aplicar migrations no projeto remoto.
+
