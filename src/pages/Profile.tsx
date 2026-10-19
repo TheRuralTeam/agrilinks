@@ -1586,14 +1586,22 @@ const Profile = () => {
               disabled={confirmBusy}
               onClick={async () => {
                 if (!confirmAction || !user) return
+                const productToRemove = confirmAction.kind === 'delete-product' ? userProducts.find((product) => product.id === confirmAction.id) : undefined
+                const removalUpdates = { status: 'removed', updated_at: new Date().toISOString() }
                 setConfirmBusy(true)
                 try {
                   if (confirmAction.kind === 'delete-product') {
-                    const { data: removedProduct, error } = await supabase.from('products').update({ status: 'removed' }).eq('id', confirmAction.id).eq('user_id', user.id).select('id').single()
-                    if (error) throw error
-                    if (!removedProduct) throw new Error('O produto não foi encontrado ou já não tens permissão para o remover.')
-                    setUserProducts(prev => prev.filter(p => p.id !== confirmAction.id))
-                    toast({ title: 'Produto removido', description: 'O produto foi retirado do seu catálogo.' })
+                    if (!navigator.onLine) {
+                      await enqueueOfflineUpdate({ userId: user.id, table: 'products', targetId: confirmAction.id, values: removalUpdates, baseUpdatedAt: productToRemove?.updated_at ?? null })
+                      setUserProducts((previous) => previous.filter((product) => product.id !== confirmAction.id))
+                      toast({ title: 'Remoção guardada offline', description: 'O produto será retirado do catálogo quando a internet regressar.' })
+                    } else {
+                      const { data: removedProduct, error } = await supabase.from('products').update(removalUpdates).eq('id', confirmAction.id).eq('user_id', user.id).select('id').single()
+                      if (error) throw error
+                      if (!removedProduct) throw new Error('O produto não foi encontrado ou já não tens permissão para o remover.')
+                      setUserProducts((previous) => previous.filter((product) => product.id !== confirmAction.id))
+                      toast({ title: 'Produto removido', description: 'O produto foi retirado do seu catálogo.' })
+                    }
                   } else {
                     const updatedOrder = await respondToPreOrder(confirmAction.id, 'rejected')
                     setReceivedOrders(prev => prev.map(o => o.id === confirmAction.id ? { ...o, status: updatedOrder.status, updated_at: updatedOrder.updated_at } : o))
@@ -1603,6 +1611,18 @@ const Profile = () => {
                   setConfirmAction(null)
                 } catch (error: any) {
                   console.error('[AgriLink] Erro ao executar ação:', error)
+                  if (!navigator.onLine && confirmAction.kind === 'delete-product') {
+                    try {
+                      await enqueueOfflineUpdate({ userId: user.id, table: 'products', targetId: confirmAction.id, values: removalUpdates, baseUpdatedAt: productToRemove?.updated_at ?? null })
+                      setUserProducts((previous) => previous.filter((product) => product.id !== confirmAction.id))
+                      setConfirmAction(null)
+                      toast({ title: 'Remoção guardada offline', description: 'A ligação caiu durante a operação. A remoção será sincronizada quando a internet regressar.' })
+                      return
+                    } catch (queueError: any) {
+                      toast({ title: 'Não foi possível guardar a remoção', description: queueError?.message || 'Tente novamente quando houver ligação.', variant: 'destructive' } as any)
+                      return
+                    }
+                  }
                   toast({ title: 'Não foi possível concluir a ação', description: error?.message || 'Tente novamente.', variant: 'destructive' } as any)
                 } finally {
                   setConfirmBusy(false)
