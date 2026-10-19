@@ -332,13 +332,20 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
       ? availableQuantityEstimate
       : conversionPossible ? availableQuantityEstimate * packageWeightKg : null;
     const minimumOrder = Number(listing.min_order_quantity ?? 0);
-    const minimumOrderInRequestedUnit = unitCompatible
-      ? minimumOrder
-      : conversionPossible ? minimumOrder * packageWeightKg : null;
-    const coversRequestedQuantity = estimatedQuantityInRequestedUnit !== null &&
-      estimatedQuantityInRequestedUnit >= Number(request.quantity);
-    const meetsMinimumOrder = minimumOrderInRequestedUnit === null ||
-      Number(request.quantity) >= minimumOrderInRequestedUnit;
+    const minimumOrderIsValid = Number.isFinite(minimumOrder) && minimumOrder >= 0;
+    const minimumOrderInRequestedUnit = !minimumOrderIsValid
+      ? null
+      : unitCompatible
+        ? minimumOrder
+        : conversionPossible ? minimumOrder * packageWeightKg : null;
+    const requestedQuantity = Number(request.quantity);
+    const requestedQuantityIsValid = Number.isFinite(requestedQuantity) && requestedQuantity > 0;
+    const coversRequestedQuantity = requestedQuantityIsValid &&
+      estimatedQuantityInRequestedUnit !== null &&
+      estimatedQuantityInRequestedUnit >= requestedQuantity;
+    const meetsMinimumOrder = requestedQuantityIsValid && minimumOrderInRequestedUnit !== null
+      ? requestedQuantity >= minimumOrderInRequestedUnit
+      : null;
     return {
       product_id: listing.id,
       supplier_user_id: listing.user_id,
@@ -354,6 +361,10 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
       minimum_order_quantity: listing.min_order_quantity,
       minimum_order_in_requested_unit: minimumOrderInRequestedUnit,
       meets_minimum_order: meetsMinimumOrder,
+      commercially_eligible:
+        unitCompatible && requestedQuantityIsValid && minimumOrderInRequestedUnit !== null
+          ? coversRequestedQuantity && meetsMinimumOrder === true
+          : null,
       match_type: unitCompatible ? "same_product_unit_compatible" : "same_product_unit_needs_clarification",
       clarification_required: !unitCompatible,
       clarification_reason: !unitCompatible
