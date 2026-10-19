@@ -5,7 +5,9 @@ type OfflineFile = { name: string; type: string; blob: Blob };
 type PendingInsert = {
   id: string;
   userId: string;
-  table: 'products' | 'sourcing_requests' | 'messages';
+  table: 'products' | 'sourcing_requests' | 'messages' | 'users';
+  operation?: 'insert' | 'update';
+  targetId?: string;
   row: Record<string, unknown>;
   files: OfflineFile[];
   createdAt: number;
@@ -81,7 +83,7 @@ export async function enqueueOfflineInsert(input: {
   const id = typeof input.row.id === 'string' ? input.row.id : crypto.randomUUID();
   const row = { ...input.row, id };
   const record: PendingInsert = {
-    id, userId: input.userId, table: input.table, row,
+    id, userId: input.userId, table: input.table, operation: 'insert', row,
     files: (input.files ?? []).map((file) => ({ name: file.name, type: file.type, blob: file })),
     createdAt: Date.now(), attempts: 0,
   };
@@ -89,6 +91,34 @@ export async function enqueueOfflineInsert(input: {
     const request = store.put(record);
     request.onsuccess = () => resolve();
     request.onerror = () => reject(new Error('Não foi possível guardar a alteração offline.'));
+  });
+  window.dispatchEvent(new CustomEvent('agrilink:offline-queue-changed'));
+  return id;
+}
+
+export async function enqueueOfflineUpdate(input: {
+  userId: string;
+  table: 'users' | 'products';
+  targetId: string;
+  values: Record<string, unknown>;
+}): Promise<string> {
+  if (!input.userId || !input.targetId) throw new Error('Utilizador e registo são obrigatórios para guardar a alteração.');
+  const id = `update:${input.table}:${input.userId}:${input.targetId}`;
+  const record: PendingInsert = {
+    id,
+    userId: input.userId,
+    table: input.table,
+    operation: 'update',
+    targetId: input.targetId,
+    row: input.values,
+    files: [],
+    createdAt: Date.now(),
+    attempts: 0,
+  };
+  await transaction<void>('readwrite', (store, resolve, reject) => {
+    const request = store.put(record);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(new Error('Não foi possível guardar a edição offline.'));
   });
   window.dispatchEvent(new CustomEvent('agrilink:offline-queue-changed'));
   return id;
@@ -197,6 +227,17 @@ async function triggerPostInsertAutomation(record: PendingInsert): Promise<void>
 
 async function insertIdempotently(record: PendingInsert): Promise<void> {
   const client = supabase as any;
+  if (record.operation === 'update') {
+    if (!record.targetId || !['users', 'products'].includes(record.table)) {
+      throw new Error('A edição offline não tem um destino válido.');
+    }
+    let query = client.from(record.table).update(record.row).eq('id', record.targetId);
+    if (record.table === 'products') query = query.eq('user_id', record.userId);
+    const { data, error } = await query.select('id').maybeSingle();
+    if (error) throw error;
+    if (!data?.id) throw new Error('A edição não foi aplicada: o registo pode ter sido removido ou já não estar acessível.');
+    return;
+  }
   const ownerField = record.table === 'messages' ? 'sender_id' : 'user_id';
   const { data: existing, error: lookupError } = await client.from(record.table).select(`id,${ownerField}`).eq('id', record.id).maybeSingle();
   if (lookupError) throw lookupError;
