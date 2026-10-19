@@ -1321,6 +1321,7 @@ const Profile = () => {
 
           {/* ── Buyer Pre-orders ── */}
           {activeTab === 'orders' && isComprador && (
+            <>
             <section style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', padding: 16, marginBottom: 14, background: T.white, border: `1px solid ${T.rule}`, borderRadius: 16 }}>
               <div style={{ minWidth: 220, flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: T.ink, fontSize: 14 }}>
@@ -1352,6 +1353,7 @@ const Profile = () => {
               )}
               empty={<EmptyState icon={<ShoppingCart size={26} color={T.faint}/>} message="Ainda não tens pré-compras." sub="As pré-compras enviadas aparecerão aqui e serão actualizadas quando o fornecedor responder." />}
             />
+            </>
           )}
 
           {activeTab === 'orders' && isComprador && buyerFreightQuotes.length > 0 && (
