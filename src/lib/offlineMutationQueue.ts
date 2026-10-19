@@ -153,6 +153,12 @@ async function listPending(userId: string): Promise<PendingInsert[]> {
   });
 }
 
+export async function getOfflineQueueError(userId: string): Promise<string | null> {
+  const pending = await listPending(userId);
+  const failed = pending.find((record) => Boolean(record.lastError));
+  return failed?.lastError ?? null;
+}
+
 export async function getPendingOfflineMessages(userId: string, conversationId: string): Promise<Record<string, unknown>[]> {
   const pending = await listPending(userId);
   return pending
