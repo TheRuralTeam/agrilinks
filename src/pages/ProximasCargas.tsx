@@ -709,6 +709,10 @@ const ProximasCargas = () => {
   };
 
   const accept = async (load: FreightLoad) => {
+    if (!user?.id) {
+      toast.error('Inicie sessão para aceitar esta carga.');
+      return;
+    }
     if (!requireAct('aceitar uma carga')) return;
     if (capacity && load.weight_kg > capacity) {
       toast.error(`Carga acima da sua capacidade (${capacity} kg).`);
