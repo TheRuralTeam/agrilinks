@@ -160,6 +160,34 @@ async function updateConversationSummary(record: PendingInsert): Promise<void> {
   if (error) console.warn('[AgriLink] A mensagem foi sincronizada, mas o resumo da conversa não foi actualizado.', error);
 }
 
+async function triggerPostInsertAutomation(record: PendingInsert): Promise<void> {
+  if (record.table === 'products') {
+    const { error } = await supabase.functions.invoke('verify-product-ficha', {
+      body: { product_id: record.id },
+    });
+    if (error) console.warn('[AgriLink] Produto sincronizado; a verificação técnica automática não foi confirmada.', error);
+  }
+  if (record.table === 'sourcing_requests') {
+    const { error } = await supabase.functions.invoke('agent-task-submit', {
+      body: {
+        task_type: 'sourcing_intake',
+        autonomy_mode: 'suggest',
+        idempotency_key: `sourcing-${record.id}`,
+        input_payload: {
+          sourcing_request_id: record.id,
+          product_name: record.row.product_name,
+          quantity: record.row.quantity,
+          unit: record.row.unit,
+          delivery_location: record.row.delivery_location,
+          delivery_date: record.row.delivery_date,
+          quality_specification: record.row.quality_specification,
+        },
+      },
+    });
+    if (error) console.warn('[AgriLink] Pedido sincronizado; a tarefa automática não foi confirmada.', error);
+  }
+}
+
 async function insertIdempotently(record: PendingInsert): Promise<void> {
   const client = supabase as any;
   const ownerField = record.table === 'messages' ? 'sender_id' : 'user_id';
@@ -169,6 +197,7 @@ async function insertIdempotently(record: PendingInsert): Promise<void> {
     const owner = existing[ownerField];
     if (owner === record.userId) {
       await updateConversationSummary(record);
+      if (record.table === 'sourcing_requests') await triggerPostInsertAutomation(record);
       return;
     }
     throw new Error('Conflito de identificador: a operação offline não foi sincronizada para proteger os dados existentes.');
@@ -182,6 +211,7 @@ async function insertIdempotently(record: PendingInsert): Promise<void> {
   const { error } = await client.from(record.table).insert(row);
   if (!error) {
     await updateConversationSummary(record);
+    await triggerPostInsertAutomation(record);
     return;
   }
 
@@ -191,6 +221,7 @@ async function insertIdempotently(record: PendingInsert): Promise<void> {
   const owner = afterError?.[ownerField];
   if (afterError?.id === record.id && owner === record.userId) {
     await updateConversationSummary(record);
+    if (record.table === 'sourcing_requests') await triggerPostInsertAutomation(record);
     return;
   }
   throw error;
