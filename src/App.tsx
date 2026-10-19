@@ -38,6 +38,8 @@ const ContratosFuturos = lazy(() => import("./pages/ContratosFuturos"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
 const EmailConfirmation = lazy(() => import("./pages/EmailConfirmation"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const ChangePassword = lazy(() => import("./pages/ChangePassword"));
+const AdminPasswordResets = lazy(() => import("./pages/AdminPasswordResets"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
 const B2BProfile = lazy(() => import("./pages/B2BProfile"));
 const CompletarPerfil = lazy(() => import("./pages/CompletarPerfil"));
@@ -155,7 +157,11 @@ const PermissionRoute = ({ children, permissions, requireAll = false, allowSuppo
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
+  if (user?.app_metadata?.must_change_password === true && location.pathname !== "/change-password") {
+    return <Navigate to="/change-password" replace />;
+  }
 
   return (
     <Suspense fallback={<Loader />}>
@@ -169,6 +175,8 @@ const AppRoutes = () => {
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/confirmar-email" element={<EmailConfirmation />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/change-password" element={<ChangePassword />} />
+        <Route path="/admin-password-resets" element={<PermissionRoute permissions={["manage_users"]}><AdminPasswordResets /></PermissionRoute>} />
         <Route path="/termos-publicidade" element={<TermsOfService />} />
         <Route path="/produto/:id/localizacao" element={<PublicProductLocation />} />
         <Route path="/mapa" element={<MapPreviewRoute render={(readOnly) => <MapView readOnly={readOnly} />} />} />
