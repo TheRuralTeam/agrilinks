@@ -176,21 +176,21 @@ const SearchPage = () => {
     setSelectedProvince(prev => prev === provinceId ? '' : provinceId)
   }
 
-  const handleProductUpdate = (updatedProduct: Product) => {
+  const handleProductUpdate = React.useCallback((updatedProduct: Product) => {
     setProductResults(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p))
-  }
+  }, [])
 
-  const handleOpenMap = (product: Product) => {
+  const handleOpenMap = React.useCallback((product: Product) => {
     setSelectedProduct(product)
     setMapModalOpen(true)
-  }
+  }, [])
 
-  const handleOpenPreOrder = (product: Product) => {
+  const handleOpenPreOrder = React.useCallback((product: Product) => {
     setSelectedProduct(product)
     setOrderData({ quantity: 1, location: '' })
     setDeliveryCoordinates(null)
     setPreOrderModalOpen(true)
-  }
+  }, [])
 
   const handlePreOrderSubmit = async () => {
     if (!selectedProduct || !user) return toast.error('Inicie sessão para continuar')
