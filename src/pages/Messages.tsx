@@ -22,7 +22,7 @@ import { supabase } from "../integrations/supabase/client";
 import { useToast } from "../hooks/use-toast";
 import Loader from "../components/ui/Loader";
 import { decryptChatMessage, encryptChatMessage, ensureChatEncryptionKey } from "../lib/chatEncryption";
-import { enqueueOfflineInsert } from "../lib/offlineMutationQueue";
+import { enqueueOfflineInsert, getPendingOfflineMessages } from "../lib/offlineMutationQueue";
 
 // --- Branding Tokens ---
 import { T } from '../lib/brand';
@@ -247,6 +247,25 @@ const Messages = () => {
     };
     loadConversation();
   }, [id, user, navigate, toast]);
+
+  useEffect(() => {
+    if (!user?.id || !id) return;
+    let active = true;
+    void getPendingOfflineMessages(user.id, id).then(async (rows) => {
+      const pendingMessages = await Promise.all(rows.map(async (row) => ({
+        ...(row as unknown as Message),
+        content: await decryptChatMessage(String(row.content ?? ""), id, user.id),
+        files: null,
+      })));
+      if (!active || pendingMessages.length === 0) return;
+      setMessages((previous) => {
+        const knownIds = new Set(previous.map((message) => message.id));
+        return [...previous, ...pendingMessages.filter((message) => !knownIds.has(message.id))];
+      });
+      setSentMessageIds((previous) => new Set([...previous, ...pendingMessages.map((message) => message.id)]));
+    }).catch((error) => console.warn("Não foi possível recuperar mensagens offline guardadas.", error));
+    return () => { active = false; };
+  }, [user?.id, id]);
 
   // Presença real no chat: só considera online quem está ligado ao canal desta conversa.
   // Se a ligação de presença falhar, mostramos estado desconhecido em vez de afirmar offline.
