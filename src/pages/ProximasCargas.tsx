@@ -47,6 +47,9 @@ interface FreightLoad {
   currency: string;
   status: string;
   driver_id: string | null;
+  buyer_id: string | null;
+  buyer_receipt_confirmed_at: string | null;
+  driver_delivery_confirmed_at?: string | null;
   notes: string | null;
   origin_lat: number | null;
   origin_lng: number | null;
@@ -741,8 +744,29 @@ const ProximasCargas = () => {
     await fetchLoads();
   };
 
+  const confirmBuyerReceipt = async (load: FreightLoad) => {
+    if (!requireAct('confirmar o recebimento da encomenda')) return;
+    if (!user?.id || load.buyer_id !== user.id || load.status !== 'delivered') {
+      toast.error('Só o comprador desta encomenda pode confirmar o recebimento após a entrega do motorista.');
+      return;
+    }
+    if (load.buyer_receipt_confirmed_at) {
+      toast.info('O recebimento desta encomenda já foi confirmado.');
+      return;
+    }
+    setBusyId(load.id);
+    const { error } = await supabase.rpc('confirm_freight_receipt', { p_freight_load_id: load.id });
+    setBusyId(null);
+    if (error) {
+      toast.error(error.message || 'Não foi possível confirmar o recebimento.');
+      return;
+    }
+    toast.success('Recebimento confirmado. A encomenda foi registada como recebida.');
+    await fetchLoads();
+  };
+
   const visible = loads.filter((load) => {
-    if (tab === 'minhas') return load.driver_id === user?.id || load.created_by === user?.id;
+    if (tab === 'minhas') return load.driver_id === user?.id || load.created_by === user?.id || load.buyer_id === user?.id;
     return (
       ['available', 'open', 'agendado'].includes(load.status) &&
       !load.driver_id &&
@@ -1121,6 +1145,7 @@ const ProximasCargas = () => {
           visible.map((load) => {
             const tooHeavy = !!capacity && load.weight_kg > capacity;
             const isAssignedDriver = load.driver_id === user?.id;
+            const isBuyer = load.buyer_id === user?.id;
             const latestDriverLocation = driverLocations[load.id];
             const hasCoordinates =
               load.origin_lat != null &&
@@ -1577,6 +1602,24 @@ const ProximasCargas = () => {
                   >
                     {busyId === load.id ? 'A actualizar…' : 'Marcar como entregue'}
                   </button>
+                ) : isBuyer && load.status === 'delivered' ? (
+                  <section aria-label="Confirmação de recebimento" style={{ display: 'grid', gap: 8, marginTop: 14, padding: 12, border: '1px solid #d5ded8', borderRadius: 12, background: '#f6faf7' }}>
+                    <strong style={{ color: T.ink, fontSize: 13 }}>Confirmação de recebimento</strong>
+                    {load.buyer_receipt_confirmed_at ? (
+                      <p style={{ margin: 0, color: T.green, fontSize: 12, fontWeight: 800 }}>
+                        Recebimento confirmado em {new Date(load.buyer_receipt_confirmed_at).toLocaleString('pt-AO')}.
+                      </p>
+                    ) : (
+                      <>
+                        <p style={{ margin: 0, color: T.mid, fontSize: 12, lineHeight: 1.5 }}>
+                          O motorista marcou esta carga como entregue. Confirme apenas depois de verificar que recebeu os produtos.
+                        </p>
+                        <button type="button" disabled={busyId === load.id} onClick={() => void confirmBuyerReceipt(load)} style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: 'none', background: T.green, color: T.white, fontFamily: FONT, fontSize: 14, fontWeight: 800, cursor: busyId === load.id ? 'wait' : 'pointer', opacity: busyId === load.id ? 0.65 : 1 }}>
+                          {busyId === load.id ? 'A confirmar recebimento…' : 'Confirmar que recebi a encomenda'}
+                        </button>
+                      </>
+                    )}
+                  </section>
                 ) : null}
               </article>
             );
