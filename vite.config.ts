@@ -26,18 +26,32 @@ function offlinePrecacheManifest(): Plugin {
         }
       }
 
-      const assets = Object.keys(bundle).filter((file) => {
+      const assets = new Set<string>();
+
+      for (const file of staticChunks) {
         const output = bundle[file];
-        if (output?.type === "chunk") return staticChunks.has(file);
-        // Estilos, fontes e imagens estáticas são pequenos recursos do shell.
-        // Os chunks JS dinâmicos não entram nesta lista.
-        return /\.(?:css|woff2?|ttf|svg|png|jpe?g|webp|ico)$/i.test(file);
-      }).map((file) => `/${file}`);
+        if (!output || output.type !== "chunk") continue;
+
+        assets.add(`/${file}`);
+
+        // Vite regista os CSS e os ficheiros estáticos importados por cada
+        // chunk. Incluímos apenas os dependentes do shell, não os recursos de
+        // páginas dinâmicas que o utilizador ainda nem abriu.
+        const metadata = (output as unknown as {
+          viteMetadata?: {
+            importedCss?: Set<string>;
+            importedAssets?: Set<string>;
+          };
+        }).viteMetadata;
+
+        metadata?.importedCss?.forEach((asset) => assets.add(`/${asset}`));
+        metadata?.importedAssets?.forEach((asset) => assets.add(`/${asset}`));
+      }
 
       this.emitFile({
         type: "asset",
         fileName: "precache-manifest.json",
-        source: JSON.stringify([...new Set(assets)]),
+        source: JSON.stringify([...assets]),
       });
     },
   };
