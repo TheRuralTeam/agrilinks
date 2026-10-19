@@ -11,12 +11,11 @@ import { useCanAct } from '../hooks/useCanAct'
 import { useNavigate } from 'react-router-dom'
 import { fetchProductComments } from '../features/products/productsService'
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog'
-const SimpleLeafletMap = lazy(() => import('./SimpleLeafletMap'))
 import "slick-carousel/slick/slick.css"
 import "slick-carousel/slick/slick-theme.css"
-
-/* ─── Design tokens — same source as AppHome, single accent colour ─────────── */
 import { T } from '../lib/brand'
+
+const SimpleLeafletMap = lazy(() => import('./SimpleLeafletMap'))
 
 /* ─── Inline styles ──────────────────────────────────────────────────────────
    Apple-style rules borrowed from AppHome:
@@ -905,15 +904,15 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
             {mapModalOpen && product.location_lat && product.location_lng && (
               <Suspense fallback={<div role="status" aria-label="A carregar mapa" style={{ height: 420, display: 'grid', placeItems: 'center', color: T.mid }}>A carregar mapa…</div>}>
                 <SimpleLeafletMap
-                center={{ lat: Number(product.location_lat.toFixed(2)), lng: Number(product.location_lng.toFixed(2)) }}
-                zoom={9}
-                height={420}
-                markers={[{
-                  lat: Number(product.location_lat.toFixed(2)),
-                  lng: Number(product.location_lng.toFixed(2)),
-                  color: T.g600 as unknown as string,
-                  popupHtml: '<strong>Zona de origem</strong><br/>Localização aproximada',
-                }]}
+                  center={{ lat: Number(product.location_lat.toFixed(2)), lng: Number(product.location_lng.toFixed(2)) }}
+                  zoom={9}
+                  height={420}
+                  markers={[{
+                    lat: Number(product.location_lat.toFixed(2)),
+                    lng: Number(product.location_lng.toFixed(2)),
+                    color: T.g600 as unknown as string,
+                    popupHtml: '<strong>Zona de origem</strong><br/>Localização aproximada',
+                  }]}
                 />
               </Suspense>
             )}
