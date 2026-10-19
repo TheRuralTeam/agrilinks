@@ -16,10 +16,8 @@ import {
 import { angolaProvinces } from '../data/angola-locations'
 import { ProductCard, Product as ProductCardType } from '../components/ProductCard'
 import { fetchProductsFeed } from '../features/products/productsService'
-import { ProductLocationMap } from '../components/ProductLocationMap'
 import { useAuth } from '../contexts/AuthContext'
 import IdentityActionDialog from '../components/IdentityActionDialog'
-import LocationAutocomplete from '../components/LocationAutocomplete'
 import { savePreferredDeliveryLocation } from '../features/products/deliveryLocationPreference'
 import { enqueueOfflinePreOrder } from '../lib/offlineMutationQueue'
 import { validatePreOrderSubmission } from '../features/products/businessRules'
@@ -66,6 +64,11 @@ const T = {
   shadow: 'rgba(13,43,18,0.10)',
   shadowMd:'rgba(13,43,18,0.15)',
 }
+
+const ProductLocationMap = React.lazy(() =>
+  import('../components/ProductLocationMap').then(({ ProductLocationMap }) => ({ default: ProductLocationMap }))
+)
+const LocationAutocomplete = React.lazy(() => import('../components/LocationAutocomplete'))
 
 interface Product extends ProductCardType {}
 
@@ -544,11 +547,13 @@ const SearchPage = () => {
               {selectedProduct?.product_type} - {selectedProduct?.farmer_name}
             </DialogDescription>
           </DialogHeader>
-          <ProductLocationMap
-            latitude={selectedProduct?.location_lat}
-            longitude={selectedProduct?.location_lng}
-            className="h-[400px] border-0"
-          />
+          <React.Suspense fallback={<div role="status" className="grid h-[400px] place-items-center text-sm text-muted-foreground">A carregar mapa…</div>}>
+            <ProductLocationMap
+              latitude={selectedProduct?.location_lat}
+              longitude={selectedProduct?.location_lng}
+              className="h-[400px] border-0"
+            />
+          </React.Suspense>
         </DialogContent>
       </Dialog>
 
@@ -580,14 +585,16 @@ const SearchPage = () => {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-bold text-[#3D4D40]">Local de Entrega</label>
-              <LocationAutocomplete
-                value={orderData.location}
-                onChange={(location) => setOrderData({ ...orderData, location })}
-                onSelectLocation={(location) => setDeliveryCoordinates(location ? { latitude: location.latitude, longitude: location.longitude } : null)}
-                placeholder="Ex.: Viana, Luanda ou Bairro/Zona"
-                inputClassName="h-10 rounded-xl border-none text-sm text-[#111714] placeholder:text-[#758A79] outline-none"
-                inputStyle={{ background: 'rgba(118,118,128,0.08)' }}
-              />
+              <React.Suspense fallback={<div role="status" className="rounded-lg p-3 text-sm text-muted-foreground">A carregar localização…</div>}>
+                <LocationAutocomplete
+                  value={orderData.location}
+                  onChange={(location) => setOrderData({ ...orderData, location })}
+                  onSelectLocation={(location) => setDeliveryCoordinates(location ? { latitude: location.latitude, longitude: location.longitude } : null)}
+                  placeholder="Ex.: Viana, Luanda ou Bairro/Zona"
+                  inputClassName="h-10 rounded-xl border-none text-sm text-[#111714] placeholder:text-[#758A79] outline-none"
+                  inputStyle={{ background: 'rgba(118,118,128,0.08)' }}
+                />
+              </React.Suspense>
             </div>
             <div className="p-4 rounded-2xl space-y-2" style={{ background: 'rgba(118,118,128,0.06)' }}>
               <div className="flex justify-between text-sm text-[#3D4D40]">
