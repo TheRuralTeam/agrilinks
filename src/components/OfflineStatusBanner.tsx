@@ -52,6 +52,10 @@ export default function OfflineStatusBanner() {
   }, [refreshQueue]);
 
   useEffect(() => {
+    if (userId && navigator.onLine) void syncQueue();
+  }, [userId, syncQueue]);
+
+  useEffect(() => {
     const handleOffline = () => {
       setOnline(false);
       setRestored(false);
