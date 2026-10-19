@@ -36,7 +36,7 @@ type CheckoutState = {
   loading: boolean
   error: string | null
 }
-type PaymentDraft = { intentId: string; recipientName: string; accountIdentifier: string }
+type PaymentDraft = { intentId: string; recipientName: string; accountIdentifier: string; channel: string; accountHolder: string; instructions: string | null }
 
 const money = (amount: number, currency = 'AOA') =>
   new Intl.NumberFormat('pt-AO', { style: 'currency', currency, maximumFractionDigits: 2 }).format(amount)
@@ -149,12 +149,16 @@ export default function MyPurchases() {
     setBusyId(purchase.id)
     try {
       const intent = await createAuthorizedRecipientPaymentIntent(purchase.id, recipientId)
+      const recipient = state.recipients.find((item) => item.id === recipientId)
       setPaymentDrafts((current) => ({
         ...current,
         [purchase.id]: {
           intentId: intent.intent_id,
           recipientName: intent.recipient_name,
           accountIdentifier: intent.account_identifier,
+          channel: recipient?.channel || 'Canal autorizado',
+          accountHolder: recipient?.account_holder || intent.recipient_name,
+          instructions: recipient?.instructions || null,
         },
       }))
       toast({ title: 'Instruções de pagamento preparadas', description: 'Usa os dados apresentados e comunica a transferência quando terminares.' })
@@ -221,7 +225,7 @@ export default function MyPurchases() {
           {purchases.map((purchase) => {
             const state = checkout[purchase.id]
             const draft = paymentDrafts[purchase.id]
-            const canStartPayment = purchase.status === 'accepted' && purchase.payment_status !== 'paid'
+            const canStartPayment = purchase.status === 'accepted' && (purchase.payment_status === 'unpaid' || !purchase.payment_status)
             return (
               <Card key={purchase.id}>
                 <CardHeader className="pb-3">
@@ -237,7 +241,7 @@ export default function MyPurchases() {
                     <div><p className="text-xs text-muted-foreground">Local de entrega</p><p className="flex items-center gap-1 font-medium"><MapPin className="h-3.5 w-3.5 shrink-0" />{purchase.location || 'A combinar'}</p></div>
                   </div>
 
-                  {purchase.status === 'accepted' && purchase.payment_status !== 'paid' && (
+                  {canStartPayment && (
                     <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900 dark:bg-amber-950/20">
                       <div className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><div><p className="font-semibold">Próximo passo: confirmar o pagamento</p><p className="mt-1 text-sm text-muted-foreground">As instruções são mostradas apenas quando existe um destinatário de pagamento autorizado e o checkout confirma que esta compra está pronta.</p></div></div>
                       <Button className="mt-3" onClick={() => void openPaymentOptions(purchase)} disabled={state?.loading || busyId === purchase.id}><CreditCard className="mr-2 h-4 w-4" />{state?.loading ? 'A consultar…' : 'Consultar opções de pagamento'}</Button>
@@ -268,7 +272,7 @@ export default function MyPurchases() {
 
                   {draft && (
                     <div className="space-y-3 rounded-lg border p-4">
-                      <div><p className="font-semibold">Instruções de pagamento</p><p className="text-sm text-muted-foreground">Destinatário autorizado: {draft.recipientName}</p><p className="mt-1 break-all font-mono text-sm">{draft.accountIdentifier}</p></div>
+                      <div><p className="font-semibold">Instruções de pagamento</p><p className="text-sm text-muted-foreground">Método: {draft.channel.replaceAll('_', ' ')}</p><p className="mt-1 text-sm">Destinatário: <strong>{draft.recipientName}</strong></p><p className="text-sm">Titular: <strong>{draft.accountHolder}</strong></p><p className="mt-1 break-all font-mono text-sm">{draft.accountIdentifier}</p>{draft.instructions && <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{draft.instructions}</p>}</div>
                       <p className="text-sm text-muted-foreground">Confirma o nome e os dados no canal de pagamento escolhido. Depois da transferência, regista a referência abaixo. A compra só será marcada como paga após validação.</p>
                       <div><Label>Referência real da transferência</Label><Input value={proofReferences[purchase.id] || ''} onChange={(event) => setProofReferences((current) => ({ ...current, [purchase.id]: event.target.value }))} placeholder="Referência / comprovativo da operação" /></div>
                       <div><Label>Nota opcional</Label><Textarea value={proofNotes[purchase.id] || ''} onChange={(event) => setProofNotes((current) => ({ ...current, [purchase.id]: event.target.value }))} placeholder="Informação adicional para a validação" rows={2} /></div>
@@ -276,6 +280,8 @@ export default function MyPurchases() {
                     </div>
                   )}
 
+                  {purchase.status === 'accepted' && purchase.payment_status === 'pending' && !draft && <p className="flex items-start gap-2 rounded-md border p-3 text-sm text-muted-foreground"><Clock3 className="mt-0.5 h-4 w-4 shrink-0" />Existe um pagamento pendente de confirmação. Não inicies outra transferência; consulta o estado novamente mais tarde ou contacta o suporte AgriLink.</p>}
+                  {purchase.status === 'accepted' && purchase.payment_status === 'processing' && !draft && <p className="flex items-start gap-2 rounded-md border p-3 text-sm text-muted-foreground"><Clock3 className="mt-0.5 h-4 w-4 shrink-0" />O pagamento foi comunicado e está em validação pela AgriLink.</p>}
                   {purchase.status !== 'accepted' && purchase.payment_status !== 'paid' && (
                     <p className="flex items-start gap-2 rounded-md border p-3 text-sm text-muted-foreground"><Clock3 className="mt-0.5 h-4 w-4 shrink-0" />{purchase.status === 'pending' || purchase.status === 'aguardando' ? 'O fornecedor ainda não aceitou a pré-compra. Não é necessário pagar nesta fase.' : 'Consulta o estado acima. Não efectues pagamentos adicionais sem instruções oficiais na plataforma.'}</p>
                   )}
