@@ -1,4 +1,4 @@
-import React, { useState, memo } from 'react'
+import React, { useState, memo, lazy, Suspense } from 'react'
 import Slider from 'react-slick'
 import { toast } from 'sonner'
 import {
@@ -11,7 +11,7 @@ import { useCanAct } from '../hooks/useCanAct'
 import { useNavigate } from 'react-router-dom'
 import { fetchProductComments } from '../features/products/productsService'
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog'
-import SimpleLeafletMap from './SimpleLeafletMap'
+const SimpleLeafletMap = lazy(() => import('./SimpleLeafletMap'))
 import "slick-carousel/slick/slick.css"
 import "slick-carousel/slick/slick-theme.css"
 
@@ -902,7 +902,8 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
 
           <div style={{ width: '100%', height: 420 }}>
             {mapModalOpen && product.location_lat && product.location_lng && (
-              <SimpleLeafletMap
+              <Suspense fallback={<div role="status" aria-label="A carregar mapa" style={{ height: 420, display: 'grid', placeItems: 'center', color: T.mid }}>A carregar mapa…</div>}>
+                <SimpleLeafletMap
                 center={{ lat: Number(product.location_lat.toFixed(2)), lng: Number(product.location_lng.toFixed(2)) }}
                 zoom={9}
                 height={420}
@@ -912,7 +913,8 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                   color: T.g600 as unknown as string,
                   popupHtml: '<strong>Zona de origem</strong><br/>Localização aproximada',
                 }]}
-              />
+                />
+              </Suspense>
             )}
           </div>
 
