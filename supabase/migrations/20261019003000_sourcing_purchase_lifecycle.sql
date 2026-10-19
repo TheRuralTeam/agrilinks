@@ -32,7 +32,7 @@ create policy "Sourcing admins manage purchases" on public.sourcing_purchases fo
 using (public.is_agrilink_admin() or public.has_role(auth.uid(), 'admin'::public.app_role))
 with check (public.is_agrilink_admin() or public.has_role(auth.uid(), 'admin'::public.app_role));
 revoke all on public.sourcing_purchases from anon;
-grant select on public.sourcing_purchases to authenticated;
+grant select, insert, update on public.sourcing_purchases to authenticated;
 revoke all on function public.audit_sourcing_supplier_quote() from public, anon, authenticated;
 
 create or replace function public.create_sourcing_supplier_quote(
@@ -132,11 +132,15 @@ begin
     raise exception 'O pedido já não aceita compras.';
   end if;
 
+  if v_quote.available_quantity < (select quantity from public.sourcing_requests where id = v_quote.sourcing_request_id) then
+    raise exception 'A quantidade disponível é inferior à quantidade pedida. Registe uma cotação que cubra o pedido completo.';
+  end if;
+
   insert into public.sourcing_purchases (
     sourcing_request_id, quote_id, supplier_id, quantity, unit, unit_price, currency, ordered_by
   ) values (
     v_quote.sourcing_request_id, v_quote.id, v_quote.supplier_id,
-    least(v_quote.available_quantity, (select quantity from public.sourcing_requests where id = v_quote.sourcing_request_id)),
+    (select quantity from public.sourcing_requests where id = v_quote.sourcing_request_id),
     v_quote.unit, v_quote.unit_price, v_quote.currency, auth.uid()
   ) returning id into v_purchase_id;
 
