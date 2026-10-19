@@ -276,7 +276,7 @@ async function triggerPostInsertAutomation(record: PendingInsert): Promise<void>
 async function insertIdempotently(record: PendingInsert): Promise<void> {
   const client = supabase as any;
   if (record.operation === 'preorder') {
-    const { error } = await supabase.rpc('create_marketplace_pre_order', {
+    const { data, error } = await supabase.rpc('create_marketplace_pre_order', {
       p_product_id: String(record.row.product_id),
       p_quantity: Number(record.row.quantity),
       p_location: String(record.row.location ?? ''),
@@ -285,6 +285,9 @@ async function insertIdempotently(record: PendingInsert): Promise<void> {
       p_idempotency_key: String(record.row.idempotency_key),
     });
     if (error) throw new Error(`Pré-compra offline ainda não confirmada pelo servidor: ${error.message}`);
+    if (!data || (Array.isArray(data) && data.length === 0)) {
+      throw new Error('O servidor não devolveu confirmação da pré-compra offline.');
+    }
     window.dispatchEvent(new CustomEvent('agrilink:offline-preorder-synced', { detail: { id: record.id } }));
     return;
   }
