@@ -11,9 +11,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useCanAct } from '../hooks/useCanAct'
 import { useNavigate } from 'react-router-dom'
 import { ProductCard, Product } from '../components/ProductCard'
-import { ProductLocationMap } from '../components/ProductLocationMap'
 import IdentityActionDialog from '../components/IdentityActionDialog'
-import LocationAutocomplete from '../components/LocationAutocomplete'
 import { savePreferredDeliveryLocation } from '../features/products/deliveryLocationPreference'
 import agrilinkLogo from '../assets/agrilink-logo.png'
 import { fetchActiveProducts } from '../features/products/productsService'
@@ -45,6 +43,11 @@ const CATEGORIES = [
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 import { T } from '../lib/brand';
+
+const ProductLocationMap = React.lazy(() =>
+  import('../components/ProductLocationMap').then(({ ProductLocationMap }) => ({ default: ProductLocationMap }))
+)
+const LocationAutocomplete = React.lazy(() => import('../components/LocationAutocomplete'))
 
 /* ─── Skeleton ──────────────────────────────────────────────────────────────── */
 const ProductSkeleton = () => (
@@ -625,18 +628,20 @@ const AppHome = () => {
                 Local de Entrega
                 <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:5, background: T.g50, color: T.g600, border:`1px solid ${T.gBorder}` }}>Obrigatório</span>
               </label>
-              <LocationAutocomplete
-                value={orderData.location}
-                onChange={location => setOrderData({ ...orderData, location })}
-                onSelectLocation={location => setDeliveryCoordinates(location ? { latitude: location.latitude, longitude: location.longitude } : null)}
-                placeholder="Ex.: Viana, Luanda ou Bairro/Zona"
-                inputStyle={{
-                  height:42, borderRadius:10, border:`1px solid ${T.rule}`, padding:'0 12px 0 38px',
-                  fontSize:14, outline:'none', background: T.white, color: T.ink,
-                  transition:'border-color 0.18s, box-shadow 0.18s', width:'100%', boxSizing:'border-box',
-                }}
-                onFocus={() => {}}
-              />
+              <React.Suspense fallback={<div role="status" className="rounded-lg border p-3 text-sm text-muted-foreground">A carregar localização…</div>}>
+                <LocationAutocomplete
+                  value={orderData.location}
+                  onChange={location => setOrderData({ ...orderData, location })}
+                  onSelectLocation={location => setDeliveryCoordinates(location ? { latitude: location.latitude, longitude: location.longitude } : null)}
+                  placeholder="Ex.: Viana, Luanda ou Bairro/Zona"
+                  inputStyle={{
+                    height:42, borderRadius:10, border:`1px solid ${T.rule}`, padding:'0 12px 0 38px',
+                    fontSize:14, outline:'none', background: T.white, color: T.ink,
+                    transition:'border-color 0.18s, box-shadow 0.18s', width:'100%', boxSizing:'border-box',
+                  }}
+                  onFocus={() => {}}
+                />
+              </React.Suspense>
             </div>
 
             {/* Summary */}
@@ -721,11 +726,13 @@ const AppHome = () => {
               </DialogDescription>
             </div>
           </div>
-          <ProductLocationMap
-            latitude={selectedProduct?.location_lat}
-            longitude={selectedProduct?.location_lng}
-            className="h-[440px] rounded-none border-0"
-          />
+          <React.Suspense fallback={<div role="status" className="grid h-[440px] place-items-center text-sm text-muted-foreground">A carregar mapa…</div>}>
+            <ProductLocationMap
+              latitude={selectedProduct?.location_lat}
+              longitude={selectedProduct?.location_lng}
+              className="h-[440px] rounded-none border-0"
+            />
+          </React.Suspense>
         </DialogContent>
       </Dialog>
 
