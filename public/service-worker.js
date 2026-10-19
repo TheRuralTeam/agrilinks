@@ -21,7 +21,7 @@ self.addEventListener('install', (event) => {
           return;
         }
         const cacheControl = response.headers.get('Cache-Control') || '';
-        if (/(?:^|,)\\s*no-store\\b/i.test(cacheControl)) {
+        if (/(?:^|,)\s*no-store\b/i.test(cacheControl)) {
           if (critical) throw new Error(`O shell da aplicação não pode ser guardado offline: ${url}`);
           return;
         }
@@ -53,7 +53,7 @@ self.addEventListener('install', (event) => {
         throw new Error(`Não foi possível guardar o recurso offline: ${url}`);
       }
       const cacheControl = response.headers.get('Cache-Control') || '';
-      if (/(?:^|,)\\s*(?:no-store|private)\\b/i.test(cacheControl)) {
+      if (/(?:^|,)\s*(?:no-store|private)\b/i.test(cacheControl)) {
         throw new Error(`O recurso não pode ser guardado offline: ${url}`);
       }
       await cache.put(url, response.clone());
