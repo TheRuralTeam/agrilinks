@@ -728,7 +728,7 @@ const ProximasCargas = () => {
       toast.error(error.message || 'Não foi possível aceitar esta carga.');
       return;
     }
-    toast.success('Carga aceite. A partilha GPS começa agora, se autorizar a localização do dispositivo.');
+    toast.success('Carga aceite. O GPS pode acompanhar o percurso até ao fornecedor; a viagem com a mercadoria só começa após a confirmação da entrega pelo fornecedor.');
     void showLoadRoute({ ...load, status: 'accepted', driver_id: driverId });
     startLocationSharing({ ...load, status: 'accepted', driver_id: driverId });
     await fetchLoads();
@@ -1607,15 +1607,15 @@ const ProximasCargas = () => {
                       {busyId === load.id ? 'A actualizar…' : 'Confirmar chegada à recolha'}
                     </button>
                   </div>
-                ) : isAssignedDriver && load.status === 'at_pickup' ? (
+                 ) : isAssignedDriver && load.status === 'at_pickup' ? (
                   <button
-                    disabled={busyId === load.id}
+                    disabled={busyId === load.id || !load.supplier_handover_confirmed_at}
                     onClick={() => void advance(load)}
                     style={{
                       marginTop: 14, width: '100%', padding: '12px 16px',
-                      borderRadius: 14, border: 'none', background: T.green,
-                      color: T.white, fontFamily: FONT, fontSize: 14,
-                      fontWeight: 800, cursor: 'pointer',
+                      borderRadius: 14, border: 'none', background: load.supplier_handover_confirmed_at ? T.green : T.rule,
+                      color: load.supplier_handover_confirmed_at ? T.white : T.mid, fontFamily: FONT, fontSize: 14,
+                      fontWeight: 800, cursor: load.supplier_handover_confirmed_at ? 'pointer' : 'not-allowed',
                     }}
                   >
                     {busyId === load.id ? 'A iniciar viagem…' : load.supplier_handover_confirmed_at ? 'Confirmar que recebi a carga · iniciar viagem' : 'A aguardar confirmação do fornecedor'}
