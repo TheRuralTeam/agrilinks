@@ -3,7 +3,8 @@ import { toast } from 'sonner'
 import {
   Search, LayoutDashboard, ShoppingCart, Bell,
   ChevronDown, CheckCircle2, Package, Activity,
-  MapPin, TrendingUp, Menu, X, WifiOff
+  MapPin, TrendingUp, Menu, X, WifiOff,
+  Apple, Carrot, Sprout, Wheat, Citrus, Flame, Fish, Drumstick, Egg, Croissant, Milk, Coffee, Layers
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
 import { supabase } from '../integrations/supabase/client'
@@ -18,27 +19,21 @@ import { fetchActiveProducts } from '../features/products/productsService'
 import { isNeutralPublicView, sanitizePublicProduct } from '../lib/publicData'
 import { enqueueOfflinePreOrder } from '../lib/offlineMutationQueue'
 import Loader from '../components/ui/Loader'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-  faAppleWhole, faCarrot, faSeedling, faWheatAwn, faLemon,
-  faPepperHot, faFish, faDrumstickBite, faEgg, faBreadSlice,
-  faCheese, faMugHot, faLayerGroup
-} from '@fortawesome/free-solid-svg-icons'
 
 const CATEGORIES = [
-  { id: 'all',     label: 'Todos',      icon: faLayerGroup,    color: T.green },
-  { id: 'frutas',  label: 'Frutas',     icon: faAppleWhole,    color: T.green },
-  { id: 'citrus',  label: 'Cítricos',   icon: faLemon,         color: T.green },
-  { id: 'legumes', label: 'Legumes',    icon: faCarrot,        color: T.green },
-  { id: 'verduras',label: 'Verduras',   icon: faSeedling,      color: T.green },
-  { id: 'cereais', label: 'Cereais',    icon: faWheatAwn,      color: T.green },
-  { id: 'tempero', label: 'Temperos',   icon: faPepperHot,     color: T.green },
-  { id: 'pescado', label: 'Pescado',    icon: faFish,          color: T.green },
-  { id: 'carnes',  label: 'Carnes',     icon: faDrumstickBite, color: T.green },
-  { id: 'ovos',    label: 'Ovos',       icon: faEgg,           color: T.green },
-  { id: 'paes',    label: 'Pães',       icon: faBreadSlice,    color: T.green },
-  { id: 'lacteos', label: 'Lácteos',    icon: faCheese,        color: T.green },
-  { id: 'bebidas', label: 'Bebidas',    icon: faMugHot,         color: T.green },
+  { id: 'all',     label: 'Todos',      icon: Layers,    color: T.green },
+  { id: 'frutas',  label: 'Frutas',     icon: Apple,    color: T.green },
+  { id: 'citrus',  label: 'Cítricos',   icon: Citrus,         color: T.green },
+  { id: 'legumes', label: 'Legumes',    icon: Carrot,        color: T.green },
+  { id: 'verduras',label: 'Verduras',   icon: Sprout,      color: T.green },
+  { id: 'cereais', label: 'Cereais',    icon: Wheat,      color: T.green },
+  { id: 'tempero', label: 'Temperos',   icon: Flame,     color: T.green },
+  { id: 'pescado', label: 'Pescado',    icon: Fish,          color: T.green },
+  { id: 'carnes',  label: 'Carnes',     icon: Drumstick, color: T.green },
+  { id: 'ovos',    label: 'Ovos',       icon: Egg,           color: T.green },
+  { id: 'paes',    label: 'Pães',       icon: Croissant,    color: T.green },
+  { id: 'lacteos', label: 'Lácteos',    icon: Milk,        color: T.green },
+  { id: 'bebidas', label: 'Bebidas',    icon: Coffee,         color: T.green },
 ]
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
@@ -455,9 +450,11 @@ const AppHome = () => {
                   background: active ? 'rgba(255,255,255,0.25)' : `${cat.color}18`,
                   transition: 'all 0.18s', flexShrink: 0,
                 }}>
-                  <FontAwesomeIcon
-                    icon={cat.icon}
-                    style={{ fontSize: 11, color: active ? T.white : cat.color }}
+                  <cat.icon
+                    size={14}
+                    strokeWidth={2}
+                    color={active ? T.white : cat.color}
+                    aria-hidden="true"
                   />
                 </div>
                 <span style={{
