@@ -5,8 +5,8 @@ type OfflineFile = { name: string; type: string; blob: Blob };
 type PendingInsert = {
   id: string;
   userId: string;
-  table: 'products' | 'sourcing_requests' | 'messages' | 'users';
-  operation?: 'insert' | 'update';
+  table: 'products' | 'sourcing_requests' | 'messages' | 'users' | 'pre_order_intent';
+  operation?: 'insert' | 'update' | 'preorder';
   targetId?: string;
   baseUpdatedAt?: string | null;
   row: Record<string, unknown>;
@@ -92,6 +92,45 @@ export async function enqueueOfflineInsert(input: {
     const request = store.put(record);
     request.onsuccess = () => resolve();
     request.onerror = () => reject(new Error('Não foi possível guardar a alteração offline.'));
+  });
+  window.dispatchEvent(new CustomEvent('agrilink:offline-queue-changed'));
+  return id;
+}
+
+export async function enqueueOfflinePreOrder(input: {
+  userId: string;
+  productId: string;
+  quantity: number;
+  location: string;
+  deliveryLat?: number;
+  deliveryLng?: number;
+  idempotencyKey?: string;
+}): Promise<string> {
+  if (!input.userId || !input.productId) throw new Error('É necessário iniciar sessão e seleccionar um produto.');
+  const idempotencyKey = input.idempotencyKey || crypto.randomUUID();
+  const id = `preorder:${input.userId}:${idempotencyKey}`;
+  const record: PendingInsert = {
+    id,
+    userId: input.userId,
+    table: 'pre_order_intent',
+    operation: 'preorder',
+    targetId: input.productId,
+    row: {
+      product_id: input.productId,
+      quantity: input.quantity,
+      location: input.location,
+      delivery_lat: input.deliveryLat ?? null,
+      delivery_lng: input.deliveryLng ?? null,
+      idempotency_key: idempotencyKey,
+    },
+    files: [],
+    createdAt: Date.now(),
+    attempts: 0,
+  };
+  await transaction<void>('readwrite', (store, resolve, reject) => {
+    const request = store.put(record);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(new Error('Não foi possível guardar a pré-compra offline.'));
   });
   window.dispatchEvent(new CustomEvent('agrilink:offline-queue-changed'));
   return id;
@@ -236,6 +275,19 @@ async function triggerPostInsertAutomation(record: PendingInsert): Promise<void>
 
 async function insertIdempotently(record: PendingInsert): Promise<void> {
   const client = supabase as any;
+  if (record.operation === 'preorder') {
+    const { error } = await supabase.rpc('create_marketplace_pre_order', {
+      p_product_id: String(record.row.product_id),
+      p_quantity: Number(record.row.quantity),
+      p_location: String(record.row.location ?? ''),
+      p_delivery_lat: typeof record.row.delivery_lat === 'number' ? record.row.delivery_lat : undefined,
+      p_delivery_lng: typeof record.row.delivery_lng === 'number' ? record.row.delivery_lng : undefined,
+      p_idempotency_key: String(record.row.idempotency_key),
+    });
+    if (error) throw new Error(`Pré-compra offline ainda não confirmada pelo servidor: ${error.message}`);
+    window.dispatchEvent(new CustomEvent('agrilink:offline-preorder-synced', { detail: { id: record.id } }));
+    return;
+  }
   if (record.operation === 'update') {
     if (!record.targetId || !['users', 'products'].includes(record.table)) {
       throw new Error('A edição offline não tem um destino válido.');
@@ -317,7 +369,7 @@ export async function flushOfflineInserts(userId: string): Promise<{ synced: num
         const message = error instanceof Error ? error.message : 'Falha de sincronização';
         await markFailed(record, message);
         // A version conflict is isolated to this record; independent operations can still sync.
-        if (message.startsWith('Conflito de sincronização:') || message.startsWith('A edição não foi aplicada:')) continue;
+        if (record.operation === 'preorder' || message.startsWith('Conflito de sincronização:') || message.startsWith('A edição não foi aplicada:')) continue;
         // Network/authentication errors stop the queue to preserve ordering.
         break;
       }
