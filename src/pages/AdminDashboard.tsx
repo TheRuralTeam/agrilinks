@@ -48,6 +48,7 @@ import {
   Star,
   Truck,
   Settings2,
+  KeyRound,
 } from "lucide-react";
 import {
   Dialog,
@@ -1047,6 +1048,11 @@ const AdminDashboard = () => {
           {hasPermission("manage_users") && (
             <SidebarItem active={activeTab === "users"} onClick={() => { setActiveTab("users"); setMenuOpen(false); }} icon={<Users className="h-4 w-4" />}>
               Usuários
+            </SidebarItem>
+          )}
+          {hasPermission("manage_users") && (
+            <SidebarItem active={false} onClick={() => navigate("/admin-password-resets")} icon={<KeyRound className="h-4 w-4" />}>
+              Redefinir senhas
             </SidebarItem>
           )}
           <SidebarItem active={activeTab === "transactions"} onClick={() => { setActiveTab("transactions"); setMenuOpen(false); }} icon={<DollarSign className="h-4 w-4" />}>
