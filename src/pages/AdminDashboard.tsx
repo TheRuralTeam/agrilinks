@@ -47,6 +47,7 @@ import {
   Lock,
   Star,
   Truck,
+  Settings2,
 } from "lucide-react";
 import {
   Dialog,
@@ -68,6 +69,7 @@ import DeliveryTracking from "../components/admin/DeliveryTracking";
 import SourcingOperations from "../components/admin/SourcingOperations";
 import WorkSessionTimer from "../components/admin/WorkSessionTimer";
 import MarketPricesManager from "../components/admin/MarketPricesManager";
+import FreightPricingSettings from "../components/admin/FreightPricingSettings";
 import { downloadFichaRecebimentoPdf } from "../lib/fichaRecebimentoPdf";
 import { downloadMarketplaceTransactionReceipt } from "../features/orders/transactionReceipts";
 
@@ -171,7 +173,7 @@ interface Ficha {
   updated_at?: string | null;
 }
 
-type TabType = "dashboard" | "products" | "users" | "transactions" | "notifications" | "orders" | "fichas" | "sourcing" | "market" | "prices" | "admins" | "referrals" | "deliveries";
+type TabType = "dashboard" | "products" | "users" | "transactions" | "notifications" | "orders" | "fichas" | "sourcing" | "market" | "prices" | "admins" | "referrals" | "deliveries" | "freight";
 
 interface SourcingRequest {
   id: string;
@@ -224,6 +226,7 @@ const TAB_TITLES: Record<TabType, string> = {
   admins: "Administradores",
   referrals: "Indicações",
   deliveries: "Entregas",
+  freight: "Configuração do Frete",
 };
 
 // --- Componentes Auxiliares ---
@@ -322,7 +325,7 @@ const AdminDashboard = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const requestedTab = new URLSearchParams(location.search).get("tab");
-    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries"]);
+    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries", "freight"]);
     return requestedTab && supportedTabs.has(requestedTab as TabType) ? requestedTab as TabType : "dashboard";
   });
 
@@ -424,7 +427,8 @@ const AdminDashboard = () => {
       case "deliveries":
         return isSupportAgent || hasPermission("manage_orders");
       case "orders":
-        return isSupportAgent || hasPermission("manage_orders");
+      case "freight":
+        return hasPermission("manage_orders");
       default:
         return true;
     }
@@ -433,7 +437,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (!currentUserId || !adminPermissionsLoaded) return;
     const requestedTab = new URLSearchParams(location.search).get("tab");
-    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries"]);
+    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries", "freight"]);
     if (!requestedTab || !supportedTabs.has(requestedTab as TabType)) return;
 
     const tab = requestedTab as TabType;
@@ -1080,6 +1084,11 @@ const AdminDashboard = () => {
           {(isSupportAgent || hasPermission("manage_orders")) && (
             <SidebarItem active={activeTab === "deliveries"} onClick={() => { setActiveTab("deliveries"); setMenuOpen(false); }} icon={<Truck className="h-4 w-4" />}>
               Entregas
+            </SidebarItem>
+          )}
+          {hasPermission("manage_orders") && (
+            <SidebarItem active={activeTab === "freight"} onClick={() => { setActiveTab("freight"); setMenuOpen(false); }} icon={<Settings2 className="h-4 w-4" />}>
+              Configuração do Frete
             </SidebarItem>
           )}
         </nav>
@@ -2366,6 +2375,7 @@ const AdminDashboard = () => {
 
         {/* ADMIN MANAGEMENT */}
         {activeTab === "prices" && <MarketPricesManager />}
+        {activeTab === "freight" && hasPermission("manage_orders") && <FreightPricingSettings />}
 
         {activeTab === "admins" && currentUserId && (
 
