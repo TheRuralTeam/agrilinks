@@ -116,7 +116,7 @@ function currentLuandaDate(): string {
 }
 
 async function notifySourcingMatchCandidates(db: any, request: SourcingRequestRow, candidates: Array<Record<string, unknown>>): Promise<Record<string, unknown>> {
-  const positiveCandidates = candidates.filter((candidate) => candidate.unit_compatible === true && candidate.meets_minimum_order !== false && Number(candidate.available_quantity_estimate) > 0);
+  const positiveCandidates = candidates.filter((candidate) => candidate.unit_compatible === true && candidate.meets_minimum_order === true && Number(candidate.available_quantity_estimate) > 0);
   if (!positiveCandidates.length) return { buyer_notified: false, suppliers_notified: 0, emails_queued: 0 };
 
   const supplierIds = [...new Set(positiveCandidates
@@ -332,13 +332,20 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
       ? availableQuantityEstimate
       : conversionPossible ? availableQuantityEstimate * packageWeightKg : null;
     const minimumOrder = Number(listing.min_order_quantity ?? 0);
-    const minimumOrderInRequestedUnit = unitCompatible
-      ? minimumOrder
-      : conversionPossible ? minimumOrder * packageWeightKg : null;
-    const coversRequestedQuantity = estimatedQuantityInRequestedUnit !== null &&
-      estimatedQuantityInRequestedUnit >= Number(request.quantity);
-    const meetsMinimumOrder = minimumOrderInRequestedUnit === null ||
-      Number(request.quantity) >= minimumOrderInRequestedUnit;
+    const minimumOrderIsValid = Number.isFinite(minimumOrder) && minimumOrder >= 0;
+    const minimumOrderInRequestedUnit = !minimumOrderIsValid
+      ? null
+      : unitCompatible
+        ? minimumOrder
+        : conversionPossible ? minimumOrder * packageWeightKg : null;
+    const requestedQuantity = Number(request.quantity);
+    const requestedQuantityIsValid = Number.isFinite(requestedQuantity) && requestedQuantity > 0;
+    const coversRequestedQuantity = requestedQuantityIsValid &&
+      estimatedQuantityInRequestedUnit !== null &&
+      estimatedQuantityInRequestedUnit >= requestedQuantity;
+    const meetsMinimumOrder = requestedQuantityIsValid && minimumOrderInRequestedUnit !== null
+      ? requestedQuantity >= minimumOrderInRequestedUnit
+      : null;
     return {
       product_id: listing.id,
       supplier_user_id: listing.user_id,
@@ -354,6 +361,10 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
       minimum_order_quantity: listing.min_order_quantity,
       minimum_order_in_requested_unit: minimumOrderInRequestedUnit,
       meets_minimum_order: meetsMinimumOrder,
+      commercially_eligible:
+        unitCompatible && requestedQuantityIsValid && minimumOrderInRequestedUnit !== null
+          ? coversRequestedQuantity && meetsMinimumOrder === true
+          : null,
       match_type: unitCompatible ? "same_product_unit_compatible" : "same_product_unit_needs_clarification",
       clarification_required: !unitCompatible,
       clarification_reason: !unitCompatible
@@ -365,8 +376,8 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
       province_id: listing.province_id,
       municipality_id: listing.municipality_id,
       location_match: sameMunicipality ? "same_municipality" : sameProvince ? "same_province" : "other_location",
-      covers_requested_quantity: unitCompatible ? availableQuantityEstimate >= Number(request.quantity) : (conversionPossible ? coversRequestedQuantity : null),
-      partial_quantity: unitCompatible ? availableQuantityEstimate < Number(request.quantity) : false,
+      covers_requested_quantity: estimatedQuantityInRequestedUnit !== null && requestedQuantityIsValid ? coversRequestedQuantity : null,
+      partial_quantity: unitCompatible && estimatedQuantityInRequestedUnit !== null && requestedQuantityIsValid ? estimatedQuantityInRequestedUnit < requestedQuantity : false,
       verification_status: "unverified_marketplace_listing",
       note: "Quantidade estimada com base na publicação menos reservas registadas; não constitui confirmação de stock físico. Unidades diferentes exigem esclarecimento e validação do fornecedor.",
     };
@@ -444,8 +455,8 @@ async function findSourcingMatches(payload: Record<string, unknown>, db: any, re
     const currencyQuotes = pricedQuotes.filter((quote) => String(quote.currency ?? "unknown") === currency);
     return { currency, quotes: currencyQuotes, lowest_full_coverage: currencyQuotes.find((quote) => quote.covers_requested_quantity) ?? null, lowest_partial: currencyQuotes.find((quote) => !quote.covers_requested_quantity) ?? null };
   });
-  const fullStockMatches = marketplaceCandidates.filter((candidate: any) => candidate.unit_compatible === true && candidate.covers_requested_quantity === true && candidate.meets_minimum_order !== false);
-  const partialStockMatches = marketplaceCandidates.filter((candidate: any) => candidate.unit_compatible === true && candidate.partial_quantity === true);
+  const fullStockMatches = marketplaceCandidates.filter((candidate: any) => candidate.commercially_eligible === true);
+  const partialStockMatches = marketplaceCandidates.filter((candidate: any) => candidate.unit_compatible === true && candidate.partial_quantity === true && candidate.meets_minimum_order === true);
   let notificationSummary: Record<string, unknown> = { buyer_notified: false, suppliers_notified: 0, emails_queued: 0 };
   if (taskType === "sourcing_intake" && marketplaceCandidates.some((candidate: any) => candidate.unit_compatible === true)) {
     try {
