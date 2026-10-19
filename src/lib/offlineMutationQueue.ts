@@ -37,7 +37,7 @@ async function transaction<T>(mode: IDBTransactionMode, action: (store: IDBObjec
   const db = await openDb();
   return new Promise<T>((resolve, reject) => {
     const tx = db.transaction(STORE, mode);
-    let result: T;
+    let result: T | undefined;
     let settled = false;
     action(tx.objectStore(STORE), (value) => { result = value; }, (reason) => {
       if (settled) return;
@@ -48,7 +48,7 @@ async function transaction<T>(mode: IDBTransactionMode, action: (store: IDBObjec
       db.close();
       if (!settled) {
         settled = true;
-        resolve(result);
+        resolve(result as T);
       }
     };
     tx.onerror = () => {
