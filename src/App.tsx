@@ -55,10 +55,9 @@ const P2PBeneficiary = lazy(() => import("./pages/P2PBeneficiary"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,
+      staleTime: 15_000,
       gcTime: 5 * 60_000,
       retry: 1,
-      refetchOnWindowFocus: false,
       refetchOnReconnect: true,
     },
     mutations: {
