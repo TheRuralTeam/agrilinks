@@ -4517,6 +4517,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      confirm_freight_receipt: {
+        Args: { p_freight_load_id: string }
+        Returns: undefined
+      }
       confirm_p2p_payment_received: {
         Args: { p_note?: string; p_p2p_order_id: string }
         Returns: string
