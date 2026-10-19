@@ -1,4 +1,5 @@
 import { supabase } from '../integrations/supabase/client';
+import { ensureChatEncryptionKey } from './chatEncryption';
 
 type OfflineFile = { name: string; type: string; blob: Blob };
 type PendingInsert = {
@@ -150,6 +151,15 @@ async function uploadProductPhotos(record: PendingInsert): Promise<string[]> {
   return urls;
 }
 
+async function updateConversationSummary(record: PendingInsert): Promise<void> {
+  if (record.table !== 'messages' || typeof record.row.conversation_id !== 'string') return;
+  const { error } = await (supabase as any).from('conversations').update({
+    last_message: '🔒 Mensagem encriptada',
+    last_timestamp: typeof record.row.created_at === 'string' ? record.row.created_at : new Date().toISOString(),
+  }).eq('id', record.row.conversation_id);
+  if (error) console.warn('[AgriLink] A mensagem foi sincronizada, mas o resumo da conversa não foi actualizado.', error);
+}
+
 async function insertIdempotently(record: PendingInsert): Promise<void> {
   const client = supabase as any;
   const ownerField = record.table === 'messages' ? 'sender_id' : 'user_id';
@@ -157,22 +167,32 @@ async function insertIdempotently(record: PendingInsert): Promise<void> {
   if (lookupError) throw lookupError;
   if (existing?.id) {
     const owner = existing[ownerField];
-    if (owner === record.userId) return;
+    if (owner === record.userId) {
+      await updateConversationSummary(record);
+      return;
+    }
     throw new Error('Conflito de identificador: a operação offline não foi sincronizada para proteger os dados existentes.');
   }
 
+  if (record.table === 'messages') await ensureChatEncryptionKey(record.userId);
   const row = { ...record.row };
   if (record.table === 'products' && record.files.length) {
     row.photos = await uploadProductPhotos(record);
   }
   const { error } = await client.from(record.table).insert(row);
-  if (!error) return;
+  if (!error) {
+    await updateConversationSummary(record);
+    return;
+  }
 
   // A resposta pode ter-se perdido depois de o servidor confirmar o INSERT.
   // Só consideramos concluído se o mesmo ID já existir e pertencer ao utilizador.
   const { data: afterError } = await client.from(record.table).select(`id,${ownerField}`).eq('id', record.id).maybeSingle();
   const owner = afterError?.[ownerField];
-  if (afterError?.id === record.id && owner === record.userId) return;
+  if (afterError?.id === record.id && owner === record.userId) {
+    await updateConversationSummary(record);
+    return;
+  }
   throw error;
 }
 
