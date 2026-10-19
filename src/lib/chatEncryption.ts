@@ -26,10 +26,13 @@ function openKeyDatabase(): Promise<IDBDatabase> {
       reject(new Error("Este navegador não disponibiliza armazenamento seguro de chaves."));
       return;
     }
-    const request = indexedDB.open(DB_NAME, 1);
+    const request = indexedDB.open(DB_NAME, 2);
     request.onupgradeneeded = () => {
       if (!request.result.objectStoreNames.contains(STORE_NAME)) {
         request.result.createObjectStore(STORE_NAME, { keyPath: "userId" });
+      }
+      if (!request.result.objectStoreNames.contains("peer-keys")) {
+        request.result.createObjectStore("peer-keys", { keyPath: "userId" });
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -109,7 +112,7 @@ async function deriveAesKey(privateKey: CryptoKey, peerPublicJwk: JsonWebKey, co
 async function initializeChatEncryptionKey(userId: string): Promise<JsonWebKey> {
   const existing = await readStoredKeyPair(userId);
   if (existing) {
-    await publishPublicKey(userId, existing.publicKey);
+    if (navigator.onLine) await publishPublicKey(userId, existing.publicKey);
     return existing.publicKey;
   }
 
@@ -120,7 +123,7 @@ async function initializeChatEncryptionKey(userId: string): Promise<JsonWebKey> 
   ) as CryptoKeyPair;
   const publicKey = await crypto.subtle.exportKey("jwk", pair.publicKey);
   await storeKeyPair({ userId, privateKey: pair.privateKey, publicKey });
-  await publishPublicKey(userId, publicKey);
+  if (navigator.onLine) await publishPublicKey(userId, publicKey);
   return publicKey;
 }
 
@@ -147,17 +150,61 @@ async function publishPublicKey(userId: string, publicKey: JsonWebKey): Promise<
   if (error) throw new Error("Não foi possível registar a chave pública de segurança do chat.");
 }
 
+async function getCachedPeerPublicKey(userId: string): Promise<JsonWebKey | null> {
+  const db = await openKeyDatabase();
+  return new Promise((resolve, reject) => {
+    const request = db.transaction("peer-keys", "readonly").objectStore("peer-keys").get(userId);
+    request.onsuccess = () => {
+      db.close();
+      resolve((request.result as { publicKey?: JsonWebKey } | undefined)?.publicKey ?? null);
+    };
+    request.onerror = () => {
+      db.close();
+      reject(request.error ?? new Error("Não foi possível ler a chave pública guardada."));
+    };
+  });
+}
+
+async function cachePeerPublicKey(userId: string, publicKey: JsonWebKey): Promise<void> {
+  const db = await openKeyDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction("peer-keys", "readwrite");
+    transaction.objectStore("peer-keys").put({ userId, publicKey });
+    transaction.oncomplete = () => { db.close(); resolve(); };
+    transaction.onerror = () => { db.close(); reject(transaction.error ?? new Error("Não foi possível guardar a chave pública.")); };
+  });
+}
+
 async function getPublicKey(userId: string): Promise<JsonWebKey> {
-  const { data, error } = await supabase
-    .from("chat_encryption_keys")
-    .select("public_key")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error) throw new Error("Não foi possível consultar a chave pública do destinatário.");
-  if (!data?.public_key) {
-    throw new Error("O destinatário ainda não activou o chat seguro. Peça-lhe para abrir a conversa novamente.");
+  if (navigator.onLine) {
+    try {
+      const { data, error } = await supabase
+        .from("chat_encryption_keys")
+        .select("public_key")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!error && data?.public_key) {
+        const publicKey = data.public_key as JsonWebKey;
+        await cachePeerPublicKey(userId, publicKey);
+        return publicKey;
+      }
+      if (error && !navigator.onLine) {
+        const cached = await getCachedPeerPublicKey(userId);
+        if (cached) return cached;
+      }
+      if (!error && !data?.public_key) {
+        throw new Error("O destinatário ainda não activou o chat seguro. Peça-lhe para abrir a conversa novamente.");
+      }
+    } catch (error) {
+      const cached = await getCachedPeerPublicKey(userId).catch(() => null);
+      if (cached) return cached;
+      throw error;
+    }
+  } else {
+    const cached = await getCachedPeerPublicKey(userId);
+    if (cached) return cached;
   }
-  return data.public_key as JsonWebKey;
+  throw new Error("Para enviar mensagens offline, abre esta conversa online pelo menos uma vez para guardar a chave de segurança do destinatário.");
 }
 
 export async function encryptChatMessage(
