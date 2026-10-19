@@ -3,6 +3,22 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
+function offlinePrecacheManifest() {
+  return {
+    name: "agrilink-offline-precache",
+    generateBundle(_options, bundle) {
+      const assets = Object.keys(bundle)
+        .filter((file) => /\.(?:js|css|woff2?|ttf|svg|png|jpe?g|webp|ico)$/i.test(file))
+        .map((file) => `/${file}`);
+      this.emitFile({
+        type: "asset",
+        fileName: "precache-manifest.json",
+        source: JSON.stringify([...new Set(assets)]),
+      });
+    },
+  };
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   base: "/",
@@ -12,6 +28,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
+    offlinePrecacheManifest(),
     mode === "development" && componentTagger(),
   ].filter(Boolean),
   resolve: {
