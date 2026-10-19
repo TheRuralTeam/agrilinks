@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../integrations/supabase/client';
-import { countPendingOfflineInserts, flushOfflineInserts } from '../lib/offlineMutationQueue';
+import { countPendingOfflineInserts, flushOfflineInserts, getOfflineQueueError } from '../lib/offlineMutationQueue';
 
 export default function OfflineStatusBanner() {
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
   const [restored, setRestored] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
   const refreshQueue = useCallback(async (activeUserId: string | null) => {
@@ -15,7 +16,9 @@ export default function OfflineStatusBanner() {
       return;
     }
     try {
-      setPendingCount(await countPendingOfflineInserts(activeUserId));
+      const [count, queueError] = await Promise.all([countPendingOfflineInserts(activeUserId), getOfflineQueueError(activeUserId)]);
+      setPendingCount(count);
+      setSyncError(queueError);
     } catch (error) {
       console.warn('[AgriLink] Não foi possível consultar a fila offline.', error);
     }
@@ -27,6 +30,7 @@ export default function OfflineStatusBanner() {
     try {
       const result = await flushOfflineInserts(userId);
       setPendingCount(result.remaining);
+      setSyncError(await getOfflineQueueError(userId));
     } catch (error) {
       console.warn('[AgriLink] A sincronização offline será repetida mais tarde.', error);
     } finally {
@@ -87,7 +91,7 @@ export default function OfflineStatusBanner() {
     };
   }, [refreshQueue, syncQueue, userId]);
 
-  if (online && !restored && pendingCount === 0) return null;
+  if (online && !restored && pendingCount === 0 && !syncError) return null;
 
   return (
     <div
@@ -112,7 +116,9 @@ export default function OfflineStatusBanner() {
         ? 'Sem internet. O AgriLink mantém recursos e operações offline suportadas neste dispositivo.'
         : syncing
           ? 'A sincronizar alterações offline com a AgriLink…'
-          : pendingCount > 0
+          : syncError
+            ? `Sincronização pendente: ${syncError}`
+            : pendingCount > 0
             ? `${pendingCount} operação(ões) aguardam sincronização. Mantém a sessão iniciada e a ligação ativa.`
             : restored
               ? 'Ligação restaurada. As operações offline suportadas foram verificadas para sincronização.'
