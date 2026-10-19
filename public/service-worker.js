@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agrilink-shell-v11';
+const CACHE_NAME = 'agrilink-shell-v12';
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/favicon.ico', '/robots.txt'];
 const PRIVATE_OR_API_PATH = /\/(?:rest\/v1|auth\/v1|functions\/v1|storage\/v1|realtime\/v1)(?:\/|$)/i;
 
