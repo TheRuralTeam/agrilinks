@@ -120,6 +120,13 @@ async function listPending(userId: string): Promise<PendingInsert[]> {
   });
 }
 
+export async function getPendingOfflineMessages(userId: string, conversationId: string): Promise<Record<string, unknown>[]> {
+  const pending = await listPending(userId);
+  return pending
+    .filter((record) => record.table === 'messages' && record.row.conversation_id === conversationId)
+    .map((record) => record.row);
+}
+
 async function deletePending(id: string): Promise<void> {
   await transaction<void>('readwrite', (store, resolve, reject) => {
     const request = store.delete(id);
