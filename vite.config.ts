@@ -1,9 +1,9 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-function offlinePrecacheManifest() {
+function offlinePrecacheManifest(): Plugin {
   return {
     name: "agrilink-offline-precache",
     generateBundle(_options, bundle) {
