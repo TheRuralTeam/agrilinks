@@ -93,3 +93,9 @@ content_path = "./supabase/templates/identity_unlinked_notification.html"
 
 [functions.agent-task-status]
 verify_jwt = true
+
+[functions.admin-reset-user-password]
+verify_jwt = true
+
+[functions.complete-forced-password-change]
+verify_jwt = true
