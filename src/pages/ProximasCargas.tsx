@@ -456,9 +456,9 @@ const ProximasCargas = () => {
             p_freight_load_id: load.id,
             p_latitude: location.latitude,
             p_longitude: location.longitude,
-            p_accuracy_m: location.accuracy_m,
-            p_speed_mps: location.speed_mps,
-            p_heading_deg: location.heading_deg,
+            p_accuracy_m: location.accuracy_m as number,
+            p_speed_mps: location.speed_mps as number,
+            p_heading_deg: location.heading_deg as number,
             p_record_history: true,
           });
 
