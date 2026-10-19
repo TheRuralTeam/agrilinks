@@ -81,7 +81,7 @@ const STATUS_LABEL: Record<string, string> = {
   accepted: 'Aceite · a caminho da recolha',
   at_pickup: 'No local de recolha · confirmar carga',
   in_transit: 'Em trânsito · GPS',
-  delivered: 'Entregue',
+  delivered: 'A aguardar confirmação do comprador',
   cancelled: 'Cancelada',
 };
 
@@ -1135,7 +1135,7 @@ const ProximasCargas = () => {
             <PackageCheck size={28} color={T.faint} />
             <p style={{ marginTop: 12, fontSize: 14, fontWeight: 700, color: T.mid }}>
               {tab === 'minhas'
-                ? 'Ainda não publicou nem aceitou cargas.'
+                ? 'Ainda não tem cargas, compras ou entregas.'
                 : 'Sem cargas disponíveis de momento.'}
             </p>
           </div>
