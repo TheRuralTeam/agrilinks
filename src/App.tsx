@@ -144,13 +144,13 @@ const OpenRoute = ({ children, allowIncomplete = true }: { children: React.React
   return <>{children}</>;
 };
 
-const PermissionRoute = ({ children, permissions, requireAll = false, allowSupportAgent = false }: { children: React.ReactNode; permissions: AdminPermission[]; requireAll?: boolean; allowSupportAgent?: boolean }) => {
+const PermissionRoute = ({ children, permissions, requireAll = false, allowSupportAgent = false, allowRootAdmins = false }: { children: React.ReactNode; permissions: AdminPermission[]; requireAll?: boolean; allowSupportAgent?: boolean; allowRootAdmins?: boolean }) => {
   const { user, loading, isAdmin, isRootAdmin, isSuperRoot, isSupportAgent, hasAnyPermission, hasAllPermissions } = useAuth();
   if (loading) return <Loader />;
   if (!user) return <Navigate to="/login" replace />;
   if (!isAdmin && !isRootAdmin && !isSuperRoot) return <Navigate to="/app" replace />;
   const allowedByPermission = requireAll ? hasAllPermissions(permissions) : hasAnyPermission(permissions);
-  const allowed = allowedByPermission || (allowSupportAgent && isSupportAgent);
+  const allowed = allowedByPermission || (allowSupportAgent && isSupportAgent) || (allowRootAdmins && (isRootAdmin || isSuperRoot));
   if (!allowed) return <Navigate to="/app" replace />;
   return <>{children}</>;
 };
@@ -176,7 +176,7 @@ const AppRoutes = () => {
         <Route path="/confirmar-email" element={<EmailConfirmation />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/change-password" element={<ChangePassword />} />
-        <Route path="/admin-password-resets" element={<PermissionRoute permissions={["manage_users"]}><AdminPasswordResets /></PermissionRoute>} />
+        <Route path="/admin-password-resets" element={<PermissionRoute permissions={["manage_users"]} allowRootAdmins><AdminPasswordResets /></PermissionRoute>} />
         <Route path="/termos-publicidade" element={<TermsOfService />} />
         <Route path="/produto/:id/localizacao" element={<PublicProductLocation />} />
         <Route path="/mapa" element={<MapPreviewRoute render={(readOnly) => <MapView readOnly={readOnly} />} />} />
