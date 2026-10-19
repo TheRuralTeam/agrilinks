@@ -709,7 +709,8 @@ const ProximasCargas = () => {
   };
 
   const accept = async (load: FreightLoad) => {
-    if (!user?.id) {
+    const driverId = user?.id;
+    if (!driverId) {
       toast.error('Inicie sessão para aceitar esta carga.');
       return;
     }
@@ -726,8 +727,8 @@ const ProximasCargas = () => {
       return;
     }
     toast.success('Carga aceite. A partilha GPS começa agora, se autorizar a localização do dispositivo.');
-    void showLoadRoute({ ...load, status: 'accepted', driver_id: user.id });
-    startLocationSharing({ ...load, status: 'accepted', driver_id: user.id });
+    void showLoadRoute({ ...load, status: 'accepted', driver_id: driverId });
+    startLocationSharing({ ...load, status: 'accepted', driver_id: driverId });
     await fetchLoads();
   };
 
