@@ -8,6 +8,7 @@ export default function OfflineStatusBanner() {
   const [pendingCount, setPendingCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [lastSyncedCount, setLastSyncedCount] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
 
   const refreshQueue = useCallback(async (activeUserId: string | null) => {
@@ -32,6 +33,11 @@ export default function OfflineStatusBanner() {
       const result = await flushOfflineInserts(userId);
       setPendingCount(result.remaining);
       setSyncError(await getOfflineQueueError(userId));
+      if (result.synced > 0) {
+        setLastSyncedCount(result.synced);
+        setRestored(true);
+        window.setTimeout(() => setRestored(false), 6000);
+      }
     } catch (error) {
       console.warn('[AgriLink] A sincronização offline será repetida mais tarde.', error);
     } finally {
@@ -121,7 +127,9 @@ export default function OfflineStatusBanner() {
             ? `Sincronização pendente: ${syncError}`
             : pendingCount > 0
             ? `${pendingCount} operação(ões) aguardam sincronização. Mantém a sessão iniciada e a ligação ativa.`
-            : restored
+            : restored && lastSyncedCount > 0
+              ? `${lastSyncedCount} operação(ões) sincronizadas e confirmadas pelo servidor.`
+              : restored
               ? 'Ligação restaurada. As operações offline suportadas foram verificadas para sincronização.'
               : null}
     </div>
