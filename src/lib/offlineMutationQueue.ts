@@ -137,7 +137,7 @@ async function insertIdempotently(record: PendingInsert): Promise<void> {
     throw new Error('Conflito de identificador: a operação offline não foi sincronizada para proteger os dados existentes.');
   }
 
-  let row = { ...record.row };
+  const row = { ...record.row };
   if (record.table === 'products' && record.files.length) {
     row.photos = await uploadProductPhotos(record);
   }
