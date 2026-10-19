@@ -188,11 +188,12 @@ async function getPublicKey(userId: string): Promise<JsonWebKey> {
         await cachePeerPublicKey(userId, publicKey);
         return publicKey;
       }
-      if (error && !navigator.onLine) {
+      if (error) {
         const cached = await getCachedPeerPublicKey(userId);
         if (cached) return cached;
+        throw new Error("Não foi possível consultar a chave pública do destinatário.");
       }
-      if (!error && !data?.public_key) {
+      if (!data?.public_key) {
         throw new Error("O destinatário ainda não activou o chat seguro. Peça-lhe para abrir a conversa novamente.");
       }
     } catch (error) {
