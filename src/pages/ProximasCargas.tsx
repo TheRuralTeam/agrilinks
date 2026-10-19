@@ -48,6 +48,8 @@ interface FreightLoad {
   status: string;
   driver_id: string | null;
   buyer_id: string | null;
+  supplier_id: string | null;
+  supplier_handover_confirmed_at: string | null;
   buyer_receipt_confirmed_at: string | null;
   driver_delivery_confirmed_at?: string | null;
   notes: string | null;
@@ -79,7 +81,7 @@ const STATUS_LABEL: Record<string, string> = {
   open: 'Disponível',
   agendado: 'Agendada',
   accepted: 'Aceite · a caminho da recolha',
-  at_pickup: 'No local de recolha · confirmar carga',
+  at_pickup: 'No local de recolha · aguarda confirmação do fornecedor',
   in_transit: 'Em trânsito · GPS',
   delivered: 'A aguardar confirmação do comprador',
   cancelled: 'Cancelada',
@@ -751,6 +753,27 @@ const ProximasCargas = () => {
     await fetchLoads();
   };
 
+  const confirmSupplierHandover = async (load: FreightLoad) => {
+    if (!requireAct('confirmar a entrega da mercadoria ao motorista')) return;
+    if (!user?.id || load.supplier_id !== user.id || load.status !== 'at_pickup') {
+      toast.error('Só o fornecedor desta carga pode confirmar a entrega da mercadoria no ponto de recolha.');
+      return;
+    }
+    if (load.supplier_handover_confirmed_at) {
+      toast.info('A entrega ao motorista já foi confirmada.');
+      return;
+    }
+    setBusyId(load.id);
+    const { error } = await supabase.rpc('confirm_supplier_handover', { p_freight_load_id: load.id });
+    setBusyId(null);
+    if (error) {
+      toast.error(error.message || 'Não foi possível confirmar a entrega da mercadoria ao motorista.');
+      return;
+    }
+    toast.success('Entrega ao motorista confirmada. O motorista já pode iniciar a viagem.');
+    await fetchLoads();
+  };
+
   const confirmBuyerReceipt = async (load: FreightLoad) => {
     if (!requireAct('confirmar o recebimento da encomenda')) return;
     if (!user?.id || load.buyer_id !== user.id || load.status !== 'delivered') {
@@ -773,7 +796,7 @@ const ProximasCargas = () => {
   };
 
   const visible = loads.filter((load) => {
-    if (tab === 'minhas') return load.driver_id === user?.id || load.created_by === user?.id || load.buyer_id === user?.id;
+    if (tab === 'minhas') return load.driver_id === user?.id || load.created_by === user?.id || load.buyer_id === user?.id || load.supplier_id === user?.id;
     return (
       ['available', 'open', 'agendado'].includes(load.status) &&
       !load.driver_id &&
@@ -1153,6 +1176,7 @@ const ProximasCargas = () => {
             const tooHeavy = !!capacity && load.weight_kg > capacity;
             const isAssignedDriver = load.driver_id === user?.id;
             const isBuyer = load.buyer_id === user?.id;
+            const isSupplier = load.supplier_id === user?.id;
             const latestDriverLocation = driverLocations[load.id];
             const hasCoordinates =
               load.origin_lat != null &&
@@ -1594,7 +1618,7 @@ const ProximasCargas = () => {
                       fontWeight: 800, cursor: 'pointer',
                     }}
                   >
-                    {busyId === load.id ? 'A confirmar…' : 'Confirmar que estou com a carga · iniciar GPS'}
+                    {busyId === load.id ? 'A iniciar viagem…' : load.supplier_handover_confirmed_at ? 'Confirmar que recebi a carga · iniciar viagem' : 'A aguardar confirmação do fornecedor'}
                   </button>
                 ) : isAssignedDriver && load.status === 'in_transit' ? (
                   <button
@@ -1609,6 +1633,20 @@ const ProximasCargas = () => {
                   >
                     {busyId === load.id ? 'A confirmar entrega…' : 'Confirmar entrega ao comprador'}
                   </button>
+                ) : isSupplier && load.status === 'at_pickup' ? (
+                  <section aria-label="Confirmação de entrega do fornecedor" style={{ display: 'grid', gap: 8, marginTop: 14, padding: 12, border: '1px solid #d5ded8', borderRadius: 12, background: '#f6faf7' }}>
+                    <strong style={{ color: T.ink, fontSize: 13 }}>Entrega da mercadoria ao motorista</strong>
+                    {load.supplier_handover_confirmed_at ? (
+                      <p style={{ margin: 0, color: T.green, fontSize: 12, fontWeight: 800 }}>Entrega confirmada em {new Date(load.supplier_handover_confirmed_at).toLocaleString('pt-AO')}.</p>
+                    ) : (
+                      <>
+                        <p style={{ margin: 0, color: T.mid, fontSize: 12, lineHeight: 1.5 }}>Confirme apenas depois de entregar fisicamente os produtos ao motorista. A viagem só poderá começar após esta confirmação.</p>
+                        <button type="button" disabled={busyId === load.id} onClick={() => void confirmSupplierHandover(load)} style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: 'none', background: T.green, color: T.white, fontFamily: FONT, fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>
+                          {busyId === load.id ? 'A confirmar entrega…' : 'Confirmar entrega ao motorista'}
+                        </button>
+                      </>
+                    )}
+                  </section>
                 ) : isBuyer && load.status === 'delivered' ? (
                   <section aria-label="Confirmação de recebimento" style={{ display: 'grid', gap: 8, marginTop: 14, padding: 12, border: '1px solid #d5ded8', borderRadius: 12, background: '#f6faf7' }}>
                     <strong style={{ color: T.ink, fontSize: 13 }}>Confirmação de recebimento</strong>
