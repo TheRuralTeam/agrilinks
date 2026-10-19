@@ -154,6 +154,78 @@ $function$;
 REVOKE ALL ON FUNCTION public.advance_freight_load_status(uuid, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.advance_freight_load_status(uuid, text) TO authenticated;
 
+-- Do not close the commercial order when the driver alone marks the load delivered.
+-- Close it only after the buyer has explicitly confirmed receipt.
+CREATE OR REPLACE FUNCTION public.sync_pre_order_with_freight_load()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $function$
+BEGIN
+  IF NEW.pre_order_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  IF NEW.status = 'delivered'
+     AND NEW.buyer_receipt_confirmed_at IS NOT NULL
+     AND (
+       NEW.status IS DISTINCT FROM OLD.status
+       OR NEW.buyer_receipt_confirmed_at IS DISTINCT FROM OLD.buyer_receipt_confirmed_at
+     ) THEN
+    UPDATE public.pre_orders AS po
+    SET status = 'completed',
+        updated_at = now()
+    WHERE po.id = NEW.pre_order_id
+      AND po.status = 'accepted';
+
+    IF FOUND THEN
+      INSERT INTO public.audit_logs (event_type, action, user_id, details)
+      VALUES (
+        'PRE_ORDER_STATUS_CHANGED',
+        'BUYER_CONFIRMED_FREIGHT_RECEIPT',
+        COALESCE(NEW.buyer_id, auth.uid()),
+        jsonb_build_object(
+          'pre_order_id', NEW.pre_order_id,
+          'freight_load_id', NEW.id,
+          'new_status', 'completed',
+          'buyer_receipt_confirmed_at', NEW.buyer_receipt_confirmed_at
+        )
+      );
+    END IF;
+  ELSIF NEW.status = 'cancelled' AND NEW.status IS DISTINCT FROM OLD.status THEN
+    UPDATE public.pre_orders AS po
+    SET status = 'cancelled',
+        updated_at = now()
+    WHERE po.id = NEW.pre_order_id
+      AND po.status = 'accepted';
+
+    IF FOUND THEN
+      INSERT INTO public.audit_logs (event_type, action, user_id, details)
+      VALUES (
+        'PRE_ORDER_STATUS_CHANGED',
+        'FREIGHT_LOAD_CANCELLED',
+        COALESCE(NEW.driver_id, auth.uid()),
+        jsonb_build_object(
+          'pre_order_id', NEW.pre_order_id,
+          'freight_load_id', NEW.id,
+          'new_status', 'cancelled'
+        )
+      );
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS sync_pre_order_after_freight_load_status ON public.freight_loads;
+CREATE TRIGGER sync_pre_order_after_freight_load_status
+AFTER UPDATE OF status, buyer_receipt_confirmed_at
+ON public.freight_loads
+FOR EACH ROW
+EXECUTE FUNCTION public.sync_pre_order_with_freight_load();
+
 -- The legacy RPC skips the explicit pickup stage and the current payment/quote checks.
 REVOKE ALL ON FUNCTION public.advance_freight_load(uuid) FROM PUBLIC, anon, authenticated;
 
