@@ -346,7 +346,11 @@ const Messages = () => {
             content: await decryptChatMessage(msg.content, id, user.id),
             files: msg.files ? (Array.isArray(msg.files) ? msg.files : []) : []
           }))) as Message[];
-          setMessages(formattedMsgs);
+          setMessages((previous) => {
+            const serverIds = new Set(formattedMsgs.map((message) => message.id));
+            const pendingLocalMessages = previous.filter((message) => !serverIds.has(message.id));
+            return [...formattedMsgs, ...pendingLocalMessages];
+          });
           const unread = formattedMsgs.filter(m => m.receiver_id === user.id && !m.read);
           if (unread.length > 0) {
             await supabase.from("messages").update({ read: true }).in("id", unread.map(m => m.id));
