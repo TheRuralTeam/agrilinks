@@ -1,0 +1,182 @@
+import { supabase } from '../integrations/supabase/client';
+
+type OfflineFile = { name: string; type: string; blob: Blob };
+type PendingInsert = {
+  id: string;
+  userId: string;
+  table: 'products' | 'sourcing_requests' | 'messages';
+  row: Record<string, unknown>;
+  files: OfflineFile[];
+  createdAt: number;
+  attempts: number;
+  lastError?: string;
+};
+const DB_NAME = 'agrilink-offline-data';
+const STORE = 'pending-inserts';
+const DB_VERSION = 2;
+let flushing = false;
+
+function openDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains('read-responses')) {
+        const reads = db.createObjectStore('read-responses', { keyPath: 'id' });
+        reads.createIndex('userId', 'userId', { unique: false });
+      }
+      if (!db.objectStoreNames.contains(STORE)) {
+        const writes = db.createObjectStore(STORE, { keyPath: 'id' });
+        writes.createIndex('userId', 'userId', { unique: false });
+        writes.createIndex('createdAt', 'createdAt', { unique: false });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error ?? new Error('Não foi possível abrir o armazenamento offline.'));
+  });
+}
+
+async function transaction<T>(mode: IDBTransactionMode, action: (store: IDBObjectStore, resolve: (value: T) => void, reject: (reason: Error) => void) => void): Promise<T> {
+  const db = await openDb();
+  return new Promise<T>((resolve, reject) => {
+    const tx = db.transaction(STORE, mode);
+    action(tx.objectStore(STORE), resolve, reject);
+    tx.oncomplete = () => db.close();
+    tx.onerror = () => { db.close(); reject(tx.error ?? new Error('Falha no armazenamento offline.')); };
+    tx.onabort = () => { db.close(); reject(tx.error ?? new Error('Operação offline cancelada.')); };
+  });
+}
+
+export async function enqueueOfflineInsert(input: {
+  userId: string;
+  table: PendingInsert['table'];
+  row: Record<string, unknown>;
+  files?: File[];
+}): Promise<string> {
+  if (!input.userId) throw new Error('É necessário iniciar sessão antes de guardar a operação.');
+  if (!['products', 'sourcing_requests', 'messages'].includes(input.table)) {
+    throw new Error('Esta operação ainda não suporta gravação offline.');
+  }
+  const id = typeof input.row.id === 'string' ? input.row.id : crypto.randomUUID();
+  const row = { ...input.row, id };
+  const record: PendingInsert = {
+    id, userId: input.userId, table: input.table, row,
+    files: (input.files ?? []).map((file) => ({ name: file.name, type: file.type, blob: file })),
+    createdAt: Date.now(), attempts: 0,
+  };
+  await transaction<void>('readwrite', (store, resolve, reject) => {
+    const request = store.put(record);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(new Error('Não foi possível guardar a alteração offline.'));
+  });
+  window.dispatchEvent(new CustomEvent('agrilink:offline-queue-changed'));
+  return id;
+}
+
+export async function countPendingOfflineInserts(userId?: string): Promise<number> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const request = userId
+      ? tx.objectStore(STORE).index('userId').count(IDBKeyRange.only(userId))
+      : tx.objectStore(STORE).count();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error ?? new Error('Não foi possível consultar a fila offline.'));
+    tx.oncomplete = () => db.close();
+    tx.onerror = () => { db.close(); reject(tx.error ?? new Error('Falha ao consultar a fila offline.')); };
+  });
+}
+
+async function listPending(userId: string): Promise<PendingInsert[]> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const request = tx.objectStore(STORE).index('userId').getAll(IDBKeyRange.only(userId));
+    request.onsuccess = () => resolve((request.result as PendingInsert[]).sort((a, b) => a.createdAt - b.createdAt));
+    request.onerror = () => reject(request.error ?? new Error('Não foi possível ler a fila offline.'));
+    tx.oncomplete = () => db.close();
+    tx.onerror = () => { db.close(); reject(tx.error ?? new Error('Falha ao ler a fila offline.')); };
+  });
+}
+
+async function deletePending(id: string): Promise<void> {
+  await transaction<void>('readwrite', (store, resolve, reject) => {
+    const request = store.delete(id);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(new Error('Não foi possível remover a operação sincronizada.'));
+  });
+}
+
+async function markFailed(record: PendingInsert, message: string): Promise<void> {
+  await transaction<void>('readwrite', (store, resolve, reject) => {
+    const request = store.put({ ...record, attempts: record.attempts + 1, lastError: message });
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(new Error('Não foi possível guardar o estado da sincronização.'));
+  });
+}
+
+async function uploadProductPhotos(record: PendingInsert): Promise<string[]> {
+  const urls: string[] = [];
+  for (let index = 0; index < record.files.length; index += 1) {
+    const file = record.files[index];
+    const extension = file.name.split('.').pop()?.replace(/[^a-zA-Z0-9]/g, '') || 'bin';
+    const path = `${record.userId}/offline/${record.id}-${index}.${extension}`;
+    const { error } = await supabase.storage.from('product-photos').upload(path, file.blob, {
+      upsert: true, contentType: file.type || 'application/octet-stream',
+    });
+    if (error) throw error;
+    urls.push(supabase.storage.from('product-photos').getPublicUrl(path).data.publicUrl);
+  }
+  return urls;
+}
+
+async function insertIdempotently(record: PendingInsert): Promise<void> {
+  const client = supabase as any;
+  const table = client.from(record.table);
+  const { data: existing, error: lookupError } = await table.select('id').eq('id', record.id).maybeSingle();
+  if (!lookupError && existing?.id) return;
+
+  let row = { ...record.row };
+  if (record.table === 'products' && record.files.length) {
+    row.photos = await uploadProductPhotos(record);
+  }
+  const { error } = await client.from(record.table).insert(row);
+  if (!error) return;
+
+  // A resposta pode ter-se perdido depois de o servidor confirmar o INSERT.
+  // Só consideramos concluído se o mesmo ID já existir e pertencer ao utilizador.
+  const { data: afterError } = await client.from(record.table).select('id,user_id,sender_id').eq('id', record.id).maybeSingle();
+  const owner = afterError?.user_id ?? afterError?.sender_id;
+  if (afterError?.id === record.id && owner === record.userId) return;
+  throw error;
+}
+
+export async function flushOfflineInserts(userId: string): Promise<{ synced: number; remaining: number }> {
+  if (!userId || !navigator.onLine || flushing) {
+    return { synced: 0, remaining: await countPendingOfflineInserts(userId).catch(() => 0) };
+  }
+  flushing = true;
+  let synced = 0;
+  try {
+    const { data: authData } = await supabase.auth.getUser();
+    if (authData.user?.id !== userId) {
+      return { synced, remaining: await countPendingOfflineInserts(userId) };
+    }
+    for (const record of await listPending(userId)) {
+      if (!navigator.onLine) break;
+      try {
+        await insertIdempotently(record);
+        await deletePending(record.id);
+        synced += 1;
+        window.dispatchEvent(new CustomEvent('agrilink:offline-queue-changed'));
+      } catch (error) {
+        await markFailed(record, error instanceof Error ? error.message : 'Falha de sincronização');
+        // Preserve order: a failed item must not be skipped by dependent operations.
+        break;
+      }
+    }
+  } finally {
+    flushing = false;
+  }
+  return { synced, remaining: await countPendingOfflineInserts(userId) };
+}
