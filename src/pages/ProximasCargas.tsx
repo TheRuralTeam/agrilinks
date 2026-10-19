@@ -31,6 +31,7 @@ import {
 } from '../lib/freightGeo';
 import { toast } from 'sonner';
 import { downloadFreightLoadPdf } from '../lib/freightPdf';
+import { enqueueFreightLocation, getQueuedFreightLocations, removeQueuedFreightLocation } from '../lib/freightLocationQueue';
 import Loader from '../components/ui/Loader';
 
 interface FreightLoad {
@@ -158,8 +159,8 @@ const ProximasCargas = () => {
   const [routeSetupSearchingPlaces, setRouteSetupSearchingPlaces] = useState(false);
   const locationWatchId = useRef<number | null>(null);
   const lastLocationWriteAt = useRef(0);
-  const pendingLocationRef = useRef<Record<string, FreightLoadLocation>>({});
   const onlineFlushHandlerRef = useRef<(() => void) | null>(null);
+  const queueFlushInProgress = useRef<Set<string>>(new Set());
   const locationRetryNoticeShown = useRef(false);
 
   const capacity = (userProfile as any)?.load_capacity_kg as number | null | undefined;
@@ -444,52 +445,82 @@ const ProximasCargas = () => {
     locationRetryNoticeShown.current = false;
     setSharingLocationFor(load.id);
 
+    const syncQueuedLocations = async () => {
+      if (!navigator.onLine || queueFlushInProgress.current.has(load.id)) return;
+      queueFlushInProgress.current.add(load.id);
+      try {
+        const queued = await getQueuedFreightLocations(load.id);
+        for (const location of queued) {
+          const { error } = await supabase.rpc('record_freight_load_location', {
+            p_freight_load_id: load.id,
+            p_latitude: location.latitude,
+            p_longitude: location.longitude,
+            p_accuracy_m: location.accuracy_m,
+            p_speed_mps: location.speed_mps,
+            p_heading_deg: location.heading_deg,
+            p_record_history: true,
+          });
+
+          if (error) {
+            if (error.code === '42501' || error.code === '22023') {
+              toast.error('O servidor recusou a sincronização GPS. Confirme a atribuição e o estado da carga.');
+              stopLocationSharing();
+            } else if (!locationRetryNoticeShown.current) {
+              toast.error('Há posições GPS guardadas neste dispositivo. Serão reenviadas quando o servidor estiver acessível.');
+              locationRetryNoticeShown.current = true;
+            }
+            break;
+          }
+
+          await removeQueuedFreightLocation(location.id);
+          setDriverLocations((previous) => ({ ...previous, [load.id]: location }));
+        }
+
+        const remaining = await getQueuedFreightLocations(load.id);
+        if (remaining.length === 0 && locationRetryNoticeShown.current) {
+          toast.success('Posições GPS sincronizadas com sucesso.');
+          locationRetryNoticeShown.current = false;
+        }
+      } catch (error) {
+        console.warn('[AgriLink] Não foi possível sincronizar a fila GPS offline.', error);
+        if (!locationRetryNoticeShown.current) {
+          toast.error('As posições estão pendentes. A sincronização será tentada novamente quando a ligação regressar.');
+          locationRetryNoticeShown.current = true;
+        }
+      } finally {
+        queueFlushInProgress.current.delete(load.id);
+      }
+    };
+
     const persistLocation = async (location: FreightLoadLocation) => {
-      if (!navigator.onLine) {
-        pendingLocationRef.current[load.id] = location;
+      // Guardar primeiro no IndexedDB evita perder a posição se a rede cair
+      // durante o pedido ou se o servidor não responder.
+      try {
+        await enqueueFreightLocation(location);
         setDriverLocations((previous) => ({ ...previous, [load.id]: location }));
+      } catch (error) {
+        console.error('[AgriLink] Falha ao guardar a posição GPS offline.', error);
+        toast.error('Não foi possível guardar esta posição no dispositivo. Verifique o armazenamento disponível.');
         return;
       }
 
-      const { error } = await supabase.rpc('record_freight_load_location', {
-        p_freight_load_id: load.id,
-        p_latitude: location.latitude,
-        p_longitude: location.longitude,
-        p_accuracy_m: location.accuracy_m as number,
-        p_speed_mps: location.speed_mps as number,
-        p_heading_deg: location.heading_deg as number,
-        p_record_history: true,
-      });
-
-      if (error) {
-        if (error.code === '42501' || error.code === '22023') {
-          toast.error('A partilha GPS foi recusada pelo servidor. Confirme que esta carga está atribuída a si e em trânsito.');
-          stopLocationSharing();
-          return;
-        }
-        pendingLocationRef.current[load.id] = location;
-        setDriverLocations((previous) => ({ ...previous, [load.id]: location }));
+      if (!navigator.onLine) {
         if (!locationRetryNoticeShown.current) {
-          toast.error('Sem confirmação do servidor. A última posição será reenviada quando a ligação voltar.');
+          toast.warning('Sem Internet. O GPS continuará a guardar posições neste dispositivo para sincronização posterior.');
           locationRetryNoticeShown.current = true;
         }
         return;
       }
 
-      delete pendingLocationRef.current[load.id];
-      setDriverLocations((previous) => ({ ...previous, [load.id]: location }));
-      if (locationRetryNoticeShown.current) {
-        toast.success('Ligação restabelecida. A posição GPS voltou a ser sincronizada.');
-        locationRetryNoticeShown.current = false;
-      }
+      await syncQueuedLocations();
     };
 
     const flushPending = () => {
-      const pending = pendingLocationRef.current[load.id];
-      if (pending) void persistLocation(pending);
+      void syncQueuedLocations();
     };
     onlineFlushHandlerRef.current = flushPending;
     window.addEventListener('online', flushPending);
+    window.addEventListener('focus', flushPending);
 
     locationWatchId.current = navigator.geolocation.watchPosition(
       async (position) => {
