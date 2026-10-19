@@ -246,7 +246,7 @@ const PublishProduct = () => {
       const { data: inserted, error } = await supabase.from('products').insert({
         ...offlineProductRow,
         photos: uploadedUrls,
-      }).select('id').single();
+      } as any).select('id').single();
 
       if (error) throw error;
 
