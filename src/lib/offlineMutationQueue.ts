@@ -251,6 +251,9 @@ export async function flushOfflineInserts(userId: string): Promise<{ synced: num
         await insertIdempotently(record);
         await deletePending(record.id);
         synced += 1;
+        if (record.table === 'messages') {
+          window.dispatchEvent(new CustomEvent('agrilink:offline-message-synced', { detail: { id: record.id } }));
+        }
         window.dispatchEvent(new CustomEvent('agrilink:offline-queue-changed'));
       } catch (error) {
         await markFailed(record, error instanceof Error ? error.message : 'Falha de sincronização');
