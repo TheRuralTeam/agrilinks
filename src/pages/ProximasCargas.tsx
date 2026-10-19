@@ -872,7 +872,7 @@ const ProximasCargas = () => {
                 color: tab === key ? T.white : T.mid,
               }}
             >
-              {key === 'disponiveis' ? 'Disponíveis' : 'As minhas cargas'}
+              {key === 'disponiveis' ? 'Disponíveis' : 'As minhas cargas e compras'}
             </button>
           ))}
         </div>
@@ -1600,7 +1600,7 @@ const ProximasCargas = () => {
                       fontSize: 14, fontWeight: 800, cursor: 'pointer',
                     }}
                   >
-                    {busyId === load.id ? 'A actualizar…' : 'Marcar como entregue'}
+                    {busyId === load.id ? 'A confirmar entrega…' : 'Confirmar entrega ao comprador'}
                   </button>
                 ) : isBuyer && load.status === 'delivered' ? (
                   <section aria-label="Confirmação de recebimento" style={{ display: 'grid', gap: 8, marginTop: 14, padding: 12, border: '1px solid #d5ded8', borderRadius: 12, background: '#f6faf7' }}>
