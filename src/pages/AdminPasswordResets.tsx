@@ -26,7 +26,7 @@ export default function AdminPasswordResets() {
     let active = true;
     (async () => {
       try {
-        const { data, error } = await supabase.from("users").select("id,full_name,email,phone,user_type,is_root_admin,is_super_root").order("full_name");
+        const { data, error } = await supabase.from("users").select("id,full_name,email,phone,user_type,is_root_admin").order("full_name");
         if (error) throw error;
         if (active) setAccounts((data ?? []) as Account[]);
       } catch (error: any) {
@@ -114,7 +114,7 @@ export default function AdminPasswordResets() {
               <Select value={targetId} onValueChange={setTargetId} disabled={loading}>
                 <SelectTrigger id="account-select"><SelectValue placeholder={loading ? "A carregar utilizadores…" : "Seleccione uma conta"} /></SelectTrigger>
                 <SelectContent>
-                  {filtered.map((account) => <SelectItem key={account.id} value={account.id}>{account.full_name || "Sem nome"} — {account.email || account.phone || account.id.slice(0, 8)}{account.is_super_root ? " · Super Root" : account.is_root_admin ? " · Root Admin" : ""}</SelectItem>)}
+                  {filtered.map((account) => <SelectItem key={account.id} value={account.id}>{account.full_name || "Sem nome"} — {account.email || account.phone || account.id.slice(0, 8)}{account.is_root_admin ? " · Administrador" : ""}</SelectItem>)}
                 </SelectContent>
               </Select>
               {loading && <p className="text-xs text-muted-foreground flex items-center gap-2"><Loader2 className="h-3 w-3 animate-spin" /> A carregar contas…</p>}
