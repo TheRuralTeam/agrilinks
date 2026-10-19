@@ -54,7 +54,7 @@ interface UserProduct {
   id: string; product_type: string; quantity: number; harvest_date: string
   price: number; province_id: string; municipality_id: string
   sale_unit?: string | null; min_order_quantity?: number | null
-  status: 'active' | 'inactive' | 'removed'; created_at: string | null
+  status: 'active' | 'inactive' | 'removed'; created_at: string | null; updated_at?: string | null
   views?: number; interests?: number
 }
 interface FichaRecebimento {
@@ -778,7 +778,7 @@ const Profile = () => {
     }
     try {
       if (!navigator.onLine) {
-        await enqueueOfflineUpdate({ userId: user.id, table: 'users', targetId: user.id, values: profileUpdates })
+        await enqueueOfflineUpdate({ userId: user.id, table: 'users', targetId: user.id, values: profileUpdates, baseUpdatedAt: (userProfile as any)?.updated_at ?? null })
         toast({ title: 'Perfil guardado offline', description: 'As alterações ficaram guardadas neste dispositivo e serão sincronizadas quando a internet regressar.' })
         setEditMode(false)
         return
@@ -873,7 +873,7 @@ const Profile = () => {
     setSavingProductEdit(true)
     try {
       if (!navigator.onLine) {
-        await enqueueOfflineUpdate({ userId: user.id, table: 'products', targetId: editingProduct.id, values: updates })
+        await enqueueOfflineUpdate({ userId: user.id, table: 'products', targetId: editingProduct.id, values: updates, baseUpdatedAt: editingProduct.updated_at ?? null })
         applyLocalProductUpdate()
         toast({ title: 'Produto actualizado offline', description: 'As alterações ficaram guardadas neste dispositivo e serão sincronizadas quando a internet regressar.' })
         return
