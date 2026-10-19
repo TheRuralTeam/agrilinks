@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import './i18n' // Initialize i18n
+import OfflineStatusBanner from './components/OfflineStatusBanner'
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   state = { hasError: false }
@@ -65,6 +66,7 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <AppErrorBoundary>
+    <OfflineStatusBanner />
     <App />
   </AppErrorBoundary>,
 )
