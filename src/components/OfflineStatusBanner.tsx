@@ -13,6 +13,7 @@ export default function OfflineStatusBanner() {
   const refreshQueue = useCallback(async (activeUserId: string | null) => {
     if (!activeUserId) {
       setPendingCount(0);
+      setSyncError(null);
       return;
     }
     try {
