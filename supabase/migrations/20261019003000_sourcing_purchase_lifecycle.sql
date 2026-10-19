@@ -162,6 +162,7 @@ language plpgsql security invoker set search_path = public
 as $$
 declare
   v_request_id uuid;
+  v_current_status text;
 begin
   if not (public.is_agrilink_admin() or public.has_role(auth.uid(), 'admin'::public.app_role)) then
     raise exception 'Apenas administradores podem atualizar compras.';
@@ -169,9 +170,12 @@ begin
   if p_status not in ('ordered', 'delivered', 'cancelled') then
     raise exception 'Estado da compra inválido.';
   end if;
-  select sourcing_request_id into v_request_id
+  select sourcing_request_id, status into v_request_id, v_current_status
   from public.sourcing_purchases where id = p_purchase_id for update;
   if not found then raise exception 'Compra não encontrada.'; end if;
+  if v_current_status in ('delivered', 'cancelled') and p_status <> v_current_status then
+    raise exception 'Uma compra entregue ou cancelada é terminal e não pode ser reaberta.';
+  end if;
 
   update public.sourcing_purchases
   set status = p_status,
