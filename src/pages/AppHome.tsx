@@ -18,6 +18,7 @@ import { savePreferredDeliveryLocation } from '../features/products/deliveryLoca
 import agrilinkLogo from '../assets/agrilink-logo.png'
 import { fetchActiveProducts } from '../features/products/productsService'
 import { isNeutralPublicView, sanitizePublicProduct } from '../lib/publicData'
+import { enqueueOfflinePreOrder } from '../lib/offlineMutationQueue'
 import Loader from '../components/ui/Loader'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -197,11 +198,28 @@ const AppHome = () => {
     }
 
     setIsSubmitting(true)
+    let offlinePreOrder: { productId: string; quantity: number; location: string; deliveryLat?: number; deliveryLng?: number; idempotencyKey: string } | null = null
     try {
       const quantity = Number(orderData.quantity || 0)
       if (!Number.isFinite(quantity) || quantity <= 0) throw new Error('Informe uma quantidade válida.')
+      if (!orderData.location.trim()) throw new Error('Informe o local de entrega.')
 
       const idempotencyKey = crypto.randomUUID()
+      offlinePreOrder = {
+        productId: selectedProduct.id,
+        quantity,
+        location: orderData.location.trim(),
+        deliveryLat: deliveryCoordinates?.latitude,
+        deliveryLng: deliveryCoordinates?.longitude,
+        idempotencyKey,
+      }
+      if (!navigator.onLine) {
+        await enqueueOfflinePreOrder({ userId: user.id, ...offlinePreOrder })
+        toast.info('Pré-compra guardada offline. Ainda não é uma reserva confirmada: o servidor vai validar stock e condições quando a internet regressar.')
+        setModalOpen(false)
+        setSelectedProduct(null)
+        return
+      }
       const { data, error } = await supabase.rpc('create_marketplace_pre_order', {
         p_product_id: selectedProduct.id,
         p_quantity: quantity,
@@ -253,6 +271,18 @@ const AppHome = () => {
       setSelectedProduct(null)
     } catch (error: any) {
       console.error('[AgriLink] Erro ao criar pré-compra:', error)
+      if (!navigator.onLine && offlinePreOrder) {
+        try {
+          await enqueueOfflinePreOrder({ userId: user.id, ...offlinePreOrder })
+          toast.info('A ligação caiu durante o envio. A intenção de pré-compra foi guardada e será validada pelo servidor quando a internet regressar.')
+          setModalOpen(false)
+          setSelectedProduct(null)
+          return
+        } catch (queueError: any) {
+          toast.error(queueError?.message || 'Não foi possível guardar a pré-compra offline.')
+          return
+        }
+      }
       toast.error(error?.message || 'Não foi possível concluir a reserva.')
     } finally {
       setIsSubmitting(false)
