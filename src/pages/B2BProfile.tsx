@@ -224,6 +224,7 @@ import { enqueueOfflineInsert } from '../lib/offlineMutationQueue';
     }
 
     setRfqLoading(true);
+    let offlineSourcingRow: Record<string, unknown> | null = null;
     try {
       const details = [
         `Perfil consultado: ${companyData?.name || 'Empresa'}`,
@@ -233,7 +234,7 @@ import { enqueueOfflineInsert } from '../lib/offlineMutationQueue';
       const selectedProvince = angolaProvinces.find(province => province.id === rfqForm.deliveryProvinceId);
       const selectedMunicipality = selectedProvince?.municipalities.find(municipality => municipality.id === rfqForm.deliveryMunicipalityId);
       const deliveryLocation = rfqForm.deliveryLocation.trim() || [selectedMunicipality?.name, selectedProvince?.name].filter(Boolean).join(', ');
-      const offlineSourcingRow = {
+      offlineSourcingRow = {
         id: crypto.randomUUID(),
         user_id: user.id,
         product_name: productName,
@@ -257,7 +258,7 @@ import { enqueueOfflineInsert } from '../lib/offlineMutationQueue';
         return;
       }
 
-      const { data: sourcingRequest, error } = await supabase.from('sourcing_requests').insert(offlineSourcingRow).select('id').single();
+      const { data: sourcingRequest, error } = await supabase.from('sourcing_requests').insert(offlineSourcingRow as any).select('id').single();
       if (error) throw error;
 
       // The sourcing request is the source of truth. Agent submission is
@@ -289,6 +290,19 @@ import { enqueueOfflineInsert } from '../lib/offlineMutationQueue';
       navigate('/perfil?tab=sourcing');
     } catch (error) {
       console.error('Erro ao enviar solicitação de cotação:', error);
+      if (!navigator.onLine && offlineSourcingRow) {
+        try {
+          await enqueueOfflineInsert({ userId: user.id, table: 'sourcing_requests', row: offlineSourcingRow });
+          toast.info('A ligação caiu durante o envio. O pedido ficou guardado neste dispositivo e será sincronizado quando a internet regressar.');
+          setRfqOpen(false);
+          setRfqForm({ productName: '', quantity: '', unit: 'kg', qualitySpecification: '', deliveryProvinceId: '', deliveryMunicipalityId: '', deliveryLocation: '', deliveryDate: '', description: '' });
+          navigate('/perfil?tab=sourcing');
+          return;
+        } catch (queueError) {
+          toast.error(queueError instanceof Error ? queueError.message : 'Não foi possível guardar o pedido offline.');
+          return;
+        }
+      }
       toast.error(error instanceof Error ? error.message : 'Não foi possível enviar a solicitação.');
     } finally {
       setRfqLoading(false);
