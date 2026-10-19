@@ -26,6 +26,7 @@ import agrilinkLogo from '../assets/agrilink-logo.png'
 import { downloadMarketplaceTransactionReceipt } from '../features/orders/transactionReceipts'
 import { angolaProvinces } from '../data/angola-locations'
 import { SOURCING_AGRICULTURAL_PRODUCTS, SOURCING_UNITS } from '../features/sourcing/sourcingCatalog'
+import { enqueueOfflineUpdate } from '../lib/offlineMutationQueue'
 
 /* ─── Design tokens ──────────────────────────────────────────────────────────
    Mesma fonte de verdade da landing (../lib/brand). Os campos abaixo com
@@ -768,18 +769,38 @@ const Profile = () => {
       requireAuth('editar o teu perfil')
       return
     }
+    const profileUpdates = {
+      full_name: profileData.full_name,
+      phone: profileData.phone,
+      province_id: profileData.province_id,
+      municipality_id: profileData.municipality_id,
+      updated_at: new Date().toISOString(),
+    }
     try {
-      const { error } = await supabase.from('users').update({
-        full_name: profileData.full_name,
-        phone: profileData.phone,
-        province_id: profileData.province_id,
-        municipality_id: profileData.municipality_id,
-        updated_at: new Date().toISOString(),
-      }).eq('id', user.id)
+      if (!navigator.onLine) {
+        await enqueueOfflineUpdate({ userId: user.id, table: 'users', targetId: user.id, values: profileUpdates })
+        toast({ title: 'Perfil guardado offline', description: 'As alterações ficaram guardadas neste dispositivo e serão sincronizadas quando a internet regressar.' })
+        setEditMode(false)
+        return
+      }
+      const { error } = await supabase.from('users').update(profileUpdates).eq('id', user.id)
       if (error) throw error
       toast({ title: 'Perfil actualizado com sucesso.' })
       setEditMode(false)
-    } catch (error: any) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }) }
+    } catch (error: any) {
+      if (!navigator.onLine) {
+        try {
+          await enqueueOfflineUpdate({ userId: user.id, table: 'users', targetId: user.id, values: profileUpdates })
+          toast({ title: 'Perfil guardado offline', description: 'A ligação caiu durante a gravação. As alterações serão sincronizadas quando a internet regressar.' })
+          setEditMode(false)
+          return
+        } catch (queueError: any) {
+          toast({ title: 'Erro', description: queueError.message || 'Não foi possível guardar as alterações offline.', variant: 'destructive' })
+          return
+        }
+      }
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    }
   }
 
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
