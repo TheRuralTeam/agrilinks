@@ -1,3 +1,4 @@
+import type { jsPDF } from 'jspdf'
 import { supabase } from '../../integrations/supabase/client'
 import { addOfficialAgriLinkLogo, downloadPdf } from '../../lib/pdfBranding'
 
