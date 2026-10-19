@@ -378,8 +378,8 @@ const ProximasCargas = () => {
   const relevantTransitIds = loads
     .filter(
       (load) =>
-        load.status === 'in_transit' &&
-        (load.created_by === user?.id || load.driver_id === user?.id)
+        ['accepted', 'at_pickup', 'in_transit'].includes(load.status) &&
+        (load.created_by === user?.id || load.driver_id === user?.id || load.buyer_id === user?.id)
     )
     .map((load) => load.id)
     .sort()
@@ -428,8 +428,8 @@ const ProximasCargas = () => {
 
   const startLocationSharing = (load: FreightLoad) => {
     if (!requireAct('partilhar a localização desta carga')) return;
-    if (load.driver_id !== user?.id || load.status !== 'in_transit') {
-      toast.error('A localização só pode ser partilhada pelo motorista durante o transporte.');
+    if (load.driver_id !== user?.id || !['accepted', 'at_pickup', 'in_transit'].includes(load.status)) {
+      toast.error('A localização só pode ser partilhada pelo motorista atribuído, desde a aceitação até à entrega.');
       return;
     }
     if (!navigator.geolocation) {
@@ -721,8 +721,10 @@ const ProximasCargas = () => {
       toast.error(error.message || 'Não foi possível aceitar esta carga.');
       return;
     }
-    toast.success('Carga aceite. Boa viagem!');
-    fetchLoads();
+    toast.success('Carga aceite. A partilha GPS começa agora, se autorizar a localização do dispositivo.');
+    void showLoadRoute({ ...load, status: 'accepted', driver_id: user.id });
+    startLocationSharing({ ...load, status: 'accepted', driver_id: user.id });
+    await fetchLoads();
   };
 
   const advance = async (load: FreightLoad) => {
@@ -740,7 +742,7 @@ const ProximasCargas = () => {
       return;
     }
     if (nextStatus === 'delivered' && sharingLocationFor === load.id) stopLocationSharing();
-    if (nextStatus === 'in_transit') startLocationSharing({ ...load, status: 'in_transit' });
+    if (nextStatus === 'in_transit' && sharingLocationFor !== load.id) startLocationSharing({ ...load, status: 'in_transit' });
     await fetchLoads();
   };
 
@@ -1296,7 +1298,7 @@ const ProximasCargas = () => {
                       {loadRoute?.id === load.id ? 'Ocultar mapa' : 'Ver rota e clima'}
                     </button>
                   )}
-                  {load.status === 'in_transit' && isAssignedDriver && (
+                  {['accepted', 'at_pickup', 'in_transit'].includes(load.status) && isAssignedDriver && (
                     <button
                       type="button"
                       onClick={() =>
@@ -1405,7 +1407,7 @@ const ProximasCargas = () => {
                           : `${loadRoute.weather.precipitationProbability}%`}
                       </span>
                     )}
-                    {load.status === 'in_transit' && latestDriverLocation && (
+                    {['accepted', 'at_pickup', 'in_transit'].includes(load.status) && latestDriverLocation && (
                       <span style={{ color: T.muted, fontSize: 11 }}>
                         Última posição compartilhada:{' '}
                         {new Date(latestDriverLocation.recorded_at).toLocaleTimeString('pt-AO', {
