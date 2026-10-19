@@ -2,6 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { brokeredPreviewStorage } from './previewAuthStorage';
+import { offlineAwareFetch } from '../../lib/offlineReadCache';
 
 const SUPABASE_URL = "https://oqcrfqtlfqwrxxmsjpaf.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xY3JmcXRsZnF3cnh4bXNqcGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgzNTU4OTcsImV4cCI6MjA3MzkzMTg5N30.VxJJBJSITRHOh5CaHSUnmjlhQN54Wf-aphDx85DVGw0";
@@ -14,5 +15,6 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: brokeredPreviewStorage(),
     persistSession: true,
     autoRefreshToken: true,
-  }
+  },
+  global: { fetch: offlineAwareFetch },
 });
