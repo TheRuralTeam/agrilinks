@@ -262,7 +262,7 @@ export default function MyPurchases() {
                                 <option value="">Seleccionar opção</option>
                                 {state.recipients.map((recipient) => <option key={recipient.id} value={recipient.id}>{recipient.display_name} · {recipient.channel.replaceAll('_', ' ')}</option>)}
                               </select>
-                              <Button onClick={() => void createPayment(purchase)} disabled={!selectedRecipients[purchase.id] || busyId === purchase.id}>{busyId === purchase.id ? 'A preparar…' : 'Gerar instruções seguras'}</Button>
+                              <Button onClick={() => void createPayment(purchase)} disabled={!selectedRecipients[purchase.id] || busyId === purchase.id || Boolean(paymentDrafts[purchase.id])}>{busyId === purchase.id ? 'A preparar…' : paymentDrafts[purchase.id] ? 'Instruções já geradas' : 'Gerar instruções seguras'}</Button>
                             </div>
                           )}
                         </div>
