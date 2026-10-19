@@ -50,7 +50,21 @@ const ProximasCargas = lazy(() => import("./pages/ProximasCargas"));
 const FreightLoadScan = lazy(() => import("./pages/FreightLoadScan"));
 const P2PBeneficiary = lazy(() => import("./pages/P2PBeneficiary"));
 
-const queryClient = new QueryClient();
+// Cache breve para evitar pedidos repetidos ao navegar entre páginas, sem manter
+// dados operacionais desactualizados por muito tempo.
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 15_000,
+      gcTime: 5 * 60_000,
+      retry: 1,
+      refetchOnReconnect: true,
+    },
+    mutations: {
+      retry: false,
+    },
+  },
+});
 
 const isProfileComplete = (p: any) =>
   !!(p && p.user_type && p.identity_document && p.province_id && p.municipality_id);

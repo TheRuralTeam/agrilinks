@@ -31,6 +31,7 @@ import {
 } from '../lib/freightGeo';
 import { toast } from 'sonner';
 import { downloadFreightLoadPdf } from '../lib/freightPdf';
+import { enqueueFreightLocation, getQueuedFreightLocations, removeQueuedFreightLocation } from '../lib/freightLocationQueue';
 import Loader from '../components/ui/Loader';
 
 interface FreightLoad {
@@ -47,6 +48,11 @@ interface FreightLoad {
   currency: string;
   status: string;
   driver_id: string | null;
+  buyer_id: string | null;
+  supplier_id: string | null;
+  supplier_handover_confirmed_at: string | null;
+  buyer_receipt_confirmed_at: string | null;
+  driver_delivery_confirmed_at?: string | null;
   notes: string | null;
   origin_lat: number | null;
   origin_lng: number | null;
@@ -76,9 +82,9 @@ const STATUS_LABEL: Record<string, string> = {
   open: 'Disponível',
   agendado: 'Agendada',
   accepted: 'Aceite · a caminho da recolha',
-  at_pickup: 'No local de recolha · confirmar carga',
+  at_pickup: 'No local de recolha · aguarda confirmação do fornecedor',
   in_transit: 'Em trânsito · GPS',
-  delivered: 'Entregue',
+  delivered: 'A aguardar confirmação do comprador',
   cancelled: 'Cancelada',
 };
 
@@ -153,8 +159,8 @@ const ProximasCargas = () => {
   const [routeSetupSearchingPlaces, setRouteSetupSearchingPlaces] = useState(false);
   const locationWatchId = useRef<number | null>(null);
   const lastLocationWriteAt = useRef(0);
-  const pendingLocationRef = useRef<Record<string, FreightLoadLocation>>({});
   const onlineFlushHandlerRef = useRef<(() => void) | null>(null);
+  const queueFlushInProgress = useRef<Set<string>>(new Set());
   const locationRetryNoticeShown = useRef(false);
 
   const capacity = (userProfile as any)?.load_capacity_kg as number | null | undefined;
@@ -375,8 +381,8 @@ const ProximasCargas = () => {
   const relevantTransitIds = loads
     .filter(
       (load) =>
-        load.status === 'in_transit' &&
-        (load.created_by === user?.id || load.driver_id === user?.id)
+        ['accepted', 'at_pickup', 'in_transit'].includes(load.status) &&
+        (load.created_by === user?.id || load.driver_id === user?.id || load.buyer_id === user?.id)
     )
     .map((load) => load.id)
     .sort()
@@ -418,6 +424,7 @@ const ProximasCargas = () => {
     locationWatchId.current = null;
     if (onlineFlushHandlerRef.current) {
       window.removeEventListener('online', onlineFlushHandlerRef.current);
+      window.removeEventListener('focus', onlineFlushHandlerRef.current);
       onlineFlushHandlerRef.current = null;
     }
     setSharingLocationFor(null);
@@ -425,8 +432,8 @@ const ProximasCargas = () => {
 
   const startLocationSharing = (load: FreightLoad) => {
     if (!requireAct('partilhar a localização desta carga')) return;
-    if (load.driver_id !== user?.id || load.status !== 'in_transit') {
-      toast.error('A localização só pode ser partilhada pelo motorista durante o transporte.');
+    if (load.driver_id !== user?.id || !['accepted', 'at_pickup', 'in_transit'].includes(load.status)) {
+      toast.error('A localização só pode ser partilhada pelo motorista atribuído, desde a aceitação até à entrega.');
       return;
     }
     if (!navigator.geolocation) {
@@ -439,52 +446,82 @@ const ProximasCargas = () => {
     locationRetryNoticeShown.current = false;
     setSharingLocationFor(load.id);
 
+    const syncQueuedLocations = async () => {
+      if (!navigator.onLine || queueFlushInProgress.current.has(load.id)) return;
+      queueFlushInProgress.current.add(load.id);
+      try {
+        const queued = await getQueuedFreightLocations(load.id);
+        for (const location of queued) {
+          const { error } = await supabase.rpc('record_freight_load_location', {
+            p_freight_load_id: load.id,
+            p_latitude: location.latitude,
+            p_longitude: location.longitude,
+            p_accuracy_m: location.accuracy_m as number,
+            p_speed_mps: location.speed_mps as number,
+            p_heading_deg: location.heading_deg as number,
+            p_record_history: true,
+          });
+
+          if (error) {
+            if (error.code === '42501' || error.code === '22023') {
+              toast.error('O servidor recusou a sincronização GPS. Confirme a atribuição e o estado da carga.');
+              stopLocationSharing();
+            } else if (!locationRetryNoticeShown.current) {
+              toast.error('Há posições GPS guardadas neste dispositivo. Serão reenviadas quando o servidor estiver acessível.');
+              locationRetryNoticeShown.current = true;
+            }
+            break;
+          }
+
+          await removeQueuedFreightLocation(location.id);
+          setDriverLocations((previous) => ({ ...previous, [load.id]: location }));
+        }
+
+        const remaining = await getQueuedFreightLocations(load.id);
+        if (remaining.length === 0 && locationRetryNoticeShown.current) {
+          toast.success('Posições GPS sincronizadas com sucesso.');
+          locationRetryNoticeShown.current = false;
+        }
+      } catch (error) {
+        console.warn('[AgriLink] Não foi possível sincronizar a fila GPS offline.', error);
+        if (!locationRetryNoticeShown.current) {
+          toast.error('As posições estão pendentes. A sincronização será tentada novamente quando a ligação regressar.');
+          locationRetryNoticeShown.current = true;
+        }
+      } finally {
+        queueFlushInProgress.current.delete(load.id);
+      }
+    };
+
     const persistLocation = async (location: FreightLoadLocation) => {
-      if (!navigator.onLine) {
-        pendingLocationRef.current[load.id] = location;
+      // Guardar primeiro no IndexedDB evita perder a posição se a rede cair
+      // durante o pedido ou se o servidor não responder.
+      try {
+        await enqueueFreightLocation(location);
         setDriverLocations((previous) => ({ ...previous, [load.id]: location }));
+      } catch (error) {
+        console.error('[AgriLink] Falha ao guardar a posição GPS offline.', error);
+        toast.error('Não foi possível guardar esta posição no dispositivo. Verifique o armazenamento disponível.');
         return;
       }
 
-      const { error } = await supabase.rpc('record_freight_load_location', {
-        p_freight_load_id: load.id,
-        p_latitude: location.latitude,
-        p_longitude: location.longitude,
-        p_accuracy_m: location.accuracy_m as number,
-        p_speed_mps: location.speed_mps as number,
-        p_heading_deg: location.heading_deg as number,
-        p_record_history: true,
-      });
-
-      if (error) {
-        if (error.code === '42501' || error.code === '22023') {
-          toast.error('A partilha GPS foi recusada pelo servidor. Confirme que esta carga está atribuída a si e em trânsito.');
-          stopLocationSharing();
-          return;
-        }
-        pendingLocationRef.current[load.id] = location;
-        setDriverLocations((previous) => ({ ...previous, [load.id]: location }));
+      if (!navigator.onLine) {
         if (!locationRetryNoticeShown.current) {
-          toast.error('Sem confirmação do servidor. A última posição será reenviada quando a ligação voltar.');
+          toast.warning('Sem Internet. O GPS continuará a guardar posições neste dispositivo para sincronização posterior.');
           locationRetryNoticeShown.current = true;
         }
         return;
       }
 
-      delete pendingLocationRef.current[load.id];
-      setDriverLocations((previous) => ({ ...previous, [load.id]: location }));
-      if (locationRetryNoticeShown.current) {
-        toast.success('Ligação restabelecida. A posição GPS voltou a ser sincronizada.');
-        locationRetryNoticeShown.current = false;
-      }
+      await syncQueuedLocations();
     };
 
     const flushPending = () => {
-      const pending = pendingLocationRef.current[load.id];
-      if (pending) void persistLocation(pending);
+      void syncQueuedLocations();
     };
     onlineFlushHandlerRef.current = flushPending;
     window.addEventListener('online', flushPending);
+    window.addEventListener('focus', flushPending);
 
     locationWatchId.current = navigator.geolocation.watchPosition(
       async (position) => {
@@ -706,6 +743,11 @@ const ProximasCargas = () => {
   };
 
   const accept = async (load: FreightLoad) => {
+    const driverId = user?.id;
+    if (!driverId) {
+      toast.error('Inicie sessão para aceitar esta carga.');
+      return;
+    }
     if (!requireAct('aceitar uma carga')) return;
     if (capacity && load.weight_kg > capacity) {
       toast.error(`Carga acima da sua capacidade (${capacity} kg).`);
@@ -718,8 +760,10 @@ const ProximasCargas = () => {
       toast.error(error.message || 'Não foi possível aceitar esta carga.');
       return;
     }
-    toast.success('Carga aceite. Boa viagem!');
-    fetchLoads();
+    toast.success('Carga aceite. O GPS pode acompanhar o percurso até ao fornecedor; a viagem com a mercadoria só começa após a confirmação da entrega pelo fornecedor.');
+    void showLoadRoute({ ...load, status: 'accepted', driver_id: driverId });
+    startLocationSharing({ ...load, status: 'accepted', driver_id: driverId });
+    await fetchLoads();
   };
 
   const advance = async (load: FreightLoad) => {
@@ -737,12 +781,54 @@ const ProximasCargas = () => {
       return;
     }
     if (nextStatus === 'delivered' && sharingLocationFor === load.id) stopLocationSharing();
-    if (nextStatus === 'in_transit') startLocationSharing({ ...load, status: 'in_transit' });
+    if (nextStatus === 'in_transit' && sharingLocationFor !== load.id) startLocationSharing({ ...load, status: 'in_transit' });
+    await fetchLoads();
+  };
+
+  const confirmSupplierHandover = async (load: FreightLoad) => {
+    if (!requireAct('confirmar a entrega da mercadoria ao motorista')) return;
+    if (!user?.id || load.supplier_id !== user.id || load.status !== 'at_pickup') {
+      toast.error('Só o fornecedor desta carga pode confirmar a entrega da mercadoria no ponto de recolha.');
+      return;
+    }
+    if (load.supplier_handover_confirmed_at) {
+      toast.info('A entrega ao motorista já foi confirmada.');
+      return;
+    }
+    setBusyId(load.id);
+    const { error } = await supabase.rpc('confirm_supplier_handover', { p_freight_load_id: load.id });
+    setBusyId(null);
+    if (error) {
+      toast.error(error.message || 'Não foi possível confirmar a entrega da mercadoria ao motorista.');
+      return;
+    }
+    toast.success('Entrega ao motorista confirmada. O motorista já pode iniciar a viagem.');
+    await fetchLoads();
+  };
+
+  const confirmBuyerReceipt = async (load: FreightLoad) => {
+    if (!requireAct('confirmar o recebimento da encomenda')) return;
+    if (!user?.id || load.buyer_id !== user.id || load.status !== 'delivered') {
+      toast.error('Só o comprador desta encomenda pode confirmar o recebimento após a entrega do motorista.');
+      return;
+    }
+    if (load.buyer_receipt_confirmed_at) {
+      toast.info('O recebimento desta encomenda já foi confirmado.');
+      return;
+    }
+    setBusyId(load.id);
+    const { error } = await supabase.rpc('confirm_freight_receipt', { p_freight_load_id: load.id });
+    setBusyId(null);
+    if (error) {
+      toast.error(error.message || 'Não foi possível confirmar o recebimento.');
+      return;
+    }
+    toast.success('Recebimento confirmado. A encomenda foi registada como recebida.');
     await fetchLoads();
   };
 
   const visible = loads.filter((load) => {
-    if (tab === 'minhas') return load.driver_id === user?.id || load.created_by === user?.id;
+    if (tab === 'minhas') return load.driver_id === user?.id || load.created_by === user?.id || load.buyer_id === user?.id || load.supplier_id === user?.id;
     return (
       ['available', 'open', 'agendado'].includes(load.status) &&
       !load.driver_id &&
@@ -848,7 +934,7 @@ const ProximasCargas = () => {
                 color: tab === key ? T.white : T.mid,
               }}
             >
-              {key === 'disponiveis' ? 'Disponíveis' : 'As minhas cargas'}
+              {key === 'disponiveis' ? 'Disponíveis' : 'As minhas cargas e compras'}
             </button>
           ))}
         </div>
@@ -1111,7 +1197,7 @@ const ProximasCargas = () => {
             <PackageCheck size={28} color={T.faint} />
             <p style={{ marginTop: 12, fontSize: 14, fontWeight: 700, color: T.mid }}>
               {tab === 'minhas'
-                ? 'Ainda não publicou nem aceitou cargas.'
+                ? 'Ainda não tem cargas, compras ou entregas.'
                 : 'Sem cargas disponíveis de momento.'}
             </p>
           </div>
@@ -1121,6 +1207,8 @@ const ProximasCargas = () => {
           visible.map((load) => {
             const tooHeavy = !!capacity && load.weight_kg > capacity;
             const isAssignedDriver = load.driver_id === user?.id;
+            const isBuyer = load.buyer_id === user?.id;
+            const isSupplier = load.supplier_id === user?.id;
             const latestDriverLocation = driverLocations[load.id];
             const hasCoordinates =
               load.origin_lat != null &&
@@ -1271,7 +1359,7 @@ const ProximasCargas = () => {
                       {loadRoute?.id === load.id ? 'Ocultar mapa' : 'Ver rota e clima'}
                     </button>
                   )}
-                  {load.status === 'in_transit' && isAssignedDriver && (
+                  {['accepted', 'at_pickup', 'in_transit'].includes(load.status) && isAssignedDriver && (
                     <button
                       type="button"
                       onClick={() =>
@@ -1380,7 +1468,7 @@ const ProximasCargas = () => {
                           : `${loadRoute.weather.precipitationProbability}%`}
                       </span>
                     )}
-                    {load.status === 'in_transit' && latestDriverLocation && (
+                    {['accepted', 'at_pickup', 'in_transit'].includes(load.status) && latestDriverLocation && (
                       <span style={{ color: T.muted, fontSize: 11 }}>
                         Última posição compartilhada:{' '}
                         {new Date(latestDriverLocation.recorded_at).toLocaleTimeString('pt-AO', {
@@ -1551,18 +1639,18 @@ const ProximasCargas = () => {
                       {busyId === load.id ? 'A actualizar…' : 'Confirmar chegada à recolha'}
                     </button>
                   </div>
-                ) : isAssignedDriver && load.status === 'at_pickup' ? (
+                 ) : isAssignedDriver && load.status === 'at_pickup' ? (
                   <button
-                    disabled={busyId === load.id}
+                    disabled={busyId === load.id || !load.supplier_handover_confirmed_at}
                     onClick={() => void advance(load)}
                     style={{
                       marginTop: 14, width: '100%', padding: '12px 16px',
-                      borderRadius: 14, border: 'none', background: T.green,
-                      color: T.white, fontFamily: FONT, fontSize: 14,
-                      fontWeight: 800, cursor: 'pointer',
+                      borderRadius: 14, border: 'none', background: load.supplier_handover_confirmed_at ? T.green : T.rule,
+                      color: load.supplier_handover_confirmed_at ? T.white : T.mid, fontFamily: FONT, fontSize: 14,
+                      fontWeight: 800, cursor: load.supplier_handover_confirmed_at ? 'pointer' : 'not-allowed',
                     }}
                   >
-                    {busyId === load.id ? 'A confirmar…' : 'Confirmar que estou com a carga · iniciar GPS'}
+                    {busyId === load.id ? 'A iniciar viagem…' : load.supplier_handover_confirmed_at ? 'Confirmar que recebi a carga · iniciar viagem' : 'A aguardar confirmação do fornecedor'}
                   </button>
                 ) : isAssignedDriver && load.status === 'in_transit' ? (
                   <button
@@ -1575,8 +1663,40 @@ const ProximasCargas = () => {
                       fontSize: 14, fontWeight: 800, cursor: 'pointer',
                     }}
                   >
-                    {busyId === load.id ? 'A actualizar…' : 'Marcar como entregue'}
+                    {busyId === load.id ? 'A confirmar entrega…' : 'Confirmar entrega ao comprador'}
                   </button>
+                ) : isSupplier && load.status === 'at_pickup' ? (
+                  <section aria-label="Confirmação de entrega do fornecedor" style={{ display: 'grid', gap: 8, marginTop: 14, padding: 12, border: '1px solid #d5ded8', borderRadius: 12, background: '#f6faf7' }}>
+                    <strong style={{ color: T.ink, fontSize: 13 }}>Entrega da mercadoria ao motorista</strong>
+                    {load.supplier_handover_confirmed_at ? (
+                      <p style={{ margin: 0, color: T.green, fontSize: 12, fontWeight: 800 }}>Entrega confirmada em {new Date(load.supplier_handover_confirmed_at).toLocaleString('pt-AO')}.</p>
+                    ) : (
+                      <>
+                        <p style={{ margin: 0, color: T.mid, fontSize: 12, lineHeight: 1.5 }}>Confirme apenas depois de entregar fisicamente os produtos ao motorista. A viagem só poderá começar após esta confirmação.</p>
+                        <button type="button" disabled={busyId === load.id} onClick={() => void confirmSupplierHandover(load)} style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: 'none', background: T.green, color: T.white, fontFamily: FONT, fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>
+                          {busyId === load.id ? 'A confirmar entrega…' : 'Confirmar entrega ao motorista'}
+                        </button>
+                      </>
+                    )}
+                  </section>
+                ) : isBuyer && load.status === 'delivered' ? (
+                  <section aria-label="Confirmação de recebimento" style={{ display: 'grid', gap: 8, marginTop: 14, padding: 12, border: '1px solid #d5ded8', borderRadius: 12, background: '#f6faf7' }}>
+                    <strong style={{ color: T.ink, fontSize: 13 }}>Confirmação de recebimento</strong>
+                    {load.buyer_receipt_confirmed_at ? (
+                      <p style={{ margin: 0, color: T.green, fontSize: 12, fontWeight: 800 }}>
+                        Recebimento confirmado em {new Date(load.buyer_receipt_confirmed_at).toLocaleString('pt-AO')}.
+                      </p>
+                    ) : (
+                      <>
+                        <p style={{ margin: 0, color: T.mid, fontSize: 12, lineHeight: 1.5 }}>
+                          O motorista marcou esta carga como entregue. Confirme apenas depois de verificar que recebeu os produtos.
+                        </p>
+                        <button type="button" disabled={busyId === load.id} onClick={() => void confirmBuyerReceipt(load)} style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: 'none', background: T.green, color: T.white, fontFamily: FONT, fontSize: 14, fontWeight: 800, cursor: busyId === load.id ? 'wait' : 'pointer', opacity: busyId === load.id ? 0.65 : 1 }}>
+                          {busyId === load.id ? 'A confirmar recebimento…' : 'Confirmar que recebi a encomenda'}
+                        </button>
+                      </>
+                    )}
+                  </section>
                 ) : null}
               </article>
             );

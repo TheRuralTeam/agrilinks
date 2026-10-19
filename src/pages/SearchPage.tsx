@@ -16,11 +16,10 @@ import {
 import { angolaProvinces } from '../data/angola-locations'
 import { ProductCard, Product as ProductCardType } from '../components/ProductCard'
 import { fetchProductsFeed } from '../features/products/productsService'
-import { ProductLocationMap } from '../components/ProductLocationMap'
 import { useAuth } from '../contexts/AuthContext'
 import IdentityActionDialog from '../components/IdentityActionDialog'
-import LocationAutocomplete from '../components/LocationAutocomplete'
 import { savePreferredDeliveryLocation } from '../features/products/deliveryLocationPreference'
+import { enqueueOfflinePreOrder } from '../lib/offlineMutationQueue'
 import { validatePreOrderSubmission } from '../features/products/businessRules'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
 import { toast } from 'sonner'
@@ -65,6 +64,11 @@ const T = {
   shadow: 'rgba(13,43,18,0.10)',
   shadowMd:'rgba(13,43,18,0.15)',
 }
+
+const ProductLocationMap = React.lazy(() =>
+  import('../components/ProductLocationMap').then(({ ProductLocationMap }) => ({ default: ProductLocationMap }))
+)
+const LocationAutocomplete = React.lazy(() => import('../components/LocationAutocomplete'))
 
 interface Product extends ProductCardType {}
 
@@ -175,21 +179,21 @@ const SearchPage = () => {
     setSelectedProvince(prev => prev === provinceId ? '' : provinceId)
   }
 
-  const handleProductUpdate = (updatedProduct: Product) => {
+  const handleProductUpdate = React.useCallback((updatedProduct: Product) => {
     setProductResults(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p))
-  }
+  }, [])
 
-  const handleOpenMap = (product: Product) => {
+  const handleOpenMap = React.useCallback((product: Product) => {
     setSelectedProduct(product)
     setMapModalOpen(true)
-  }
+  }, [])
 
-  const handleOpenPreOrder = (product: Product) => {
+  const handleOpenPreOrder = React.useCallback((product: Product) => {
     setSelectedProduct(product)
     setOrderData({ quantity: 1, location: '' })
     setDeliveryCoordinates(null)
     setPreOrderModalOpen(true)
-  }
+  }, [])
 
   const handlePreOrderSubmit = async () => {
     if (!selectedProduct || !user) return toast.error('Inicie sessão para continuar')
@@ -198,6 +202,7 @@ const SearchPage = () => {
       return
     }
 
+    let offlinePreOrder: { productId: string; quantity: number; location: string; deliveryLat?: number; deliveryLng?: number; idempotencyKey: string } | null = null
     try {
       const quantity = Number(orderData.quantity || 0)
 
@@ -218,6 +223,21 @@ const SearchPage = () => {
 
 
       const idempotencyKey = crypto.randomUUID()
+      offlinePreOrder = {
+        productId: selectedProduct.id,
+        quantity,
+        location: orderData.location.trim(),
+        deliveryLat: deliveryCoordinates?.latitude,
+        deliveryLng: deliveryCoordinates?.longitude,
+        idempotencyKey,
+      }
+      if (!navigator.onLine) {
+        await enqueueOfflinePreOrder({ userId: user.id, ...offlinePreOrder })
+        toast.info('Pré-compra guardada offline. Ainda não é uma reserva confirmada: o servidor vai validar stock e condições quando a internet regressar.')
+        setPreOrderModalOpen(false)
+        setSelectedProduct(null)
+        return
+      }
 
       const { data, error } = await supabase.rpc('create_marketplace_pre_order', {
         p_product_id: selectedProduct.id,
@@ -251,6 +271,18 @@ const SearchPage = () => {
       // The browser never loops through all agents.
     } catch (error: any) {
       console.error('[AgriLink] Erro ao criar pré-compra:', error)
+      if (!navigator.onLine && offlinePreOrder) {
+        try {
+          await enqueueOfflinePreOrder({ userId: user.id, ...offlinePreOrder })
+          toast.info('A ligação caiu durante o envio. A intenção de pré-compra foi guardada e será validada pelo servidor quando a internet regressar.')
+          setPreOrderModalOpen(false)
+          setSelectedProduct(null)
+          return
+        } catch (queueError: any) {
+          toast.error(queueError?.message || 'Não foi possível guardar a pré-compra offline.')
+          return
+        }
+      }
       toast.error(error?.message || 'Não foi possível concluir a reserva.')
     }
   }
@@ -469,9 +501,10 @@ const SearchPage = () => {
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {sortedProducts.map(product => (
+              {sortedProducts.map((product, index) => (
                 <ProductCard
                   key={product.id}
+                  priority={index === 0}
                   product={product}
                   onProductUpdate={handleProductUpdate}
                   onOpenMap={handleOpenMap}
@@ -514,11 +547,13 @@ const SearchPage = () => {
               {selectedProduct?.product_type} - {selectedProduct?.farmer_name}
             </DialogDescription>
           </DialogHeader>
-          <ProductLocationMap
-            latitude={selectedProduct?.location_lat}
-            longitude={selectedProduct?.location_lng}
-            className="h-[400px] border-0"
-          />
+          <React.Suspense fallback={<div role="status" className="grid h-[400px] place-items-center text-sm text-muted-foreground">A carregar mapa…</div>}>
+            <ProductLocationMap
+              latitude={selectedProduct?.location_lat}
+              longitude={selectedProduct?.location_lng}
+              className="h-[400px] border-0"
+            />
+          </React.Suspense>
         </DialogContent>
       </Dialog>
 
@@ -550,14 +585,16 @@ const SearchPage = () => {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-bold text-[#3D4D40]">Local de Entrega</label>
-              <LocationAutocomplete
-                value={orderData.location}
-                onChange={(location) => setOrderData({ ...orderData, location })}
-                onSelectLocation={(location) => setDeliveryCoordinates(location ? { latitude: location.latitude, longitude: location.longitude } : null)}
-                placeholder="Ex.: Viana, Luanda ou Bairro/Zona"
-                inputClassName="h-10 rounded-xl border-none text-sm text-[#111714] placeholder:text-[#758A79] outline-none"
-                inputStyle={{ background: 'rgba(118,118,128,0.08)' }}
-              />
+              <React.Suspense fallback={<div role="status" className="rounded-lg p-3 text-sm text-muted-foreground">A carregar localização…</div>}>
+                <LocationAutocomplete
+                  value={orderData.location}
+                  onChange={(location) => setOrderData({ ...orderData, location })}
+                  onSelectLocation={(location) => setDeliveryCoordinates(location ? { latitude: location.latitude, longitude: location.longitude } : null)}
+                  placeholder="Ex.: Viana, Luanda ou Bairro/Zona"
+                  inputClassName="h-10 rounded-xl border-none text-sm text-[#111714] placeholder:text-[#758A79] outline-none"
+                  inputStyle={{ background: 'rgba(118,118,128,0.08)' }}
+                />
+              </React.Suspense>
             </div>
             <div className="p-4 rounded-2xl space-y-2" style={{ background: 'rgba(118,118,128,0.06)' }}>
               <div className="flex justify-between text-sm text-[#3D4D40]">

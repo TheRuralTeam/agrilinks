@@ -1,5 +1,4 @@
-import React, { useState, memo } from 'react'
-import Slider from 'react-slick'
+import React, { useState, useRef, memo, lazy, Suspense } from 'react'
 import { toast } from 'sonner'
 import {
   Heart, MessageCircle, Calendar, MapPin, Send, ChevronLeft, ChevronRight,
@@ -11,12 +10,9 @@ import { useCanAct } from '../hooks/useCanAct'
 import { useNavigate } from 'react-router-dom'
 import { fetchProductComments } from '../features/products/productsService'
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog'
-import SimpleLeafletMap from './SimpleLeafletMap'
-import "slick-carousel/slick/slick.css"
-import "slick-carousel/slick/slick-theme.css"
-
-/* ─── Design tokens — same source as AppHome, single accent colour ─────────── */
 import { T } from '../lib/brand'
+
+const SimpleLeafletMap = lazy(() => import('./SimpleLeafletMap'))
 
 /* ─── Inline styles ──────────────────────────────────────────────────────────
    Apple-style rules borrowed from AppHome:
@@ -324,33 +320,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
 }
 
-/* ─── Arrow components ─────────────────────────────────────────────────────── */
-const CustomPrevArrow = memo(({ onClick }: { onClick?: () => void }) => (
-  <button onClick={onClick} style={{
-    position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
-    background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(6px)',
-    border: 'none', borderRadius: '50%', width: 32, height: 32,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    cursor: 'pointer', zIndex: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-  }} aria-label="Imagem anterior">
-    <ChevronLeft size={17} color={T.ink} />
-  </button>
-))
-
-const CustomNextArrow = memo(({ onClick }: { onClick?: () => void }) => (
-  <button onClick={onClick} style={{
-    position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-    background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(6px)',
-    border: 'none', borderRadius: '50%', width: 32, height: 32,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    cursor: 'pointer', zIndex: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-  }} aria-label="Próxima imagem">
-    <ChevronRight size={17} color={T.ink} />
-  </button>
-))
-CustomPrevArrow.displayName = 'CustomPrevArrow'
-CustomNextArrow.displayName = 'CustomNextArrow'
-
 /* ─── Types ────────────────────────────────────────────────────────────────── */
 interface CommentReply {
   id: string; user_id: string; reply_text: string; created_at: string
@@ -379,6 +348,7 @@ export interface Product {
 }
 interface ProductCardProps {
   product: Product
+  priority?: boolean
   onProductUpdate?: (product: Product) => void
   onOpenMap?: (product: Product) => void
   onOpenPreOrder?: (product: Product) => void
@@ -386,7 +356,7 @@ interface ProductCardProps {
 
 /* ─── Main component ───────────────────────────────────────────────────────── */
 export const ProductCard: React.FC<ProductCardProps> = memo(({
-  product, onProductUpdate, onOpenMap, onOpenPreOrder
+  product, priority = false, onProductUpdate, onOpenMap, onOpenPreOrder
 }) => {
   const { user } = useAuth()
   const { requireAct } = useCanAct()
@@ -398,6 +368,8 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   const [mapModalOpen, setMapModalOpen] = useState(false)
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [commentsLoaded, setCommentsLoaded] = useState(false)
+  const [photoIndex, setPhotoIndex] = useState(0)
+  const photoCarouselRef = useRef<HTMLDivElement | null>(null)
 
   const formatDate = (d: string | null | undefined) =>
     d ? new Date(d).toLocaleDateString('pt-AO', { day: '2-digit', month: 'short' }) : 'Data indisponível'
@@ -542,18 +514,22 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
     }
   }
 
-  const sliderSettings = {
-    dots: true,
-    infinite: product.photos && product.photos.length > 1,
-    fade: true,
-    speed: 600,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    autoplay: false,
-    arrows: product.photos && product.photos.length > 1,
-    nextArrow: <CustomNextArrow />,
-    prevArrow: <CustomPrevArrow />,
-    lazyLoad: 'progressive' as const,
+  const photos = product.photos || []
+  const visiblePhotoIndex = Math.min(photoIndex, Math.max(0, photos.length - 1))
+
+  const movePhoto = (direction: -1 | 1) => {
+    const viewport = photoCarouselRef.current
+    if (!viewport || photos.length < 2) return
+    const nextIndex = (visiblePhotoIndex + direction + photos.length) % photos.length
+    viewport.scrollTo({ left: nextIndex * viewport.clientWidth, behavior: 'smooth' })
+    setPhotoIndex(nextIndex)
+  }
+
+  const handlePhotoScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const viewport = event.currentTarget
+    if (!viewport.clientWidth || photos.length < 2) return
+    const nextIndex = Math.min(photos.length - 1, Math.round(viewport.scrollLeft / viewport.clientWidth))
+    setPhotoIndex(current => current === nextIndex ? current : nextIndex)
   }
 
   return (
@@ -584,31 +560,64 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
 
         {/* ── Photo carousel ── */}
         <div style={styles.imageWrap}>
-          {product.photos && product.photos.length > 0 ? (
-            <Slider {...sliderSettings}>
-              {product.photos.map((photo, i) => (
-                <div key={i}>
+          {photos.length > 0 ? (
+            <div
+              ref={photoCarouselRef}
+              onScroll={handlePhotoScroll}
+              aria-label={`Fotografias de ${product.product_type}`}
+              style={{
+                display: 'flex',
+                width: '100%',
+                height: '100%',
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                scrollSnapType: 'x mandatory',
+                scrollbarWidth: 'none',
+                overscrollBehaviorX: 'contain',
+              }}
+            >
+              {photos.map((photo, i) => (
+                <div key={`${product.id}-photo-${i}`} style={{ flex: '0 0 100%', minWidth: 0, scrollSnapAlign: 'start' }}>
                   <img
                     src={photo}
                     style={{
+                      display: 'block',
                       width: '100%',
                       aspectRatio: '4/3',
                       objectFit: 'cover',
-                      transition: 'transform 0.7s ease',
                     }}
                     alt={`${product.product_type} ${i + 1}`}
-                    loading={i === 0 ? 'eager' : 'lazy'}
+                    loading={priority && i === 0 ? 'eager' : 'lazy'}
                     decoding="async"
-                    fetchPriority={i === 0 ? 'high' : 'auto'}
+                    fetchPriority={priority && i === 0 ? 'high' : 'auto'}
                   />
                 </div>
               ))}
-            </Slider>
+            </div>
           ) : (
             <div style={styles.noPhoto}>
               <Leaf size={36} color={T.g400} />
               <span>Sem imagem</span>
             </div>
+          )}
+          {photos.length > 1 && (
+            <>
+              <button type="button" onClick={() => movePhoto(-1)} aria-label="Fotografia anterior" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', zIndex: 10, display: 'grid', placeItems: 'center', width: 32, height: 32, border: 0, borderRadius: '50%', background: 'rgba(255,255,255,0.92)', boxShadow: '0 2px 8px rgba(0,0,0,0.12)', cursor: 'pointer' }}>
+                <ChevronLeft size={17} color={T.ink} />
+              </button>
+              <button type="button" onClick={() => movePhoto(1)} aria-label="Fotografia seguinte" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', zIndex: 10, display: 'grid', placeItems: 'center', width: 32, height: 32, border: 0, borderRadius: '50%', background: 'rgba(255,255,255,0.92)', boxShadow: '0 2px 8px rgba(0,0,0,0.12)', cursor: 'pointer' }}>
+                <ChevronRight size={17} color={T.ink} />
+              </button>
+              <div aria-label={`Fotografia ${visiblePhotoIndex + 1} de ${photos.length}`} style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                {photos.map((_, i) => (
+                  <button key={i} type="button" onClick={() => {
+                    const viewport = photoCarouselRef.current
+                    if (viewport) viewport.scrollTo({ left: i * viewport.clientWidth, behavior: 'smooth' })
+                    setPhotoIndex(i)
+                  }} aria-label={`Ver fotografia ${i + 1}`} aria-current={i === visiblePhotoIndex ? 'true' : undefined} style={{ width: i === visiblePhotoIndex ? 18 : 6, height: 6, border: 0, padding: 0, borderRadius: 999, background: i === visiblePhotoIndex ? '#fff' : 'rgba(255,255,255,0.55)', cursor: 'pointer', transition: 'width 0.2s ease' }} />
+                ))}
+              </div>
+            </>
           )}
           <div style={styles.imageOverlay} />
         </div>
@@ -902,17 +911,19 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
 
           <div style={{ width: '100%', height: 420 }}>
             {mapModalOpen && product.location_lat && product.location_lng && (
-              <SimpleLeafletMap
-                center={{ lat: Number(product.location_lat.toFixed(2)), lng: Number(product.location_lng.toFixed(2)) }}
-                zoom={9}
-                height={420}
-                markers={[{
-                  lat: Number(product.location_lat.toFixed(2)),
-                  lng: Number(product.location_lng.toFixed(2)),
-                  color: T.g600 as unknown as string,
-                  popupHtml: '<strong>Zona de origem</strong><br/>Localização aproximada',
-                }]}
-              />
+              <Suspense fallback={<div role="status" aria-label="A carregar mapa" style={{ height: 420, display: 'grid', placeItems: 'center', color: T.mid }}>A carregar mapa…</div>}>
+                <SimpleLeafletMap
+                  center={{ lat: Number(product.location_lat.toFixed(2)), lng: Number(product.location_lng.toFixed(2)) }}
+                  zoom={9}
+                  height={420}
+                  markers={[{
+                    lat: Number(product.location_lat.toFixed(2)),
+                    lng: Number(product.location_lng.toFixed(2)),
+                    color: T.g600 as unknown as string,
+                    popupHtml: '<strong>Zona de origem</strong><br/>Localização aproximada',
+                  }]}
+                />
+              </Suspense>
             )}
           </div>
 

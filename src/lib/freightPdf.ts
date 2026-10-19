@@ -1,4 +1,3 @@
-import { jsPDF } from 'jspdf';
 import agrilinkLogo from '../assets/agrilink-logo.png';
 
 export interface FreightPdfLoad {
@@ -61,6 +60,7 @@ const toDataUrl = async (url: string) => {
 };
 
 export const downloadFreightLoadPdf = async (load: FreightPdfLoad) => {
+  const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();

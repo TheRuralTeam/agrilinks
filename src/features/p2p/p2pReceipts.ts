@@ -1,4 +1,4 @@
-import jsPDF from 'jspdf'
+import type { jsPDF } from 'jspdf'
 import { supabase } from '../../integrations/supabase/client'
 import { addOfficialAgriLinkLogo, downloadPdf } from '../../lib/pdfBranding'
 
@@ -115,6 +115,7 @@ const addWrapped = (doc: jsPDF, text: string, x: number, y: number, width: numbe
 }
 
 export async function downloadP2PTransactionReceipt(orderId: string) {
+  const { default: jsPDF } = await import('jspdf')
   const receipt = await fetchP2PTransactionReceipt(orderId)
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   const margin = 16

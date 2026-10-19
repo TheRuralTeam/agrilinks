@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../integrations/supabase/client'
+import { clearOfflineReadCache } from '../lib/offlineReadCache'
 import { User as UserProfile, RegisterData } from '../types/database'
 import { toast } from '../hooks/use-toast'
 import { buildAuthRedirectUrl, sendConfirmationEmail, sendPasswordResetEmail } from '../features/auth/email'
@@ -151,6 +152,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           checkAdminRole(nextSession.user.id),
         ])
       } else {
+        try {
+          await clearOfflineReadCache()
+        } catch (error) {
+          console.warn('[AgriLink] Não foi possível limpar dados locais ao terminar sessão.', error)
+        }
         setUserProfile(null)
         setIsAdmin(false)
         setIsRootAdmin(false)

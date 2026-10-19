@@ -19,6 +19,7 @@ import { AGRICULTURAL_PRODUCT_GROUPS } from '../lib/agriculturalProducts'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import SimpleLeafletMap from '../components/SimpleLeafletMap';
 import { validateProductSubmission } from '../features/products/businessRules'
+import { enqueueOfflineInsert } from '../lib/offlineMutationQueue'
 import IdentityActionDialog from '../components/IdentityActionDialog'
 
 const PublishProduct = () => {
@@ -196,59 +197,81 @@ const PublishProduct = () => {
     }
 
     setLoading(true);
+    const productId = crypto.randomUUID();
+    const offlineProductRow: Record<string, unknown> = {
+      id: productId,
+      user_id: user.id,
+      product_type: formData.product_type,
+      category: formData.category,
+      sale_unit: formData.sale_unit,
+      min_order_quantity: parseFloat(formData.min_order_quantity),
+      package_weight_kg: formData.package_weight_kg ? parseFloat(formData.package_weight_kg) : null,
+      product_variety: formData.product_variety.trim() || null,
+      product_condition: formData.product_condition || null,
+      packaging_type: formData.packaging_type.trim() || null,
+      quantity: parseFloat(formData.quantity),
+      harvest_date: formData.harvest_date,
+      price: parseFloat(formData.price),
+      province_id: formData.province_id,
+      municipality_id: formData.municipality_id,
+      farmer_name: formData.farmer_name,
+      contact: formData.contact,
+      description: formData.description,
+      logistics_access: formData.logistics_access as 'sim' | 'nao' | 'parcial',
+      status: 'pending_approval',
+      photos: [],
+      location_lat: location?.lat ?? null,
+      location_lng: location?.lng ?? null,
+    };
 
     try {
+      if (!navigator.onLine) {
+        await enqueueOfflineInsert({ userId: user.id, table: 'products', row: offlineProductRow, files: selectedImages });
+        toast({ title: 'Produto guardado para sincronização', description: 'O rascunho e as imagens ficaram guardados neste dispositivo. A publicação será enviada quando a internet regressar.' });
+        navigate('/perfil');
+        return;
+      }
+
       const uploadedUrls: string[] = [];
       for (let i = 0; i < selectedImages.length; i++) {
         const file = selectedImages[i];
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}-${i}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from('product-photos').upload(fileName, file);
+        const fileExt = file.name.split('.').pop()?.replace(/[^a-zA-Z0-9]/g, '') || 'bin';
+        const fileName = `${user.id}/offline/${productId}-${i}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('product-photos').upload(fileName, file, { upsert: true });
         if (uploadError) throw uploadError;
         const { data: { publicUrl } } = supabase.storage.from('product-photos').getPublicUrl(fileName);
         uploadedUrls.push(publicUrl);
       }
 
-     const { data: inserted, error } = await supabase.from('products').insert({
-  user_id: user.id,
-  product_type: formData.product_type,
-  category: formData.category,
-  sale_unit: formData.sale_unit,
-  min_order_quantity: parseFloat(formData.min_order_quantity),
-  package_weight_kg: formData.package_weight_kg ? parseFloat(formData.package_weight_kg) : null,
-  product_variety: formData.product_variety.trim() || null,
-  product_condition: formData.product_condition || null,
-  packaging_type: formData.packaging_type.trim() || null,
-  quantity: parseFloat(formData.quantity),
-  harvest_date: formData.harvest_date,
-  price: parseFloat(formData.price),
-  province_id: formData.province_id,
-  municipality_id: formData.municipality_id,
-  farmer_name: formData.farmer_name,
-  contact: formData.contact,
-  description: formData.description,
-  logistics_access: formData.logistics_access as 'sim' | 'nao' | 'parcial',
-  status: 'pending_approval',
-  photos: uploadedUrls,
-  location_lat: location?.lat || null,
-  location_lng: location?.lng || null
-}).select('id').single();
-
+      const { data: inserted, error } = await supabase.from('products').insert({
+        ...offlineProductRow,
+        photos: uploadedUrls,
+      } as any).select('id').single();
 
       if (error) throw error;
 
-      // Trigger AI verification against fichas técnicas (fire-and-forget)
       if (inserted?.id) {
         supabase.functions.invoke('verify-product-ficha', {
           body: { product_id: inserted.id },
         }).catch((e) => console.error('verify error', e));
       }
 
-      toast({ title: "Produto enviado para aprovação", description: "O seu produto foi recebido e ficará visível no feed após aprovação dos administradores." });
+      toast({ title: 'Produto enviado para aprovação', description: 'O seu produto foi recebido e ficará visível no feed após aprovação dos administradores.' });
       navigate('/perfil');
     } catch (error: any) {
       console.error('Erro ao publicar produto:', error);
-      toast({ title: "Erro ao publicar produto", description: error.message || "Ocorreu um erro ao publicar o produto. Verifique os campos e tente novamente.", variant: "destructive" });
+      if (!navigator.onLine) {
+        try {
+          await enqueueOfflineInsert({ userId: user.id, table: 'products', row: offlineProductRow, files: selectedImages });
+          toast({ title: 'Produto guardado para sincronização', description: 'A ligação caiu durante a publicação. Os dados e as imagens ficaram guardados neste dispositivo e serão reenviados quando a internet regressar.' });
+          navigate('/perfil');
+          return;
+        } catch (queueError: any) {
+          toast({ title: 'Não foi possível guardar offline', description: queueError?.message || 'O dispositivo não conseguiu guardar o rascunho. Não feches esta página até recuperares a ligação.', variant: 'destructive' });
+          return;
+        }
+      }
+      toast({ title: 'Erro ao publicar produto', description: error.message || 'Ocorreu um erro ao publicar o produto. Verifique os campos e tente novamente.', variant: 'destructive' });
     } finally {
       setLoading(false);
     }

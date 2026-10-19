@@ -22,6 +22,7 @@ import { supabase } from "../integrations/supabase/client";
 import { useToast } from "../hooks/use-toast";
 import Loader from "../components/ui/Loader";
 import { decryptChatMessage, encryptChatMessage, ensureChatEncryptionKey } from "../lib/chatEncryption";
+import { enqueueOfflineInsert, getPendingOfflineMessages } from "../lib/offlineMutationQueue";
 
 // --- Branding Tokens ---
 import { T } from '../lib/brand';
@@ -247,6 +248,32 @@ const Messages = () => {
     loadConversation();
   }, [id, user, navigate, toast]);
 
+  useEffect(() => {
+    if (!user?.id || !id) return;
+    let active = true;
+    void getPendingOfflineMessages(user.id, id).then(async (rows) => {
+      const pendingMessages = await Promise.all(rows.map(async (row) => ({
+        ...(row as unknown as Message),
+        content: await decryptChatMessage(String(row.content ?? ""), id, user.id),
+        files: null,
+      })));
+      if (!active || pendingMessages.length === 0) return;
+      setMessages((previous) => {
+        const knownIds = new Set(previous.map((message) => message.id));
+        return [...previous, ...pendingMessages.filter((message) => !knownIds.has(message.id))];
+      });
+    }).catch((error) => console.warn("Não foi possível recuperar mensagens offline guardadas.", error));
+    const handleMessageSynced = (event: Event) => {
+      const messageId = (event as CustomEvent<{ id?: string }>).detail?.id;
+      if (messageId) setSentMessageIds((previous) => new Set([...previous, messageId]));
+    };
+    window.addEventListener("agrilink:offline-message-synced", handleMessageSynced);
+    return () => {
+      active = false;
+      window.removeEventListener("agrilink:offline-message-synced", handleMessageSynced);
+    };
+  }, [user?.id, id]);
+
   // Presença real no chat: só considera online quem está ligado ao canal desta conversa.
   // Se a ligação de presença falhar, mostramos estado desconhecido em vez de afirmar offline.
   useEffect(() => {
@@ -319,7 +346,11 @@ const Messages = () => {
             content: await decryptChatMessage(msg.content, id, user.id),
             files: msg.files ? (Array.isArray(msg.files) ? msg.files : []) : []
           }))) as Message[];
-          setMessages(formattedMsgs);
+          setMessages((previous) => {
+            const serverIds = new Set(formattedMsgs.map((message) => message.id));
+            const pendingLocalMessages = previous.filter((message) => !serverIds.has(message.id));
+            return [...formattedMsgs, ...pendingLocalMessages];
+          });
           const unread = formattedMsgs.filter(m => m.receiver_id === user.id && !m.read);
           if (unread.length > 0) {
             await supabase.from("messages").update({ read: true }).in("id", unread.map(m => m.id));
@@ -386,30 +417,58 @@ const Messages = () => {
       return;
     }
     setIsSending(true);
+    let offlineReadyMessage: Record<string, unknown> | null = null;
+    let offlineDisplayContent = '';
     try {
       const filesData: Array<{ url: string; name: string; size: number }> = [];
-      for (const file of selectedFiles) {
-        const ext = file.name.split(".").pop();
-        const fileName = `${crypto.randomUUID()}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from(BUCKET_NAME).upload(fileName, file);
-        if (!uploadError) {
-          const { data } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(fileName, 3600);
-          if (data) filesData.push({ url: data.signedUrl, name: file.name, size: file.size });
-        }
-      }
       const plainContent = newMessage.trim() || (filesData.length > 0 ? `📎 ${filesData.length} arquivo(s)` : "");
+      offlineDisplayContent = plainContent;
       const encryptedContent = await encryptChatMessage(plainContent, id, user.id, conversation.participant_id);
-      const { data, error } = await supabase.from("messages").insert([{
-        conversation_id: id, sender_id: user.id, receiver_id: conversation.participant_id,
-        content: encryptedContent, read: false, files: filesData.length > 0 ? filesData : undefined
-      }]).select().single();
+      offlineReadyMessage = {
+        id: crypto.randomUUID(),
+        conversation_id: id,
+        sender_id: user.id,
+        receiver_id: conversation.participant_id,
+        content: encryptedContent,
+        read: false,
+        created_at: new Date().toISOString(),
+        files: null,
+      };
+
+      if (!navigator.onLine) {
+        await enqueueOfflineInsert({ userId: user.id, table: "messages", row: offlineReadyMessage });
+        const pendingMessage = { ...offlineReadyMessage, content: offlineDisplayContent } as unknown as Message;
+        setMessages((previous) => [...previous.filter((message) => message.id !== pendingMessage.id), pendingMessage]);
+        setNewMessage("");
+        toast({ title: "Mensagem guardada offline", description: "A mensagem cifrada será enviada quando a internet regressar." });
+        return;
+      }
+
+      const { data, error } = await (supabase as any).from("messages").insert([offlineReadyMessage]).select().single();
       if (error) throw error;
-      setSentMessageIds((prev) => new Set([...prev, data.id]));
+      setSentMessageIds((previous) => new Set([...previous, data.id]));
       await supabase.from("conversations").update({ last_message: "🔒 Mensagem encriptada", last_timestamp: new Date().toISOString() }).eq("id", id);
       setNewMessage("");
       setSelectedFiles([]);
     } catch (err) {
       console.error("Erro ao enviar mensagem segura:", err);
+      if (!navigator.onLine && offlineReadyMessage) {
+        try {
+          await enqueueOfflineInsert({ userId: user.id, table: "messages", row: offlineReadyMessage });
+          const pendingMessage = { ...offlineReadyMessage, content: offlineDisplayContent } as unknown as Message;
+          setMessages((previous) => [...previous.filter((message) => message.id !== pendingMessage.id), pendingMessage]);
+          setNewMessage("");
+          toast({ title: "Mensagem guardada offline", description: "A ligação caiu durante o envio. A mensagem cifrada será sincronizada quando a internet regressar." });
+          return;
+        } catch (queueError) {
+          toast({
+            title: "Não foi possível guardar a mensagem offline",
+            description: queueError instanceof Error ? queueError.message : "Mantém o texto no campo e tenta novamente.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
       toast({
         title: "Não foi possível enviar a mensagem",
         description: err instanceof Error ? err.message : "Verifique a ligação e tente novamente.",

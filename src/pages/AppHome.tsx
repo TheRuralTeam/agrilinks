@@ -3,7 +3,8 @@ import { toast } from 'sonner'
 import {
   Search, LayoutDashboard, ShoppingCart, Bell,
   ChevronDown, CheckCircle2, Package, Activity,
-  MapPin, TrendingUp, Menu, X, WifiOff
+  MapPin, TrendingUp, Menu, X, WifiOff,
+  Apple, Carrot, Sprout, Wheat, Citrus, Flame, Fish, Drumstick, Egg, Croissant, Milk, Coffee, Layers
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
 import { supabase } from '../integrations/supabase/client'
@@ -11,39 +12,37 @@ import { useAuth } from '../contexts/AuthContext'
 import { useCanAct } from '../hooks/useCanAct'
 import { useNavigate } from 'react-router-dom'
 import { ProductCard, Product } from '../components/ProductCard'
-import { ProductLocationMap } from '../components/ProductLocationMap'
 import IdentityActionDialog from '../components/IdentityActionDialog'
-import LocationAutocomplete from '../components/LocationAutocomplete'
 import { savePreferredDeliveryLocation } from '../features/products/deliveryLocationPreference'
 import agrilinkLogo from '../assets/agrilink-logo.png'
 import { fetchActiveProducts } from '../features/products/productsService'
 import { isNeutralPublicView, sanitizePublicProduct } from '../lib/publicData'
+import { enqueueOfflinePreOrder } from '../lib/offlineMutationQueue'
 import Loader from '../components/ui/Loader'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-  faAppleWhole, faCarrot, faSeedling, faWheatAwn, faLemon,
-  faPepperHot, faFish, faDrumstickBite, faEgg, faBreadSlice,
-  faCheese, faMugHot, faLayerGroup
-} from '@fortawesome/free-solid-svg-icons'
 
 const CATEGORIES = [
-  { id: 'all',     label: 'Todos',      icon: faLayerGroup,    color: T.green },
-  { id: 'frutas',  label: 'Frutas',     icon: faAppleWhole,    color: T.green },
-  { id: 'citrus',  label: 'Cítricos',   icon: faLemon,         color: T.green },
-  { id: 'legumes', label: 'Legumes',    icon: faCarrot,        color: T.green },
-  { id: 'verduras',label: 'Verduras',   icon: faSeedling,      color: T.green },
-  { id: 'cereais', label: 'Cereais',    icon: faWheatAwn,      color: T.green },
-  { id: 'tempero', label: 'Temperos',   icon: faPepperHot,     color: T.green },
-  { id: 'pescado', label: 'Pescado',    icon: faFish,          color: T.green },
-  { id: 'carnes',  label: 'Carnes',     icon: faDrumstickBite, color: T.green },
-  { id: 'ovos',    label: 'Ovos',       icon: faEgg,           color: T.green },
-  { id: 'paes',    label: 'Pães',       icon: faBreadSlice,    color: T.green },
-  { id: 'lacteos', label: 'Lácteos',    icon: faCheese,        color: T.green },
-  { id: 'bebidas', label: 'Bebidas',    icon: faMugHot,         color: T.green },
+  { id: 'all',     label: 'Todos',      icon: Layers,    color: T.green },
+  { id: 'frutas',  label: 'Frutas',     icon: Apple,    color: T.green },
+  { id: 'citrus',  label: 'Cítricos',   icon: Citrus,         color: T.green },
+  { id: 'legumes', label: 'Legumes',    icon: Carrot,        color: T.green },
+  { id: 'verduras',label: 'Verduras',   icon: Sprout,      color: T.green },
+  { id: 'cereais', label: 'Cereais',    icon: Wheat,      color: T.green },
+  { id: 'tempero', label: 'Temperos',   icon: Flame,     color: T.green },
+  { id: 'pescado', label: 'Pescado',    icon: Fish,          color: T.green },
+  { id: 'carnes',  label: 'Carnes',     icon: Drumstick, color: T.green },
+  { id: 'ovos',    label: 'Ovos',       icon: Egg,           color: T.green },
+  { id: 'paes',    label: 'Pães',       icon: Croissant,    color: T.green },
+  { id: 'lacteos', label: 'Lácteos',    icon: Milk,        color: T.green },
+  { id: 'bebidas', label: 'Bebidas',    icon: Coffee,         color: T.green },
 ]
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 import { T } from '../lib/brand';
+
+const ProductLocationMap = React.lazy(() =>
+  import('../components/ProductLocationMap').then(({ ProductLocationMap }) => ({ default: ProductLocationMap }))
+)
+const LocationAutocomplete = React.lazy(() => import('../components/LocationAutocomplete'))
 
 /* ─── Skeleton ──────────────────────────────────────────────────────────────── */
 const ProductSkeleton = () => (
@@ -181,13 +180,23 @@ const AppHome = () => {
     return () => { cancelled = true }
   }, [activeCategory, fetchProducts])
 
-  const handleProductUpdate = (p: Product) => setProducts(prev => prev.map(x => x.id === p.id ? p : x))
-  const handleLoadMore = () => { if (!loadingMore && hasMoreProducts) fetchProducts(feedPage + 1, true) }
-  const handleOpenMap = (p: Product) => { setSelectedProduct(p); setMapModalOpen(true) }
-  const handleOpenPreOrder = (p: Product) => {
+  const handleProductUpdate = useCallback((p: Product) => {
+    setProducts(prev => prev.map(x => x.id === p.id ? p : x))
+  }, [])
+  const handleLoadMore = useCallback(() => {
+    if (!loadingMore && hasMoreProducts) fetchProducts(feedPage + 1, true)
+  }, [loadingMore, hasMoreProducts, fetchProducts, feedPage])
+  const handleOpenMap = useCallback((p: Product) => {
+    setSelectedProduct(p)
+    setMapModalOpen(true)
+  }, [])
+  const handleOpenPreOrder = useCallback((p: Product) => {
     if (!requireAct('fazer uma pré-compra')) return
-    setSelectedProduct(p); setOrderData({ quantity:1, location:'' }); setDeliveryCoordinates(null); setModalOpen(true)
-  }
+    setSelectedProduct(p)
+    setOrderData({ quantity: 1, location: '' })
+    setDeliveryCoordinates(null)
+    setModalOpen(true)
+  }, [requireAct])
 
   const handlePreOrderSubmit = async () => {
     if (!selectedProduct || !user) return toast.error('Inicie sessão para continuar')
@@ -197,11 +206,28 @@ const AppHome = () => {
     }
 
     setIsSubmitting(true)
+    let offlinePreOrder: { productId: string; quantity: number; location: string; deliveryLat?: number; deliveryLng?: number; idempotencyKey: string } | null = null
     try {
       const quantity = Number(orderData.quantity || 0)
       if (!Number.isFinite(quantity) || quantity <= 0) throw new Error('Informe uma quantidade válida.')
+      if (!orderData.location.trim()) throw new Error('Informe o local de entrega.')
 
       const idempotencyKey = crypto.randomUUID()
+      offlinePreOrder = {
+        productId: selectedProduct.id,
+        quantity,
+        location: orderData.location.trim(),
+        deliveryLat: deliveryCoordinates?.latitude,
+        deliveryLng: deliveryCoordinates?.longitude,
+        idempotencyKey,
+      }
+      if (!navigator.onLine) {
+        await enqueueOfflinePreOrder({ userId: user.id, ...offlinePreOrder })
+        toast.info('Pré-compra guardada offline. Ainda não é uma reserva confirmada: o servidor vai validar stock e condições quando a internet regressar.')
+        setModalOpen(false)
+        setSelectedProduct(null)
+        return
+      }
       const { data, error } = await supabase.rpc('create_marketplace_pre_order', {
         p_product_id: selectedProduct.id,
         p_quantity: quantity,
@@ -253,6 +279,18 @@ const AppHome = () => {
       setSelectedProduct(null)
     } catch (error: any) {
       console.error('[AgriLink] Erro ao criar pré-compra:', error)
+      if (!navigator.onLine && offlinePreOrder) {
+        try {
+          await enqueueOfflinePreOrder({ userId: user.id, ...offlinePreOrder })
+          toast.info('A ligação caiu durante o envio. A intenção de pré-compra foi guardada e será validada pelo servidor quando a internet regressar.')
+          setModalOpen(false)
+          setSelectedProduct(null)
+          return
+        } catch (queueError: any) {
+          toast.error(queueError?.message || 'Não foi possível guardar a pré-compra offline.')
+          return
+        }
+      }
       toast.error(error?.message || 'Não foi possível concluir a reserva.')
     } finally {
       setIsSubmitting(false)
@@ -412,9 +450,11 @@ const AppHome = () => {
                   background: active ? 'rgba(255,255,255,0.25)' : `${cat.color}18`,
                   transition: 'all 0.18s', flexShrink: 0,
                 }}>
-                  <FontAwesomeIcon
-                    icon={cat.icon}
-                    style={{ fontSize: 11, color: active ? T.white : cat.color }}
+                  <cat.icon
+                    size={14}
+                    strokeWidth={2}
+                    color={active ? T.white : cat.color}
+                    aria-hidden="true"
                   />
                 </div>
                 <span style={{
@@ -460,6 +500,7 @@ const AppHome = () => {
                 
               >
                 <ProductCard
+                  priority={i === 0}
                   product={product}
                   onProductUpdate={handleProductUpdate}
                   onOpenMap={handleOpenMap}
@@ -584,18 +625,20 @@ const AppHome = () => {
                 Local de Entrega
                 <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:5, background: T.g50, color: T.g600, border:`1px solid ${T.gBorder}` }}>Obrigatório</span>
               </label>
-              <LocationAutocomplete
-                value={orderData.location}
-                onChange={location => setOrderData({ ...orderData, location })}
-                onSelectLocation={location => setDeliveryCoordinates(location ? { latitude: location.latitude, longitude: location.longitude } : null)}
-                placeholder="Ex.: Viana, Luanda ou Bairro/Zona"
-                inputStyle={{
-                  height:42, borderRadius:10, border:`1px solid ${T.rule}`, padding:'0 12px 0 38px',
-                  fontSize:14, outline:'none', background: T.white, color: T.ink,
-                  transition:'border-color 0.18s, box-shadow 0.18s', width:'100%', boxSizing:'border-box',
-                }}
-                onFocus={() => {}}
-              />
+              <React.Suspense fallback={<div role="status" className="rounded-lg border p-3 text-sm text-muted-foreground">A carregar localização…</div>}>
+                <LocationAutocomplete
+                  value={orderData.location}
+                  onChange={location => setOrderData({ ...orderData, location })}
+                  onSelectLocation={location => setDeliveryCoordinates(location ? { latitude: location.latitude, longitude: location.longitude } : null)}
+                  placeholder="Ex.: Viana, Luanda ou Bairro/Zona"
+                  inputStyle={{
+                    height:42, borderRadius:10, border:`1px solid ${T.rule}`, padding:'0 12px 0 38px',
+                    fontSize:14, outline:'none', background: T.white, color: T.ink,
+                    transition:'border-color 0.18s, box-shadow 0.18s', width:'100%', boxSizing:'border-box',
+                  }}
+                  onFocus={() => {}}
+                />
+              </React.Suspense>
             </div>
 
             {/* Summary */}
@@ -680,11 +723,13 @@ const AppHome = () => {
               </DialogDescription>
             </div>
           </div>
-          <ProductLocationMap
-            latitude={selectedProduct?.location_lat}
-            longitude={selectedProduct?.location_lng}
-            className="h-[440px] rounded-none border-0"
-          />
+          <React.Suspense fallback={<div role="status" className="grid h-[440px] place-items-center text-sm text-muted-foreground">A carregar mapa…</div>}>
+            <ProductLocationMap
+              latitude={selectedProduct?.location_lat}
+              longitude={selectedProduct?.location_lng}
+              className="h-[440px] rounded-none border-0"
+            />
+          </React.Suspense>
         </DialogContent>
       </Dialog>
 

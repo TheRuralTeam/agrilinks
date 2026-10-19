@@ -23,6 +23,7 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
  import agrilinkLogo from '../assets/agrilink-logo.png';
  import { angolaProvinces } from '../data/angola-locations';
  import { SOURCING_AGRICULTURAL_PRODUCTS, SOURCING_UNITS } from '../features/sourcing/sourcingCatalog';
+import { enqueueOfflineInsert } from '../lib/offlineMutationQueue';
  
  interface CompanyData {
    id: string;
@@ -223,6 +224,7 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
     }
 
     setRfqLoading(true);
+    let offlineSourcingRow: Record<string, unknown> | null = null;
     try {
       const details = [
         `Perfil consultado: ${companyData?.name || 'Empresa'}`,
@@ -232,8 +234,8 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
       const selectedProvince = angolaProvinces.find(province => province.id === rfqForm.deliveryProvinceId);
       const selectedMunicipality = selectedProvince?.municipalities.find(municipality => municipality.id === rfqForm.deliveryMunicipalityId);
       const deliveryLocation = rfqForm.deliveryLocation.trim() || [selectedMunicipality?.name, selectedProvince?.name].filter(Boolean).join(', ');
-
-      const { data: sourcingRequest, error } = await supabase.from('sourcing_requests').insert({
+      offlineSourcingRow = {
+        id: crypto.randomUUID(),
         user_id: user.id,
         product_name: productName,
         quantity,
@@ -245,7 +247,18 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
         delivery_date: rfqForm.deliveryDate,
         description: details || null,
         status: 'pending',
-      }).select('id').single();
+      };
+
+      if (!navigator.onLine) {
+        await enqueueOfflineInsert({ userId: user.id, table: 'sourcing_requests', row: offlineSourcingRow });
+        toast.info('Pedido guardado neste dispositivo. Será enviado automaticamente quando a internet regressar.');
+        setRfqOpen(false);
+        setRfqForm({ productName: '', quantity: '', unit: 'kg', qualitySpecification: '', deliveryProvinceId: '', deliveryMunicipalityId: '', deliveryLocation: '', deliveryDate: '', description: '' });
+        navigate('/perfil?tab=sourcing');
+        return;
+      }
+
+      const { data: sourcingRequest, error } = await supabase.from('sourcing_requests').insert(offlineSourcingRow as any).select('id').single();
       if (error) throw error;
 
       // The sourcing request is the source of truth. Agent submission is
@@ -277,6 +290,19 @@ import { ArrowLeft, Building2, Briefcase, History, FileText } from 'lucide-react
       navigate('/perfil?tab=sourcing');
     } catch (error) {
       console.error('Erro ao enviar solicitação de cotação:', error);
+      if (!navigator.onLine && offlineSourcingRow) {
+        try {
+          await enqueueOfflineInsert({ userId: user.id, table: 'sourcing_requests', row: offlineSourcingRow });
+          toast.info('A ligação caiu durante o envio. O pedido ficou guardado neste dispositivo e será sincronizado quando a internet regressar.');
+          setRfqOpen(false);
+          setRfqForm({ productName: '', quantity: '', unit: 'kg', qualitySpecification: '', deliveryProvinceId: '', deliveryMunicipalityId: '', deliveryLocation: '', deliveryDate: '', description: '' });
+          navigate('/perfil?tab=sourcing');
+          return;
+        } catch (queueError) {
+          toast.error(queueError instanceof Error ? queueError.message : 'Não foi possível guardar o pedido offline.');
+          return;
+        }
+      }
       toast.error(error instanceof Error ? error.message : 'Não foi possível enviar a solicitação.');
     } finally {
       setRfqLoading(false);

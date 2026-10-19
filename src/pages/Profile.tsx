@@ -26,6 +26,7 @@ import agrilinkLogo from '../assets/agrilink-logo.png'
 import { downloadMarketplaceTransactionReceipt } from '../features/orders/transactionReceipts'
 import { angolaProvinces } from '../data/angola-locations'
 import { SOURCING_AGRICULTURAL_PRODUCTS, SOURCING_UNITS } from '../features/sourcing/sourcingCatalog'
+import { enqueueOfflineUpdate } from '../lib/offlineMutationQueue'
 
 /* ─── Design tokens ──────────────────────────────────────────────────────────
    Mesma fonte de verdade da landing (../lib/brand). Os campos abaixo com
@@ -53,7 +54,7 @@ interface UserProduct {
   id: string; product_type: string; quantity: number; harvest_date: string
   price: number; province_id: string; municipality_id: string
   sale_unit?: string | null; min_order_quantity?: number | null
-  status: 'active' | 'inactive' | 'removed'; created_at: string | null
+  status: 'active' | 'inactive' | 'removed'; created_at: string | null; updated_at?: string | null
   views?: number; interests?: number
 }
 interface FichaRecebimento {
@@ -768,18 +769,38 @@ const Profile = () => {
       requireAuth('editar o teu perfil')
       return
     }
+    const profileUpdates = {
+      full_name: profileData.full_name,
+      phone: profileData.phone,
+      province_id: profileData.province_id,
+      municipality_id: profileData.municipality_id,
+      updated_at: new Date().toISOString(),
+    }
     try {
-      const { error } = await supabase.from('users').update({
-        full_name: profileData.full_name,
-        phone: profileData.phone,
-        province_id: profileData.province_id,
-        municipality_id: profileData.municipality_id,
-        updated_at: new Date().toISOString(),
-      }).eq('id', user.id)
+      if (!navigator.onLine) {
+        await enqueueOfflineUpdate({ userId: user.id, table: 'users', targetId: user.id, values: profileUpdates, baseUpdatedAt: (userProfile as any)?.updated_at ?? null })
+        toast({ title: 'Perfil guardado offline', description: 'As alterações ficaram guardadas neste dispositivo e serão sincronizadas quando a internet regressar.' })
+        setEditMode(false)
+        return
+      }
+      const { error } = await supabase.from('users').update(profileUpdates).eq('id', user.id)
       if (error) throw error
       toast({ title: 'Perfil actualizado com sucesso.' })
       setEditMode(false)
-    } catch (error: any) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }) }
+    } catch (error: any) {
+      if (!navigator.onLine) {
+        try {
+          await enqueueOfflineUpdate({ userId: user.id, table: 'users', targetId: user.id, values: profileUpdates })
+          toast({ title: 'Perfil guardado offline', description: 'A ligação caiu durante a gravação. As alterações serão sincronizadas quando a internet regressar.' })
+          setEditMode(false)
+          return
+        } catch (queueError: any) {
+          toast({ title: 'Erro', description: queueError.message || 'Não foi possível guardar as alterações offline.', variant: 'destructive' })
+          return
+        }
+      }
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    }
   }
 
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -829,32 +850,53 @@ const Profile = () => {
       toast({ title: 'Verifica os dados do produto', description: 'Indica o produto, uma quantidade positiva, um preço válido e uma quantidade mínima válida.', variant: 'destructive' })
       return
     }
+    const updates = {
+      product_type: productEditForm.product_type.trim(),
+      quantity,
+      price,
+      harvest_date: productEditForm.harvest_date || undefined,
+      sale_unit: productEditForm.sale_unit || 'kg',
+      min_order_quantity: minOrder,
+      province_id: productEditForm.province_id || editingProduct.province_id,
+      municipality_id: productEditForm.municipality_id || editingProduct.municipality_id,
+      description: productEditForm.description.trim() || null,
+      category: productEditForm.category.trim() || null,
+      product_variety: productEditForm.product_variety.trim() || null,
+      product_condition: productEditForm.product_condition.trim() || null,
+      packaging_type: productEditForm.packaging_type.trim() || null,
+      updated_at: new Date().toISOString(),
+    }
+    const applyLocalProductUpdate = () => {
+      setUserProducts((previous) => previous.map((product) => product.id === editingProduct.id ? { ...product, ...updates } as UserProduct : product))
+      setEditingProduct(null)
+    }
     setSavingProductEdit(true)
     try {
-      const updates = {
-        product_type: productEditForm.product_type.trim(),
-        quantity,
-        price,
-        harvest_date: productEditForm.harvest_date || undefined,
-        sale_unit: productEditForm.sale_unit || 'kg',
-        min_order_quantity: minOrder,
-        province_id: productEditForm.province_id || editingProduct.province_id,
-        municipality_id: productEditForm.municipality_id || editingProduct.municipality_id,
-        description: productEditForm.description.trim() || null,
-        category: productEditForm.category.trim() || null,
-        product_variety: productEditForm.product_variety.trim() || null,
-        product_condition: productEditForm.product_condition.trim() || null,
-        packaging_type: productEditForm.packaging_type.trim() || null,
-        updated_at: new Date().toISOString(),
+      if (!navigator.onLine) {
+        await enqueueOfflineUpdate({ userId: user.id, table: 'products', targetId: editingProduct.id, values: updates, baseUpdatedAt: editingProduct.updated_at ?? null })
+        applyLocalProductUpdate()
+        toast({ title: 'Produto actualizado offline', description: 'As alterações ficaram guardadas neste dispositivo e serão sincronizadas quando a internet regressar.' })
+        return
       }
       const { data, error } = await supabase.from('products').update(updates).eq('id', editingProduct.id).eq('user_id', user.id).select('*').single()
       if (error) throw error
-      setUserProducts(prev => prev.map(product => product.id === editingProduct.id ? { ...product, ...data } as UserProduct : product))
+      setUserProducts((previous) => previous.map((product) => product.id === editingProduct.id ? { ...product, ...data } as UserProduct : product))
       toast({ title: 'Produto actualizado', description: 'As alterações foram guardadas com sucesso.' })
       setEditingProduct(null)
       await fetchUserProducts()
     } catch (error: any) {
       console.error('[AgriLink] Erro ao editar produto:', error)
+      if (!navigator.onLine) {
+        try {
+          await enqueueOfflineUpdate({ userId: user.id, table: 'products', targetId: editingProduct.id, values: updates })
+          applyLocalProductUpdate()
+          toast({ title: 'Produto guardado offline', description: 'A ligação caiu durante a gravação. As alterações serão sincronizadas quando a internet regressar.' })
+          return
+        } catch (queueError: any) {
+          toast({ title: 'Não foi possível guardar offline', description: queueError?.message || 'Confirma os dados e tenta novamente.', variant: 'destructive' })
+          return
+        }
+      }
       toast({ title: 'Não foi possível guardar o produto', description: error?.message || 'Confirma os dados e tenta novamente.', variant: 'destructive' } as any)
     } finally {
       setSavingProductEdit(false)
@@ -1544,14 +1586,22 @@ const Profile = () => {
               disabled={confirmBusy}
               onClick={async () => {
                 if (!confirmAction || !user) return
+                const productToRemove = confirmAction.kind === 'delete-product' ? userProducts.find((product) => product.id === confirmAction.id) : undefined
+                const removalUpdates = { status: 'removed', updated_at: new Date().toISOString() }
                 setConfirmBusy(true)
                 try {
                   if (confirmAction.kind === 'delete-product') {
-                    const { data: removedProduct, error } = await supabase.from('products').update({ status: 'removed' }).eq('id', confirmAction.id).eq('user_id', user.id).select('id').single()
-                    if (error) throw error
-                    if (!removedProduct) throw new Error('O produto não foi encontrado ou já não tens permissão para o remover.')
-                    setUserProducts(prev => prev.filter(p => p.id !== confirmAction.id))
-                    toast({ title: 'Produto removido', description: 'O produto foi retirado do seu catálogo.' })
+                    if (!navigator.onLine) {
+                      await enqueueOfflineUpdate({ userId: user.id, table: 'products', targetId: confirmAction.id, values: removalUpdates, baseUpdatedAt: productToRemove?.updated_at ?? null })
+                      setUserProducts((previous) => previous.filter((product) => product.id !== confirmAction.id))
+                      toast({ title: 'Remoção guardada offline', description: 'O produto será retirado do catálogo quando a internet regressar.' })
+                    } else {
+                      const { data: removedProduct, error } = await supabase.from('products').update(removalUpdates).eq('id', confirmAction.id).eq('user_id', user.id).select('id').single()
+                      if (error) throw error
+                      if (!removedProduct) throw new Error('O produto não foi encontrado ou já não tens permissão para o remover.')
+                      setUserProducts((previous) => previous.filter((product) => product.id !== confirmAction.id))
+                      toast({ title: 'Produto removido', description: 'O produto foi retirado do seu catálogo.' })
+                    }
                   } else {
                     const updatedOrder = await respondToPreOrder(confirmAction.id, 'rejected')
                     setReceivedOrders(prev => prev.map(o => o.id === confirmAction.id ? { ...o, status: updatedOrder.status, updated_at: updatedOrder.updated_at } : o))
@@ -1561,6 +1611,18 @@ const Profile = () => {
                   setConfirmAction(null)
                 } catch (error: any) {
                   console.error('[AgriLink] Erro ao executar ação:', error)
+                  if (!navigator.onLine && confirmAction.kind === 'delete-product') {
+                    try {
+                      await enqueueOfflineUpdate({ userId: user.id, table: 'products', targetId: confirmAction.id, values: removalUpdates, baseUpdatedAt: productToRemove?.updated_at ?? null })
+                      setUserProducts((previous) => previous.filter((product) => product.id !== confirmAction.id))
+                      setConfirmAction(null)
+                      toast({ title: 'Remoção guardada offline', description: 'A ligação caiu durante a operação. A remoção será sincronizada quando a internet regressar.' })
+                      return
+                    } catch (queueError: any) {
+                      toast({ title: 'Não foi possível guardar a remoção', description: queueError?.message || 'Tente novamente quando houver ligação.', variant: 'destructive' } as any)
+                      return
+                    }
+                  }
                   toast({ title: 'Não foi possível concluir a ação', description: error?.message || 'Tente novamente.', variant: 'destructive' } as any)
                 } finally {
                   setConfirmBusy(false)

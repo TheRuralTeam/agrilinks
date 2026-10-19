@@ -1,7 +1,61 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+
+function offlinePrecacheManifest(): Plugin {
+  return {
+    name: "agrilink-offline-precache",
+    generateBundle(_options, bundle) {
+      // Pré-cache apenas o grafo estático do ponto de entrada. Chunks de rotas
+      // carregadas sob demanda (mapas, gráficos, PDFs e áreas administrativas)
+      // são guardados pela estratégia runtime quando o utilizador os visita.
+      // Assim, a primeira instalação offline não descarrega toda a aplicação.
+      const staticChunks = new Set<string>();
+      const visitStaticChunk = (fileName: string) => {
+        if (staticChunks.has(fileName)) return;
+        const output = bundle[fileName];
+        if (!output || output.type !== "chunk") return;
+        staticChunks.add(fileName);
+        output.imports.forEach(visitStaticChunk);
+      };
+
+      for (const output of Object.values(bundle)) {
+        if (output.type === "chunk" && output.isEntry) {
+          visitStaticChunk(output.fileName);
+        }
+      }
+
+      const assets = new Set<string>();
+
+      for (const file of staticChunks) {
+        const output = bundle[file];
+        if (!output || output.type !== "chunk") continue;
+
+        assets.add(`/${file}`);
+
+        // Vite regista os CSS e os ficheiros estáticos importados por cada
+        // chunk. Incluímos apenas os dependentes do shell, não os recursos de
+        // páginas dinâmicas que o utilizador ainda nem abriu.
+        const metadata = (output as unknown as {
+          viteMetadata?: {
+            importedCss?: Set<string>;
+            importedAssets?: Set<string>;
+          };
+        }).viteMetadata;
+
+        metadata?.importedCss?.forEach((asset) => assets.add(`/${asset}`));
+        metadata?.importedAssets?.forEach((asset) => assets.add(`/${asset}`));
+      }
+
+      this.emitFile({
+        type: "asset",
+        fileName: "precache-manifest.json",
+        source: JSON.stringify([...assets]),
+      });
+    },
+  };
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -12,6 +66,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
+    offlinePrecacheManifest(),
     mode === "development" && componentTagger(),
   ].filter(Boolean),
   resolve: {
