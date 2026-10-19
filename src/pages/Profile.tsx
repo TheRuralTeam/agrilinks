@@ -850,32 +850,53 @@ const Profile = () => {
       toast({ title: 'Verifica os dados do produto', description: 'Indica o produto, uma quantidade positiva, um preço válido e uma quantidade mínima válida.', variant: 'destructive' })
       return
     }
+    const updates = {
+      product_type: productEditForm.product_type.trim(),
+      quantity,
+      price,
+      harvest_date: productEditForm.harvest_date || undefined,
+      sale_unit: productEditForm.sale_unit || 'kg',
+      min_order_quantity: minOrder,
+      province_id: productEditForm.province_id || editingProduct.province_id,
+      municipality_id: productEditForm.municipality_id || editingProduct.municipality_id,
+      description: productEditForm.description.trim() || null,
+      category: productEditForm.category.trim() || null,
+      product_variety: productEditForm.product_variety.trim() || null,
+      product_condition: productEditForm.product_condition.trim() || null,
+      packaging_type: productEditForm.packaging_type.trim() || null,
+      updated_at: new Date().toISOString(),
+    }
+    const applyLocalProductUpdate = () => {
+      setUserProducts((previous) => previous.map((product) => product.id === editingProduct.id ? { ...product, ...updates } as UserProduct : product))
+      setEditingProduct(null)
+    }
     setSavingProductEdit(true)
     try {
-      const updates = {
-        product_type: productEditForm.product_type.trim(),
-        quantity,
-        price,
-        harvest_date: productEditForm.harvest_date || undefined,
-        sale_unit: productEditForm.sale_unit || 'kg',
-        min_order_quantity: minOrder,
-        province_id: productEditForm.province_id || editingProduct.province_id,
-        municipality_id: productEditForm.municipality_id || editingProduct.municipality_id,
-        description: productEditForm.description.trim() || null,
-        category: productEditForm.category.trim() || null,
-        product_variety: productEditForm.product_variety.trim() || null,
-        product_condition: productEditForm.product_condition.trim() || null,
-        packaging_type: productEditForm.packaging_type.trim() || null,
-        updated_at: new Date().toISOString(),
+      if (!navigator.onLine) {
+        await enqueueOfflineUpdate({ userId: user.id, table: 'products', targetId: editingProduct.id, values: updates })
+        applyLocalProductUpdate()
+        toast({ title: 'Produto actualizado offline', description: 'As alterações ficaram guardadas neste dispositivo e serão sincronizadas quando a internet regressar.' })
+        return
       }
       const { data, error } = await supabase.from('products').update(updates).eq('id', editingProduct.id).eq('user_id', user.id).select('*').single()
       if (error) throw error
-      setUserProducts(prev => prev.map(product => product.id === editingProduct.id ? { ...product, ...data } as UserProduct : product))
+      setUserProducts((previous) => previous.map((product) => product.id === editingProduct.id ? { ...product, ...data } as UserProduct : product))
       toast({ title: 'Produto actualizado', description: 'As alterações foram guardadas com sucesso.' })
       setEditingProduct(null)
       await fetchUserProducts()
     } catch (error: any) {
       console.error('[AgriLink] Erro ao editar produto:', error)
+      if (!navigator.onLine) {
+        try {
+          await enqueueOfflineUpdate({ userId: user.id, table: 'products', targetId: editingProduct.id, values: updates })
+          applyLocalProductUpdate()
+          toast({ title: 'Produto guardado offline', description: 'A ligação caiu durante a gravação. As alterações serão sincronizadas quando a internet regressar.' })
+          return
+        } catch (queueError: any) {
+          toast({ title: 'Não foi possível guardar offline', description: queueError?.message || 'Confirma os dados e tenta novamente.', variant: 'destructive' })
+          return
+        }
+      }
       toast({ title: 'Não foi possível guardar o produto', description: error?.message || 'Confirma os dados e tenta novamente.', variant: 'destructive' } as any)
     } finally {
       setSavingProductEdit(false)
