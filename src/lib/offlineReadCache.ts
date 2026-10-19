@@ -92,7 +92,13 @@ export async function offlineAwareFetch(input: RequestInfo | URL, init?: Request
     !url.pathname.includes('/rpc/') &&
     !headers.has('Range') &&
     !!userId;
-  const cacheId = canCache ? `${userId}:${url.toString()}` : '';
+  const representationKey = [
+    headers.get('Accept') || '',
+    headers.get('Accept-Profile') || '',
+    headers.get('Content-Profile') || '',
+    headers.get('Prefer') || '',
+  ].join('|');
+  const cacheId = canCache ? `${userId}:${url.toString()}:representation=${representationKey}` : '';
 
   try {
     const response = await fetch(input, init);
