@@ -22,6 +22,7 @@ import { supabase } from "../integrations/supabase/client";
 import { useToast } from "../hooks/use-toast";
 import Loader from "../components/ui/Loader";
 import { decryptChatMessage, encryptChatMessage, ensureChatEncryptionKey } from "../lib/chatEncryption";
+import { enqueueOfflineInsert } from "../lib/offlineMutationQueue";
 
 // --- Branding Tokens ---
 import { T } from '../lib/brand';
