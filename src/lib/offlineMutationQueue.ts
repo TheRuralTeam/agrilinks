@@ -314,8 +314,11 @@ export async function flushOfflineInserts(userId: string): Promise<{ synced: num
         }
         window.dispatchEvent(new CustomEvent('agrilink:offline-queue-changed'));
       } catch (error) {
-        await markFailed(record, error instanceof Error ? error.message : 'Falha de sincronização');
-        // Preserve order: a failed item must not be skipped by dependent operations.
+        const message = error instanceof Error ? error.message : 'Falha de sincronização';
+        await markFailed(record, message);
+        // A version conflict is isolated to this record; independent operations can still sync.
+        if (message.startsWith('Conflito de sincronização:') || message.startsWith('A edição não foi aplicada:')) continue;
+        // Network/authentication errors stop the queue to preserve ordering.
         break;
       }
     }
