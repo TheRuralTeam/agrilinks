@@ -490,6 +490,7 @@ const AppHome = () => {
                 
               >
                 <ProductCard
+                  priority={i === 0}
                   product={product}
                   onProductUpdate={handleProductUpdate}
                   onOpenMap={handleOpenMap}
