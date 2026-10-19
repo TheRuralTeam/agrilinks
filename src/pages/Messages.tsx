@@ -400,6 +400,24 @@ const Messages = () => {
       }
       const plainContent = newMessage.trim() || (filesData.length > 0 ? `📎 ${filesData.length} arquivo(s)` : "");
       const encryptedContent = await encryptChatMessage(plainContent, id, user.id, conversation.participant_id);
+      if (!navigator.onLine) {
+        const pendingMessage = {
+          id: crypto.randomUUID(),
+          conversation_id: id,
+          sender_id: user.id,
+          receiver_id: conversation.participant_id,
+          content: encryptedContent,
+          read: false,
+          created_at: new Date().toISOString(),
+          files: null,
+        };
+        await enqueueOfflineInsert({ userId: user.id, table: "messages", row: pendingMessage });
+        setMessages((previous) => [...previous, pendingMessage]);
+        setSentMessageIds((previous) => new Set([...previous, pendingMessage.id]));
+        setNewMessage("");
+        toast({ title: "Mensagem guardada offline", description: "A mensagem cifrada será enviada quando a internet regressar." });
+        return;
+      }
       const { data, error } = await supabase.from("messages").insert([{
         conversation_id: id, sender_id: user.id, receiver_id: conversation.participant_id,
         content: encryptedContent, read: false, files: filesData.length > 0 ? filesData : undefined
