@@ -176,7 +176,7 @@ BEGIN
 
   v_event_type := CASE p_status
     WHEN 'at_pickup' THEN 'driver_pickup'
-    WHEN 'in_transit' THEN 'driver_pickup'
+    WHEN 'in_transit' THEN 'trip_started'
     WHEN 'delivered' THEN 'driver_delivery'
   END;
 
