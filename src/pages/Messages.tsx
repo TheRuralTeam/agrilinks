@@ -262,9 +262,16 @@ const Messages = () => {
         const knownIds = new Set(previous.map((message) => message.id));
         return [...previous, ...pendingMessages.filter((message) => !knownIds.has(message.id))];
       });
-      setSentMessageIds((previous) => new Set([...previous, ...pendingMessages.map((message) => message.id)]));
     }).catch((error) => console.warn("Não foi possível recuperar mensagens offline guardadas.", error));
-    return () => { active = false; };
+    const handleMessageSynced = (event: Event) => {
+      const messageId = (event as CustomEvent<{ id?: string }>).detail?.id;
+      if (messageId) setSentMessageIds((previous) => new Set([...previous, messageId]));
+    };
+    window.addEventListener("agrilink:offline-message-synced", handleMessageSynced);
+    return () => {
+      active = false;
+      window.removeEventListener("agrilink:offline-message-synced", handleMessageSynced);
+    };
   }, [user?.id, id]);
 
   // Presença real no chat: só considera online quem está ligado ao canal desta conversa.
@@ -428,7 +435,6 @@ const Messages = () => {
         await enqueueOfflineInsert({ userId: user.id, table: "messages", row: offlineReadyMessage });
         const pendingMessage = { ...offlineReadyMessage, content: offlineDisplayContent } as unknown as Message;
         setMessages((previous) => [...previous.filter((message) => message.id !== pendingMessage.id), pendingMessage]);
-        setSentMessageIds((previous) => new Set([...previous, pendingMessage.id]));
         setNewMessage("");
         toast({ title: "Mensagem guardada offline", description: "A mensagem cifrada será enviada quando a internet regressar." });
         return;
@@ -447,7 +453,6 @@ const Messages = () => {
           await enqueueOfflineInsert({ userId: user.id, table: "messages", row: offlineReadyMessage });
           const pendingMessage = { ...offlineReadyMessage, content: offlineDisplayContent } as unknown as Message;
           setMessages((previous) => [...previous.filter((message) => message.id !== pendingMessage.id), pendingMessage]);
-          setSentMessageIds((previous) => new Set([...previous, pendingMessage.id]));
           setNewMessage("");
           toast({ title: "Mensagem guardada offline", description: "A ligação caiu durante o envio. A mensagem cifrada será sincronizada quando a internet regressar." });
           return;
