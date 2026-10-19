@@ -1321,6 +1321,17 @@ const Profile = () => {
 
           {/* ── Buyer Pre-orders ── */}
           {activeTab === 'orders' && isComprador && (
+            <section style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', padding: 16, marginBottom: 14, background: T.white, border: `1px solid ${T.rule}`, borderRadius: 16 }}>
+              <div style={{ minWidth: 220, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: T.ink, fontSize: 14 }}>
+                  <ShoppingCart size={16} color={T.g600} /> As minhas compras
+                </div>
+                <p style={{ margin: '5px 0 0', fontSize: 12, color: T.muted, lineHeight: 1.6 }}>
+                  Consulta os estados das pré-compras e vê as instruções oficiais de pagamento quando estiverem disponíveis.
+                </p>
+              </div>
+              <Btn onClick={() => navigate('/minhas-compras')} variant="primary"><ShoppingCart size={14} /> Acompanhar compras</Btn>
+            </section>
             <BuyerPreOrdersTable
               columns={[
                 { key: 'produto', label: 'Produto', render: r => <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}><span style={{ fontWeight: 700, color: T.ink }}>{r.product?.product_type || 'Produto'}</span><StatusPill status={r.status} /></div> },
