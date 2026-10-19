@@ -407,9 +407,11 @@ const Messages = () => {
     }
     setIsSending(true);
     let offlineReadyMessage: Record<string, unknown> | null = null;
+    let offlineDisplayContent = '';
     try {
       const filesData: Array<{ url: string; name: string; size: number }> = [];
       const plainContent = newMessage.trim() || (filesData.length > 0 ? `📎 ${filesData.length} arquivo(s)` : "");
+      offlineDisplayContent = plainContent;
       const encryptedContent = await encryptChatMessage(plainContent, id, user.id, conversation.participant_id);
       offlineReadyMessage = {
         id: crypto.randomUUID(),
@@ -424,7 +426,7 @@ const Messages = () => {
 
       if (!navigator.onLine) {
         await enqueueOfflineInsert({ userId: user.id, table: "messages", row: offlineReadyMessage });
-        const pendingMessage = offlineReadyMessage as unknown as Message;
+        const pendingMessage = { ...offlineReadyMessage, content: offlineDisplayContent } as unknown as Message;
         setMessages((previous) => [...previous.filter((message) => message.id !== pendingMessage.id), pendingMessage]);
         setSentMessageIds((previous) => new Set([...previous, pendingMessage.id]));
         setNewMessage("");
@@ -443,7 +445,7 @@ const Messages = () => {
       if (!navigator.onLine && offlineReadyMessage) {
         try {
           await enqueueOfflineInsert({ userId: user.id, table: "messages", row: offlineReadyMessage });
-          const pendingMessage = offlineReadyMessage as unknown as Message;
+          const pendingMessage = { ...offlineReadyMessage, content: offlineDisplayContent } as unknown as Message;
           setMessages((previous) => [...previous.filter((message) => message.id !== pendingMessage.id), pendingMessage]);
           setSentMessageIds((previous) => new Set([...previous, pendingMessage.id]));
           setNewMessage("");
