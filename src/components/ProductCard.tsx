@@ -379,6 +379,7 @@ export interface Product {
 }
 interface ProductCardProps {
   product: Product
+  priority?: boolean
   onProductUpdate?: (product: Product) => void
   onOpenMap?: (product: Product) => void
   onOpenPreOrder?: (product: Product) => void
@@ -386,7 +387,7 @@ interface ProductCardProps {
 
 /* ─── Main component ───────────────────────────────────────────────────────── */
 export const ProductCard: React.FC<ProductCardProps> = memo(({
-  product, onProductUpdate, onOpenMap, onOpenPreOrder
+  product, priority = false, onProductUpdate, onOpenMap, onOpenPreOrder
 }) => {
   const { user } = useAuth()
   const { requireAct } = useCanAct()
@@ -597,9 +598,9 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                       transition: 'transform 0.7s ease',
                     }}
                     alt={`${product.product_type} ${i + 1}`}
-                    loading={i === 0 ? 'eager' : 'lazy'}
+                    loading={priority && i === 0 ? 'eager' : 'lazy'}
                     decoding="async"
-                    fetchPriority={i === 0 ? 'high' : 'auto'}
+                    fetchPriority={priority && i === 0 ? 'high' : 'auto'}
                   />
                 </div>
               ))}
