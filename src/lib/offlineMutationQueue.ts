@@ -36,10 +36,34 @@ async function transaction<T>(mode: IDBTransactionMode, action: (store: IDBObjec
   const db = await openDb();
   return new Promise<T>((resolve, reject) => {
     const tx = db.transaction(STORE, mode);
-    action(tx.objectStore(STORE), resolve, reject);
-    tx.oncomplete = () => db.close();
-    tx.onerror = () => { db.close(); reject(tx.error ?? new Error('Falha no armazenamento offline.')); };
-    tx.onabort = () => { db.close(); reject(tx.error ?? new Error('Operação offline cancelada.')); };
+    let result: T;
+    let settled = false;
+    action(tx.objectStore(STORE), (value) => { result = value; }, (reason) => {
+      if (settled) return;
+      settled = true;
+      reject(reason);
+    });
+    tx.oncomplete = () => {
+      db.close();
+      if (!settled) {
+        settled = true;
+        resolve(result);
+      }
+    };
+    tx.onerror = () => {
+      db.close();
+      if (!settled) {
+        settled = true;
+        reject(tx.error ?? new Error('Falha no armazenamento offline.'));
+      }
+    };
+    tx.onabort = () => {
+      db.close();
+      if (!settled) {
+        settled = true;
+        reject(tx.error ?? new Error('Operação offline cancelada.'));
+      }
+    };
   });
 }
 
