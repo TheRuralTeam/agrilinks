@@ -260,7 +260,7 @@ export default function MyPurchases() {
                               <Label>Escolhe o método e destinatário autorizado</Label>
                               <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={selectedRecipients[purchase.id] || ''} onChange={(event) => setSelectedRecipients((current) => ({ ...current, [purchase.id]: event.target.value }))}>
                                 <option value="">Seleccionar opção</option>
-                                {state.recipients.map((recipient) => <option key={recipient.id} value={recipient.id}>{recipient.display_name} · {recipient.channel.replaceAll('_', ' ')}</option>)}
+                                {state.recipients.map((recipient) => <option key={recipient.id} value={recipient.id}>{recipient.display_name} · {recipient.channel.replace(/_/g, ' ')}</option>)}
                               </select>
                               <Button onClick={() => void createPayment(purchase)} disabled={!selectedRecipients[purchase.id] || busyId === purchase.id || Boolean(paymentDrafts[purchase.id])}>{busyId === purchase.id ? 'A preparar…' : paymentDrafts[purchase.id] ? 'Instruções já geradas' : 'Gerar instruções seguras'}</Button>
                             </div>
@@ -272,7 +272,7 @@ export default function MyPurchases() {
 
                   {draft && (
                     <div className="space-y-3 rounded-lg border p-4">
-                      <div><p className="font-semibold">Instruções de pagamento</p><p className="text-sm text-muted-foreground">Método: {draft.channel.replaceAll('_', ' ')}</p><p className="mt-1 text-sm">Destinatário: <strong>{draft.recipientName}</strong></p><p className="text-sm">Titular: <strong>{draft.accountHolder}</strong></p><p className="mt-1 break-all font-mono text-sm">{draft.accountIdentifier}</p>{draft.instructions && <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{draft.instructions}</p>}</div>
+                      <div><p className="font-semibold">Instruções de pagamento</p><p className="text-sm text-muted-foreground">Método: {draft.channel.replace(/_/g, ' ')}</p><p className="mt-1 text-sm">Destinatário: <strong>{draft.recipientName}</strong></p><p className="text-sm">Titular: <strong>{draft.accountHolder}</strong></p><p className="mt-1 break-all font-mono text-sm">{draft.accountIdentifier}</p>{draft.instructions && <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{draft.instructions}</p>}</div>
                       <p className="text-sm text-muted-foreground">Confirma o nome e os dados no canal de pagamento escolhido. Depois da transferência, regista a referência abaixo. A compra só será marcada como paga após validação.</p>
                       <div><Label>Referência real da transferência</Label><Input value={proofReferences[purchase.id] || ''} onChange={(event) => setProofReferences((current) => ({ ...current, [purchase.id]: event.target.value }))} placeholder="Referência / comprovativo da operação" /></div>
                       <div><Label>Nota opcional</Label><Textarea value={proofNotes[purchase.id] || ''} onChange={(event) => setProofNotes((current) => ({ ...current, [purchase.id]: event.target.value }))} placeholder="Informação adicional para a validação" rows={2} /></div>
