@@ -424,6 +424,7 @@ const ProximasCargas = () => {
     locationWatchId.current = null;
     if (onlineFlushHandlerRef.current) {
       window.removeEventListener('online', onlineFlushHandlerRef.current);
+      window.removeEventListener('focus', onlineFlushHandlerRef.current);
       onlineFlushHandlerRef.current = null;
     }
     setSharingLocationFor(null);
