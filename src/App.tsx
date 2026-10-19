@@ -49,6 +49,7 @@ const MeusContratos = lazy(() => import("./pages/MeusContratos"));
 const ProximasCargas = lazy(() => import("./pages/ProximasCargas"));
 const FreightLoadScan = lazy(() => import("./pages/FreightLoadScan"));
 const P2PBeneficiary = lazy(() => import("./pages/P2PBeneficiary"));
+const MyPurchases = lazy(() => import("./pages/MyPurchases"));
 
 const queryClient = new QueryClient();
 
@@ -240,6 +241,16 @@ const AppRoutes = () => {
                 <Profile />
               </AppLayout>
             </OpenRoute>
+          }
+        />
+        <Route
+          path="/minhas-compras"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <MyPurchases />
+              </AppLayout>
+            </ProtectedRoute>
           }
         />
         <Route
