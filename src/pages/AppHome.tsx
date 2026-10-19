@@ -182,13 +182,23 @@ const AppHome = () => {
     return () => { cancelled = true }
   }, [activeCategory, fetchProducts])
 
-  const handleProductUpdate = (p: Product) => setProducts(prev => prev.map(x => x.id === p.id ? p : x))
-  const handleLoadMore = () => { if (!loadingMore && hasMoreProducts) fetchProducts(feedPage + 1, true) }
-  const handleOpenMap = (p: Product) => { setSelectedProduct(p); setMapModalOpen(true) }
-  const handleOpenPreOrder = (p: Product) => {
+  const handleProductUpdate = useCallback((p: Product) => {
+    setProducts(prev => prev.map(x => x.id === p.id ? p : x))
+  }, [])
+  const handleLoadMore = useCallback(() => {
+    if (!loadingMore && hasMoreProducts) fetchProducts(feedPage + 1, true)
+  }, [loadingMore, hasMoreProducts, fetchProducts, feedPage])
+  const handleOpenMap = useCallback((p: Product) => {
+    setSelectedProduct(p)
+    setMapModalOpen(true)
+  }, [])
+  const handleOpenPreOrder = useCallback((p: Product) => {
     if (!requireAct('fazer uma pré-compra')) return
-    setSelectedProduct(p); setOrderData({ quantity:1, location:'' }); setDeliveryCoordinates(null); setModalOpen(true)
-  }
+    setSelectedProduct(p)
+    setOrderData({ quantity: 1, location: '' })
+    setDeliveryCoordinates(null)
+    setModalOpen(true)
+  }, [requireAct])
 
   const handlePreOrderSubmit = async () => {
     if (!selectedProduct || !user) return toast.error('Inicie sessão para continuar')
