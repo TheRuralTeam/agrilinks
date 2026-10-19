@@ -387,48 +387,58 @@ const Messages = () => {
       return;
     }
     setIsSending(true);
+    let offlineReadyMessage: Record<string, unknown> | null = null;
     try {
       const filesData: Array<{ url: string; name: string; size: number }> = [];
-      for (const file of selectedFiles) {
-        const ext = file.name.split(".").pop();
-        const fileName = `${crypto.randomUUID()}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from(BUCKET_NAME).upload(fileName, file);
-        if (!uploadError) {
-          const { data } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(fileName, 3600);
-          if (data) filesData.push({ url: data.signedUrl, name: file.name, size: file.size });
-        }
-      }
       const plainContent = newMessage.trim() || (filesData.length > 0 ? `📎 ${filesData.length} arquivo(s)` : "");
       const encryptedContent = await encryptChatMessage(plainContent, id, user.id, conversation.participant_id);
+      offlineReadyMessage = {
+        id: crypto.randomUUID(),
+        conversation_id: id,
+        sender_id: user.id,
+        receiver_id: conversation.participant_id,
+        content: encryptedContent,
+        read: false,
+        created_at: new Date().toISOString(),
+        files: null,
+      };
+
       if (!navigator.onLine) {
-        const pendingMessage = {
-          id: crypto.randomUUID(),
-          conversation_id: id,
-          sender_id: user.id,
-          receiver_id: conversation.participant_id,
-          content: encryptedContent,
-          read: false,
-          created_at: new Date().toISOString(),
-          files: null,
-        };
-        await enqueueOfflineInsert({ userId: user.id, table: "messages", row: pendingMessage });
-        setMessages((previous) => [...previous, pendingMessage]);
+        await enqueueOfflineInsert({ userId: user.id, table: "messages", row: offlineReadyMessage });
+        const pendingMessage = offlineReadyMessage as unknown as Message;
+        setMessages((previous) => [...previous.filter((message) => message.id !== pendingMessage.id), pendingMessage]);
         setSentMessageIds((previous) => new Set([...previous, pendingMessage.id]));
         setNewMessage("");
         toast({ title: "Mensagem guardada offline", description: "A mensagem cifrada será enviada quando a internet regressar." });
         return;
       }
-      const { data, error } = await supabase.from("messages").insert([{
-        conversation_id: id, sender_id: user.id, receiver_id: conversation.participant_id,
-        content: encryptedContent, read: false, files: filesData.length > 0 ? filesData : undefined
-      }]).select().single();
+
+      const { data, error } = await (supabase as any).from("messages").insert([offlineReadyMessage]).select().single();
       if (error) throw error;
-      setSentMessageIds((prev) => new Set([...prev, data.id]));
+      setSentMessageIds((previous) => new Set([...previous, data.id]));
       await supabase.from("conversations").update({ last_message: "🔒 Mensagem encriptada", last_timestamp: new Date().toISOString() }).eq("id", id);
       setNewMessage("");
       setSelectedFiles([]);
     } catch (err) {
       console.error("Erro ao enviar mensagem segura:", err);
+      if (!navigator.onLine && offlineReadyMessage) {
+        try {
+          await enqueueOfflineInsert({ userId: user.id, table: "messages", row: offlineReadyMessage });
+          const pendingMessage = offlineReadyMessage as unknown as Message;
+          setMessages((previous) => [...previous.filter((message) => message.id !== pendingMessage.id), pendingMessage]);
+          setSentMessageIds((previous) => new Set([...previous, pendingMessage.id]));
+          setNewMessage("");
+          toast({ title: "Mensagem guardada offline", description: "A ligação caiu durante o envio. A mensagem cifrada será sincronizada quando a internet regressar." });
+          return;
+        } catch (queueError) {
+          toast({
+            title: "Não foi possível guardar a mensagem offline",
+            description: queueError instanceof Error ? queueError.message : "Mantém o texto no campo e tenta novamente.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
       toast({
         title: "Não foi possível enviar a mensagem",
         description: err instanceof Error ? err.message : "Verifique a ligação e tente novamente.",
