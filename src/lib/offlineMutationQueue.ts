@@ -8,6 +8,7 @@ type PendingInsert = {
   table: 'products' | 'sourcing_requests' | 'messages' | 'users';
   operation?: 'insert' | 'update';
   targetId?: string;
+  baseUpdatedAt?: string | null;
   row: Record<string, unknown>;
   files: OfflineFile[];
   createdAt: number;
@@ -101,6 +102,7 @@ export async function enqueueOfflineUpdate(input: {
   table: 'users' | 'products';
   targetId: string;
   values: Record<string, unknown>;
+  baseUpdatedAt?: string | null;
 }): Promise<string> {
   if (!input.userId || !input.targetId) throw new Error('Utilizador e registo são obrigatórios para guardar a alteração.');
   const id = `update:${input.table}:${input.userId}:${input.targetId}`;
@@ -110,6 +112,7 @@ export async function enqueueOfflineUpdate(input: {
     table: input.table,
     operation: 'update',
     targetId: input.targetId,
+    baseUpdatedAt: input.baseUpdatedAt ?? null,
     row: input.values,
     files: [],
     createdAt: Date.now(),
@@ -230,6 +233,14 @@ async function insertIdempotently(record: PendingInsert): Promise<void> {
   if (record.operation === 'update') {
     if (!record.targetId || !['users', 'products'].includes(record.table)) {
       throw new Error('A edição offline não tem um destino válido.');
+    }
+    let currentQuery = client.from(record.table).select('id,updated_at').eq('id', record.targetId);
+    if (record.table === 'products') currentQuery = currentQuery.eq('user_id', record.userId);
+    const { data: current, error: currentError } = await currentQuery.maybeSingle();
+    if (currentError) throw currentError;
+    if (!current?.id) throw new Error('A edição não foi aplicada: o registo pode ter sido removido ou já não estar acessível.');
+    if (record.baseUpdatedAt && current.updated_at && current.updated_at !== record.baseUpdatedAt) {
+      throw new Error('Conflito de sincronização: este registo foi alterado no servidor enquanto o dispositivo estava offline. A alteração local foi preservada e precisa de ser revista antes de substituir a versão online.');
     }
     let query = client.from(record.table).update(record.row).eq('id', record.targetId);
     if (record.table === 'products') query = query.eq('user_id', record.userId);
