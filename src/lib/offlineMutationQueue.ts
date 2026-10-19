@@ -11,7 +11,7 @@ type PendingInsert = {
   attempts: number;
   lastError?: string;
 };
-const DB_NAME = 'agrilink-offline-data';
+const DB_NAME = 'agrilink-offline-mutations';
 const STORE = 'pending-inserts';
 const DB_VERSION = 2;
 let flushing = false;
@@ -21,10 +21,6 @@ function openDb(): Promise<IDBDatabase> {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (!db.objectStoreNames.contains('read-responses')) {
-        const reads = db.createObjectStore('read-responses', { keyPath: 'id' });
-        reads.createIndex('userId', 'userId', { unique: false });
-      }
       if (!db.objectStoreNames.contains(STORE)) {
         const writes = db.createObjectStore(STORE, { keyPath: 'id' });
         writes.createIndex('userId', 'userId', { unique: false });
@@ -132,9 +128,14 @@ async function uploadProductPhotos(record: PendingInsert): Promise<string[]> {
 
 async function insertIdempotently(record: PendingInsert): Promise<void> {
   const client = supabase as any;
-  const table = client.from(record.table);
-  const { data: existing, error: lookupError } = await table.select('id').eq('id', record.id).maybeSingle();
-  if (!lookupError && existing?.id) return;
+  const ownerField = record.table === 'messages' ? 'sender_id' : 'user_id';
+  const { data: existing, error: lookupError } = await client.from(record.table).select(`id,${ownerField}`).eq('id', record.id).maybeSingle();
+  if (lookupError) throw lookupError;
+  if (existing?.id) {
+    const owner = existing[ownerField];
+    if (owner === record.userId) return;
+    throw new Error('Conflito de identificador: a operação offline não foi sincronizada para proteger os dados existentes.');
+  }
 
   let row = { ...record.row };
   if (record.table === 'products' && record.files.length) {
@@ -145,8 +146,8 @@ async function insertIdempotently(record: PendingInsert): Promise<void> {
 
   // A resposta pode ter-se perdido depois de o servidor confirmar o INSERT.
   // Só consideramos concluído se o mesmo ID já existir e pertencer ao utilizador.
-  const { data: afterError } = await client.from(record.table).select('id,user_id,sender_id').eq('id', record.id).maybeSingle();
-  const owner = afterError?.user_id ?? afterError?.sender_id;
+  const { data: afterError } = await client.from(record.table).select(`id,${ownerField}`).eq('id', record.id).maybeSingle();
+  const owner = afterError?.[ownerField];
   if (afterError?.id === record.id && owner === record.userId) return;
   throw error;
 }
