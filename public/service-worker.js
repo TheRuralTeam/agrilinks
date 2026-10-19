@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agrilink-shell-v12';
+const CACHE_NAME = 'agrilink-shell-v13';
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/favicon.ico', '/robots.txt'];
 const PRIVATE_OR_API_PATH = /\/(?:rest\/v1|auth\/v1|functions\/v1|storage\/v1|realtime\/v1)(?:\/|$)/i;
 
@@ -37,9 +37,9 @@ self.addEventListener('install', (event) => {
       }
     }));
 
-    // O manifesto e todos os chunks emitidos pelo build são obrigatórios para
-    // activar a nova versão. Se algum recurso falhar, a instalação aborta e a
-    // versão anterior continua activa em vez de apagar a cache funcional.
+    // O manifesto e os recursos estáticos do shell são obrigatórios para activar
+    // a nova versão. O nome de cache versionado mantém a cache activa anterior
+    // intacta se algum recurso falhar durante a instalação.
     const manifestResponse = await fetch('/precache-manifest.json', { cache: 'no-store' });
     if (!manifestResponse.ok) throw new Error('O manifesto de recursos offline não está disponível.');
     const assets = await manifestResponse.json();
