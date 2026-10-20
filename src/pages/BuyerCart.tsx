@@ -53,9 +53,13 @@ export default function BuyerCart() {
   }, [user?.id]);
 
   const subtotal = useMemo(() => items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0), [items]);
-  const totalWeight = useMemo(() => items.reduce((sum, item) =>
-    sum + (item.package_weight_kg != null ? item.package_weight_kg * item.quantity : 0), 0), [items]);
-  const weightItemsKnown = items.filter((item) => item.package_weight_kg != null).length;
+  const itemWeightKg = (item: BuyerCartItem) => {
+    if (item.unit.toLowerCase() === 'kg') return item.quantity;
+    if (item.unit.toLowerCase() === 'tonelada') return item.quantity * 1000;
+    return item.package_weight_kg == null ? null : item.package_weight_kg * item.quantity;
+  };
+  const totalWeight = useMemo(() => items.reduce((sum, item) => sum + (itemWeightKg(item) ?? 0), 0), [items]);
+  const weightItemsKnown = items.filter((item) => itemWeightKg(item) != null).length;
 
   const updateQuantity = (productId: string, value: number) => {
     persist(items.map((item) => item.product_id !== productId ? item : {
