@@ -71,7 +71,7 @@ export default function BuyerCart() {
   };
   const removeItem = (productId: string) => { persist(items.filter((item) => item.product_id !== productId)); setIdempotencyKey(uuid()); };
 
-  const generateProforma = (created?: CreatedCartOrder, sourceItems: BuyerCartItem[] = items) => {
+  const generateProforma = (created?: CreatedCartOrder, sourceItems: BuyerCartItem[] = items, proformaFreightPreference: "single_quote_requested" | "separate_deliveries" = freightPreference) => {
     const sourceTotalWeight = sourceItems.reduce((sum, item) => sum + (weightKgForItem(item) ?? 0), 0);
     const sourceKnownWeightItems = sourceItems.filter((item) => weightKgForItem(item) != null).length;
     if (!sourceItems.length) {
@@ -106,7 +106,7 @@ export default function BuyerCart() {
       `Referência: ${created?.cart_order_id ?? `RASCUNHO-${issueDate.replace(/-/g, "")}`}`,
       `Emissão: ${issueDate}`,
       `Entrega solicitada: ${deliveryDate || "A combinar"}`,
-      `Preferência logística: ${freightPreference === "single_quote_requested" ? "Solicitada cotação de frete único AgriLink (sujeita a confirmação)" : "Entregas separadas"}`,
+      `Preferência logística: ${proformaFreightPreference === "single_quote_requested" ? "Solicitada cotação de frete único AgriLink (sujeita a confirmação)" : "Entregas separadas"}`,
       `Local de entrega: ${deliveryLocation || "A indicar"}`,
     ];
     meta.forEach((line, index) => doc.text(line, left, y + index * 6));
@@ -154,7 +154,7 @@ export default function BuyerCart() {
     const notes = [
       `Peso total indicado: ${sourceKnownWeightItems === sourceItems.length ? `${sourceTotalWeight.toLocaleString("pt-AO")} kg` : `${sourceTotalWeight.toLocaleString("pt-AO")} kg de itens com peso de embalagem conhecido; peso completo por confirmar`}.`,
       "A data é uma solicitação do comprador e só fica confirmada após validação do fornecedor e da logística.",
-      freightPreference === "single_quote_requested" ? "Foi solicitada uma cotação de frete único para esta encomenda. O valor só será incluído após a equipa logística confirmar a viabilidade, o preço e a aceitação do comprador; o frete não está calculado neste documento." : "Foi seleccionada a preferência por entregas separadas. As cargas podem sair de origens diferentes e chegar em momentos diferentes, conforme acordo logístico.",
+      proformaFreightPreference === "single_quote_requested" ? "Foi solicitada uma cotação de frete único para esta encomenda. O valor só será incluído após a equipa logística confirmar a viabilidade, o preço e a aceitação do comprador; o frete não está calculado neste documento." : "Foi seleccionada a preferência por entregas separadas. As cargas podem sair de origens diferentes e chegar em momentos diferentes, conforme acordo logístico.",
       "Os preços apresentados são os preços unitários observados ao gerar este documento. A aceitação do fornecedor, o stock, o frete, os impostos aplicáveis e o total final devem ser confirmados antes do pagamento.",
       "Documento pro-forma para referência comercial; não é factura fiscal nem comprovativo de pagamento.",
       created ? `Checkout agrupado: ${created.cart_order_id}. Cada linha mantém o seu estado de aceitação e pagamento no histórico de compras.` : "Rascunho sem encomenda submetida.",
@@ -210,7 +210,7 @@ export default function BuyerCart() {
       persist(remaining);
       setIdempotencyKey(uuid());
       toast({ title: "Compra individual submetida", description: "Este produto tem uma referência própria. A aceitação, o frete e a entrega serão confirmados separadamente." });
-      try { generateProforma(created, [item]); } catch (pdfError) {
+      try { generateProforma(created, [item], "separate_deliveries"); } catch (pdfError) {
         console.error("[AgriLink] Compra individual criada, mas o PDF não foi gerado:", pdfError);
         toast({ title: "Compra submetida; PDF indisponível", description: "A compra foi registada e pode ser consultada no histórico.", variant: "destructive" });
       }
@@ -385,7 +385,7 @@ export default function BuyerCart() {
               </CardContent>
             </Card>
             <Card>
-              <CardHeader><CardTitle>Resumo da compra</CardTitle><CardDescription>{items.length} produto(s) · {new Set(items.map((item) => item.seller_name)).size} fornecedor(es)</CardDescription></CardHeader>
+              <CardHeader><CardTitle>Resumo da compra</CardTitle><CardDescription>{items.reduce((total, item) => total + item.quantity, 0).toLocaleString("pt-AO")} unidade(s) solicitada(s) · {items.length} produto(s) · {new Set(items.map((item) => item.seller_name)).size} fornecedor(es)</CardDescription></CardHeader>
               <CardContent className="space-y-3">
                 {items.map((item) => <div key={item.product_id} className="flex justify-between gap-3 text-sm"><span className="min-w-0">{item.quantity} {item.unit} × {item.product_name}</span><span className="shrink-0 font-medium">{money(item.quantity * item.unit_price)}</span></div>)}
                 <div className="border-t pt-3">
