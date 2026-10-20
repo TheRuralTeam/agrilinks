@@ -44,13 +44,11 @@ export const AGRICULTURAL_PRODUCT_GROUPS = [
     products: ["Ovos de galinha", "Ovos caipiras", "Ovos de codorniz", "Ovos de pata", "Ovos férteis para incubação"],
   },
   {
-    label: "Lácteos",
+    label: "Lácteos frescos e derivados de fazenda",
     products: [
-      "Leite de vaca cru", "Leite de cabra", "Leite pasteurizado", "Leite UHT (longa vida)",
-      "Leite em pó", "Leite evaporado", "Leite condensado",
-      "Iogurte natural", "Iogurte aromatizado", "Iogurte líquido",
-      "Queijo fresco", "Queijo curado", "Queijo fundido", "Requeijão",
-      "Manteiga", "Nata (creme de leite)", "Coalhada",
+      "Leite fresco de vaca", "Leite cru de vaca", "Leite fresco de cabra", "Leite cru de cabra",
+      "Leite fresco de ovelha", "Coalhada", "Iogurte natural artesanal",
+      "Queijo fresco artesanal", "Requeijão artesanal", "Manteiga artesanal", "Nata fresca",
     ],
   },
   {
