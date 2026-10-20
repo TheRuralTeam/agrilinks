@@ -156,6 +156,17 @@ const PermissionRoute = ({ children, permissions, requireAll = false, allowSuppo
   return <>{children}</>;
 };
 
+
+const RoleRoute = ({ children, allowedRole }: { children: React.ReactNode; allowedRole: string }) => {
+  const { user, userProfile, loading } = useAuth();
+  if (loading) return <Loader />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (String(userProfile?.user_type ?? "").toLowerCase() !== allowedRole) {
+    return <Navigate to="/app" replace />;
+  }
+  return <>{children}</>;
+};
+
 const AppRoutes = () => {
   const { user, loading } = useAuth();
   const location = useLocation();
@@ -246,11 +257,11 @@ const AppRoutes = () => {
         <Route
           path="/minhas-compras"
           element={
-            <ProtectedRoute>
+            <RoleRoute allowedRole="comprador">
               <AppLayout>
                 <MyPurchases />
               </AppLayout>
-            </ProtectedRoute>
+            </RoleRoute>
           }
         />
         <Route
@@ -374,21 +385,21 @@ const AppRoutes = () => {
         <Route
           path="/cargas"
           element={
-            <ProtectedRoute>
+            <RoleRoute allowedRole="motorista">
               <AppLayout>
                 <ProximasCargas />
               </AppLayout>
-            </ProtectedRoute>
+            </RoleRoute>
           }
         />
         <Route
           path="/cargas/scan/:token"
           element={
-            <ProtectedRoute>
+            <RoleRoute allowedRole="motorista">
               <AppLayout>
                 <FreightLoadScan />
               </AppLayout>
-            </ProtectedRoute>
+            </RoleRoute>
           }
         />
         <Route
