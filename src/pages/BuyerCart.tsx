@@ -354,14 +354,14 @@ export default function BuyerCart() {
               <CardHeader><CardTitle>Como prefere organizar o frete?</CardTitle><CardDescription>Escolha a preferência para a equipa logística avaliar.</CardDescription></CardHeader>
               <CardContent className="space-y-3">
                 <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
-                  <input type="radio" name="freight-preference" className="mt-1 accent-green-700" checked={freightPreference === "single_quote_requested"} onChange={() => setFreightPreference("single_quote_requested")} />
+                  <input type="radio" name="freight-preference" className="mt-1 accent-green-700" checked={freightPreference === "single_quote_requested"} onChange={() => { setFreightPreference("single_quote_requested"); setIdempotencyKey(uuid()); }} />
                   <span className="space-y-1">
                     <span className="block font-medium">Solicitar um frete único AgriLink</span>
                     <span className="block text-sm text-muted-foreground">A AgriLink tentará coordenar uma cotação única para esta encomenda/fatura. Só será cobrado após a logística confirmar viabilidade e preço e o cliente aceitar.</span>
                   </span>
                 </label>
                 <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
-                  <input type="radio" name="freight-preference" className="mt-1 accent-green-700" checked={freightPreference === "separate_deliveries"} onChange={() => setFreightPreference("separate_deliveries")} />
+                  <input type="radio" name="freight-preference" className="mt-1 accent-green-700" checked={freightPreference === "separate_deliveries"} onChange={() => { setFreightPreference("separate_deliveries"); setIdempotencyKey(uuid()); }} />
                   <span className="space-y-1">
                     <span className="block font-medium">Entregas/fretes separados</span>
                     <span className="block text-sm text-muted-foreground">Cada fornecedor pode estar numa origem diferente e as cargas podem chegar em datas distintas, conforme acordo com a logística e aceitação do comprador.</span>
