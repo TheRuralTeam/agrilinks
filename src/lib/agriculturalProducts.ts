@@ -1,6 +1,6 @@
 /**
- * Catálogo de produtos agrícolas e ovos disponibilizados nesta fase da AgriLink.
- * Outros produtos pecuários serão adicionados numa fase posterior.
+ * Catálogo de produtos agrícolas, ovos e produtos lácteos disponibilizados na AgriLink.
+ * Outras categorias pecuárias poderão ser acrescentadas numa fase posterior.
  */
 export const AGRICULTURAL_PRODUCT_GROUPS = [
   {
@@ -42,6 +42,16 @@ export const AGRICULTURAL_PRODUCT_GROUPS = [
   {
     label: "Ovos",
     products: ["Ovos de galinha", "Ovos caipiras", "Ovos de codorniz", "Ovos de pata", "Ovos férteis para incubação"],
+  },
+  {
+    label: "Lácteos",
+    products: [
+      "Leite de vaca cru", "Leite de cabra", "Leite pasteurizado", "Leite UHT (longa vida)",
+      "Leite em pó", "Leite evaporado", "Leite condensado",
+      "Iogurte natural", "Iogurte aromatizado", "Iogurte líquido",
+      "Queijo fresco", "Queijo curado", "Queijo fundido", "Requeijão",
+      "Manteiga", "Nata (creme de leite)", "Coalhada",
+    ],
   },
   {
     label: "Produtos transformados de origem vegetal",
