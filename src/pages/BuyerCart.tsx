@@ -285,7 +285,7 @@ export default function BuyerCart() {
                       <Button variant="ghost" size="icon" disabled={item.quantity >= item.available_quantity} onClick={() => updateQuantity(item.product_id, item.quantity + 1)} aria-label="Aumentar quantidade"><Plus className="h-4 w-4" /></Button>
                     </div>
                     <p className="text-xs text-muted-foreground">Mínimo: {item.minimum_quantity} {item.unit}</p>
-                    <Button variant="ghost" size="sm" className="text-destructive" onClick={() => removeItem(item.product_id)}><Trash2 className="mr-1 h-4 w-4" /> Remover</Button>
+                    <Button variant="ghost" size="sm" className="text-destructive" aria-label={`Remover ${item.product_name} do carrinho`} onClick={() => removeItem(item.product_id)}><Trash2 className="mr-1 h-4 w-4" /> Remover</Button>
                   </div>
                 </CardContent>
               </Card>
