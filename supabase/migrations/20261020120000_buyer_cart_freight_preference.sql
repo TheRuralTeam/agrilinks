@@ -1,48 +1,20 @@
--- Preferência logística do checkout do comprador. A cotação real continua a exigir confirmação da equipa AgriLink.
+-- Persiste a preferência logística sem alterar a RPC antiga, para manter clientes existentes compatíveis.
 ALTER TABLE public.marketplace_cart_orders
   ADD COLUMN IF NOT EXISTS freight_preference text NOT NULL DEFAULT 'single_quote_requested';
-ALTER TABLE public.marketplace_cart_orders
-  ADD CONSTRAINT marketplace_cart_orders_freight_preference_check
-  CHECK (freight_preference IN ('single_quote_requested', 'separate_deliveries'));
 
--- Overload compatível: mantém a RPC antiga para clientes já publicados e adiciona a preferência logística.
-CREATE TABLE IF NOT EXISTS public.marketplace_cart_orders (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  idempotency_key uuid NOT NULL,
-  requested_delivery_date date NOT NULL,
-  delivery_location text NOT NULL,
-  destination_lat double precision,
-  destination_lng double precision,
-  status text NOT NULL DEFAULT 'pending',
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT marketplace_cart_orders_user_idempotency_unique UNIQUE (user_id, idempotency_key),
-  CONSTRAINT marketplace_cart_orders_status_check CHECK (status IN ('pending','partially_accepted','accepted','rejected','cancelled','completed')),
-  CONSTRAINT marketplace_cart_orders_location_check CHECK (length(btrim(delivery_location)) >= 3),
-  CONSTRAINT marketplace_cart_orders_coordinates_pair CHECK ((destination_lat IS NULL) = (destination_lng IS NULL)),
-  CONSTRAINT marketplace_cart_orders_coordinates_lat CHECK (destination_lat IS NULL OR destination_lat BETWEEN -90 AND 90),
-  CONSTRAINT marketplace_cart_orders_coordinates_lng CHECK (destination_lng IS NULL OR destination_lng BETWEEN -180 AND 180)
-);
-
-ALTER TABLE public.pre_orders
-  ADD COLUMN IF NOT EXISTS cart_order_id uuid REFERENCES public.marketplace_cart_orders(id) ON DELETE SET NULL,
-  ADD COLUMN IF NOT EXISTS requested_delivery_date date;
-
-CREATE INDEX IF NOT EXISTS idx_marketplace_cart_orders_user_created
-  ON public.marketplace_cart_orders(user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_pre_orders_cart_order_id
-  ON public.pre_orders(cart_order_id);
-
-ALTER TABLE public.marketplace_cart_orders ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Buyers can view own cart orders" ON public.marketplace_cart_orders;
-CREATE POLICY "Buyers can view own cart orders"
-  ON public.marketplace_cart_orders FOR SELECT TO authenticated
-  USING (user_id = auth.uid());
-
-REVOKE ALL ON TABLE public.marketplace_cart_orders FROM anon, authenticated;
-GRANT SELECT ON TABLE public.marketplace_cart_orders TO authenticated;
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'marketplace_cart_orders_freight_preference_check'
+      AND conrelid = 'public.marketplace_cart_orders'::regclass
+  ) THEN
+    ALTER TABLE public.marketplace_cart_orders
+      ADD CONSTRAINT marketplace_cart_orders_freight_preference_check
+      CHECK (freight_preference IN ('single_quote_requested', 'separate_deliveries'));
+  END IF;
+END;
+$migration$;
 
 CREATE OR REPLACE FUNCTION public.create_marketplace_cart_order(
   p_items jsonb,
@@ -77,7 +49,7 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'BUYER_ROLE_REQUIRED' USING ERRCODE = '42501';
   END IF;
-  IF p_freight_preference NOT IN ('single_quote_requested', 'separate_deliveries') THEN
+  IF p_freight_preference IS NULL OR p_freight_preference NOT IN ('single_quote_requested', 'separate_deliveries') THEN
     RAISE EXCEPTION 'INVALID_FREIGHT_PREFERENCE' USING ERRCODE = '22023';
   END IF;
   IF p_items IS NULL OR jsonb_typeof(p_items) <> 'array' OR jsonb_array_length(p_items) < 1 OR jsonb_array_length(p_items) > 50 THEN
