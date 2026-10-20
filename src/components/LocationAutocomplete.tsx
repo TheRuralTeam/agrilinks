@@ -223,6 +223,17 @@ export default function LocationAutocomplete({
           </button>
         </div>
       </div>
+      <button
+        type="button"
+        disabled={disabled || locatingGps}
+        onClick={useCurrentGps}
+        className="mt-2 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#B8D9BD] bg-[#F2FAF3] px-3 py-2 text-sm font-semibold text-[#246B31] transition-colors hover:bg-[#E6F4E8] disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {locatingGps
+          ? <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />
+          : <Crosshair aria-hidden="true" className="h-4 w-4" />}
+        {locatingGps ? 'A obter localização do dispositivo…' : 'Selecionar localização do dispositivo'}
+      </button>
       {gpsMessage && <p role="status" className="mt-1 text-[11px] leading-4 text-[#9A5B00]">{gpsMessage}</p>}
       {showList && (
         <div
