@@ -161,6 +161,7 @@ const RoleRoute = ({ children, allowedRole }: { children: React.ReactNode; allow
   const { user, userProfile, loading } = useAuth();
   if (loading) return <Loader />;
   if (!user) return <Navigate to="/login" replace />;
+  if (!user.email_confirmed_at) return <Navigate to="/confirmar-email" replace />;
   if (String(userProfile?.user_type ?? "").toLowerCase() !== allowedRole) {
     return <Navigate to="/app" replace />;
   }
