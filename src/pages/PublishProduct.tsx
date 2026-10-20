@@ -305,7 +305,24 @@ const PublishProduct = () => {
     {/* Produto agrícola: catálogo agrupado, sem sugerir produtos não agrícolas */}
     <div className="space-y-2">
       <Label htmlFor="product_type">Produto agrícola *</Label>
-      <Select value={formData.product_type} onValueChange={(value) => setFormData((prev) => ({ ...prev, product_type: value }))}>
+      <Select value={formData.product_type} onValueChange={(value) => {
+        const normalized = value.toLocaleLowerCase('pt');
+        const category = /ovo|codorniz|galinha.*ovo|pata.*ovo/.test(normalized)
+          ? 'ovos'
+          : /frango|galinha|pato|peru|carne/.test(normalized)
+            ? 'carnes'
+            : /leite|queijo|iogurte|manteiga|nata|requeij|lácteo|lacteo/.test(normalized)
+              ? 'lacteos'
+              : /mel|própolis|propolis|cera de abelha/.test(normalized)
+                ? 'bebidas'
+                : '';
+        setFormData((prev) => ({
+          ...prev,
+          product_type: value,
+          ...(category ? { category } : {}),
+          ...(normalized.includes('ovo') ? { sale_unit: 'caixa' as const } : {}),
+        }));
+      }}>
         <SelectTrigger id="product_type"><SelectValue placeholder="Selecionar produto agrícola" /></SelectTrigger>
         <SelectContent>
           {AGRICULTURAL_PRODUCT_GROUPS.map((group) => (
