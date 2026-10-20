@@ -64,10 +64,10 @@ BEGIN
   IF v_user_id IS NULL THEN
     RAISE EXCEPTION 'AUTH_REQUIRED' USING ERRCODE = '42501';
   END IF;
-  IF jsonb_typeof(p_items) <> 'array' OR jsonb_array_length(p_items) < 1 OR jsonb_array_length(p_items) > 50 THEN
+  IF p_items IS NULL OR jsonb_typeof(p_items) <> 'array' OR jsonb_array_length(p_items) < 1 OR jsonb_array_length(p_items) > 50 THEN
     RAISE EXCEPTION 'INVALID_CART_ITEMS' USING ERRCODE = '22023';
   END IF;
-  IF p_requested_delivery_date IS NULL OR p_requested_delivery_date < current_date THEN
+  IF p_requested_delivery_date IS NULL OR p_requested_delivery_date < (now() AT TIME ZONE 'Africa/Luanda')::date THEN
     RAISE EXCEPTION 'INVALID_DELIVERY_DATE' USING ERRCODE = '22023';
   END IF;
   IF p_delivery_location IS NULL OR length(btrim(p_delivery_location)) < 3 THEN
