@@ -15,6 +15,11 @@ type RouteEntry = {
 
 const ROUTES: RouteEntry[] = [
   { label: "Página inicial", path: "/", audience: "Público", category: "Público" },
+  { label: "Página inicial (alias /index)", path: "/index", audience: "Público", category: "Público" },
+  { label: "Página inicial (alias /home)", path: "/home", audience: "Público", category: "Público" },
+  { label: "Página pública do site", path: "/site", audience: "Público", category: "Público" },
+  { label: "Cadastro", path: "/cadastro", audience: "Público", category: "Autenticação" },
+  { label: "Retorno de autenticação", path: "/auth/callback", audience: "Fluxo de autenticação", category: "Autenticação" },
   { label: "Aplicação / Marketplace", path: "/app", audience: "Utilizadores autenticados ou convidados", category: "Marketplace" },
   { label: "Mapa", path: "/mapa", audience: "Público (pré-visualização) / autenticados", category: "Mapa e logística" },
   { label: "Mapa dentro da aplicação", path: "/mapa-app", audience: "Utilizadores autenticados ou convidados", category: "Mapa e logística" },
@@ -23,6 +28,7 @@ const ROUTES: RouteEntry[] = [
   { label: "Publicar produto", path: "/publicar-produto", audience: "Agricultores/fornecedores", category: "Fornecedor" },
   { label: "Minhas compras", path: "/minhas-compras", audience: "Compradores", category: "Comprador" },
   { label: "Perfil", path: "/perfil", audience: "Utilizadores autenticados ou convidados", category: "Conta" },
+  { label: "Carteira (redirecciona para perfil)", path: "/carteira", audience: "Utilizadores autenticados", category: "Conta" },
   { label: "Perfil público de utilizador", path: "/perfil/:id", audience: "Público/autenticado", category: "Conta", link: false, note: "Substituir :id por um ID real." },
   { label: "Perfil de empresa", path: "/empresa/:id", audience: "Público/autenticado", category: "Conta", link: false, note: "Substituir :id por um ID real." },
   { label: "Completar perfil", path: "/completar-perfil", audience: "Utilizadores autenticados", category: "Conta" },
