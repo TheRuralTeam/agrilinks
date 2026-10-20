@@ -10,7 +10,6 @@ import { useAuth } from "../contexts/AuthContext";
 import { toast } from "../hooks/use-toast";
 import { readBuyerCart, writeBuyerCart, type BuyerCartItem } from "../features/marketplace/buyerCart";
 import { supabase } from "../integrations/supabase/client";
-import agrilinkLogo from "../assets/agrilink-logo.png";
 
 const money = (value: number) => new Intl.NumberFormat("pt-AO", {
   style: "currency", currency: "AOA", minimumFractionDigits: 2, maximumFractionDigits: 2,
@@ -84,9 +83,10 @@ export default function BuyerCart() {
     let y = 18;
     doc.setFillColor(31, 105, 49);
     doc.roundedRect(left, 10, 180, 24, 3, 3, "F");
-    doc.addImage(agrilinkLogo, "PNG", left + 4, 13, 34, 17, undefined, "FAST");
     doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(14);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(18);
+    doc.text("AgriLink", left + 4, 24);
+    doc.setFontSize(14);
     doc.text("FACTURA PROFORMA", right - 4, 20, { align: "right" });
     doc.setFont("helvetica", "normal"); doc.setFontSize(8);
     doc.text("Proposta comercial de compra agrupada", right - 4, 27, { align: "right" });
