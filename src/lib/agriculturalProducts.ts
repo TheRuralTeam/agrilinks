@@ -1,6 +1,6 @@
 /**
- * Catálogo de produtos do agronegócio da AgriLink: culturas vegetais, produtos
- * pecuários, ovos, lacticínios, mel e produtos transformados relacionados.
+ * Catálogo de produtos agrícolas e ovos disponibilizados nesta fase da AgriLink.
+ * Outros produtos pecuários serão adicionados numa fase posterior.
  */
 export const AGRICULTURAL_PRODUCT_GROUPS = [
   {
@@ -40,16 +40,8 @@ export const AGRICULTURAL_PRODUCT_GROUPS = [
     products: ["Sementes de milho", "Sementes de feijão", "Sementes de hortícolas", "Sementes de amendoim", "Sementes de girassol", "Sementes de gergelim", "Mudas de tomate", "Mudas de cebola", "Mudas de fruteiras", "Mudas de café", "Estacas de mandioca"],
   },
   {
-    label: "Ovos e produtos avícolas",
-    products: ["Ovos de galinha", "Ovos caipiras", "Ovos de codorniz", "Ovos de pata", "Ovos férteis para incubação", "Frango vivo", "Frango abatido", "Galinha viva", "Galinha caipira", "Pato vivo", "Peru", "Pintos de um dia"],
-  },
-  {
-    label: "Leite e produtos lácteos",
-    products: ["Leite de vaca fresco", "Leite de cabra", "Leite pasteurizado", "Leite em pó", "Iogurte natural", "Iogurte aromatizado", "Queijo fresco", "Queijo curado", "Manteiga", "Nata", "Requeijão"],
-  },
-  {
-    label: "Mel e produtos apícolas",
-    products: ["Mel puro", "Mel em favo", "Cera de abelha", "Própolis"],
+    label: "Ovos",
+    products: ["Ovos de galinha", "Ovos caipiras", "Ovos de codorniz", "Ovos de pata", "Ovos férteis para incubação"],
   },
   {
     label: "Produtos transformados de origem vegetal",
