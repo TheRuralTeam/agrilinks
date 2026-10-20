@@ -218,22 +218,18 @@ export default function LocationAutocomplete({
         />
         <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
           {searchingPlaces && <LoaderCircle aria-label="A pesquisar locais" className="h-4 w-4 animate-spin text-[#2c863b]" />}
-          <button type="button" disabled={disabled || locatingGps} onClick={useCurrentGps} aria-label="Usar a minha localização GPS" title="Usar a minha localização GPS" className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#2c863b] hover:bg-[#F2FAF3] disabled:opacity-50">
-            {locatingGps ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
+          <button
+            type="button"
+            disabled={disabled || locatingGps}
+            onClick={useCurrentGps}
+            aria-label="Selecionar localização do dispositivo"
+            title={locatingGps ? 'A obter localização do dispositivo…' : 'Selecionar localização do dispositivo'}
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#E6F4E8] text-[#246B31] ring-1 ring-inset ring-[#B8D9BD] transition-colors hover:bg-[#D5EBD9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2c863b] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {locatingGps ? <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" /> : <Crosshair aria-hidden="true" className="h-4 w-4" />}
           </button>
         </div>
       </div>
-      <button
-        type="button"
-        disabled={disabled || locatingGps}
-        onClick={useCurrentGps}
-        className="mt-2 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#B8D9BD] bg-[#F2FAF3] px-3 py-2 text-sm font-semibold text-[#246B31] transition-colors hover:bg-[#E6F4E8] disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {locatingGps
-          ? <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />
-          : <Crosshair aria-hidden="true" className="h-4 w-4" />}
-        {locatingGps ? 'A obter localização do dispositivo…' : 'Selecionar localização do dispositivo'}
-      </button>
       {gpsMessage && <p role="status" className="mt-1 text-[11px] leading-4 text-[#9A5B00]">{gpsMessage}</p>}
       {showList && (
         <div
