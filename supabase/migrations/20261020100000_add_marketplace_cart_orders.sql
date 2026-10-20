@@ -64,6 +64,12 @@ BEGIN
   IF v_user_id IS NULL THEN
     RAISE EXCEPTION 'AUTH_REQUIRED' USING ERRCODE = '42501';
   END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.users u
+    WHERE u.id = v_user_id AND lower(COALESCE(u.user_type, '')) = 'comprador'
+  ) THEN
+    RAISE EXCEPTION 'BUYER_ROLE_REQUIRED' USING ERRCODE = '42501';
+  END IF;
   IF p_items IS NULL OR jsonb_typeof(p_items) <> 'array' OR jsonb_array_length(p_items) < 1 OR jsonb_array_length(p_items) > 50 THEN
     RAISE EXCEPTION 'INVALID_CART_ITEMS' USING ERRCODE = '22023';
   END IF;
