@@ -20,10 +20,10 @@ CREATE OR REPLACE FUNCTION public.create_marketplace_cart_order(
   p_items jsonb,
   p_delivery_location text,
   p_requested_delivery_date date,
-  p_delivery_lat double precision DEFAULT NULL,
-  p_delivery_lng double precision DEFAULT NULL,
-  p_idempotency_key uuid DEFAULT NULL,
-  p_freight_preference text DEFAULT 'single_quote_requested'
+  p_delivery_lat double precision,
+  p_delivery_lng double precision,
+  p_idempotency_key uuid,
+  p_freight_preference text
 )
 RETURNS jsonb
 LANGUAGE plpgsql
