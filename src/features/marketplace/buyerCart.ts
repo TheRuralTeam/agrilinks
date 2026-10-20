@@ -29,15 +29,19 @@ export function readBuyerCart(userId: string): BuyerCartItem[] {
 
 export const BUYER_CART_UPDATED_EVENT = 'agrilink:buyer-cart-updated';
 
+/**
+ * Counts distinct product types in the cart, not kilograms or requested units.
+ * Increasing the quantity/weight of an existing product does not increase this badge.
+ */
 export function getBuyerCartQuantity(userId: string): number {
-  return readBuyerCart(userId).reduce((total, item) => total + Math.max(0, Number(item.quantity) || 0), 0);
+  return new Set(readBuyerCart(userId).map((item) => item.product_id)).size;
 }
 
 export function writeBuyerCart(userId: string, items: BuyerCartItem[]) {
   localStorage.setItem(cartKey(userId), JSON.stringify(items));
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent(BUYER_CART_UPDATED_EVENT, {
-      detail: { userId, quantity: items.reduce((total, item) => total + Math.max(0, Number(item.quantity) || 0), 0) },
+      detail: { userId, quantity: new Set(items.map((item) => item.product_id)).size },
     }));
   }
 }
