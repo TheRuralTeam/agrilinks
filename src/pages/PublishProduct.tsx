@@ -313,9 +313,7 @@ const PublishProduct = () => {
             ? 'carnes'
             : /leite|queijo|iogurte|manteiga|nata|requeij|lácteo|lacteo/.test(normalized)
               ? 'lacteos'
-              : /mel|própolis|propolis|cera de abelha/.test(normalized)
-                ? 'bebidas'
-                : '';
+              : '';
         setFormData((prev) => ({
           ...prev,
           product_type: value,
