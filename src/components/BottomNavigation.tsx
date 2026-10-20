@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Home, Map, Bell, MessageSquare, User, Plus, LayoutDashboard, BarChart3, Truck } from 'lucide-react'
+import { Home, Map, Bell, MessageSquare, User, Plus, LayoutDashboard, BarChart3, Truck, ShoppingCart, Route } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../integrations/supabase/client'
 
@@ -43,16 +43,14 @@ const BottomNavigation = () => {
   const isBuyer = userType === 'comprador'
   const canSeeAdmin = isAdmin || isRootAdmin || isSuperRoot
 
-  // Item de publicação (Ação principal)
+  // A acção principal varia conforme o papel real do utilizador.
   const publishItem = isDriver
     ? { id: 'publish', icon: Truck, label: 'Cargas', path: '/cargas', isAction: true }
-    : {
-      id: 'publish',
-        icon: Plus,
-        label: t('navigation.publish'),
-        path: '/publicar-produto',
-        isAction: true,
-      }
+    : isBuyer
+      ? { id: 'publish', icon: ShoppingCart, label: 'Compras', path: '/minhas-compras', isAction: true }
+      : canSeeAdmin
+        ? { id: 'publish', icon: Route, label: 'Rotas', path: '/admindashboard?tab=routes', isAction: true }
+        : { id: 'publish', icon: Plus, label: t('navigation.publish'), path: '/publicar-produto', isAction: true }
 
   // Itens de navegação (7 itens no total)
   const navItems = [
@@ -63,9 +61,7 @@ const BottomNavigation = () => {
     { id: 'nav-messages', icon: MessageSquare, label: t('navigation.messages'), path: '/listamensagens', badge: unreadMessages },
     publishItem, // Posição central (4 de 7)
     { id: 'nav-notifications', icon: Bell, label: t('navigation.notifications'), path: '/notificacoes', badge: unreadNotifications },
-    isBuyer
-      ? { id: 'nav-purchases', icon: ShoppingCart, label: 'Compras', path: '/minhas-compras' }
-      : { id: 'nav-market', icon: BarChart3, label: 'Mercado', path: '/mercado' },
+    { id: 'nav-market', icon: BarChart3, label: 'Mercado', path: '/mercado' },
     { id: 'nav-profile', icon: User, label: t('navigation.profile'), path: '/perfil' },
   ]
 
