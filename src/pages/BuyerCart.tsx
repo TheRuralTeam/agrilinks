@@ -214,14 +214,14 @@ export default function BuyerCart() {
       if (!created?.cart_order_id || !Array.isArray(created.items) || !created.items.length) {
         throw new Error("A resposta do servidor não confirmou a encomenda agrupada.");
       }
-      persist([]);
+      try { persist([]); } catch (storageError) { console.error("[AgriLink] Não foi possível limpar o carrinho local após a compra:", storageError); }
       toast({ title: "Encomenda submetida", description: "Foi criada uma encomenda agrupada. Cada produto continua sujeito à aceitação do respectivo fornecedor; o frete e pagamento serão confirmados depois." });
       navigate("/minhas-compras");
       try {
         generateProforma(created);
       } catch (pdfError) {
         console.error("[AgriLink] A encomenda foi criada, mas o PDF pro-forma não foi gerado:", pdfError);
-        toast({ title: "Compra submetida; PDF indisponível", description: "A encomenda foi registada. Pode tentar gerar a pro-forma novamente a partir do carrinho, se ainda tiver os produtos guardados.", variant: "destructive" });
+        toast({ title: "Compra submetida; PDF indisponível", description: "A encomenda foi registada. Consulte o histórico de compras; a falha do PDF não anulou a submissão.", variant: "destructive" });
       }
     } catch (error: any) {
       toast({ title: "Não foi possível finalizar a compra", description: error?.message || "Tente novamente.", variant: "destructive" });
