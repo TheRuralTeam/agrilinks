@@ -17,6 +17,7 @@ import LocationAutocomplete from '../components/LocationAutocomplete'
 import { savePreferredDeliveryLocation } from '../features/products/deliveryLocationPreference'
 import agrilinkLogo from '../assets/agrilink-logo.png'
 import { fetchActiveProducts } from '../features/products/productsService'
+import { addBuyerCartItem } from '../features/marketplace/buyerCart'
 import { isNeutralPublicView, sanitizePublicProduct } from '../lib/publicData'
 import Loader from '../components/ui/Loader'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -187,6 +188,36 @@ const AppHome = () => {
   const handleOpenPreOrder = (p: Product) => {
     if (!requireAct('fazer uma pré-compra')) return
     setSelectedProduct(p); setOrderData({ quantity:1, location:'' }); setDeliveryCoordinates(null); setModalOpen(true)
+  }
+
+  const handleAddToCart = (p: Product) => {
+    if (!requireAct('adicionar ao carrinho')) return
+    if (!user?.id || String(userProfile?.user_type ?? '').toLowerCase() !== 'comprador') {
+      toast.error('O carrinho de compras está disponível para contas de comprador.')
+      return
+    }
+    try {
+      addBuyerCartItem(user.id, {
+        product_id: p.id,
+        product_name: p.product_type,
+        seller_name: p.farmer_name,
+        unit: p.sale_unit || 'kg',
+        quantity: Math.max(1, Number(p.min_order_quantity || 1)),
+        unit_price: Number(p.price),
+        available_quantity: Number(p.quantity),
+        minimum_quantity: Number(p.min_order_quantity || 1),
+        package_weight_kg: p.package_weight_kg == null ? null : Number(p.package_weight_kg),
+        harvest_date: p.harvest_date || null,
+        province: p.province_id,
+        municipality: p.municipality_id,
+      })
+      toast.success('Produto adicionado ao carrinho', {
+        description: 'Pode continuar a escolher produtos e finalizar tudo num único checkout.',
+        action: { label: 'Ver carrinho', onClick: () => navigate('/carrinho') },
+      })
+    } catch {
+      toast.error('Não foi possível actualizar o carrinho neste dispositivo.')
+    }
   }
 
   const handlePreOrderSubmit = async () => {
@@ -463,7 +494,8 @@ const AppHome = () => {
                   product={product}
                   onProductUpdate={handleProductUpdate}
                   onOpenMap={handleOpenMap}
-                  onOpenPreOrder={handleOpenPreOrder}
+                  onOpenPreOrder={userProfile?.user_type === 'comprador' ? undefined : handleOpenPreOrder}
+                  onAddToCart={userProfile?.user_type === 'comprador' ? handleAddToCart : undefined}
                 />
               </div>
             ))
