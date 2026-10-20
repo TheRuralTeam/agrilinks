@@ -197,6 +197,11 @@ const AppHome = () => {
       return
     }
     try {
+      const minimumQuantity = Math.max(1, Number(p.min_order_quantity || 1))
+      if (Number(p.quantity) < minimumQuantity) {
+        toast.error('O stock indicado é inferior à quantidade mínima de compra deste produto.')
+        return
+      }
       addBuyerCartItem(user.id, {
         product_id: p.id,
         product_name: p.product_type,
