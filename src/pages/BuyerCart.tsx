@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
-import { ArrowLeft, CalendarDays, FileText, Minus, Plus, ShoppingCart, Trash2, Truck } from "lucide-react";
+import { ArrowLeft, CalendarDays, Crosshair, FileText, LoaderCircle, MapPin, Minus, Plus, ShoppingCart, Trash2, Truck } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -45,6 +45,9 @@ export default function BuyerCart() {
   const { user, userProfile } = useAuth();
   const [items, setItems] = useState<BuyerCartItem[]>([]);
   const [deliveryLocation, setDeliveryLocation] = useState("");
+  const [deliveryLatitude, setDeliveryLatitude] = useState("");
+  const [deliveryLongitude, setDeliveryLongitude] = useState("");
+  const [locatingDelivery, setLocatingDelivery] = useState(false);
   const [deliveryDate, setDeliveryDate] = useState(localDate());
   const [freightPreference, setFreightPreference] = useState<"single_quote_requested" | "separate_deliveries">("single_quote_requested");
   const [submitting, setSubmitting] = useState(false);
@@ -62,6 +65,65 @@ export default function BuyerCart() {
   const subtotal = useMemo(() => items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0), [items]);
   const totalWeight = useMemo(() => items.reduce((sum, item) => sum + (weightKgForItem(item) ?? 0), 0), [items]);
   const weightItemsKnown = items.filter((item) => weightKgForItem(item) != null).length;
+  const parsedDeliveryLatitude = deliveryLatitude.trim() === "" ? null : Number(deliveryLatitude);
+  const parsedDeliveryLongitude = deliveryLongitude.trim() === "" ? null : Number(deliveryLongitude);
+  const hasAnyDeliveryCoordinates = deliveryLatitude.trim() !== "" || deliveryLongitude.trim() !== "";
+  const deliveryCoordinatesValid = parsedDeliveryLatitude !== null && parsedDeliveryLongitude !== null &&
+    Number.isFinite(parsedDeliveryLatitude) && Number.isFinite(parsedDeliveryLongitude) &&
+    parsedDeliveryLatitude >= -90 && parsedDeliveryLatitude <= 90 &&
+    parsedDeliveryLongitude >= -180 && parsedDeliveryLongitude <= 180;
+  const resolvedDeliveryLocation = deliveryLocation.trim() ||
+    (deliveryCoordinatesValid ? `Coordenadas: ${parsedDeliveryLatitude!.toFixed(6)}, ${parsedDeliveryLongitude!.toFixed(6)}` : "");
+
+  const useCurrentDeliveryLocation = () => {
+    if (!navigator.geolocation) {
+      toast({ title: "Localização indisponível", description: "Este navegador/dispositivo não disponibiliza geolocalização.", variant: "destructive" });
+      return;
+    }
+    setLocatingDelivery(true);
+    navigator.geolocation.getCurrentPosition((position) => {
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+      setLocatingDelivery(false);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+          latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+        toast({ title: "Coordenadas inválidas", description: "O dispositivo devolveu uma localização inválida.", variant: "destructive" });
+        return;
+      }
+      setDeliveryLatitude(latitude.toFixed(6));
+      setDeliveryLongitude(longitude.toFixed(6));
+      setDeliveryLocation(`Localização GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+      setIdempotencyKey(uuid());
+      toast({ title: "Localização obtida", description: "Confirme se este é o ponto correcto para receber a encomenda." });
+    }, (error) => {
+      setLocatingDelivery(false);
+      toast({
+        title: "Não foi possível obter a localização",
+        description: error.code === error.PERMISSION_DENIED
+          ? "Autorize a localização nas permissões do navegador e tente novamente."
+          : error.code === error.TIMEOUT
+            ? "A leitura demorou demasiado. Tente novamente."
+            : "Verifique o sinal GPS e as permissões do dispositivo.",
+        variant: "destructive",
+      });
+    }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 });
+  };
+
+  const updateDeliveryCoordinate = (axis: "latitude" | "longitude", value: string) => {
+    if (axis === "latitude") setDeliveryLatitude(value);
+    else setDeliveryLongitude(value);
+    const nextLatitude = axis === "latitude" ? value.trim() : deliveryLatitude.trim();
+    const nextLongitude = axis === "longitude" ? value.trim() : deliveryLongitude.trim();
+    const lat = nextLatitude === "" ? null : Number(nextLatitude);
+    const lng = nextLongitude === "" ? null : Number(nextLongitude);
+    if (lat !== null && lng !== null && Number.isFinite(lat) && Number.isFinite(lng) &&
+        lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      setDeliveryLocation(`Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+    } else if (deliveryLocation.startsWith("Coordenadas:") || deliveryLocation.startsWith("Localização GPS:")) {
+      setDeliveryLocation("");
+    }
+    setIdempotencyKey(uuid());
+  };
 
   const updateQuantity = (productId: string, value: number) => {
     persist(items.map((item) => item.product_id !== productId ? item : {
@@ -182,8 +244,12 @@ export default function BuyerCart() {
       navigate("/perfil");
       return;
     }
-    if (!deliveryLocation.trim() || deliveryLocation.trim().length < 3) {
-      toast({ title: "Local de entrega obrigatório", description: "Indique a zona, município ou endereço de entrega.", variant: "destructive" });
+    if (hasAnyDeliveryCoordinates && !deliveryCoordinatesValid) {
+      toast({ title: "Coordenadas incompletas ou inválidas", description: "Preencha latitude e longitude com valores válidos, ou apague ambos os campos.", variant: "destructive" });
+      return;
+    }
+    if (!resolvedDeliveryLocation || resolvedDeliveryLocation.trim().length < 3) {
+      toast({ title: "Local de entrega obrigatório", description: "Escreva o endereço ou indique as coordenadas do ponto de entrega.", variant: "destructive" });
       return;
     }
     if (!deliveryDate || deliveryDate < localDate()) {
@@ -194,10 +260,10 @@ export default function BuyerCart() {
     try {
       const { data, error } = await (supabase as any).rpc("create_marketplace_cart_order", {
         p_items: [{ product_id: item.product_id, quantity: item.quantity }],
-        p_delivery_location: deliveryLocation.trim(),
+        p_delivery_location: resolvedDeliveryLocation.trim(),
         p_requested_delivery_date: deliveryDate,
-        p_delivery_lat: null,
-        p_delivery_lng: null,
+        p_delivery_lat: deliveryCoordinatesValid ? parsedDeliveryLatitude : null,
+        p_delivery_lng: deliveryCoordinatesValid ? parsedDeliveryLongitude : null,
         p_idempotency_key: uuid(),
         p_freight_preference: "separate_deliveries",
       });
@@ -233,8 +299,12 @@ export default function BuyerCart() {
       return;
     }
     if (!items.length) { toast({ title: "Carrinho vazio", description: "Adicione pelo menos um produto." }); return; }
-    if (!deliveryLocation.trim() || deliveryLocation.trim().length < 3) {
-      toast({ title: "Local de entrega obrigatório", description: "Indique a zona, município ou endereço de entrega.", variant: "destructive" });
+    if (hasAnyDeliveryCoordinates && !deliveryCoordinatesValid) {
+      toast({ title: "Coordenadas incompletas ou inválidas", description: "Preencha latitude e longitude com valores válidos, ou apague ambos os campos.", variant: "destructive" });
+      return;
+    }
+    if (!resolvedDeliveryLocation || resolvedDeliveryLocation.trim().length < 3) {
+      toast({ title: "Local de entrega obrigatório", description: "Escreva o endereço ou indique as coordenadas do ponto de entrega.", variant: "destructive" });
       return;
     }
     if (!deliveryDate || deliveryDate < localDate()) {
@@ -250,10 +320,10 @@ export default function BuyerCart() {
     try {
       const { data, error } = await (supabase as any).rpc("create_marketplace_cart_order", {
         p_items: items.map((item) => ({ product_id: item.product_id, quantity: item.quantity })),
-        p_delivery_location: deliveryLocation.trim(),
+        p_delivery_location: resolvedDeliveryLocation.trim(),
         p_requested_delivery_date: deliveryDate,
-        p_delivery_lat: null,
-        p_delivery_lng: null,
+        p_delivery_lat: deliveryCoordinatesValid ? parsedDeliveryLatitude : null,
+        p_delivery_lng: deliveryCoordinatesValid ? parsedDeliveryLongitude : null,
         p_idempotency_key: idempotencyKey,
         p_freight_preference: freightPreference,
       });
@@ -374,8 +444,31 @@ export default function BuyerCart() {
               <CardHeader><CardTitle>Entrega e calendário</CardTitle><CardDescription>Destino e data solicitada para a encomenda. As datas finais dependem da logística.</CardDescription></CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="cart-delivery-location">Local de entrega *</Label>
-                  <Input id="cart-delivery-location" value={deliveryLocation} onChange={(event) => { setDeliveryLocation(event.target.value); setIdempotencyKey(uuid()); }} placeholder="Ex.: Viana, Luanda, zona/bairro" required />
+                  <Label htmlFor="cart-delivery-location">Ponto de entrega *</Label>
+                  <Input id="cart-delivery-location" value={deliveryLocation} onChange={(event) => {
+                    setDeliveryLocation(event.target.value);
+                    setDeliveryLatitude("");
+                    setDeliveryLongitude("");
+                    setIdempotencyKey(uuid());
+                  }} placeholder="Escreva o endereço, bairro ou ponto de referência" />
+                  <Button type="button" variant="outline" className="w-full" disabled={locatingDelivery || submitting} onClick={useCurrentDeliveryLocation}>
+                    {locatingDelivery ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Crosshair className="mr-2 h-4 w-4" />}
+                    {locatingDelivery ? "A obter localização..." : "Usar a minha localização actual"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">O navegador pedirá autorização. A localização só é usada para esta encomenda; confirme que o ponto GPS corresponde ao local de entrega.</p>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label htmlFor="cart-delivery-latitude">Latitude (opcional)</Label>
+                      <Input id="cart-delivery-latitude" inputMode="decimal" type="number" step="any" min="-90" max="90" value={deliveryLatitude} onChange={(event) => updateDeliveryCoordinate("latitude", event.target.value)} placeholder="-8.8383" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="cart-delivery-longitude">Longitude (opcional)</Label>
+                      <Input id="cart-delivery-longitude" inputMode="decimal" type="number" step="any" min="-180" max="180" value={deliveryLongitude} onChange={(event) => updateDeliveryCoordinate("longitude", event.target.value)} placeholder="13.2344" />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Pode escrever as coordenadas manualmente ou obter a posição do dispositivo. Para usar coordenadas, preencha latitude e longitude. Se indicar apenas o endereço, a logística poderá precisar de confirmar o ponto exacto.</p>
+                  {deliveryCoordinatesValid && <p className="flex items-center gap-1 text-xs text-green-700"><MapPin className="h-3.5 w-3.5" /> Coordenadas válidas: {parsedDeliveryLatitude!.toFixed(6)}, {parsedDeliveryLongitude!.toFixed(6)}</p>}
+                  {hasAnyDeliveryCoordinates && !deliveryCoordinatesValid && <p role="alert" className="text-xs text-destructive">Latitude e longitude devem estar preenchidas e dentro dos limites válidos.</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cart-delivery-date">Data solicitada de entrega *</Label>
