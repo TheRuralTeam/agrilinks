@@ -47,6 +47,7 @@ export default function BuyerCart() {
   const [deliveryLocation, setDeliveryLocation] = useState("");
   const [deliveryDate, setDeliveryDate] = useState(localDate());
   const [submitting, setSubmitting] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState(uuid);
 
   useEffect(() => {
     if (user?.id) setItems(readBuyerCart(user.id));
@@ -65,8 +66,9 @@ export default function BuyerCart() {
     persist(items.map((item) => item.product_id !== productId ? item : {
       ...item, quantity: Math.max(item.minimum_quantity, Math.min(item.available_quantity, Math.floor(value || item.minimum_quantity))),
     }));
+    setIdempotencyKey(uuid());
   };
-  const removeItem = (productId: string) => persist(items.filter((item) => item.product_id !== productId));
+  const removeItem = (productId: string) => { persist(items.filter((item) => item.product_id !== productId)); setIdempotencyKey(uuid()); };
 
   const generateProforma = (created?: CreatedCartOrder) => {
     if (!items.length) {
@@ -191,7 +193,6 @@ export default function BuyerCart() {
     }
     setSubmitting(true);
     try {
-      const idempotencyKey = uuid();
       const { data, error } = await (supabase as any).rpc("create_marketplace_cart_order", {
         p_items: items.map((item) => ({ product_id: item.product_id, quantity: item.quantity })),
         p_delivery_location: deliveryLocation.trim(),
@@ -216,6 +217,7 @@ export default function BuyerCart() {
       }
       try { persist([]); } catch (storageError) { console.error("[AgriLink] Não foi possível limpar o carrinho local após a compra:", storageError); }
       toast({ title: "Encomenda submetida", description: "Foi criada uma encomenda agrupada. Cada produto continua sujeito à aceitação do respectivo fornecedor; o frete e pagamento serão confirmados depois." });
+      setIdempotencyKey(uuid());
       navigate("/minhas-compras");
       try {
         generateProforma(created);
@@ -296,11 +298,11 @@ export default function BuyerCart() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="cart-delivery-location">Local de entrega *</Label>
-                  <Input id="cart-delivery-location" value={deliveryLocation} onChange={(event) => setDeliveryLocation(event.target.value)} placeholder="Ex.: Viana, Luanda, zona/bairro" required />
+                  <Input id="cart-delivery-location" value={deliveryLocation} onChange={(event) => { setDeliveryLocation(event.target.value); setIdempotencyKey(uuid()); }} placeholder="Ex.: Viana, Luanda, zona/bairro" required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cart-delivery-date">Data solicitada de entrega *</Label>
-                  <Input id="cart-delivery-date" type="date" min={localDate()} value={deliveryDate} onChange={(event) => setDeliveryDate(event.target.value)} required />
+                  <Input id="cart-delivery-date" type="date" min={localDate()} value={deliveryDate} onChange={(event) => { setDeliveryDate(event.target.value); setIdempotencyKey(uuid()); }} required />
                   <p className="text-xs text-muted-foreground">A data só fica confirmada após aceitação do fornecedor e validação logística.</p>
                 </div>
               </CardContent>
