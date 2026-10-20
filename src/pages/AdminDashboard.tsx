@@ -49,6 +49,7 @@ import {
   Truck,
   Settings2,
   KeyRound,
+  Route as RouteIcon,
 } from "lucide-react";
 import {
   Dialog,
@@ -71,6 +72,7 @@ import SourcingOperations from "../components/admin/SourcingOperations";
 import WorkSessionTimer from "../components/admin/WorkSessionTimer";
 import MarketPricesManager from "../components/admin/MarketPricesManager";
 import FreightPricingSettings from "../components/admin/FreightPricingSettings";
+import AdminRouteDirectory from "../components/admin/AdminRouteDirectory";
 import { downloadFichaRecebimentoPdf } from "../lib/fichaRecebimentoPdf";
 import { downloadMarketplaceTransactionReceipt } from "../features/orders/transactionReceipts";
 
@@ -174,7 +176,7 @@ interface Ficha {
   updated_at?: string | null;
 }
 
-type TabType = "dashboard" | "products" | "users" | "transactions" | "notifications" | "orders" | "fichas" | "sourcing" | "market" | "prices" | "admins" | "referrals" | "deliveries" | "freight";
+type TabType = "dashboard" | "products" | "users" | "transactions" | "notifications" | "orders" | "fichas" | "sourcing" | "market" | "prices" | "admins" | "referrals" | "deliveries" | "freight" | "routes";
 
 interface SourcingRequest {
   id: string;
@@ -228,6 +230,7 @@ const TAB_TITLES: Record<TabType, string> = {
   referrals: "Indicações",
   deliveries: "Entregas",
   freight: "Configuração do Frete",
+  routes: "Rotas da Aplicação",
 };
 
 // --- Componentes Auxiliares ---
@@ -326,7 +329,7 @@ const AdminDashboard = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const requestedTab = new URLSearchParams(location.search).get("tab");
-    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries", "freight"]);
+    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries", "freight", "routes"]);
     return requestedTab && supportedTabs.has(requestedTab as TabType) ? requestedTab as TabType : "dashboard";
   });
 
@@ -420,6 +423,7 @@ const AdminDashboard = () => {
         return hasPermission("manage_users");
       case "sourcing":
         return hasPermission("manage_sourcing");
+      case "routes":
       case "market":
       case "referrals":
         return hasPermission("view_analytics");
@@ -438,7 +442,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (!currentUserId || !adminPermissionsLoaded) return;
     const requestedTab = new URLSearchParams(location.search).get("tab");
-    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries", "freight"]);
+    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries", "freight", "routes"]);
     if (!requestedTab || !supportedTabs.has(requestedTab as TabType)) return;
 
     const tab = requestedTab as TabType;
@@ -1070,6 +1074,11 @@ const AdminDashboard = () => {
             </SidebarItem>
           )}
           {hasPermission("view_analytics") && (
+            <SidebarItem active={activeTab === "routes"} onClick={() => { setActiveTab("routes"); setMenuOpen(false); }} icon={<RouteIcon className="h-4 w-4" />}>
+              Rotas da aplicação
+            </SidebarItem>
+          )}
+          {hasPermission("view_analytics") && (
             <SidebarItem active={activeTab === "market"} onClick={() => { setActiveTab("market"); setMenuOpen(false); }} icon={<Activity className="h-4 w-4" />}>
               Mercado
             </SidebarItem>
@@ -1153,6 +1162,8 @@ const AdminDashboard = () => {
             onEndSession={endSession}
           />
         )}
+
+        {activeTab === "routes" && <AdminRouteDirectory />}
 
         {/* DASHBOARD */}
         {activeTab === "dashboard" && (

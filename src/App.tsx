@@ -50,6 +50,7 @@ const ProximasCargas = lazy(() => import("./pages/ProximasCargas"));
 const FreightLoadScan = lazy(() => import("./pages/FreightLoadScan"));
 const P2PBeneficiary = lazy(() => import("./pages/P2PBeneficiary"));
 const MyPurchases = lazy(() => import("./pages/MyPurchases"));
+const BuyerCart = lazy(() => import("./pages/BuyerCart"));
 
 const queryClient = new QueryClient();
 
@@ -156,6 +157,18 @@ const PermissionRoute = ({ children, permissions, requireAll = false, allowSuppo
   return <>{children}</>;
 };
 
+
+const RoleRoute = ({ children, allowedRole }: { children: React.ReactNode; allowedRole: string }) => {
+  const { user, userProfile, loading } = useAuth();
+  if (loading) return <Loader />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!user.email_confirmed_at) return <Navigate to="/confirmar-email" replace />;
+  if (String(userProfile?.user_type ?? "").toLowerCase() !== allowedRole) {
+    return <Navigate to="/app" replace />;
+  }
+  return <>{children}</>;
+};
+
 const AppRoutes = () => {
   const { user, loading } = useAuth();
   const location = useLocation();
@@ -244,13 +257,23 @@ const AppRoutes = () => {
           }
         />
         <Route
+          path="/carrinho"
+          element={
+            <RoleRoute allowedRole="comprador">
+              <AppLayout>
+                <BuyerCart />
+              </AppLayout>
+            </RoleRoute>
+          }
+        />
+        <Route
           path="/minhas-compras"
           element={
-            <ProtectedRoute>
+            <RoleRoute allowedRole="comprador">
               <AppLayout>
                 <MyPurchases />
               </AppLayout>
-            </ProtectedRoute>
+            </RoleRoute>
           }
         />
         <Route
@@ -374,21 +397,21 @@ const AppRoutes = () => {
         <Route
           path="/cargas"
           element={
-            <ProtectedRoute>
+            <RoleRoute allowedRole="motorista">
               <AppLayout>
                 <ProximasCargas />
               </AppLayout>
-            </ProtectedRoute>
+            </RoleRoute>
           }
         />
         <Route
           path="/cargas/scan/:token"
           element={
-            <ProtectedRoute>
+            <RoleRoute allowedRole="motorista">
               <AppLayout>
                 <FreightLoadScan />
               </AppLayout>
-            </ProtectedRoute>
+            </RoleRoute>
           }
         />
         <Route

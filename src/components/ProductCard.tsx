@@ -382,11 +382,12 @@ interface ProductCardProps {
   onProductUpdate?: (product: Product) => void
   onOpenMap?: (product: Product) => void
   onOpenPreOrder?: (product: Product) => void
+  onAddToCart?: (product: Product) => void
 }
 
 /* ─── Main component ───────────────────────────────────────────────────────── */
 export const ProductCard: React.FC<ProductCardProps> = memo(({
-  product, onProductUpdate, onOpenMap, onOpenPreOrder
+  product, onProductUpdate, onOpenMap, onOpenPreOrder, onAddToCart
 }) => {
   const { user } = useAuth()
   const { requireAct } = useCanAct()
@@ -669,6 +670,19 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
               {product.product_condition && <span>Estado: {product.product_condition}</span>}
               {product.packaging_type && <span>Acondicionamento: {product.packaging_type}</span>}
             </div>
+          )}
+
+          {/* Buyer cart action: add the listing without starting a separate pre-order. */}
+          {onAddToCart && (
+            <button
+              type="button"
+              style={{ ...styles.buyBtn, marginBottom: 8, background: T.white, color: T.g700, border: `1px solid ${T.gBorder}`, boxShadow: 'none' }}
+              onClick={() => onAddToCart(product)}
+              aria-label={`Adicionar ${product.product_type} ao carrinho`}
+            >
+              <ShoppingCart size={17} />
+              Adicionar ao carrinho
+            </button>
           )}
 
           {/* Buy button */}

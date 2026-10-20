@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Home, Map, Bell, MessageSquare, User, Plus, LayoutDashboard, BarChart3, Truck } from 'lucide-react'
+import { Home, Map, Bell, MessageSquare, User, Plus, LayoutDashboard, BarChart3, Truck, ShoppingCart, Route } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../integrations/supabase/client'
 
@@ -9,7 +9,7 @@ const BottomNavigation = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
-  const { isAdmin, user, userProfile } = useAuth()
+  const { isAdmin, isRootAdmin, isSuperRoot, user, userProfile } = useAuth()
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [unreadMessages, setUnreadMessages] = useState(0)
 
@@ -38,23 +38,24 @@ const BottomNavigation = () => {
     return () => { supabase.removeChannel(notifChannel); supabase.removeChannel(msgChannel) }
   }, [user?.id])
 
-  const isDriver = (userProfile as any)?.user_type === 'motorista'
+  const userType = String((userProfile as any)?.user_type ?? '').toLowerCase()
+  const isDriver = userType === 'motorista'
+  const isBuyer = userType === 'comprador'
+  const canSeeAdmin = isAdmin || isRootAdmin || isSuperRoot
 
-  // Item de publicação (Ação principal)
+  // A acção principal varia conforme o papel real do utilizador.
   const publishItem = isDriver
     ? { id: 'publish', icon: Truck, label: 'Cargas', path: '/cargas', isAction: true }
-    : {
-      id: 'publish',
-        icon: Plus,
-        label: t('navigation.publish'),
-        path: '/publicar-produto',
-        isAction: true,
-      }
+    : isBuyer
+      ? { id: 'publish', icon: ShoppingCart, label: 'Carrinho', path: '/carrinho', isAction: true }
+      : canSeeAdmin
+        ? { id: 'publish', icon: Route, label: 'Rotas', path: '/admindashboard?tab=routes', isAction: true }
+        : { id: 'publish', icon: Plus, label: t('navigation.publish'), path: '/publicar-produto', isAction: true }
 
   // Itens de navegação (7 itens no total)
   const navItems = [
     { id: 'nav-home', icon: Home, label: t('navigation.home'), path: '/app' },
-    isAdmin
+    canSeeAdmin
       ? { id: 'nav-admin', icon: LayoutDashboard, label: 'Admin', path: '/admindashboard' }
       : { id: 'nav-map', icon: Map, label: t('navigation.map'), path: '/mapa' },
     { id: 'nav-messages', icon: MessageSquare, label: t('navigation.messages'), path: '/listamensagens', badge: unreadMessages },

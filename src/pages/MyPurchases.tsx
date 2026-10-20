@@ -22,6 +22,8 @@ import {
 type Purchase = {
   id: string
   product_id: string
+  cart_order_id: string | null
+  requested_delivery_date: string | null
   quantity: number
   location: string | null
   status: string
@@ -84,16 +86,16 @@ export default function MyPurchases() {
     if (quiet) setRefreshing(true)
     else setLoading(true)
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('pre_orders')
-        .select('id,product_id,quantity,location,status,payment_status,total_price,created_at')
+        .select('id,product_id,cart_order_id,requested_delivery_date,quantity,location,status,payment_status,total_price,created_at')
         .eq('user_id', user.id)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
       if (error) throw error
 
-      const rows = data ?? []
-      const productIds = [...new Set(rows.map((row) => row.product_id).filter(Boolean))]
+      const rows = (data ?? []) as Purchase[]
+      const productIds: string[] = [...new Set<string>(rows.map((row) => String(row.product_id)).filter(Boolean))]
       let productNames: Record<string, string> = {}
       if (productIds.length) {
         const { data: products, error: productsError } = await supabase
@@ -230,13 +232,13 @@ export default function MyPurchases() {
               <Card key={purchase.id}>
                 <CardHeader className="pb-3">
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div><CardTitle className="text-base">{purchase.product_name}</CardTitle><p className="mt-1 text-xs text-muted-foreground">Compra #{purchase.id.slice(0, 8)} · {new Date(purchase.created_at).toLocaleDateString('pt-AO')}</p></div>
+                    <div><CardTitle className="text-base">{purchase.product_name}</CardTitle><p className="mt-1 text-xs text-muted-foreground">Compra #{purchase.id.slice(0, 8)} · {new Date(purchase.created_at).toLocaleDateString('pt-AO')}</p>{purchase.cart_order_id && <p className="mt-1 text-xs font-medium text-primary">Encomenda agrupada #{purchase.cart_order_id.slice(0, 8)}</p>}{purchase.requested_delivery_date && <p className="mt-1 text-xs text-muted-foreground">Entrega solicitada: {new Date(`${purchase.requested_delivery_date}T12:00:00`).toLocaleDateString('pt-AO')}</p>}</div>
                     <div className="flex flex-wrap gap-2"><Badge variant={purchase.status === 'accepted' ? 'default' : 'outline'}>{purchaseStatus(purchase.status)}</Badge><Badge variant={purchase.payment_status === 'paid' ? 'default' : 'secondary'}>{paymentStatus(purchase.payment_status)}</Badge></div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-3 rounded-lg border p-3 sm:grid-cols-3">
-                    <div><p className="text-xs text-muted-foreground">Quantidade</p><p className="font-semibold">{Number(purchase.quantity).toLocaleString('pt-AO')} kg</p></div>
+                    <div><p className="text-xs text-muted-foreground">Quantidade</p><p className="font-semibold">{Number(purchase.quantity).toLocaleString('pt-AO')} unidades de venda</p></div>
                     <div><p className="text-xs text-muted-foreground">Total registado</p><p className="font-semibold">{money(Number(purchase.total_price || 0))}</p></div>
                     <div><p className="text-xs text-muted-foreground">Local de entrega</p><p className="flex items-center gap-1 font-medium"><MapPin className="h-3.5 w-3.5 shrink-0" />{purchase.location || 'A combinar'}</p></div>
                   </div>
