@@ -19,6 +19,11 @@ const localDate = () => {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 };
 const uuid = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+const weightKgForItem = (item: BuyerCartItem) => {
+  if (item.unit.toLowerCase() === "kg") return item.quantity;
+  if (item.unit.toLowerCase() === "tonelada") return item.quantity * 1000;
+  return item.package_weight_kg == null ? null : item.package_weight_kg * item.quantity;
+};
 
 type CreatedCartOrder = {
   cart_order_id: string;
@@ -53,13 +58,8 @@ export default function BuyerCart() {
   }, [user?.id]);
 
   const subtotal = useMemo(() => items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0), [items]);
-  const itemWeightKg = (item: BuyerCartItem) => {
-    if (item.unit.toLowerCase() === 'kg') return item.quantity;
-    if (item.unit.toLowerCase() === 'tonelada') return item.quantity * 1000;
-    return item.package_weight_kg == null ? null : item.package_weight_kg * item.quantity;
-  };
-  const totalWeight = useMemo(() => items.reduce((sum, item) => sum + (itemWeightKg(item) ?? 0), 0), [items]);
-  const weightItemsKnown = items.filter((item) => itemWeightKg(item) != null).length;
+  const totalWeight = useMemo(() => items.reduce((sum, item) => sum + (weightKgForItem(item) ?? 0), 0), [items]);
+  const weightItemsKnown = items.filter((item) => weightKgForItem(item) != null).length;
 
   const updateQuantity = (productId: string, value: number) => {
     persist(items.map((item) => item.product_id !== productId ? item : {
