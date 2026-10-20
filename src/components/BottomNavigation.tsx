@@ -47,7 +47,7 @@ const BottomNavigation = () => {
   const publishItem = isDriver
     ? { id: 'publish', icon: Truck, label: 'Cargas', path: '/cargas', isAction: true }
     : isBuyer
-      ? { id: 'publish', icon: ShoppingCart, label: 'Compras', path: '/minhas-compras', isAction: true }
+      ? { id: 'publish', icon: ShoppingCart, label: 'Carrinho', path: '/carrinho', isAction: true }
       : canSeeAdmin
         ? { id: 'publish', icon: Route, label: 'Rotas', path: '/admindashboard?tab=routes', isAction: true }
         : { id: 'publish', icon: Plus, label: t('navigation.publish'), path: '/publicar-produto', isAction: true }
