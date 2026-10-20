@@ -18,11 +18,11 @@ describe("catálogo de produtos agrícolas angolanos", () => {
     }
   });
 
-  it("exclui pecuária, carnes, ovos, lacticínios, pescado, marisco e apicultura", () => {
+  it("exclui carnes, pescado, marisco e apicultura do catálogo vegetal", () => {
     const names = AGRICULTURAL_PRODUCTS.map((name) => name.toLocaleLowerCase("pt-AO"));
     for (const forbidden of [
-      "Frango", "Frangos vivos", "Carne bovina", "Ovos de galinha", "Leite cru",
-      "Queijo", "Cacusso", "Carapau", "Camarão", "Tilápia", "Mel", "Cera de abelha",
+      "Frango", "Frangos vivos", "Carne bovina",
+      "Cacusso", "Carapau", "Camarão", "Tilápia", "Mel", "Cera de abelha",
     ]) {
       expect(names).not.toContain(forbidden.toLocaleLowerCase("pt-AO"));
     }

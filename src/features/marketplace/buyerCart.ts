@@ -27,8 +27,19 @@ export function readBuyerCart(userId: string): BuyerCartItem[] {
   }
 }
 
+export const BUYER_CART_UPDATED_EVENT = 'agrilink:buyer-cart-updated';
+
+export function getBuyerCartQuantity(userId: string): number {
+  return readBuyerCart(userId).reduce((total, item) => total + Math.max(0, Number(item.quantity) || 0), 0);
+}
+
 export function writeBuyerCart(userId: string, items: BuyerCartItem[]) {
   localStorage.setItem(cartKey(userId), JSON.stringify(items));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(BUYER_CART_UPDATED_EVENT, {
+      detail: { userId, quantity: items.reduce((total, item) => total + Math.max(0, Number(item.quantity) || 0), 0) },
+    }));
+  }
 }
 
 export function addBuyerCartItem(userId: string, item: BuyerCartItem) {

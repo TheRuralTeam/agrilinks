@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Home, Map, Bell, MessageSquare, User, Plus, LayoutDashboard, BarChart3, Truck, ShoppingCart, Route } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../integrations/supabase/client'
+import { BUYER_CART_UPDATED_EVENT, getBuyerCartQuantity } from '../features/marketplace/buyerCart'
 
 const BottomNavigation = () => {
   const { t } = useTranslation()
@@ -12,6 +13,7 @@ const BottomNavigation = () => {
   const { isAdmin, isRootAdmin, isSuperRoot, user, userProfile } = useAuth()
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [unreadMessages, setUnreadMessages] = useState(0)
+  const [buyerCartQuantity, setBuyerCartQuantity] = useState(0)
 
   useEffect(() => {
     if (!user?.id) return
@@ -38,6 +40,25 @@ const BottomNavigation = () => {
     return () => { supabase.removeChannel(notifChannel); supabase.removeChannel(msgChannel) }
   }, [user?.id])
 
+  useEffect(() => {
+    if (!user?.id || String((userProfile as any)?.user_type ?? '').toLowerCase() !== 'comprador') {
+      setBuyerCartQuantity(0)
+      return
+    }
+    const refreshCartCount = (event?: Event) => {
+      const customEvent = event as CustomEvent<{ userId?: string }> | undefined
+      if (customEvent?.detail?.userId && customEvent.detail.userId !== user.id) return
+      setBuyerCartQuantity(getBuyerCartQuantity(user.id))
+    }
+    refreshCartCount()
+    window.addEventListener(BUYER_CART_UPDATED_EVENT, refreshCartCount)
+    window.addEventListener('storage', refreshCartCount)
+    return () => {
+      window.removeEventListener(BUYER_CART_UPDATED_EVENT, refreshCartCount)
+      window.removeEventListener('storage', refreshCartCount)
+    }
+  }, [user?.id, (userProfile as any)?.user_type])
+
   const userType = String((userProfile as any)?.user_type ?? '').toLowerCase()
   const isDriver = userType === 'motorista'
   const isBuyer = userType === 'comprador'
@@ -47,7 +68,7 @@ const BottomNavigation = () => {
   const publishItem = isDriver
     ? { id: 'publish', icon: Truck, label: 'Cargas', path: '/cargas', isAction: true }
     : isBuyer
-      ? { id: 'publish', icon: ShoppingCart, label: 'Carrinho', path: '/carrinho', isAction: true }
+      ? { id: 'publish', icon: ShoppingCart, label: 'Carrinho', path: '/carrinho', isAction: true, cartCount: buyerCartQuantity }
       : canSeeAdmin
         ? { id: 'publish', icon: Route, label: 'Rotas', path: '/admindashboard?tab=routes', isAction: true }
         : { id: 'publish', icon: Plus, label: t('navigation.publish'), path: '/publicar-produto', isAction: true }
@@ -77,6 +98,7 @@ const BottomNavigation = () => {
             const active = isActive(item.path)
             const isAction = (item as any).isAction
             const itemLabel = String(item.label ?? '')
+            const badgeValue = Number((item as any).cartCount ?? 0) || Number((item as any).badge ?? 0)
 
             return (
               <button
@@ -100,9 +122,9 @@ const BottomNavigation = () => {
                     strokeWidth={active ? 2.5 : 2}
                     aria-hidden="true"
                   />
-                  {(item as any).badge > 0 && (
+                  {badgeValue > 0 && (
                     <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full border border-card bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
-                      {(item as any).badge > 99 ? '99+' : (item as any).badge}
+                      {badgeValue > 99 ? '99+' : badgeValue}
                     </span>
                   )}
                 </div>

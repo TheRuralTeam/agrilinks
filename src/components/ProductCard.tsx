@@ -676,7 +676,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
           {onAddToCart && (
             <button
               type="button"
-              style={{ ...styles.buyBtn, marginBottom: 8, background: T.white, color: T.g700, border: `1px solid ${T.gBorder}`, boxShadow: 'none' }}
+              style={{ ...styles.buyBtn, marginBottom: 8 }}
               onClick={() => onAddToCart(product)}
               aria-label={`Adicionar ${product.product_type} ao carrinho`}
             >
