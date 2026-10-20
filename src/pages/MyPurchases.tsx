@@ -94,8 +94,8 @@ export default function MyPurchases() {
         .order('created_at', { ascending: false })
       if (error) throw error
 
-      const rows = data ?? []
-      const productIds = [...new Set(rows.map((row) => row.product_id).filter(Boolean))]
+      const rows = (data ?? []) as Purchase[]
+      const productIds: string[] = [...new Set<string>(rows.map((row) => String(row.product_id)).filter(Boolean))]
       let productNames: Record<string, string> = {}
       if (productIds.length) {
         const { data: products, error: productsError } = await supabase
