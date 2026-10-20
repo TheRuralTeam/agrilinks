@@ -442,7 +442,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (!currentUserId || !adminPermissionsLoaded) return;
     const requestedTab = new URLSearchParams(location.search).get("tab");
-    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries", "freight"]);
+    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries", "freight", "routes"]);
     if (!requestedTab || !supportedTabs.has(requestedTab as TabType)) return;
 
     const tab = requestedTab as TabType;
