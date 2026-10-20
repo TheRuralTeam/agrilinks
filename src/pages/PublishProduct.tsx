@@ -311,7 +311,7 @@ const PublishProduct = () => {
           ? 'ovos'
           : /frango|galinha|pato|peru|carne/.test(normalized)
             ? 'carnes'
-            : /leite|queijo|iogurte|manteiga|nata|requeij|lácteo|lacteo/.test(normalized)
+            : /leite|queijo|iogurte|manteiga|nata|requeij|coalhada|lácteo|lacteo/.test(normalized)
               ? 'lacteos'
               : '';
         setFormData((prev) => ({
