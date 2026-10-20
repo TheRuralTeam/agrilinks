@@ -86,7 +86,7 @@ export default function MyPurchases() {
     if (quiet) setRefreshing(true)
     else setLoading(true)
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('pre_orders')
         .select('id,product_id,cart_order_id,requested_delivery_date,quantity,location,status,payment_status,total_price,created_at')
         .eq('user_id', user.id)
