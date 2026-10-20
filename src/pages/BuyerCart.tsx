@@ -46,6 +46,7 @@ export default function BuyerCart() {
   const [items, setItems] = useState<BuyerCartItem[]>([]);
   const [deliveryLocation, setDeliveryLocation] = useState("");
   const [deliveryDate, setDeliveryDate] = useState(localDate());
+  const [freightPreference, setFreightPreference] = useState<"single_quote_requested" | "separate_deliveries">("single_quote_requested");
   const [submitting, setSubmitting] = useState(false);
   const [idempotencyKey, setIdempotencyKey] = useState(uuid);
 
@@ -70,16 +71,18 @@ export default function BuyerCart() {
   };
   const removeItem = (productId: string) => { persist(items.filter((item) => item.product_id !== productId)); setIdempotencyKey(uuid()); };
 
-  const generateProforma = (created?: CreatedCartOrder) => {
-    if (!items.length) {
+  const generateProforma = (created?: CreatedCartOrder, sourceItems: BuyerCartItem[] = items) => {
+    const sourceTotalWeight = sourceItems.reduce((sum, item) => sum + (weightKgForItem(item) ?? 0), 0);
+    const sourceKnownWeightItems = sourceItems.filter((item) => weightKgForItem(item) != null).length;
+    if (!sourceItems.length) {
       toast({ title: "Carrinho vazio", description: "Adicione produtos antes de gerar a proforma." });
       return;
     }
     const actualLines = created?.items?.map((line) => {
-      const product = items.find((item) => item.product_id === line.product_id);
+      const product = sourceItems.find((item) => item.product_id === line.product_id);
       return { product, quantity: Number(line.quantity), unitPrice: Number(line.unit_price), lineTotal: Number(line.total_price) };
     }).filter((line) => line.product);
-    const lines = actualLines?.length ? actualLines : items.map((product) => ({
+    const lines = actualLines?.length ? actualLines : sourceItems.map((product) => ({
       product, quantity: product.quantity, unitPrice: product.unit_price, lineTotal: product.quantity * product.unit_price,
     }));
     const productsTotal = lines.reduce((sum, line) => sum + line.lineTotal, 0);
@@ -103,6 +106,7 @@ export default function BuyerCart() {
       `Referência: ${created?.cart_order_id ?? `RASCUNHO-${issueDate.replace(/-/g, "")}`}`,
       `Emissão: ${issueDate}`,
       `Entrega solicitada: ${deliveryDate || "A combinar"}`,
+      `Preferência logística: ${freightPreference === "single_quote_requested" ? "Solicitada cotação de frete único AgriLink (sujeita a confirmação)" : "Entregas separadas"}`,
       `Local de entrega: ${deliveryLocation || "A indicar"}`,
     ];
     meta.forEach((line, index) => doc.text(line, left, y + index * 6));
@@ -148,8 +152,9 @@ export default function BuyerCart() {
     doc.text(`TOTAL ESTIMADO DOS PRODUTOS: ${money(productsTotal)}`, right, y, { align: "right" }); y += 10;
     doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(85, 92, 87);
     const notes = [
-      `Peso total indicado: ${weightItemsKnown === items.length ? `${totalWeight.toLocaleString("pt-AO")} kg` : `${totalWeight.toLocaleString("pt-AO")} kg de itens com peso de embalagem conhecido; peso completo por confirmar`}.`,
+      `Peso total indicado: ${sourceKnownWeightItems === sourceItems.length ? `${sourceTotalWeight.toLocaleString("pt-AO")} kg` : `${sourceTotalWeight.toLocaleString("pt-AO")} kg de itens com peso de embalagem conhecido; peso completo por confirmar`}.`,
       "A data é uma solicitação do comprador e só fica confirmada após validação do fornecedor e da logística.",
+      freightPreference === "single_quote_requested" ? "Foi solicitada uma cotação de frete único para esta encomenda. O valor só será incluído após a equipa logística confirmar a viabilidade, o preço e a aceitação do comprador; o frete não está calculado neste documento." : "Foi seleccionada a preferência por entregas separadas. As cargas podem sair de origens diferentes e chegar em momentos diferentes, conforme acordo logístico.",
       "Os preços apresentados são os preços unitários observados ao gerar este documento. A aceitação do fornecedor, o stock, o frete, os impostos aplicáveis e o total final devem ser confirmados antes do pagamento.",
       "Documento pro-forma para referência comercial; não é factura fiscal nem comprovativo de pagamento.",
       created ? `Checkout agrupado: ${created.cart_order_id}. Cada linha mantém o seu estado de aceitação e pagamento no histórico de compras.` : "Rascunho sem encomenda submetida.",
@@ -164,6 +169,56 @@ export default function BuyerCart() {
     doc.text("AgriLink · Conectar produtores, compradores e logística", left, 289);
     const fileRef = created?.cart_order_id ? created.cart_order_id.slice(0, 8) : issueDate.replace(/-/g, "");
     doc.save(`AgriLink-Proforma-${fileRef}.pdf`);
+  };
+
+  const submitSingleItem = async (item: BuyerCartItem) => {
+    if (!user?.id) { navigate("/login", { state: { from: "/carrinho" } }); return; }
+    if (String(userProfile?.user_type ?? "").toLowerCase() !== "comprador") {
+      toast({ title: "Área exclusiva para compradores", description: "Entre com uma conta de comprador para finalizar a encomenda.", variant: "destructive" });
+      return;
+    }
+    if (!userProfile?.identity_document?.trim()) {
+      toast({ title: "Complete o seu perfil", description: "É necessário preencher o documento de identificação antes de criar pré-compras.", variant: "destructive" });
+      navigate("/perfil");
+      return;
+    }
+    if (!deliveryLocation.trim() || deliveryLocation.trim().length < 3) {
+      toast({ title: "Local de entrega obrigatório", description: "Indique a zona, município ou endereço de entrega.", variant: "destructive" });
+      return;
+    }
+    if (!deliveryDate || deliveryDate < localDate()) {
+      toast({ title: "Data inválida", description: "Escolha hoje ou uma data futura para a entrega solicitada.", variant: "destructive" });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("create_marketplace_cart_order", {
+        p_items: [{ product_id: item.product_id, quantity: item.quantity }],
+        p_delivery_location: deliveryLocation.trim(),
+        p_requested_delivery_date: deliveryDate,
+        p_delivery_lat: null,
+        p_delivery_lng: null,
+        p_idempotency_key: uuid(),
+        p_freight_preference: "separate_deliveries",
+      });
+      if (error) throw new Error(error.message || "Não foi possível submeter a compra individual.");
+      const created = (Array.isArray(data) ? data[0] : data) as CreatedCartOrder;
+      if (!created?.cart_order_id || !Array.isArray(created.items) || created.items.length !== 1) {
+        throw new Error("O servidor não confirmou a compra individual.");
+      }
+      const remaining = items.filter((line) => line.product_id !== item.product_id);
+      persist(remaining);
+      setIdempotencyKey(uuid());
+      toast({ title: "Compra individual submetida", description: "Este produto tem uma referência própria. A aceitação, o frete e a entrega serão confirmados separadamente." });
+      try { generateProforma(created, [item]); } catch (pdfError) {
+        console.error("[AgriLink] Compra individual criada, mas o PDF não foi gerado:", pdfError);
+        toast({ title: "Compra submetida; PDF indisponível", description: "A compra foi registada e pode ser consultada no histórico.", variant: "destructive" });
+      }
+    } catch (error: any) {
+      toast({ title: "Não foi possível submeter a compra individual", description: error?.message || "Tente novamente.", variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const submitCart = async () => {
@@ -200,6 +255,7 @@ export default function BuyerCart() {
         p_delivery_lat: null,
         p_delivery_lng: null,
         p_idempotency_key: idempotencyKey,
+        p_freight_preference: freightPreference,
       });
       if (error) {
         const raw = [error.message, error.details, error.hint].filter(Boolean).join(" ");
@@ -248,7 +304,7 @@ export default function BuyerCart() {
           <Button variant="ghost" size="icon" onClick={() => navigate("/app")} aria-label="Voltar ao marketplace"><ArrowLeft /></Button>
           <div>
             <h1 className="flex items-center gap-2 text-2xl font-bold"><ShoppingCart className="h-6 w-6 text-primary" /> Carrinho de compras</h1>
-            <p className="text-sm text-muted-foreground">Agrupe vários produtos numa única submissão de compra.</p>
+            <p className="text-sm text-muted-foreground">Agrupe produtos ou submeta cada artigo separadamente.</p>
           </div>
         </div>
         <Button variant="outline" onClick={() => navigate("/minhas-compras")}>Histórico de compras</Button>
@@ -258,7 +314,7 @@ export default function BuyerCart() {
         <Card><CardContent className="flex flex-col items-center gap-3 p-10 text-center">
           <ShoppingCart className="h-12 w-12 text-muted-foreground" />
           <h2 className="text-lg font-semibold">O seu carrinho está vazio</h2>
-          <p className="max-w-md text-sm text-muted-foreground">Explore o marketplace e adicione vários produtos. Depois poderá enviar tudo numa só encomenda agrupada.</p>
+          <p className="max-w-md text-sm text-muted-foreground">Explore o marketplace para adicionar produtos. Pode submetê-los em conjunto ou comprar cada produto separadamente.</p>
           <Button onClick={() => navigate("/app")}>Explorar produtos</Button>
         </CardContent></Card>
       ) : (
@@ -285,6 +341,7 @@ export default function BuyerCart() {
                       <Button variant="ghost" size="icon" disabled={item.quantity >= item.available_quantity} onClick={() => updateQuantity(item.product_id, item.quantity + 1)} aria-label="Aumentar quantidade"><Plus className="h-4 w-4" /></Button>
                     </div>
                     <p className="text-xs text-muted-foreground">Mínimo: {item.minimum_quantity} {item.unit}</p>
+                    <Button variant="outline" size="sm" disabled={submitting} onClick={() => submitSingleItem(item)}>Comprar separadamente</Button>
                     <Button variant="ghost" size="sm" className="text-destructive" aria-label={`Remover ${item.product_name} do carrinho`} onClick={() => removeItem(item.product_id)}><Trash2 className="mr-1 h-4 w-4" /> Remover</Button>
                   </div>
                 </CardContent>
@@ -294,7 +351,27 @@ export default function BuyerCart() {
 
           <aside className="space-y-4">
             <Card>
-              <CardHeader><CardTitle>Entrega e calendário</CardTitle><CardDescription>Uma data e um destino para esta encomenda agrupada.</CardDescription></CardHeader>
+              <CardHeader><CardTitle>Como prefere organizar o frete?</CardTitle><CardDescription>Escolha a preferência para a equipa logística avaliar.</CardDescription></CardHeader>
+              <CardContent className="space-y-3">
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
+                  <input type="radio" name="freight-preference" className="mt-1 accent-green-700" checked={freightPreference === "single_quote_requested"} onChange={() => setFreightPreference("single_quote_requested")} />
+                  <span className="space-y-1">
+                    <span className="block font-medium">Solicitar um frete único AgriLink</span>
+                    <span className="block text-sm text-muted-foreground">A AgriLink tentará coordenar uma cotação única para esta encomenda/fatura. Só será cobrado após a logística confirmar viabilidade e preço e o cliente aceitar.</span>
+                  </span>
+                </label>
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
+                  <input type="radio" name="freight-preference" className="mt-1 accent-green-700" checked={freightPreference === "separate_deliveries"} onChange={() => setFreightPreference("separate_deliveries")} />
+                  <span className="space-y-1">
+                    <span className="block font-medium">Entregas/fretes separados</span>
+                    <span className="block text-sm text-muted-foreground">Cada fornecedor pode estar numa origem diferente e as cargas podem chegar em datas distintas, conforme acordo com a logística e aceitação do comprador.</span>
+                  </span>
+                </label>
+                <p className="text-xs text-muted-foreground">A preferência não garante consolidação: dependem da localização dos fornecedores, peso/volume, disponibilidade de transporte e destino. O frete só entra no total depois de cotação confirmada.</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>Entrega e calendário</CardTitle><CardDescription>Destino e data solicitada para a encomenda. As datas finais dependem da logística.</CardDescription></CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="cart-delivery-location">Local de entrega *</Label>
