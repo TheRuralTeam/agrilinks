@@ -9,7 +9,7 @@ const BottomNavigation = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
-  const { isAdmin, user, userProfile } = useAuth()
+  const { isAdmin, isRootAdmin, isSuperRoot, user, userProfile } = useAuth()
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [unreadMessages, setUnreadMessages] = useState(0)
 
@@ -38,7 +38,10 @@ const BottomNavigation = () => {
     return () => { supabase.removeChannel(notifChannel); supabase.removeChannel(msgChannel) }
   }, [user?.id])
 
-  const isDriver = (userProfile as any)?.user_type === 'motorista'
+  const userType = String((userProfile as any)?.user_type ?? '').toLowerCase()
+  const isDriver = userType === 'motorista'
+  const isBuyer = userType === 'comprador'
+  const canSeeAdmin = isAdmin || isRootAdmin || isSuperRoot
 
   // Item de publicação (Ação principal)
   const publishItem = isDriver
@@ -54,13 +57,15 @@ const BottomNavigation = () => {
   // Itens de navegação (7 itens no total)
   const navItems = [
     { id: 'nav-home', icon: Home, label: t('navigation.home'), path: '/app' },
-    isAdmin
+    canSeeAdmin
       ? { id: 'nav-admin', icon: LayoutDashboard, label: 'Admin', path: '/admindashboard' }
       : { id: 'nav-map', icon: Map, label: t('navigation.map'), path: '/mapa' },
     { id: 'nav-messages', icon: MessageSquare, label: t('navigation.messages'), path: '/listamensagens', badge: unreadMessages },
     publishItem, // Posição central (4 de 7)
     { id: 'nav-notifications', icon: Bell, label: t('navigation.notifications'), path: '/notificacoes', badge: unreadNotifications },
-    { id: 'nav-market', icon: BarChart3, label: 'Mercado', path: '/mercado' },
+    isBuyer
+      ? { id: 'nav-purchases', icon: ShoppingCart, label: 'Compras', path: '/minhas-compras' }
+      : { id: 'nav-market', icon: BarChart3, label: 'Mercado', path: '/mercado' },
     { id: 'nav-profile', icon: User, label: t('navigation.profile'), path: '/perfil' },
   ]
 
