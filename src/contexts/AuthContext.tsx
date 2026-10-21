@@ -384,8 +384,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const verifyEmail = async (_token: string) => {
-    // A confirmação é concluída exclusivamente em /auth/callback.
-    return { error: null }
+    // Não reportar sucesso sem verificar o token. A validação real é feita em
+    // /auth/callback através de supabase.auth.verifyOtp().
+    return {
+      error: {
+        message: 'Este token não pode ser validado por esta função. Abra o link de confirmação da AgriLink para concluir a verificação.',
+      },
+    }
   }
 
   const resendSignupConfirmation = async (email: string) => {
