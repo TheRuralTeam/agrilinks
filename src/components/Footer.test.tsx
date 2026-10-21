@@ -7,10 +7,10 @@ describe('Footer navigation', () => {
     render(<Footer />)
 
     expect(document.querySelectorAll('a[href="#"]')).toHaveLength(0)
-    expect(screen.getByRole('link', { name: 'Como Funciona' })).toHaveAttribute('href', '/#tecnologia')
+    expect(screen.getByRole('link', { name: 'Como Funciona' })).toHaveAttribute('href', '/site#tecnologia')
     expect(screen.getByRole('link', { name: 'Catálogo' })).toHaveAttribute('href', '/app')
-    expect(screen.getByRole('link', { name: 'Sobre Nós' })).toHaveAttribute('href', '/#equipa')
-    expect(screen.getByRole('link', { name: 'Contacto' })).toHaveAttribute('href', '/#contacto')
+    expect(screen.getByRole('link', { name: 'Sobre Nós' })).toHaveAttribute('href', '/site#equipa')
+    expect(screen.getByRole('link', { name: 'Contacto' })).toHaveAttribute('href', '/site#contacto')
   })
 
   it('uses real routes for terms and support instead of unimplemented pages', () => {
