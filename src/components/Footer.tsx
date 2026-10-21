@@ -2,11 +2,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faPhone, faLocationDot } from "@fortawesome/free-solid-svg-icons";
 
 const quickLinks = [
-  { label: "Como Funciona", href: "/#tecnologia" },
+  { label: "Como Funciona", href: "/site#tecnologia" },
   { label: "Catálogo", href: "/app" },
   { label: "Fazer Pedido", href: "/app" },
-  { label: "Sobre Nós", href: "/#equipa" },
-  { label: "Contacto", href: "/#contacto" },
+  { label: "Sobre Nós", href: "/site#equipa" },
+  { label: "Contacto", href: "/site#contacto" },
 ];
 
 const Footer = () => {
