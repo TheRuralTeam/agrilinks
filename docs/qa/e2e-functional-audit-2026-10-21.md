@@ -13,7 +13,7 @@ Inventariar acções visíveis e fluxos críticos desde entrada, autenticação,
 ### 1. Entrada, autenticação e sessão
 - O ponto de entrada usa React Router, carregamento lazy e `AuthProvider`; as rotas usam `ProtectedRoute`, `OpenRoute`, `RoleRoute` e `PermissionRoute`.
 - Login, registo, OAuth Google, confirmação de email, recuperação de senha e logout estão centralizados em `src/contexts/AuthContext.tsx`.
-- O perfil é guardado em `localStorage` e carregado em paralelo com as permissões. É necessário testar sessão expirada, erro de leitura do perfil, confirmação pendente, utilizador sem perfil, logout, troca de utilizador no mesmo browser e deep links protegidos.
+- O perfil é guardado em `localStorage` e carregado em paralelo com as permissões. **Risco a corrigir/validar:** `fetchUserProfile` escreve o perfil assim que a consulta termina, sem verificar se o utilizador que iniciou a consulta continua activo. Se houver troca rápida de sessão, uma resposta atrasada pode sobrepor o perfil mais recente. É necessário testar sessão expirada, erro de leitura do perfil, confirmação pendente, utilizador sem perfil, logout, troca de utilizador no mesmo browser e deep links protegidos.
 - A função `verifyEmail` no contexto devolve sucesso sem validar token; o comentário diz que a confirmação ocorre exclusivamente em `/auth/callback`. Confirmar que nenhum ecrã chama esta função como se tivesse validado um token.
 - A recuperação de senha tem listener de `SIGNED_OUT` e uma verificação tardia de sessão/hash. É um ponto de teste prioritário para evitar redirecionamento prematuro quando Supabase está a processar o link.
 - O login tenta sincronizar `sync_user_email_verified`; a chamada está envolvida em try/catch, mas a resposta de erro Supabase deve ser observada explicitamente porque o cliente pode devolver `error` sem lançar excepção.
@@ -61,6 +61,13 @@ Inventariar acções visíveis e fluxos críticos desde entrada, autenticação,
 - [ ] Responsividade, acessibilidade de teclado, labels, estados de loading/erro e ausência de botões sem acção.
 - [ ] CI: lint, type-check, testes e build; verificar deploy Preview e SHA exacto publicado.
 - [ ] Verificação manual em browser com contas de teste autorizadas e dados de teste; não testar com clientes reais.
+
+## Estado de CI verificado — 2026-10-21
+
+- Commit auditado: `a820bd8fa7b3d85d6aaa368a337be7ba53932351`.
+- GitHub Actions run [39607023699](https://github.com/TheRuralTeam/agrilinks/actions/runs/39607023699): **success** — lint, TypeScript, testes e build concluíram com sucesso.
+- Um run anterior ([39607001332](https://github.com/TheRuralTeam/agrilinks/actions/runs/39607001332)) falhou no teste antes do ajuste seguinte; o run do commit actual passou.
+- Este resultado comprova apenas as verificações automatizadas definidas no workflow. Não comprova email real, RLS no ambiente, fluxos de pagamentos/frete ou E2E de browser com sessão autenticada.
 
 ## Achados concretos confirmados nesta primeira passagem
 
