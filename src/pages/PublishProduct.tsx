@@ -99,21 +99,34 @@ const PublishProduct = () => {
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length < 3) {
-      toast({ title: "Imagens insuficientes", description: "Você precisa adicionar pelo menos 3 imagens do produto", variant: "destructive" });
-      return;
-    }
-    if (files.length > 10) {
-      toast({ title: "Muitas imagens", description: "Você pode adicionar no máximo 10 imagens", variant: "destructive" });
-      return;
-    }
+    const input = e.currentTarget;
+    const files = Array.from(input.files || []);
+    // Permite selecionar imagens em várias etapas sem perder as já escolhidas.
+    input.value = '';
+    if (files.length === 0) return;
 
-    const nextPreviews = files.map((file) => URL.createObjectURL(file));
-    imagePreviewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
-    imagePreviewUrlsRef.current = nextPreviews;
-    setSelectedImages(files);
-    setImagePreviews(nextPreviews);
+    const validFiles = files.filter((file) => {
+      if (!file.type.startsWith('image/')) {
+        toast({ title: "Ficheiro inválido", description: `${file.name} não é uma imagem. Escolha JPG, PNG ou WEBP.`, variant: "destructive" });
+        return false;
+      }
+      return true;
+    });
+    const current = selectedImages;
+    const additions = validFiles.filter((file) =>
+      !current.some((existing) => existing.name === file.name && existing.size === file.size && existing.lastModified === file.lastModified)
+    );
+    const nextFiles = [...current, ...additions];
+    if (nextFiles.length > 10) {
+      toast({ title: "Limite de imagens", description: "Pode adicionar até 10 imagens no total. Remova alguma imagem antes de continuar.", variant: "destructive" });
+      return;
+    }
+    if (additions.length === 0) return;
+
+    const nextPreviews = additions.map((file) => URL.createObjectURL(file));
+    imagePreviewUrlsRef.current = [...imagePreviewUrlsRef.current, ...nextPreviews];
+    setSelectedImages(nextFiles);
+    setImagePreviews((previous) => [...previous, ...nextPreviews]);
   };
 
   const removeImage = (index: number) => {
@@ -321,7 +334,7 @@ const PublishProduct = () => {
           ...(normalized.includes('ovo') ? { sale_unit: 'caixa' as const } : {}),
         }));
       }}>
-        <SelectTrigger id="product_type"><SelectValue placeholder="Selecionar produto agrícola" /></SelectTrigger>
+        <SelectTrigger id="product_type" aria-label="Produto agrícola obrigatório"><SelectValue placeholder="Selecionar produto agrícola" /></SelectTrigger>
         <SelectContent>
           {AGRICULTURAL_PRODUCT_GROUPS.map((group) => (
             <SelectGroup key={group.label}>
@@ -335,7 +348,7 @@ const PublishProduct = () => {
 
     {/* Categoria do produto (filtro do feed) */}
     <div className="space-y-2">
-      <Label>Categoria</Label>
+      <Label>Categoria *</Label>
       <p className="text-xs text-muted-foreground">
         Esta categoria define em que filtro o produto aparecerá no feed.
       </p>
@@ -465,6 +478,7 @@ const PublishProduct = () => {
         <Input
           id="harvest_date"
           type="date"
+          min={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
           value={formData.harvest_date}
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, harvest_date: e.target.value }))
@@ -631,6 +645,7 @@ const PublishProduct = () => {
     {/* Upload de fotos */}
     <div className="space-y-2">
       <Label htmlFor="photos">Fotos do Produto (mínimo 3, máximo 10) *</Label>
+      <p className="text-xs text-muted-foreground">Pode escolher as fotos em várias etapas. As imagens ficam selecionadas até serem removidas; são necessárias pelo menos 3 para enviar o anúncio.</p>
       <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
         <input
           id="photos"
@@ -671,8 +686,8 @@ const PublishProduct = () => {
       )}
 
       {selectedImages.length > 0 && (
-        <p className="text-sm text-muted-foreground">
-          {selectedImages.length} {selectedImages.length === 1 ? "imagem selecionada" : "imagens selecionadas"}
+        <p className={`text-sm ${selectedImages.length >= 3 ? "text-emerald-700" : "text-amber-700"}`} aria-live="polite">
+          {selectedImages.length} de 3–10 imagens selecionadas {selectedImages.length >= 3 ? "— requisito cumprido" : `— faltam ${3 - selectedImages.length}`}
         </p>
       )}
     </div>
