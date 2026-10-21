@@ -77,6 +77,8 @@ Inventariar acções visíveis e fluxos críticos desde entrada, autenticação,
 4. **P1 — fluxos de negócio não podem ser certificados só por CI:** o histórico de PRs já identifica fluxos de sourcing, frete, mapa e pagamentos que dependem de migrations/serviços e testes reais antes da produção.
 5. **P0 operacional — não existe evidência neste trabalho de um E2E completo autenticado** com todas as funções e papéis. Não afirmar que tudo está funcional até executar a matriz com ambiente autorizado.
 
+6. **P2 — callback de autenticação podia falhar ao apresentar erros:** `URLSearchParams.get()` já devolve o texto descodificado; aplicar `decodeURIComponent()` novamente podia lançar uma excepção para descrições com percentagem inválida e deixar o ecrã preso no estado de validação. Corrigido nesta branch removendo a segunda descodificação.
+
 ## Estratégia de execução
 
 1. Corrigir os links comprovadamente sem destino e manter apenas acções configuradas.
