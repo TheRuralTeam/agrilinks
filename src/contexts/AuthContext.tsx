@@ -61,6 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isSupportAgent, setIsSupportAgent] = useState(false)
   const [permissions, setPermissions] = useState<AdminPermission[]>([])
   const appliedSessionRef = useRef<string | null>(null)
+  const activeSessionUserIdRef = useRef<string | null>(null)
 
   const checkAdminRole = async (userId: string) => {
     try {
@@ -77,6 +78,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const superRootData = superRoot.data
       const isSupportAgentData = support.data
       const nextPermissions = (permissionRows.data ?? []).map((row) => row.permission).filter((p): p is AdminPermission => typeof p === 'string' && isAdminPermission(p))
+      // Ignora respostas atrasadas de uma sessão anterior (ex.: troca rápida de conta).
+      if (activeSessionUserIdRef.current !== userId) return
       
       if (!admin.error) {
         setIsAdmin(hasAdminRole === true || rootAdminData === true)
@@ -96,6 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setPermissions(permissionRows.error ? [] : nextPermissions)
     } catch (error) {
       console.error('Error checking admin role:', error)
+      if (activeSessionUserIdRef.current !== userId) return
       setIsAdmin(false)
       setIsRootAdmin(false)
       setIsSuperRoot(false)
@@ -115,6 +119,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error('Error fetching user profile:', error)
         return
       }
+
+      // Uma consulta antiga nunca deve substituir o perfil da sessão actual.
+      if (activeSessionUserIdRef.current !== userId) return
 
       const profile = data
 
@@ -141,9 +148,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (appliedSessionRef.current === sessionKey) return
       appliedSessionRef.current = sessionKey
+      const nextUserId = nextSession?.user.id ?? null
+      const previousUserId = activeSessionUserIdRef.current
+      activeSessionUserIdRef.current = nextUserId
 
       setSession(nextSession)
       setUser(nextSession?.user ?? null)
+
+      // Limpa imediatamente os dados do utilizador anterior antes de carregar os novos.
+      if (previousUserId !== nextUserId) {
+        setUserProfile(null)
+        setIsAdmin(false)
+        setIsRootAdmin(false)
+        setIsSuperRoot(false)
+        setIsSupportAgent(false)
+        setPermissions([])
+        localStorage.removeItem('userProfile')
+      }
 
       if (nextSession?.user) {
         await Promise.allSettled([
@@ -348,6 +369,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await supabase.auth.signOut({ scope: 'local' })
     } finally {
+      activeSessionUserIdRef.current = null
+      appliedSessionRef.current = 'signed-out'
       setSession(null)
       setUser(null)
       setUserProfile(null)
@@ -361,8 +384,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const verifyEmail = async (_token: string) => {
-    // A confirmação é concluída exclusivamente em /auth/callback.
-    return { error: null }
+    // Não reportar sucesso sem verificar o token. A validação real é feita em
+    // /auth/callback através de supabase.auth.verifyOtp().
+    return {
+      error: {
+        message: 'Este token não pode ser validado por esta função. Abra o link de confirmação da AgriLink para concluir a verificação.',
+      },
+    }
   }
 
   const resendSignupConfirmation = async (email: string) => {
