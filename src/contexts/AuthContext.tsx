@@ -99,6 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setPermissions(permissionRows.error ? [] : nextPermissions)
     } catch (error) {
       console.error('Error checking admin role:', error)
+      if (activeSessionUserIdRef.current !== userId) return
       setIsAdmin(false)
       setIsRootAdmin(false)
       setIsSuperRoot(false)
