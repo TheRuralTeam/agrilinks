@@ -106,7 +106,7 @@ const PublishProduct = () => {
     if (files.length === 0) return;
 
     const validFiles = files.filter((file) => {
-      if (!file.type.startsWith('image/')) {
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
         toast({ title: "Ficheiro inválido", description: `${file.name} não é uma imagem. Escolha JPG, PNG ou WEBP.`, variant: "destructive" });
         return false;
       }
@@ -418,7 +418,7 @@ const PublishProduct = () => {
           <Input
             id="price"
             type="number"
-            min="0"
+            min="0.01"
             step="0.01"
             value={formData.price}
             onChange={(e) =>
@@ -650,7 +650,7 @@ const PublishProduct = () => {
         <input
           id="photos"
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp"
           multiple
           onChange={handleImageChange}
           className="hidden"
