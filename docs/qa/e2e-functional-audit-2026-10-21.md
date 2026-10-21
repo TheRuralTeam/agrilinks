@@ -15,7 +15,7 @@ Inventariar acções visíveis e fluxos críticos desde entrada, autenticação,
 - Login, registo, OAuth Google, confirmação de email, recuperação de senha e logout estão centralizados em `src/contexts/AuthContext.tsx`.
 - O perfil é guardado em `localStorage` e carregado em paralelo com as permissões. **Risco a corrigir/validar:** `fetchUserProfile` escreve o perfil assim que a consulta termina, sem verificar se o utilizador que iniciou a consulta continua activo. Se houver troca rápida de sessão, uma resposta atrasada pode sobrepor o perfil mais recente. É necessário testar sessão expirada, erro de leitura do perfil, confirmação pendente, utilizador sem perfil, logout, troca de utilizador no mesmo browser e deep links protegidos.
 - A função `verifyEmail` foi corrigida para **não devolver sucesso falso** quando recebe um token sem o validar. A validação efectiva continua em `/auth/callback`, com `supabase.auth.verifyOtp()`. O CI passou após as protecções contra respostas de sessão atrasadas; a nova alteração a `verifyEmail` está agora a aguardar CI.
-- A recuperação de senha tem listener de `SIGNED_OUT` e uma verificação tardia de sessão/hash. É um ponto de teste prioritário para evitar redirecionamento prematuro quando Supabase está a processar o link.
+- A recuperação de senha tem listener de `SIGNED_OUT` e uma verificação tardia de sessão/hash. Foi corrigida a divergência de política: o registo exigia 8 caracteres, mas o reset aceitava 6; o reset agora também exige 8. É ainda prioritário testar o link real e evitar redireccionamento prematuro enquanto Supabase processa o link.
 - O login tenta sincronizar `sync_user_email_verified`; a chamada está envolvida em try/catch, mas a resposta de erro Supabase deve ser observada explicitamente porque o cliente pode devolver `error` sem lançar excepção.
 - A confirmação de email e o envio de email dependem de configurações/serviços Supabase; não é possível provar entrega de email apenas pelo código.
 
@@ -65,7 +65,7 @@ Inventariar acções visíveis e fluxos críticos desde entrada, autenticação,
 ## Estado de CI verificado — 2026-10-21
 
 - Commit `6a62adcfcceaffd7a7e1458d0fda255a62d6e376`: GitHub Actions run [39608033361](https://github.com/TheRuralTeam/agrilinks/actions/runs/39608033361) **success** — lint, TypeScript, testes e build concluíram com sucesso após a correcção das respostas de perfil/permissões atrasadas.
-- A alteração posterior para impedir sucesso falso na função `verifyEmail` foi enviada no commit `f47cc7dad27a1d49fdc942ad72b5a368b484f1a4`; a respectiva execução CI ainda tem de ser confirmada.
+- A alteração posterior para impedir sucesso falso na função `verifyEmail` foi enviada no commit `f47cc7dad27a1d49fdc942ad72b5a368b484f1a4`; a alteração de política do reset foi enviada no commit `c8f7df319e84f4a18f6176abe55122c6e9d3566d`. Confirmar CI do HEAD mais recente antes de considerar as alterações validadas.
 - Um run anterior ([39607001332](https://github.com/TheRuralTeam/agrilinks/actions/runs/39607001332)) falhou antes dos ajustes seguintes.
 - Estes resultados comprovam apenas as verificações automatizadas definidas no workflow. Não comprovam entrega de email, RLS no ambiente, fluxos de pagamentos/frete ou E2E de browser com sessão autenticada.
 
