@@ -29,10 +29,22 @@ create unique index if not exists sourcing_purchases_one_active_per_request_idx
 alter table public.sourcing_purchases enable row level security;
 drop policy if exists "Sourcing admins manage purchases" on public.sourcing_purchases;
 create policy "Sourcing admins manage purchases" on public.sourcing_purchases for all to authenticated
-using (public.is_agrilink_admin() or public.has_role(auth.uid(), 'admin'::public.app_role))
-with check (public.is_agrilink_admin() or public.has_role(auth.uid(), 'admin'::public.app_role));
+using (public.is_agrilink_admin() or public.has_role(auth.uid(), 'admin'::public.app_role) or public.has_admin_permission(auth.uid(), 'manage_sourcing'::public.admin_permission))
+with check (public.is_agrilink_admin() or public.has_role(auth.uid(), 'admin'::public.app_role) or public.has_admin_permission(auth.uid(), 'manage_sourcing'::public.admin_permission));
 revoke all on public.sourcing_purchases from anon;
 grant select, insert, update on public.sourcing_purchases to authenticated;
+
+-- The dashboard creates requests on behalf of a selected, existing AgriLink user.
+-- Keep ordinary buyer self-service inserts governed by the existing owner policy.
+drop policy if exists "Sourcing managers create requests on behalf of users" on public.sourcing_requests;
+create policy "Sourcing managers create requests on behalf of users"
+on public.sourcing_requests for insert to authenticated
+with check (
+  public.is_agrilink_admin()
+  or public.has_role(auth.uid(), 'admin'::public.app_role)
+  or public.has_admin_permission(auth.uid(), 'manage_sourcing'::public.admin_permission)
+);
+
 revoke all on function public.audit_sourcing_supplier_quote() from public, anon, authenticated;
 
 create or replace function public.create_sourcing_supplier_quote(
@@ -46,36 +58,54 @@ create or replace function public.create_sourcing_supplier_quote(
   p_quality_notes text default null,
   p_notes text default null
 ) returns uuid
-language plpgsql security invoker set search_path = public
+language plpgsql security invoker set search_path = ''
 as $$
 declare
   v_request_status text;
+  v_request_product text;
   v_quote_id uuid;
 begin
-  if not (public.is_agrilink_admin() or public.has_role(auth.uid(), 'admin'::public.app_role)) then
-    raise exception 'Apenas administradores podem registar cotações.';
+  if not (
+    public.is_agrilink_admin()
+    or public.has_role(auth.uid(), 'admin'::public.app_role)
+    or public.has_admin_permission(auth.uid(), 'manage_sourcing'::public.admin_permission)
+  ) then
+    raise exception 'Sem permissão para gerir sourcing.';
   end if;
   if p_available_quantity is null or p_available_quantity <= 0 then
     raise exception 'A quantidade disponível deve ser superior a zero.';
   end if;
-  if p_unit not in ('kg', 'tonelada', 'saco', 'caixa', 'unidade') then
+  if p_unit is null or p_unit not in ('kg', 'tonelada', 'saco', 'caixa', 'unidade') then
     raise exception 'Unidade inválida.';
   end if;
-  if p_unit_price is null or p_unit_price < 0 then
-    raise exception 'O preço unitário deve ser zero ou superior.';
+  if p_unit_price is null or p_unit_price <= 0 then
+    raise exception 'O preço unitário deve ser superior a zero.';
   end if;
   if p_currency not in ('AOA', 'USD', 'EUR') then
     raise exception 'Moeda inválida.';
   end if;
-  if not exists (select 1 from public.sourcing_supplier_leads s where s.id = p_supplier_id) then
-    raise exception 'Fornecedor não encontrado.';
-  end if;
-
-  select status into v_request_status
+  select status, product_name
+    into v_request_status, v_request_product
   from public.sourcing_requests
   where id = p_sourcing_request_id
   for update;
   if not found then raise exception 'Pedido de sourcing não encontrado.'; end if;
+
+  if p_unit <> (select r.unit from public.sourcing_requests r where r.id = p_sourcing_request_id) then
+    raise exception 'A unidade da cotação deve corresponder à unidade do pedido.';
+  end if;
+  if p_expected_delivery_date is not null and p_expected_delivery_date < current_date then
+    raise exception 'A data prevista de entrega não pode estar no passado.';
+  end if;
+  if not exists (
+    select 1
+    from public.sourcing_supplier_leads s
+    where s.id = p_supplier_id
+      and s.verification_status = 'confirmed'
+      and lower(btrim(s.product_name)) = lower(btrim(v_request_product))
+  ) then
+    raise exception 'O fornecedor deve estar confirmado e corresponder ao produto solicitado.';
+  end if;
   if v_request_status in ('approved', 'fulfilled', 'cancelled') then
     raise exception 'Não é possível cotar um pedido aprovado, concluído ou cancelado.';
   end if;
@@ -99,15 +129,19 @@ $$;
 
 create or replace function public.accept_sourcing_supplier_quote(p_quote_id uuid)
 returns uuid
-language plpgsql security invoker set search_path = public
+language plpgsql security invoker set search_path = ''
 as $$
 declare
   v_quote public.sourcing_supplier_quotes%rowtype;
   v_request_status text;
   v_purchase_id uuid;
 begin
-  if not (public.is_agrilink_admin() or public.has_role(auth.uid(), 'admin'::public.app_role)) then
-    raise exception 'Apenas administradores podem aceitar cotações.';
+  if not (
+    public.is_agrilink_admin()
+    or public.has_role(auth.uid(), 'admin'::public.app_role)
+    or public.has_admin_permission(auth.uid(), 'manage_sourcing'::public.admin_permission)
+  ) then
+    raise exception 'Sem permissão para aceitar cotações de sourcing.';
   end if;
 
   select * into v_quote
@@ -118,9 +152,10 @@ begin
   if v_quote.confirmation_status not in ('pending', 'confirmed') then
     raise exception 'Esta cotação não pode ser aceite no estado atual.';
   end if;
-  if v_quote.unit_price is null then raise exception 'A cotação não tem preço confirmado.'; end if;
-  if v_quote.availability_status not in ('available', 'partially_available') then
-    raise exception 'Confirme a disponibilidade do fornecedor antes de aceitar.';
+  if v_quote.unit_price is null or v_quote.unit_price <= 0 then raise exception 'A cotação não tem preço válido confirmado.'; end if;
+  if v_quote.availability_status not in ('available', 'partially_available')
+     or v_quote.confirmation_method not in ('phone', 'in_person', 'marketplace', 'document', 'other') then
+    raise exception 'Confirme e registe o método de verificação da disponibilidade antes de aceitar.';
   end if;
 
   select status into v_request_status
@@ -128,6 +163,20 @@ begin
   where id = v_quote.sourcing_request_id
   for update;
   if not found then raise exception 'Pedido de sourcing não encontrado.'; end if;
+
+  if not exists (
+    select 1
+    from public.sourcing_supplier_leads s
+    join public.sourcing_requests r on r.id = v_quote.sourcing_request_id
+    where s.id = v_quote.supplier_id
+      and s.verification_status = 'confirmed'
+      and lower(btrim(s.product_name)) = lower(btrim(r.product_name))
+  ) then
+    raise exception 'O fornecedor deixou de estar confirmado ou já não corresponde ao produto pedido.';
+  end if;
+  if v_quote.unit <> (select r.unit from public.sourcing_requests r where r.id = v_quote.sourcing_request_id) then
+    raise exception 'A unidade da cotação não corresponde à unidade do pedido.';
+  end if;
   if v_request_status in ('approved', 'fulfilled', 'cancelled') then
     raise exception 'O pedido já não aceita compras.';
   end if;
@@ -158,16 +207,20 @@ $$;
 
 create or replace function public.update_sourcing_purchase_status(p_purchase_id uuid, p_status text)
 returns void
-language plpgsql security invoker set search_path = public
+language plpgsql security invoker set search_path = ''
 as $$
 declare
   v_request_id uuid;
   v_current_status text;
 begin
-  if not (public.is_agrilink_admin() or public.has_role(auth.uid(), 'admin'::public.app_role)) then
-    raise exception 'Apenas administradores podem atualizar compras.';
+  if not (
+    public.is_agrilink_admin()
+    or public.has_role(auth.uid(), 'admin'::public.app_role)
+    or public.has_admin_permission(auth.uid(), 'manage_sourcing'::public.admin_permission)
+  ) then
+    raise exception 'Sem permissão para actualizar compras de sourcing.';
   end if;
-  if p_status not in ('ordered', 'delivered', 'cancelled') then
+  if p_status is null or p_status not in ('ordered', 'delivered', 'cancelled') then
     raise exception 'Estado da compra inválido.';
   end if;
   select sourcing_request_id, status into v_request_id, v_current_status
