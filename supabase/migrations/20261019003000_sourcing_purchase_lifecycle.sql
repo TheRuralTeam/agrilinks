@@ -81,7 +81,7 @@ begin
   if p_unit_price is null or p_unit_price <= 0 then
     raise exception 'O preço unitário deve ser superior a zero.';
   end if;
-  if p_currency not in ('AOA', 'USD', 'EUR') then
+  if p_currency is null or p_currency not in ('AOA', 'USD', 'EUR') then
     raise exception 'Moeda inválida.';
   end if;
   select status, product_name
@@ -154,6 +154,7 @@ begin
   end if;
   if v_quote.unit_price is null or v_quote.unit_price <= 0 then raise exception 'A cotação não tem preço válido confirmado.'; end if;
   if v_quote.availability_status not in ('available', 'partially_available')
+     or v_quote.confirmation_method is null
      or v_quote.confirmation_method not in ('phone', 'in_person', 'marketplace', 'document', 'other') then
     raise exception 'Confirme e registe o método de verificação da disponibilidade antes de aceitar.';
   end if;
