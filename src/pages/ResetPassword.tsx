@@ -54,8 +54,8 @@ const ResetPassword = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (password.length < 6) {
-      toast.error(t('resetPassword.minLengthError'))
+    if (password.length < 8) {
+      toast.error('A palavra-passe deve ter pelo menos 8 caracteres.')
       return
     }
 
@@ -140,7 +140,7 @@ const ResetPassword = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10"
                     required
-                    minLength={6}
+                    minLength={8}
                   />
                   <button
                     type="button"
@@ -165,7 +165,7 @@ const ResetPassword = () => {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10 pr-10"
                     required
-                    minLength={6}
+                    minLength={8}
                   />
                   <button
                     type="button"

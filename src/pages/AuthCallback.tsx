@@ -50,7 +50,7 @@ const AuthCallback = () => {
       const errorDescription = query.get('error_description') || hash.get('error_description')
       if (errorDescription) {
         setPhase('error')
-        setMessage(decodeURIComponent(errorDescription))
+        setMessage(errorDescription)
         return
       }
 
