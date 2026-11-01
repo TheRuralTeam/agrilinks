@@ -4621,6 +4621,54 @@ export type Database = {
         Args: { p_payment_channel: string; p_pre_order_id: string }
         Returns: string
       }
+      create_sourcing_supplier_lead: {
+        Args: {
+          p_company_name: string
+          p_contact_name?: string | null
+          p_phone: string
+          p_product_name: string
+          p_province_id?: string | null
+          p_municipality_id?: string | null
+          p_locality?: string | null
+          p_source?: string
+        }
+        Returns: string
+      }
+      create_sourcing_supplier_quote: {
+        Args: {
+          p_sourcing_request_id: string
+          p_supplier_id: string
+          p_available_quantity: number
+          p_unit: string
+          p_unit_price: number
+          p_currency?: string
+          p_expected_delivery_date?: string | null
+          p_quality_notes?: string | null
+          p_notes?: string | null
+          p_valid_until?: string | null
+        }
+        Returns: string
+      }
+      accept_sourcing_supplier_quote: {
+        Args: { p_quote_id: string }
+        Returns: string
+      }
+      set_sourcing_supplier_verification: {
+        Args: { p_supplier_id: string; p_status: string; p_verification_notes: string }
+        Returns: undefined
+      }
+      update_sourcing_supplier_quote_review: {
+        Args: { p_quote_id: string; p_action: string; p_confirmation_method?: string | null; p_evidence?: string | null }
+        Returns: undefined
+      }
+      update_sourcing_purchase_status: {
+        Args: { p_purchase_id: string; p_status: string; p_notes?: string | null }
+        Returns: undefined
+      }
+      update_sourcing_request_status: {
+        Args: { p_request_id: string; p_status: string }
+        Returns: undefined
+      }
       dispatch_notification_push_queue: {
         Args: { p_limit?: number }
         Returns: number
