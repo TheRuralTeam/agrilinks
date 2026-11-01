@@ -253,4 +253,298 @@ grant execute on function public.create_sourcing_supplier_quote(uuid, uuid, nume
 grant execute on function public.accept_sourcing_supplier_quote(uuid) to authenticated;
 grant execute on function public.update_sourcing_purchase_status(uuid, text) to authenticated;
 
+
+-- Align request mutations with the same delegated sourcing permission used by the
+-- purchase RPCs. This also covers the AgriLink root-admin claim.
+drop policy if exists "Sourcing managers update sourcing requests" on public.sourcing_requests;
+create policy "Sourcing managers update sourcing requests"
+on public.sourcing_requests for update to authenticated
+using (
+  public.is_agrilink_admin()
+  or public.has_role(auth.uid(), 'admin'::public.app_role)
+  or public.has_admin_permission(auth.uid(), 'manage_sourcing'::public.admin_permission)
+)
+with check (
+  public.is_agrilink_admin()
+  or public.has_role(auth.uid(), 'admin'::public.app_role)
+  or public.has_admin_permission(auth.uid(), 'manage_sourcing'::public.admin_permission)
+);
+
+-- A single append-only activity stream records request, supplier and purchase changes.
+create table if not exists public.sourcing_activity_events (
+  id uuid primary key default gen_random_uuid(),
+  entity_type text not null check (entity_type in ('request', 'supplier', 'purchase')),
+  entity_id uuid not null,
+  sourcing_request_id uuid references public.sourcing_requests(id) on delete restrict,
+  actor_id uuid references auth.users(id) on delete set null,
+  event_type text not null,
+  old_values jsonb,
+  new_values jsonb not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_sourcing_activity_request_created
+  on public.sourcing_activity_events(sourcing_request_id, created_at desc);
+create index if not exists idx_sourcing_activity_entity_created
+  on public.sourcing_activity_events(entity_type, entity_id, created_at desc);
+alter table public.sourcing_activity_events enable row level security;
+drop policy if exists "Sourcing managers read activity" on public.sourcing_activity_events;
+create policy "Sourcing managers read activity"
+on public.sourcing_activity_events for select to authenticated
+using (
+  public.is_agrilink_admin()
+  or public.has_role(auth.uid(), 'admin'::public.app_role)
+  or public.has_admin_permission(auth.uid(), 'manage_sourcing'::public.admin_permission)
+  or (sourcing_request_id is not null and exists (
+    select 1 from public.sourcing_requests r
+    where r.id = sourcing_activity_events.sourcing_request_id and r.user_id = auth.uid()
+  ))
+);
+revoke all on public.sourcing_activity_events from anon, authenticated;
+grant select on public.sourcing_activity_events to authenticated;
+
+create or replace function public.audit_sourcing_activity()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  v_entity_id uuid;
+  v_request_id uuid;
+  v_old jsonb;
+  v_new jsonb;
+begin
+  if tg_op = 'DELETE' then
+    v_old := to_jsonb(old);
+    v_entity_id := (v_old ->> 'id')::uuid;
+    if tg_table_name = 'sourcing_requests' then
+      v_request_id := v_entity_id;
+    elsif tg_table_name = 'sourcing_purchases' then
+      v_request_id := (v_old ->> 'sourcing_request_id')::uuid;
+    end if;
+    insert into public.sourcing_activity_events(entity_type, entity_id, sourcing_request_id, actor_id, event_type, old_values, new_values)
+    values (
+      case tg_table_name when 'sourcing_requests' then 'request' when 'sourcing_supplier_leads' then 'supplier' else 'purchase' end,
+      v_entity_id, v_request_id, auth.uid(), 'deleted', v_old, jsonb_build_object('deleted', true)
+    );
+    return old;
+  end if;
+
+  v_new := to_jsonb(new);
+  v_entity_id := (v_new ->> 'id')::uuid;
+  v_old := case when tg_op = 'INSERT' then null else to_jsonb(old) end;
+  if tg_table_name = 'sourcing_requests' then
+    v_request_id := v_entity_id;
+  elsif tg_table_name = 'sourcing_purchases' then
+    v_request_id := (v_new ->> 'sourcing_request_id')::uuid;
+  end if;
+
+  insert into public.sourcing_activity_events(entity_type, entity_id, sourcing_request_id, actor_id, event_type, old_values, new_values)
+  values (
+    case tg_table_name when 'sourcing_requests' then 'request' when 'sourcing_supplier_leads' then 'supplier' else 'purchase' end,
+    v_entity_id, v_request_id, auth.uid(),
+    case when tg_op = 'INSERT' then 'created' else 'updated' end,
+    v_old, v_new
+  );
+  return new;
+end;
+$;
+revoke all on function public.audit_sourcing_activity() from public, anon, authenticated;
+
+drop trigger if exists sourcing_requests_activity_audit on public.sourcing_requests;
+create trigger sourcing_requests_activity_audit
+after insert or update or delete on public.sourcing_requests
+for each row execute function public.audit_sourcing_activity();
+drop trigger if exists sourcing_supplier_leads_activity_audit on public.sourcing_supplier_leads;
+create trigger sourcing_supplier_leads_activity_audit
+after insert or update or delete on public.sourcing_supplier_leads
+for each row execute function public.audit_sourcing_activity();
+drop trigger if exists sourcing_purchases_activity_audit on public.sourcing_purchases;
+create trigger sourcing_purchases_activity_audit
+after insert or update or delete on public.sourcing_purchases
+for each row execute function public.audit_sourcing_activity();
+
+create or replace function public.create_sourcing_supplier_lead(
+  p_company_name text,
+  p_contact_name text,
+  p_phone text,
+  p_product_name text,
+  p_province_id text default null,
+  p_municipality_id text default null,
+  p_locality text default null,
+  p_source text default 'manual'
+) returns uuid
+language plpgsql
+security invoker
+set search_path = ''
+as $
+declare
+  v_id uuid;
+begin
+  if not (
+    public.is_agrilink_admin()
+    or public.has_role(auth.uid(), 'admin'::public.app_role)
+    or public.has_admin_permission(auth.uid(), 'manage_sourcing'::public.admin_permission)
+  ) then
+    raise exception 'Sem permissão para registar fornecedores.';
+  end if;
+  if nullif(btrim(p_company_name), '') is null
+     or nullif(btrim(p_phone), '') is null
+     or nullif(btrim(p_product_name), '') is null then
+    raise exception 'Empresa, telefone e produto são obrigatórios.';
+  end if;
+  if p_source is null or p_source not in ('manual', 'referral', 'marketplace', 'other') then
+    raise exception 'Origem do fornecedor inválida.';
+  end if;
+
+  insert into public.sourcing_supplier_leads(
+    company_name, contact_name, phone, product_name, province_id,
+    municipality_id, locality, source, verification_status
+  ) values (
+    btrim(p_company_name), nullif(btrim(p_contact_name), ''), btrim(p_phone),
+    btrim(p_product_name), nullif(btrim(p_province_id), ''),
+    nullif(btrim(p_municipality_id), ''), nullif(btrim(p_locality), ''),
+    p_source, 'unverified'
+  ) returning id into v_id;
+  return v_id;
+end;
+$;
+
+create or replace function public.set_sourcing_supplier_verification(
+  p_supplier_id uuid,
+  p_status text,
+  p_verification_notes text
+) returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $
+begin
+  if not (
+    public.is_agrilink_admin()
+    or public.has_role(auth.uid(), 'admin'::public.app_role)
+    or public.has_admin_permission(auth.uid(), 'manage_sourcing'::public.admin_permission)
+  ) then
+    raise exception 'Sem permissão para verificar fornecedores.';
+  end if;
+  if p_status is null or p_status not in ('confirmed', 'rejected', 'unverified') then
+    raise exception 'Estado de verificação inválido.';
+  end if;
+  if p_status in ('confirmed', 'rejected') and nullif(btrim(p_verification_notes), '') is null then
+    raise exception 'Registe a evidência e o método de verificação antes de confirmar ou rejeitar.';
+  end if;
+  update public.sourcing_supplier_leads
+  set verification_status = p_status,
+      verification_notes = nullif(btrim(p_verification_notes), ''),
+      verified_at = case when p_status = 'unverified' then null else now() end,
+      verified_by = case when p_status = 'unverified' then null else auth.uid() end,
+      updated_at = now()
+  where id = p_supplier_id;
+  if not found then raise exception 'Fornecedor não encontrado.'; end if;
+end;
+$;
+
+create or replace function public.update_sourcing_request_status(
+  p_request_id uuid,
+  p_status text
+) returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $
+declare
+  v_current_status text;
+begin
+  if not (
+    public.is_agrilink_admin()
+    or public.has_role(auth.uid(), 'admin'::public.app_role)
+    or public.has_admin_permission(auth.uid(), 'manage_sourcing'::public.admin_permission)
+  ) then
+    raise exception 'Sem permissão para actualizar pedidos de sourcing.';
+  end if;
+  if p_status is null or p_status not in ('pending', 'reviewing', 'cancelled') then
+    raise exception 'Estado manual do pedido inválido. As etapas cotado, aprovado e concluído são controladas pelo fluxo comercial.';
+  end if;
+  select status into v_current_status
+  from public.sourcing_requests
+  where id = p_request_id
+  for update;
+  if not found then raise exception 'Pedido de sourcing não encontrado.'; end if;
+  if v_current_status in ('approved', 'fulfilled', 'cancelled') then
+    raise exception 'O pedido está num estado terminal ou já tem uma compra aceite.';
+  end if;
+  if p_status = 'pending' and v_current_status <> 'reviewing' then
+    raise exception 'Só é possível devolver um pedido em análise para pendente.';
+  end if;
+  if p_status = 'reviewing' and v_current_status not in ('pending', 'quoted', 'reviewing') then
+    raise exception 'Transição de estado não permitida.';
+  end if;
+  if p_status = 'cancelled' and exists (
+    select 1 from public.sourcing_purchases p
+    where p.sourcing_request_id = p_request_id and p.status = 'ordered'
+  ) then
+    raise exception 'Cancele primeiro a compra activa antes de cancelar o pedido.';
+  end if;
+  update public.sourcing_requests
+  set status = p_status, updated_at = now()
+  where id = p_request_id;
+end;
+$;
+
+create or replace function public.update_sourcing_purchase_status(p_purchase_id uuid, p_status text)
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $
+declare
+  v_request_id uuid;
+  v_current_status text;
+  v_rows integer;
+begin
+  if not (
+    public.is_agrilink_admin()
+    or public.has_role(auth.uid(), 'admin'::public.app_role)
+    or public.has_admin_permission(auth.uid(), 'manage_sourcing'::public.admin_permission)
+  ) then
+    raise exception 'Sem permissão para actualizar compras de sourcing.';
+  end if;
+  if p_status is null or p_status not in ('ordered', 'delivered', 'cancelled') then
+    raise exception 'Estado da compra inválido.';
+  end if;
+  select sourcing_request_id, status into v_request_id, v_current_status
+  from public.sourcing_purchases where id = p_purchase_id for update;
+  if not found then raise exception 'Compra não encontrada.'; end if;
+  if v_current_status in ('delivered', 'cancelled') and p_status <> v_current_status then
+    raise exception 'Uma compra entregue ou cancelada é terminal e não pode ser reaberta.';
+  end if;
+
+  update public.sourcing_purchases
+  set status = p_status,
+      delivered_at = case when p_status = 'delivered' then coalesce(delivered_at, now()) else null end,
+      updated_at = now()
+  where id = p_purchase_id;
+  get diagnostics v_rows = row_count;
+  if v_rows <> 1 then raise exception 'Não foi possível actualizar a compra. Verifique as permissões.'; end if;
+
+  if p_status = 'delivered' then
+    update public.sourcing_requests set status = 'fulfilled', updated_at = now() where id = v_request_id;
+    get diagnostics v_rows = row_count;
+    if v_rows <> 1 then raise exception 'Compra actualizada, mas não foi possível concluir o pedido. Operação revertida.'; end if;
+  elsif p_status = 'cancelled' then
+    update public.sourcing_requests set status = 'quoted', updated_at = now()
+    where id = v_request_id and status = 'approved';
+    get diagnostics v_rows = row_count;
+    if v_rows <> 1 then raise exception 'Compra cancelada, mas o pedido não estava aprovado. Operação revertida.'; end if;
+  end if;
+end;
+$;
+
+revoke all on function public.create_sourcing_supplier_lead(text, text, text, text, text, text, text, text) from public, anon;
+revoke all on function public.set_sourcing_supplier_verification(uuid, text, text) from public, anon;
+revoke all on function public.update_sourcing_request_status(uuid, text) from public, anon;
+grant execute on function public.create_sourcing_supplier_lead(text, text, text, text, text, text, text, text) to authenticated;
+grant execute on function public.set_sourcing_supplier_verification(uuid, text, text) to authenticated;
+grant execute on function public.update_sourcing_request_status(uuid, text) to authenticated;
+
 commit;
