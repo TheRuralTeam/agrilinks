@@ -77,7 +77,7 @@ begin
   where id = p_sourcing_request_id;
   return v_quote_id;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.update_sourcing_supplier_quote_review(p_quote_id uuid, p_action text, p_confirmation_method text DEFAULT NULL::text, p_evidence text DEFAULT NULL::text)
@@ -204,7 +204,7 @@ begin
     where id = p_quote_id;
   end if;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.accept_sourcing_supplier_quote(p_quote_id uuid)
@@ -290,7 +290,7 @@ begin
   where id = v_quote.sourcing_request_id;
   return v_purchase_id;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.update_sourcing_request_status(p_request_id uuid, p_status text)
@@ -336,7 +336,7 @@ begin
   set status = p_status, updated_at = now()
   where id = p_request_id;
 end;
-$function$
+$function$;
 
 
 notify pgrst, 'reload schema';
