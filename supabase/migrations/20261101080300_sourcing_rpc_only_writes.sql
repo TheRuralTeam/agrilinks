@@ -87,7 +87,7 @@ begin
     if v_quote.available_quantity <= 0 or v_quote.unit_price is null or v_quote.unit_price <= 0 then
       raise exception 'A cotação precisa de quantidade e preço válidos.';
     end if;
-    v_notes := concat_ws(E'\\n\\n', nullif(btrim(v_quote.notes), ''), 'Verificação de disponibilidade (' || p_confirmation_method || '): ' || btrim(p_evidence));
+    v_notes := concat_ws(E'\n\n', nullif(btrim(v_quote.notes), ''), 'Verificação de disponibilidade (' || p_confirmation_method || '): ' || btrim(p_evidence));
     if char_length(v_notes) > 2000 then raise exception 'O histórico da cotação excede 2000 caracteres.'; end if;
     update public.sourcing_supplier_quotes
     set availability_status = 'available',
@@ -98,7 +98,7 @@ begin
         updated_at = now()
     where id = p_quote_id;
   else
-    v_notes := concat_ws(E'\\n\\n', nullif(btrim(v_quote.notes), ''), 'Motivo de rejeição: ' || btrim(p_evidence));
+    v_notes := concat_ws(E'\n\n', nullif(btrim(v_quote.notes), ''), 'Motivo de rejeição: ' || btrim(p_evidence));
     if char_length(v_notes) > 2000 then raise exception 'O histórico da cotação excede 2000 caracteres.'; end if;
     update public.sourcing_supplier_quotes
     set confirmation_status = 'rejected',
