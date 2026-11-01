@@ -231,6 +231,9 @@ begin
     raise exception 'Uma compra entregue ou cancelada é terminal e não pode ser reaberta.';
   end if;
 
+  if v_current_status = p_status then
+    return;
+  end if;
   update public.sourcing_purchases
   set status = p_status,
       delivered_at = case when p_status = 'delivered' then coalesce(delivered_at, now()) else null end,
