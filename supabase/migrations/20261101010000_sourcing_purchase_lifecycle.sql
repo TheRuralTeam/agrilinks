@@ -31,6 +31,9 @@ drop policy if exists "Sourcing admins manage purchases" on public.sourcing_purc
 create policy "Sourcing admins manage purchases" on public.sourcing_purchases for all to authenticated
 using (public.is_agrilink_admin() or public.has_role(auth.uid(), 'admin'::public.app_role) or public.has_admin_permission(auth.uid(), 'manage_sourcing'::public.admin_permission))
 with check (public.is_agrilink_admin() or public.has_role(auth.uid(), 'admin'::public.app_role) or public.has_admin_permission(auth.uid(), 'manage_sourcing'::public.admin_permission));
+drop policy if exists "Buyers read purchases for own sourcing requests" on public.sourcing_purchases;
+create policy "Buyers read purchases for own sourcing requests" on public.sourcing_purchases for select to authenticated
+using (exists (select 1 from public.sourcing_requests r where r.id = sourcing_purchases.sourcing_request_id and r.user_id = auth.uid()));
 revoke all on public.sourcing_purchases from anon;
 grant select, insert, update on public.sourcing_purchases to authenticated;
 
@@ -153,6 +156,9 @@ begin
     raise exception 'Esta cotação não pode ser aceite no estado atual.';
   end if;
   if v_quote.unit_price is null or v_quote.unit_price <= 0 then raise exception 'A cotação não tem preço válido confirmado.'; end if;
+  if v_quote.valid_until is not null and v_quote.valid_until < current_date then
+    raise exception 'A validade desta cotação terminou. Solicite uma proposta actualizada.';
+  end if;
   if v_quote.availability_status not in ('available', 'partially_available')
      or v_quote.confirmation_method is null
      or v_quote.confirmation_method not in ('phone', 'in_person', 'marketplace', 'document', 'other') then
@@ -206,7 +212,7 @@ begin
 end;
 $$;
 
-create or replace function public.update_sourcing_purchase_status(p_purchase_id uuid, p_status text)
+create or replace function public.update_sourcing_purchase_status(p_purchase_id uuid, p_status text, p_notes text default null)
 returns void
 language plpgsql security invoker set search_path = ''
 as $$
@@ -251,10 +257,10 @@ $$;
 
 revoke all on function public.create_sourcing_supplier_quote(uuid, uuid, numeric, text, numeric, text, date, text, text) from public, anon;
 revoke all on function public.accept_sourcing_supplier_quote(uuid) from public, anon;
-revoke all on function public.update_sourcing_purchase_status(uuid, text) from public, anon;
+revoke all on function public.update_sourcing_purchase_status(uuid, text, text) from public, anon;
 grant execute on function public.create_sourcing_supplier_quote(uuid, uuid, numeric, text, numeric, text, date, text, text) to authenticated;
 grant execute on function public.accept_sourcing_supplier_quote(uuid) to authenticated;
-grant execute on function public.update_sourcing_purchase_status(uuid, text) to authenticated;
+grant execute on function public.update_sourcing_purchase_status(uuid, text, text) to authenticated;
 
 
 -- Align request mutations with the same delegated sourcing permission used by the
@@ -494,7 +500,7 @@ begin
 end;
 $body$;
 
-create or replace function public.update_sourcing_purchase_status(p_purchase_id uuid, p_status text)
+create or replace function public.update_sourcing_purchase_status(p_purchase_id uuid, p_status text, p_notes text default null)
 returns void
 language plpgsql
 security invoker
@@ -521,10 +527,20 @@ begin
   if v_current_status in ('delivered', 'cancelled') and p_status <> v_current_status then
     raise exception 'Uma compra entregue ou cancelada é terminal e não pode ser reaberta.';
   end if;
+  if v_current_status = p_status then
+    return;
+  end if;
+  if p_status in ('delivered', 'cancelled') and nullif(btrim(p_notes), '') is null then
+    raise exception 'Registe a prova de entrega ou o motivo do cancelamento.';
+  end if;
+  if p_notes is not null and char_length(p_notes) > 2000 then
+    raise exception 'O registo da operação excede 2000 caracteres.';
+  end if;
 
   update public.sourcing_purchases
   set status = p_status,
       delivered_at = case when p_status = 'delivered' then coalesce(delivered_at, now()) else null end,
+      notes = coalesce(nullif(btrim(p_notes), ''), notes),
       updated_at = now()
   where id = p_purchase_id;
   get diagnostics v_rows = row_count;
