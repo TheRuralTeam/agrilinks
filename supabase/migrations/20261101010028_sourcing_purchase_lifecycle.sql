@@ -508,6 +508,7 @@ set search_path = ''
 as $body$
 declare
   v_request_id uuid;
+  v_quote_id uuid;
   v_current_status text;
   v_rows integer;
 begin
@@ -521,7 +522,7 @@ begin
   if p_status is null or p_status not in ('ordered', 'delivered', 'cancelled') then
     raise exception 'Estado da compra inválido.';
   end if;
-  select sourcing_request_id, status into v_request_id, v_current_status
+  select sourcing_request_id, quote_id, status into v_request_id, v_quote_id, v_current_status
   from public.sourcing_purchases where id = p_purchase_id for update;
   if not found then raise exception 'Compra não encontrada.'; end if;
   if v_current_status in ('delivered', 'cancelled') and p_status <> v_current_status then
@@ -551,6 +552,8 @@ begin
     get diagnostics v_rows = row_count;
     if v_rows <> 1 then raise exception 'Compra actualizada, mas não foi possível concluir o pedido. Operação revertida.'; end if;
   elsif p_status = 'cancelled' then
+    update public.sourcing_supplier_quotes set confirmation_status = 'rejected', updated_at = now()
+    where id = v_quote_id;
     update public.sourcing_requests set status = 'quoted', updated_at = now()
     where id = v_request_id and status = 'approved';
     get diagnostics v_rows = row_count;
