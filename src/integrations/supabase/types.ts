@@ -4669,6 +4669,10 @@ export type Database = {
         Args: { p_request_id: string; p_status: string }
         Returns: undefined
       }
+      admin_update_sourcing_request_status: {
+        Args: { p_request_id: string; p_status: string; p_admin_notes?: string | null }
+        Returns: undefined
+      }
       dispatch_notification_push_queue: {
         Args: { p_limit?: number }
         Returns: number
