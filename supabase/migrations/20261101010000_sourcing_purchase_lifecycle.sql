@@ -310,7 +310,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $body$
 declare
   v_entity_id uuid;
   v_request_id uuid;
@@ -351,7 +351,7 @@ begin
   );
   return new;
 end;
-$;
+$body$;
 revoke all on function public.audit_sourcing_activity() from public, anon, authenticated;
 
 drop trigger if exists sourcing_requests_activity_audit on public.sourcing_requests;
@@ -380,7 +380,7 @@ create or replace function public.create_sourcing_supplier_lead(
 language plpgsql
 security invoker
 set search_path = ''
-as $
+as $body$
 declare
   v_id uuid;
 begin
@@ -411,7 +411,7 @@ begin
   ) returning id into v_id;
   return v_id;
 end;
-$;
+$body$;
 
 create or replace function public.set_sourcing_supplier_verification(
   p_supplier_id uuid,
@@ -421,7 +421,7 @@ create or replace function public.set_sourcing_supplier_verification(
 language plpgsql
 security invoker
 set search_path = ''
-as $
+as $body$
 begin
   if not (
     public.is_agrilink_admin()
@@ -445,7 +445,7 @@ begin
   where id = p_supplier_id;
   if not found then raise exception 'Fornecedor não encontrado.'; end if;
 end;
-$;
+$body$;
 
 create or replace function public.update_sourcing_request_status(
   p_request_id uuid,
@@ -454,7 +454,7 @@ create or replace function public.update_sourcing_request_status(
 language plpgsql
 security invoker
 set search_path = ''
-as $
+as $body$
 declare
   v_current_status text;
 begin
@@ -492,14 +492,14 @@ begin
   set status = p_status, updated_at = now()
   where id = p_request_id;
 end;
-$;
+$body$;
 
 create or replace function public.update_sourcing_purchase_status(p_purchase_id uuid, p_status text)
 returns void
 language plpgsql
 security invoker
 set search_path = ''
-as $
+as $body$
 declare
   v_request_id uuid;
   v_current_status text;
@@ -541,7 +541,7 @@ begin
     if v_rows <> 1 then raise exception 'Compra cancelada, mas o pedido não estava aprovado. Operação revertida.'; end if;
   end if;
 end;
-$;
+$body$;
 
 revoke all on function public.create_sourcing_supplier_lead(text, text, text, text, text, text, text, text) from public, anon;
 revoke all on function public.set_sourcing_supplier_verification(uuid, text, text) from public, anon;
