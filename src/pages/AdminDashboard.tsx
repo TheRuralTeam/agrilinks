@@ -819,21 +819,41 @@ const AdminDashboard = () => {
       return;
     }
 
-    const allowedStatuses = new Set(["pending", "in_progress", "completed", "rejected"]);
+    const allowedStatuses = new Set(["pending", "in_progress", "reviewing", "quoted", "approved", "fulfilled", "completed", "rejected", "cancelled"]);
     if (!allowedStatuses.has(newStatus)) {
       toast.error("Estado de sourcing inválido.");
       return;
     }
 
-    const updateData: { status: string; admin_notes?: string } = { status: newStatus };
-    if (adminNotes !== undefined) updateData.admin_notes = adminNotes;
-    
-    const { error } = await supabase.from("sourcing_requests").update(updateData).eq("id", id);
-    if (!error) {
-      setSourcingRequests((prev) => prev.map((s) => (s.id === id ? { ...s, ...updateData } : s)));
-      toast.success(`Pedido de sourcing atualizado`);
-    } else {
-      toast.error("Erro ao atualizar pedido");
+    let notes = adminNotes;
+    if (["completed", "rejected"].includes(newStatus) && !notes?.trim()) {
+      notes = window.prompt(newStatus === "completed"
+        ? "Registe a evidência da conclusão do pedido."
+        : "Indique o motivo da rejeição do pedido.") || undefined;
+      if (!notes?.trim()) {
+        toast.error("Operação cancelada. A evidência ou o motivo é obrigatório.");
+        return;
+      }
+    }
+
+    try {
+      const { error } = await supabase.rpc("admin_update_sourcing_request_status", {
+        p_request_id: id,
+        p_status: newStatus,
+        p_admin_notes: notes === undefined ? null : notes.trim(),
+      });
+      if (error) throw error;
+
+      const normalizedStatus = newStatus === "in_progress" ? "reviewing" : newStatus;
+      const updateData: { status: string; admin_notes?: string | null } = { status: normalizedStatus };
+      if (notes !== undefined) updateData.admin_notes = notes.trim() || null;
+      setSourcingRequests((prev) => prev.map((request) => (request.id === id ? { ...request, ...updateData } : request)));
+      toast.success("Pedido de sourcing actualizado.");
+    } catch (error) {
+      const message = error && typeof error === "object" && "message" in error
+        ? String((error as { message: unknown }).message)
+        : "Não foi possível actualizar o pedido de sourcing.";
+      toast.error(message);
     }
   }, [hasPermission]);
 
@@ -998,6 +1018,18 @@ const AdminDashboard = () => {
     return Array.from(groups.values());
   }, [filteredFichas]);
 
+  const getSourcingStatusLabel = (status: string) => ({
+    pending: "Pendente",
+    in_progress: "Em análise",
+    reviewing: "Em análise",
+    quoted: "Com cotações",
+    approved: "Compra aprovada",
+    fulfilled: "Entregue",
+    completed: "Concluído",
+    rejected: "Rejeitado",
+    cancelled: "Cancelado",
+  }[status] || status);
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       completed: "bg-green-100 text-green-700",
@@ -1007,6 +1039,10 @@ const AdminDashboard = () => {
       aguardando: "bg-amber-100 text-amber-700",
       rejected: "bg-red-100 text-red-700",
       in_progress: "bg-blue-100 text-blue-700",
+      reviewing: "bg-blue-100 text-blue-700",
+      quoted: "bg-violet-100 text-violet-700",
+      approved: "bg-emerald-100 text-emerald-700",
+      fulfilled: "bg-green-100 text-green-700",
       failed: "bg-red-100 text-red-700",
       cancelado: "bg-red-100 text-red-700",
       cancelled: "bg-red-100 text-red-700",
@@ -2063,7 +2099,7 @@ const AdminDashboard = () => {
                           <TableCell className="max-w-xs text-sm whitespace-normal">{req.quality_specification || "Sem especificação"}</TableCell>
                           <TableCell className="text-sm">{new Date(req.delivery_date).toLocaleDateString("pt-AO")}</TableCell>
                           <TableCell>
-                            <Badge className={getStatusColor(req.status)}>{req.status}</Badge>
+                            <Badge className={getStatusColor(req.status)}>{getSourcingStatusLabel(req.status)}</Badge>
                           </TableCell>
                           <TableCell className="text-sm text-gray-500">{new Date(req.created_at).toLocaleDateString("pt-BR")}</TableCell>
                           <TableCell>
@@ -2074,13 +2110,13 @@ const AdminDashboard = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-48">
-                                {hasPermission("manage_sourcing") && (
+                                {hasPermission("manage_sourcing") && !["approved", "fulfilled", "completed", "rejected", "cancelled"].includes(req.status) && (
                                   <>
-                                    <DropdownMenuItem onClick={() => updateSourcingStatus(req.id, "in_progress")}>
-                                      <Clock className="h-4 w-4 mr-2 text-amber-500" /> Em Progresso
-                                    </DropdownMenuItem>
+                                    {["pending", "reviewing", "in_progress"].includes(req.status) && <DropdownMenuItem onClick={() => updateSourcingStatus(req.id, "in_progress")}>
+                                      <Clock className="h-4 w-4 mr-2 text-amber-500" /> Em análise
+                                    </DropdownMenuItem>}
                                     <DropdownMenuItem onClick={() => updateSourcingStatus(req.id, "completed")}>
-                                      <Check className="h-4 w-4 mr-2 text-green-500" /> Concluído
+                                      <Check className="h-4 w-4 mr-2 text-green-500" /> Concluir manualmente
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => updateSourcingStatus(req.id, "rejected")}>
                                       <X className="h-4 w-4 mr-2 text-red-500" /> Rejeitar pedido
@@ -2122,7 +2158,7 @@ const AdminDashboard = () => {
                           <span className="font-medium">{req.product_name}</span>
                           <span className="text-sm text-gray-500 ml-2">- {user?.full_name}</span>
                         </div>
-                        <Badge className={getStatusColor(req.status)}>{req.status}</Badge>
+                        <Badge className={getStatusColor(req.status)}>{getSourcingStatusLabel(req.status)}</Badge>
                       </div>
                       {req.description && (
                         <div className="mb-2">
