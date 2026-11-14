@@ -215,7 +215,6 @@ const Messages = () => {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [sentMessageIds, setSentMessageIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
@@ -226,7 +225,6 @@ const Messages = () => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -377,23 +375,6 @@ const Messages = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleFilesChange = useCallback((files: FileList) => {
-    const newFiles: File[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (file.size > MAX_FILE_SIZE) {
-        toast({ title: "Arquivo muito grande", description: `${file.name} excede o limite de 35MB`, variant: "destructive" });
-        continue;
-      }
-      newFiles.push(file);
-    }
-    setSelectedFiles((prev) => [...prev, ...newFiles]);
-  }, [toast]);
-
-  const removeFile = useCallback((index: number) => {
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
-  }, []);
-
   const sendMessage = useCallback(async () => {
     if (!user || !conversation || !id) return;
     const recipientId = conversation.user_id === user.id
@@ -403,32 +384,14 @@ const Messages = () => {
       toast({ title: "Destinatário indisponível", description: "Não foi possível identificar o outro participante desta conversa.", variant: "destructive" });
       return;
     }
-    if (!newMessage.trim() && selectedFiles.length === 0) return;
-    if (selectedFiles.length > 0) {
-      toast({
-        title: "Anexos temporariamente bloqueados",
-        description: "Para proteger a conversa, os anexos ficam bloqueados até a cifragem dos ficheiros e a respectiva desencriptação serem implementadas e testadas.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!newMessage.trim()) return;
     setIsSending(true);
     try {
-      const filesData: Array<{ url: string; name: string; size: number }> = [];
-      for (const file of selectedFiles) {
-        const ext = file.name.split(".").pop();
-        const fileName = `${crypto.randomUUID()}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from(BUCKET_NAME).upload(fileName, file);
-        if (!uploadError) {
-          const { data } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(fileName, 3600);
-          if (data) filesData.push({ url: data.signedUrl, name: file.name, size: file.size });
-        }
-      }
-      const plainContent = newMessage.trim() || (filesData.length > 0 ? `📎 ${filesData.length} arquivo(s)` : "");
+      const plainContent = newMessage.trim();
       const encryptedContent = await encryptChatMessage(plainContent, id, user.id, recipientId);
       const { data, error } = await supabase.from("messages").insert([{
         conversation_id: id, sender_id: user.id, receiver_id: recipientId,
-        content: encryptedContent, read: false, files: filesData.length > 0 ? filesData : undefined
+        content: encryptedContent, read: false
       }]).select().single();
       if (error) throw error;
       setSentMessageIds((prev) => new Set([...prev, data.id]));
@@ -440,7 +403,6 @@ const Messages = () => {
         .eq("id", id);
       if (conversationUpdateError) console.error("Mensagem enviada, mas a lista de conversas não foi actualizada:", conversationUpdateError);
       setNewMessage("");
-      setSelectedFiles([]);
     } catch (err) {
       console.error("Erro ao enviar mensagem segura:", err);
       toast({
@@ -451,7 +413,7 @@ const Messages = () => {
     } finally {
       setIsSending(false);
     }
-  }, [user, conversation, id, newMessage, selectedFiles, toast]);
+  }, [user, conversation, id, newMessage, toast]);
 
   const groupedMessages = useMemo(() => {
     const groups: { messages: Message[]; sender: string }[] = [];
@@ -541,20 +503,7 @@ const Messages = () => {
       {/* Input Footer */}
       <footer className="p-4 md:p-6" style={{ backgroundColor: T.canvas }}>
         <div className="max-w-4xl mx-auto flex flex-col gap-3">
-          {selectedFiles.length > 0 && (
-            <div className="flex gap-2 flex-wrap p-3 rounded-2xl border animate-in slide-in-from-bottom-2" style={{ backgroundColor: T.white, borderColor: T.gBorder }}>
-              {selectedFiles.map((file, idx) => (
-                <FilePreview key={idx} file={{ url: "", name: file.name, size: file.size }} onRemove={() => removeFile(idx)} isPreview={true} />
-              ))}
-            </div>
-          )}
-
           <div className="flex items-end gap-2 bg-white rounded-2xl p-2 shadow-lg border transition-all focus-within:ring-2" style={{ borderColor: T.rule, '--tw-ring-color': T.gBorder } as any}>
-            <Button variant="ghost" size="icon" className="rounded-xl" disabled title="O envio de anexos ainda não está disponível" aria-label="Anexos indisponíveis">
-              <Paperclip className="h-5 w-5" style={{ color: T.faint }} />
-            </Button>
-            <input type="file" ref={fileInputRef} className="hidden" multiple onChange={(e) => e.target.files && handleFilesChange(e.target.files)} />
-            
             <textarea
               placeholder="Escreva a sua mensagem..."
               value={newMessage}
@@ -581,7 +530,7 @@ const Messages = () => {
                   </div>
                 )}
               </div>
-              <Button onClick={sendMessage} size="icon" disabled={(!newMessage.trim() && selectedFiles.length === 0) || isSending} className="rounded-xl h-10 w-10 shadow-md transition-transform active:scale-95" style={{ backgroundColor: T.g600, color: T.white }}>
+              <Button onClick={sendMessage} size="icon" disabled={!newMessage.trim() || isSending} className="rounded-xl h-10 w-10 shadow-md transition-transform active:scale-95" style={{ backgroundColor: T.g600, color: T.white }}>
                 {isSending ? <Loader compact className="[&_svg]:text-white" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
