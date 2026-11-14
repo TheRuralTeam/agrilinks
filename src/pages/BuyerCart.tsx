@@ -10,7 +10,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "../hooks/use-toast";
-import { readBuyerCart, writeBuyerCart, type BuyerCartItem } from "../features/marketplace/buyerCart";
+import { readBuyerCart, writeBuyerCart, readBuyerCartIdempotencyKey, writeBuyerCartIdempotencyKey, type BuyerCartItem } from "../features/marketplace/buyerCart";
 import { supabase } from "../integrations/supabase/client";
 
 const money = (value: number) => new Intl.NumberFormat("pt-AO", {
@@ -20,7 +20,7 @@ const localDate = () => {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 };
-const uuid = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+const uuid = () => globalThis.crypto?.randomUUID?.() ?? 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => { const random = Math.floor(Math.random() * 16); return (character === 'x' ? random : (random & 0x3) | 0x8).toString(16); });
 const weightKgForItem = (item: BuyerCartItem) => {
   if (item.unit.toLowerCase() === "kg") return item.quantity;
   if (item.unit.toLowerCase() === "tonelada") return item.quantity * 1000;
@@ -58,13 +58,27 @@ export default function BuyerCart() {
   const [idempotencyKey, setIdempotencyKey] = useState(uuid);
 
   useEffect(() => {
-    if (user?.id) setItems(readBuyerCart(user.id));
+    if (user?.id) {
+      setItems(readBuyerCart(user.id));
+      setIdempotencyKey(readBuyerCartIdempotencyKey(user.id));
+    } else {
+      setItems([]);
+      setIdempotencyKey(uuid());
+    }
+  }, [user?.id]);
+
+  const rotateIdempotencyKey = useCallback(() => {
+    const next = uuid();
+    setIdempotencyKey(next);
+    if (user?.id) writeBuyerCartIdempotencyKey(user.id, next);
+    return next;
   }, [user?.id]);
 
   const persist = useCallback((next: BuyerCartItem[]) => {
     setItems(next);
     if (user?.id) writeBuyerCart(user.id, next);
-  }, [user?.id]);
+    rotateIdempotencyKey();
+  }, [user?.id, rotateIdempotencyKey]);
 
   const subtotal = useMemo(() => items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0), [items]);
   const totalWeight = useMemo(() => items.reduce((sum, item) => sum + (weightKgForItem(item) ?? 0), 0), [items]);
@@ -98,7 +112,7 @@ export default function BuyerCart() {
       setDeliveryLatitude(latitude.toFixed(6));
       setDeliveryLongitude(longitude.toFixed(6));
       setDeliveryLocation(`Localização GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
-      setIdempotencyKey(uuid());
+      rotateIdempotencyKey();
       toast({ title: "Localização obtida", description: "Confirme se este é o ponto correcto para receber a encomenda." });
     }, (error) => {
       setLocatingDelivery(false);
@@ -118,9 +132,8 @@ export default function BuyerCart() {
     persist(items.map((item) => item.product_id !== productId ? item : {
       ...item, quantity: Math.max(item.minimum_quantity, Math.min(item.available_quantity, Math.floor(value || item.minimum_quantity))),
     }));
-    setIdempotencyKey(uuid());
   };
-  const removeItem = (productId: string) => { persist(items.filter((item) => item.product_id !== productId)); setIdempotencyKey(uuid()); };
+  const removeItem = (productId: string) => { persist(items.filter((item) => item.product_id !== productId)); };
 
   const generateProforma = (created?: CreatedCartOrder, sourceItems: BuyerCartItem[] = items, proformaFreightPreference: "single_quote_requested" | "separate_deliveries" = freightPreference) => {
     const sourceTotalWeight = sourceItems.reduce((sum, item) => sum + (weightKgForItem(item) ?? 0), 0);
@@ -263,7 +276,6 @@ export default function BuyerCart() {
       }
       const remaining = items.filter((line) => line.product_id !== item.product_id);
       persist(remaining);
-      setIdempotencyKey(uuid());
       toast({ title: "Compra individual submetida", description: "Este produto tem uma referência própria. A aceitação, o frete e a entrega serão confirmados separadamente." });
       try { generateProforma(created, [item], "separate_deliveries"); } catch (pdfError) {
         console.error("[AgriLink] Compra individual criada, mas o PDF não foi gerado:", pdfError);
@@ -332,7 +344,6 @@ export default function BuyerCart() {
       }
       try { persist([]); } catch (storageError) { console.error("[AgriLink] Não foi possível limpar o carrinho local após a compra:", storageError); }
       toast({ title: "Encomenda submetida", description: "Foi criada uma encomenda agrupada. Cada produto continua sujeito à aceitação do respectivo fornecedor; o frete e pagamento serão confirmados depois." });
-      setIdempotencyKey(uuid());
       navigate("/minhas-compras");
       try {
         generateProforma(created);
@@ -413,14 +424,14 @@ export default function BuyerCart() {
               <CardHeader><CardTitle>Como prefere organizar o frete?</CardTitle><CardDescription>Escolha a preferência para a equipa logística avaliar.</CardDescription></CardHeader>
               <CardContent className="space-y-3">
                 <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
-                  <input type="radio" name="freight-preference" className="mt-1 accent-green-700" checked={freightPreference === "single_quote_requested"} onChange={() => { setFreightPreference("single_quote_requested"); setIdempotencyKey(uuid()); }} />
+                  <input type="radio" name="freight-preference" className="mt-1 accent-green-700" checked={freightPreference === "single_quote_requested"} onChange={() => { setFreightPreference("single_quote_requested"); rotateIdempotencyKey(); }} />
                   <span className="space-y-1">
                     <span className="block font-medium">Solicitar um frete único AgriLink</span>
                     <span className="block text-sm text-muted-foreground">A AgriLink tentará coordenar uma cotação única para esta encomenda/fatura. Só será cobrado após a logística confirmar viabilidade e preço e o cliente aceitar.</span>
                   </span>
                 </label>
                 <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
-                  <input type="radio" name="freight-preference" className="mt-1 accent-green-700" checked={freightPreference === "separate_deliveries"} onChange={() => { setFreightPreference("separate_deliveries"); setIdempotencyKey(uuid()); }} />
+                  <input type="radio" name="freight-preference" className="mt-1 accent-green-700" checked={freightPreference === "separate_deliveries"} onChange={() => { setFreightPreference("separate_deliveries"); rotateIdempotencyKey(); }} />
                   <span className="space-y-1">
                     <span className="block font-medium">Entregas/fretes separados</span>
                     <span className="block text-sm text-muted-foreground">Cada fornecedor pode estar numa origem diferente e as cargas podem chegar em datas distintas, conforme acordo com a logística e aceitação do comprador.</span>
@@ -459,7 +470,7 @@ export default function BuyerCart() {
                         setDeliveryLatitude("");
                         setDeliveryLongitude("");
                       }
-                      setIdempotencyKey(uuid());
+                      rotateIdempotencyKey();
                     }} className="min-w-0 border-0 shadow-none focus-visible:ring-0" placeholder="Endereço ou latitude, longitude" aria-label="Endereço ou coordenadas do ponto de entrega" />
                     <Button type="button" variant="ghost" size="icon" className="shrink-0" disabled={locatingDelivery || submitting} onClick={useCurrentDeliveryLocation} aria-label="Usar a localização actual do dispositivo" title="Usar GPS">
                       {locatingDelivery ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
@@ -471,7 +482,7 @@ export default function BuyerCart() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cart-delivery-date">Data solicitada de entrega *</Label>
-                  <Input id="cart-delivery-date" type="date" min={localDate()} value={deliveryDate} onChange={(event) => { setDeliveryDate(event.target.value); setIdempotencyKey(uuid()); }} required />
+                  <Input id="cart-delivery-date" type="date" min={localDate()} value={deliveryDate} onChange={(event) => { setDeliveryDate(event.target.value); rotateIdempotencyKey(); }} required />
                   <p className="text-xs text-muted-foreground">A data só fica confirmada após aceitação do fornecedor e validação logística.</p>
                 </div>
               </CardContent>
@@ -525,7 +536,7 @@ export default function BuyerCart() {
               setDeliveryLatitude(latitude);
               setDeliveryLongitude(longitude);
               setDeliveryLocation(`${latitude}, ${longitude}`);
-              setIdempotencyKey(uuid());
+              rotateIdempotencyKey();
               setMapPickerOpen(false);
             }}>Usar este ponto</Button>
           </DialogFooter>
