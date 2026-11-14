@@ -401,7 +401,7 @@ const ConversationsList = () => {
         )}
 
         {/* Lista de Conversas */}
-        {conversationResults.length > 0 && (
+        {!conversationLoadError && conversationResults.length > 0 && (
           <section className="animate-in fade-in duration-500">
             {userResults.length > 0 && searchTerm.trim() !== "" && (
               <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] mb-3 mt-6 px-2" style={{ color: T.muted }}>
