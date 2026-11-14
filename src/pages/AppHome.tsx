@@ -328,26 +328,30 @@ const AppHome = () => {
         <div style={{ maxWidth:1320, margin:'0 auto', padding:'0 16px', height:56, display:'flex', alignItems:'center', gap:10 }}>
 
           {/* Logo */}
-          <div
-            style={{ display:'flex', alignItems:'center', cursor:'pointer', flexShrink: 0 }}
+          <button
+            type="button"
+            aria-label="Ir para o início da AgriLink"
             onClick={() => navigate('/')}
+            style={{ display:'flex', alignItems:'center', cursor:'pointer', flexShrink:0, border:0, padding:0, background:'transparent' }}
           >
             <img
               src={agrilinkLogo}
               alt="AgriLink"
-              style={{ height: 26, width: 'auto', objectFit: 'contain', display: 'block' }}
+              style={{ height:26, width:'auto', objectFit:'contain', display:'block' }}
             />
-          </div>
+          </button>
 
           {/* Pesquisa — pílula leve, sempre visível, encolhe em mobile sem sair da navbar */}
-          <div
+          <button
+            type="button"
+            aria-label="Pesquisar produtos"
             onClick={() => navigate('/search')}
             style={{
-              flex: '1 1 auto', minWidth: 0, maxWidth: 480,
+              flex:'1 1 auto', minWidth:0, maxWidth:480,
               display:'flex', alignItems:'center', gap:8,
-              padding:'8px 14px', borderRadius: 980,
-              background: 'rgba(118,118,128,0.08)',
-              cursor:'pointer', transition:'background 0.15s',
+              padding:'8px 14px', borderRadius:980,
+              background:'rgba(118,118,128,0.08)', border:0, textAlign:'left',
+              fontFamily:'inherit', cursor:'pointer', transition:'background 0.15s',
             }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(118,118,128,0.13)' }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(118,118,128,0.08)' }}
@@ -357,9 +361,9 @@ const AppHome = () => {
               fontSize:13, color: T.faint, fontWeight:500,
               overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
             }}>
-              Pesquisar
+              Pesquisar produtos
             </span>
-          </div>
+          </button>
 
           {/* Right actions */}
           <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink: 0 }}>
@@ -383,8 +387,12 @@ const AppHome = () => {
 
             {/* Mobile Menu Toggle */}
             <button
+              type="button"
+              aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="app-mobile-navigation"
               style={{
-                width: 32, height: 32, borderRadius: '50%', border:'none', background: 'rgba(118,118,128,0.08)',
+                width:32, height:32, borderRadius:'50%', border:'none', background:'rgba(118,118,128,0.08)',
                 cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
                 color: T.mid, transition:'background 0.15s',
               }}
@@ -398,8 +406,8 @@ const AppHome = () => {
 
         {/* Mobile Navigation Menu */}
         {mobileMenuOpen && (
-          <div style={{
-            position: 'absolute', top: 62, left: 0, right: 0,
+          <div id="app-mobile-navigation" style={{
+            position:'absolute', top:62, left:0, right:0,
             background: 'rgba(255,255,255,0.92)', backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)',
             borderBottom: `1px solid rgba(0,0,0,0.06)`,
             padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12,
@@ -484,7 +492,7 @@ const AppHome = () => {
             Produtos disponíveis
           </h2>
           <p style={{ fontSize:13, color: T.faint, marginTop:4, fontWeight:500 }}>
-            {filteredProducts.length} listings · ordenados por relevância
+            {filteredProducts.length} produtos apresentados · mais recentes primeiro
           </p>
         </div>
 
@@ -514,7 +522,7 @@ const AppHome = () => {
           }
         </div>
 
-        {!loading && filteredProducts.length > 0 && hasMoreProducts && (
+        {!loading && hasMoreProducts && (
           <div style={{ display:'flex', justifyContent:'center', paddingTop:28 }}>
             <button
               type="button"
@@ -527,7 +535,7 @@ const AppHome = () => {
                 boxShadow:'0 4px 18px rgba(0,0,0,0.05)',
               }}
             >
-              {loadingMore ? 'A carregar…' : 'Ver mais produtos'}
+              {loadingMore ? 'A carregar…' : 'Carregar mais produtos'}
             </button>
           </div>
         )}
@@ -557,8 +565,10 @@ const AppHome = () => {
             </h3>
             <p style={{ fontSize:13, color: T.faint, maxWidth:320, lineHeight:1.65 }}>
               {isOnline
-                ? 'Ainda não existem produtos disponíveis nesta categoria.'
-                : 'Verifique a sua ligação e tente novamente. Se já tiver produtos em cache, eles serão apresentados quando disponíveis.'}
+                ? hasMoreProducts
+                  ? 'Ainda estamos a procurar nesta categoria. Carregue mais produtos para continuar.'
+                  : 'Não existem produtos disponíveis nesta categoria.'
+                : 'Verifique a sua ligação e tente novamente. Os últimos produtos guardados serão apresentados quando disponíveis.'}
             </p>
             {!isOnline && (
               <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:14, padding:'6px 12px', borderRadius:980, background: T.g50, color: T.g600, fontSize:12, fontWeight:700 }}>
