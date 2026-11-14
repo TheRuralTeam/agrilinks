@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import FloatingActionButton from './FloatingActionButton'
 
 const state = vi.hoisted(() => ({
-  userProfile: { user_type: 'comprador' as string | null },
+  userProfile: { user_type: 'comprador' } as { user_type: string } | null,
   pathname: '/app',
   navigate: vi.fn(),
 }))
