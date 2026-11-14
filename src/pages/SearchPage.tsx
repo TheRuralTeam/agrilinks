@@ -98,6 +98,7 @@ const SearchPage = () => {
   const [productResults, setProductResults] = useState<Product[]>([])
   const [userResults, setUserResults] = useState<UserResult[]>([])
   const [loading, setLoading] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [mapModalOpen, setMapModalOpen] = useState(false)
   const [preOrderModalOpen, setPreOrderModalOpen] = useState(false)
@@ -106,8 +107,12 @@ const SearchPage = () => {
   const [orderData, setOrderData] = useState({ quantity: 1, location: '' })
   const [deliveryCoordinates, setDeliveryCoordinates] = useState<{ latitude: number; longitude: number } | null>(null)
 
+  const searchRequestId = useRef(0)
+
   const searchData = React.useCallback(async (term: string, province?: string, category?: string) => {
+    const requestId = ++searchRequestId.current
     setLoading(true)
+    setSearchError(null)
     try {
       const products = await fetchProductsFeed({
         userId: user?.id,
@@ -118,26 +123,28 @@ const SearchPage = () => {
         category,
       })
 
+      if (requestId !== searchRequestId.current) return
       setProductResults(products as Product[])
 
       if (term.trim() && (activeTab === 'all' || activeTab === 'users')) {
-        const { data: users } = await supabase
+        const { data: users, error: usersError } = await supabase
           .from('users')
           .select('id, full_name, email, user_type, avatar_url')
           .or(`full_name.ilike.%${term.trim().replace(/[%(),]/g, ' ')}%,email.ilike.%${term.trim().replace(/[%(),]/g, ' ')}%`)
           .limit(20)
 
+        if (usersError) throw usersError
+        if (requestId !== searchRequestId.current) return
         setUserResults((users || []) as UserResult[])
       } else {
         setUserResults([])
       }
     } catch (err) {
+      if (requestId !== searchRequestId.current) return
       console.error('[AgriLink] Marketplace search failed:', err)
-      setProductResults([])
-      setUserResults([])
-      toast.error('Não foi possível carregar os resultados. Tente novamente.')
+      setSearchError(err instanceof Error ? err.message : 'Não foi possível carregar os resultados. Verifique a ligação e tente novamente.')
     } finally {
-      setLoading(false)
+      if (requestId === searchRequestId.current) setLoading(false)
     }
   }, [user?.id, activeTab])
 
@@ -151,6 +158,7 @@ const SearchPage = () => {
 
     return () => {
       if (searchTimer.current) window.clearTimeout(searchTimer.current)
+      searchRequestId.current += 1
     }
   }, [searchTerm, selectedProvince, selectedCategory, activeTab, searchData])
 
@@ -421,6 +429,21 @@ const SearchPage = () => {
             <p className="text-[#758A79] font-medium">Buscando as melhores ofertas...</p>
           </div>
         )}
+        {searchError && !loading && (
+          <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
+            <p className="font-semibold text-red-900">Não foi possível carregar os resultados</p>
+            <p className="mt-2 break-words text-sm text-red-800">{searchError}</p>
+            <Button variant="outline" className="mt-4" onClick={() => void searchData(searchTerm, selectedProvince, selectedCategory)}>Tentar novamente</Button>
+          </div>
+        )}
+        {!loading && !searchError && searchTerm.trim() &&
+          (activeTab === 'products' ? sortedProducts.length === 0 : activeTab === 'users' ? userResults.length === 0 : sortedProducts.length === 0 && userResults.length === 0) && (
+          <div className="rounded-2xl border border-dashed border-black/10 bg-white p-10 text-center">
+            <Search className="mx-auto mb-3 h-9 w-9 text-[#A8BAA9]" />
+            <p className="font-semibold text-[#111714]">Nenhum resultado encontrado</p>
+            <p className="mt-2 text-sm text-[#758A79]">Tente outro termo ou ajuste os filtros de pesquisa.</p>
+          </div>
+        )}
 
         {/* Resultados de Usuários - Grelha de 4 Colunas */}
         {(activeTab === 'all' || activeTab === 'users') && userResults.length > 0 && (
@@ -483,7 +506,7 @@ const SearchPage = () => {
         )}
 
         {/* Estado vazio sem pesquisa */}
-        {!loading && !searchTerm && sortedProducts.length === 0 && (
+        {!loading && !searchError && !searchTerm && sortedProducts.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl" style={{ background: '#fff', border: '1px dashed rgba(0,0,0,0.08)' }}>
             <div className="p-6 rounded-full mb-4" style={{ background: '#F2FAF3' }}>
               <Search className="h-12 w-12 text-[#2c863b]" />
