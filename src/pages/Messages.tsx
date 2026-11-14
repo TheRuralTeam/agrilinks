@@ -11,11 +11,9 @@ import {
   Clock,
   CheckCheck,
   Download,
-  MoreVertical,
   Smile,
-  Phone,
-  Video,
   User
+  Video,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../integrations/supabase/client";
@@ -223,6 +221,8 @@ const Messages = () => {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [sentMessageIds, setSentMessageIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
   const [isSending, setIsSending] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -308,6 +308,7 @@ const Messages = () => {
   useEffect(() => {
     if (!user || !id) return;
     setIsLoading(true);
+    setLoadError(null);
     const fetchMessages = async () => {
       try {
         await ensureChatEncryptionKey(user.id);
@@ -327,6 +328,7 @@ const Messages = () => {
         }
       } catch (err) {
         console.error("Erro ao carregar mensagens:", err);
+        setLoadError(err instanceof Error ? err.message : "Não foi possível carregar as mensagens. Verifique a ligação e tente novamente.");
       } finally {
         setIsLoading(false);
       }
@@ -351,7 +353,7 @@ const Messages = () => {
         }
       ).subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, id]);
+  }, [user, id, reloadToken]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -460,11 +462,7 @@ const Messages = () => {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/50"><Phone className="h-4 w-4" style={{ color: T.muted }} /></Button>
-            <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/50"><Video className="h-4 w-4" style={{ color: T.muted }} /></Button>
-            <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/50"><MoreVertical className="h-4 w-4" style={{ color: T.muted }} /></Button>
-          </div>
+
         </div>
       </header>
 
@@ -473,6 +471,13 @@ const Messages = () => {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-full py-20">
             <Loader compact />
+          </div>
+        ) : loadError ? (
+          <div role="alert" className="flex h-full flex-col items-center justify-center py-20 text-center">
+            <MessageSquare className="mb-4 h-10 w-10" style={{ color: T.faint }} />
+            <p className="font-bold text-lg" style={{ color: T.ink }}>Não foi possível carregar as mensagens</p>
+            <p className="mt-2 max-w-sm break-words text-sm" style={{ color: T.muted }}>{loadError}</p>
+            <Button variant="outline" className="mt-4" onClick={() => setReloadToken((value) => value + 1)}>Tentar novamente</Button>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-20">
@@ -514,8 +519,8 @@ const Messages = () => {
           )}
 
           <div className="flex items-end gap-2 bg-white rounded-2xl p-2 shadow-lg border transition-all focus-within:ring-2" style={{ borderColor: T.rule, '--tw-ring-color': T.gBorder } as any}>
-            <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="rounded-xl hover:bg-g50" disabled={isSending}>
-              <Paperclip className="h-5 w-5" style={{ color: T.muted }} />
+            <Button variant="ghost" size="icon" className="rounded-xl" disabled title="O envio de anexos ainda não está disponível" aria-label="Anexos indisponíveis">
+              <Paperclip className="h-5 w-5" style={{ color: T.faint }} />
             </Button>
             <input type="file" ref={fileInputRef} className="hidden" multiple onChange={(e) => e.target.files && handleFilesChange(e.target.files)} />
             
