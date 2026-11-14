@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import { ArrowLeft, CalendarDays, Crosshair, FileText, LoaderCircle, MapPin, Minus, Plus, ShoppingCart, Trash2, Truck } from "lucide-react";
 import { Button } from "../components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import SimpleLeafletMap from "../components/SimpleLeafletMap";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -48,6 +50,8 @@ export default function BuyerCart() {
   const [deliveryLatitude, setDeliveryLatitude] = useState("");
   const [deliveryLongitude, setDeliveryLongitude] = useState("");
   const [locatingDelivery, setLocatingDelivery] = useState(false);
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
+  const [mapPickerSelection, setMapPickerSelection] = useState<{ lat: number; lng: number } | null>(null);
   const [deliveryDate, setDeliveryDate] = useState(localDate());
   const [freightPreference, setFreightPreference] = useState<"single_quote_requested" | "separate_deliveries">("single_quote_requested");
   const [submitting, setSubmitting] = useState(false);
@@ -67,7 +71,6 @@ export default function BuyerCart() {
   const weightItemsKnown = items.filter((item) => weightKgForItem(item) != null).length;
   const parsedDeliveryLatitude = deliveryLatitude.trim() === "" ? null : Number(deliveryLatitude);
   const parsedDeliveryLongitude = deliveryLongitude.trim() === "" ? null : Number(deliveryLongitude);
-  const hasAnyDeliveryCoordinates = deliveryLatitude.trim() !== "" || deliveryLongitude.trim() !== "";
   const deliveryCoordinatesValid = parsedDeliveryLatitude !== null && parsedDeliveryLongitude !== null &&
     Number.isFinite(parsedDeliveryLatitude) && Number.isFinite(parsedDeliveryLongitude) &&
     parsedDeliveryLatitude >= -90 && parsedDeliveryLatitude <= 90 &&
@@ -107,22 +110,6 @@ export default function BuyerCart() {
         variant: "destructive",
       });
     }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 });
-  };
-
-  const updateDeliveryCoordinate = (axis: "latitude" | "longitude", value: string) => {
-    if (axis === "latitude") setDeliveryLatitude(value);
-    else setDeliveryLongitude(value);
-    const nextLatitude = axis === "latitude" ? value.trim() : deliveryLatitude.trim();
-    const nextLongitude = axis === "longitude" ? value.trim() : deliveryLongitude.trim();
-    const lat = nextLatitude === "" ? null : Number(nextLatitude);
-    const lng = nextLongitude === "" ? null : Number(nextLongitude);
-    if (lat !== null && lng !== null && Number.isFinite(lat) && Number.isFinite(lng) &&
-        lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-      setDeliveryLocation(`Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
-    } else if (deliveryLocation.startsWith("Coordenadas:") || deliveryLocation.startsWith("Localização GPS:")) {
-      setDeliveryLocation("");
-    }
-    setIdempotencyKey(uuid());
   };
 
   const updateQuantity = (productId: string, value: number) => {
@@ -445,30 +432,40 @@ export default function BuyerCart() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="cart-delivery-location">Ponto de entrega *</Label>
-                  <Input id="cart-delivery-location" value={deliveryLocation} onChange={(event) => {
-                    setDeliveryLocation(event.target.value);
-                    setDeliveryLatitude("");
-                    setDeliveryLongitude("");
-                    setIdempotencyKey(uuid());
-                  }} placeholder="Escreva o endereço, bairro ou ponto de referência" />
-                  <Button type="button" variant="outline" className="w-full" disabled={locatingDelivery || submitting} onClick={useCurrentDeliveryLocation}>
-                    {locatingDelivery ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Crosshair className="mr-2 h-4 w-4" />}
-                    {locatingDelivery ? "A obter localização..." : "Usar a minha localização actual"}
-                  </Button>
-                  <p className="text-xs text-muted-foreground">O navegador pedirá autorização. A localização só é usada para esta encomenda; confirme que o ponto GPS corresponde ao local de entrega.</p>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="space-y-1">
-                      <Label htmlFor="cart-delivery-latitude">Latitude (opcional)</Label>
-                      <Input id="cart-delivery-latitude" inputMode="decimal" type="number" step="any" min="-90" max="90" value={deliveryLatitude} onChange={(event) => updateDeliveryCoordinate("latitude", event.target.value)} placeholder="-8.8383" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="cart-delivery-longitude">Longitude (opcional)</Label>
-                      <Input id="cart-delivery-longitude" inputMode="decimal" type="number" step="any" min="-180" max="180" value={deliveryLongitude} onChange={(event) => updateDeliveryCoordinate("longitude", event.target.value)} placeholder="13.2344" />
-                    </div>
+                  <div className="flex min-h-11 items-center gap-1 rounded-md border bg-background p-1 focus-within:ring-2 focus-within:ring-ring">
+                    <Button type="button" variant="ghost" size="icon" className="shrink-0" disabled={submitting} onClick={() => {
+                      setMapPickerSelection(deliveryCoordinatesValid ? { lat: parsedDeliveryLatitude!, lng: parsedDeliveryLongitude! } : null);
+                      setMapPickerOpen(true);
+                    }} aria-label="Escolher ponto de entrega no mapa" title="Escolher no mapa">
+                      <MapPin className="h-4 w-4" />
+                    </Button>
+                    <Input id="cart-delivery-location" value={deliveryLocation} onChange={(event) => {
+                      const value = event.target.value;
+                      setDeliveryLocation(value);
+                      const match = value.trim().match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+                      if (match) {
+                        const latitude = Number(match[1]);
+                        const longitude = Number(match[2]);
+                        if (Number.isFinite(latitude) && Number.isFinite(longitude) && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) {
+                          setDeliveryLatitude(latitude.toString());
+                          setDeliveryLongitude(longitude.toString());
+                        } else {
+                          setDeliveryLatitude("");
+                          setDeliveryLongitude("");
+                        }
+                      } else {
+                        setDeliveryLatitude("");
+                        setDeliveryLongitude("");
+                      }
+                      setIdempotencyKey(uuid());
+                    }} className="min-w-0 border-0 shadow-none focus-visible:ring-0" placeholder="Endereço ou latitude, longitude" aria-label="Endereço ou coordenadas do ponto de entrega" />
+                    <Button type="button" variant="ghost" size="icon" className="shrink-0" disabled={locatingDelivery || submitting} onClick={useCurrentDeliveryLocation} aria-label="Usar a localização actual do dispositivo" title="Usar GPS">
+                      {locatingDelivery ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
+                    </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">Pode escrever as coordenadas manualmente ou obter a posição do dispositivo. Para usar coordenadas, preencha latitude e longitude. Se indicar apenas o endereço, a logística poderá precisar de confirmar o ponto exacto.</p>
-                  {deliveryCoordinatesValid && <p className="flex items-center gap-1 text-xs text-green-700"><MapPin className="h-3.5 w-3.5" /> Coordenadas válidas: {parsedDeliveryLatitude!.toFixed(6)}, {parsedDeliveryLongitude!.toFixed(6)}</p>}
-                  {hasAnyDeliveryCoordinates && !deliveryCoordinatesValid && <p role="alert" className="text-xs text-destructive">Latitude e longitude devem estar preenchidas e dentro dos limites válidos.</p>}
+                  <p className="text-xs text-muted-foreground">Escreva um endereço ou coordenadas no formato latitude, longitude. Também pode escolher no mapa ou usar o GPS do dispositivo.</p>
+                  {deliveryCoordinatesValid && <p className="flex items-center gap-1 text-xs text-green-700"><MapPin className="h-3.5 w-3.5" /> Ponto seleccionado: {parsedDeliveryLatitude!.toFixed(6)}, {parsedDeliveryLongitude!.toFixed(6)}</p>}
+                  {hasAnyDeliveryCoordinates && !deliveryCoordinatesValid && <p role="alert" className="text-xs text-destructive">As coordenadas devem conter latitude e longitude válidas.</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cart-delivery-date">Data solicitada de entrega *</Label>
@@ -501,6 +498,37 @@ export default function BuyerCart() {
           </aside>
         </div>
       )}
+      <Dialog open={mapPickerOpen} onOpenChange={setMapPickerOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Escolher ponto de entrega</DialogTitle>
+            <DialogDescription>Clique no mapa para marcar o destino. Pode ajustar o marcador antes de confirmar.</DialogDescription>
+          </DialogHeader>
+          <div className="overflow-hidden rounded-lg border">
+            <SimpleLeafletMap
+              center={mapPickerSelection || (deliveryCoordinatesValid ? { lat: parsedDeliveryLatitude!, lng: parsedDeliveryLongitude! } : { lat: -8.8383, lng: 13.2344 })}
+              zoom={mapPickerSelection || deliveryCoordinatesValid ? 14 : 10}
+              height={380}
+              onClick={setMapPickerSelection}
+              markers={mapPickerSelection ? [{ lat: mapPickerSelection.lat, lng: mapPickerSelection.lng }] : deliveryCoordinatesValid ? [{ lat: parsedDeliveryLatitude!, lng: parsedDeliveryLongitude! }] : []}
+            />
+          </div>
+          {mapPickerSelection && <p className="text-xs font-mono text-muted-foreground">Ponto seleccionado: {mapPickerSelection.lat.toFixed(6)}, {mapPickerSelection.lng.toFixed(6)}</p>}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setMapPickerOpen(false)}>Cancelar</Button>
+            <Button type="button" disabled={!mapPickerSelection} onClick={() => {
+              if (!mapPickerSelection) return;
+              const latitude = mapPickerSelection.lat.toFixed(6);
+              const longitude = mapPickerSelection.lng.toFixed(6);
+              setDeliveryLatitude(latitude);
+              setDeliveryLongitude(longitude);
+              setDeliveryLocation(`${latitude}, ${longitude}`);
+              setIdempotencyKey(uuid());
+              setMapPickerOpen(false);
+            }}>Usar este ponto</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
