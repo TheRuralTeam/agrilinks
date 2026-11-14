@@ -253,7 +253,7 @@ export default function BuyerCart() {
         p_requested_delivery_date: deliveryDate,
         p_delivery_lat: deliveryCoordinatesValid ? parsedDeliveryLatitude : null,
         p_delivery_lng: deliveryCoordinatesValid ? parsedDeliveryLongitude : null,
-        p_idempotency_key: uuid(),
+        p_idempotency_key: idempotencyKey,
         p_freight_preference: "separate_deliveries",
       });
       if (error) throw new Error(error.message || "Não foi possível submeter a compra individual.");
