@@ -6,10 +6,8 @@ import {
   Send, 
   ArrowLeft, 
   MessageSquare, 
-  X,
   Clock,
   CheckCheck,
-  Download,
   Smile
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
@@ -62,76 +60,6 @@ const AGRO_EMOJIS = [
 
 // --- Componentes Auxiliares ---
 
-interface FilePreviewProps {
-  file: { url: string; name: string; size?: number };
-  onRemove?: () => void;
-  isPreview?: boolean;
-  isOwn?: boolean;
-}
-
-const FilePreview: React.FC<FilePreviewProps> = ({ file, onRemove, isPreview = false, isOwn = false }) => {
-  const getFileIcon = (name: string) => {
-    const ext = name.split(".").pop()?.toLowerCase();
-    if (["pdf", "doc", "docx", "txt"].includes(ext || "")) return "📄";
-    if (["jpg", "jpeg", "png", "gif"].includes(ext || "")) return "🖼️";
-    return "📎";
-  };
-
-  const formatFileSize = (bytes?: number) => {
-    if (!bytes) return "";
-    if (bytes < 1024) return `${bytes}B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
-  };
-
-  return (
-    <div
-      className="flex items-center gap-3 px-3 py-2 rounded-xl border transition-all"
-      style={{ 
-        backgroundColor: isPreview ? T.g50 : (isOwn ? 'rgba(255,255,255,0.1)' : T.canvas),
-        borderColor: isPreview ? T.gBorder : (isOwn ? 'rgba(255,255,255,0.2)' : T.rule)
-      }}
-    >
-      <span className="text-lg">{getFileIcon(file.name)}</span>
-      <div className="flex-1 min-w-0">
-        <p className={`text-xs font-bold truncate ${isOwn ? 'text-white' : ''}`} style={{ color: isOwn ? T.white : T.ink }}>
-          {file.name}
-        </p>
-        {file.size && (
-          <p className="text-[10px]" style={{ color: isOwn ? 'rgba(255,255,255,0.7)' : T.muted }}>
-            {formatFileSize(file.size)}
-          </p>
-        )}
-      </div>
-      {isPreview && onRemove && (
-        <button
-          onClick={onRemove}
-          className="p-1 rounded-full transition-colors hover:bg-white/50"
-        >
-          <X size={14} style={{ color: T.g600 }} />
-        </button>
-      )}
-      {!isPreview && (
-        <a
-          href={file.url}
-          download={file.name}
-          className="p-1 rounded-full transition-colors hover:bg-black/5"
-        >
-          <Download size={14} style={{ color: isOwn ? T.white : T.muted }} />
-        </a>
-      )}
-    </div>
-  );
-};
-
-interface MessageBubbleProps {
-  message: Message;
-  isOwn: boolean;
-  senderName: string;
-  isSent: boolean;
-  showAvatar: boolean;
-  avatarUrl?: string | null;
-}
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
@@ -175,13 +103,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           >
             <p className="text-[14px] leading-relaxed break-words font-medium">{message.content}</p>
 
-            {message.files && message.files.length > 0 && (
-              <div className="mt-3 space-y-2 pt-2 border-t" style={{ borderColor: isOwn ? 'rgba(255,255,255,0.1)' : T.rule }}>
-                {message.files.map((file, idx) => (
-                  <FilePreview key={idx} file={file} isPreview={false} isOwn={isOwn} />
-                ))}
-              </div>
-            )}
           </div>
 
           <div className="flex items-center gap-1.5 mt-1 px-1">
