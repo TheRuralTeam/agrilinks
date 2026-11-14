@@ -326,7 +326,7 @@ const Messages = () => {
         }
       } catch (err) {
         console.error("Erro ao carregar mensagens:", err);
-        setLoadError(err instanceof Error ? err.message : "Não foi possível carregar as mensagens. Verifique a ligação e tente novamente.");
+        setLoadError("Não foi possível consultar as mensagens. Verifique a ligação e tente novamente.");
       } finally {
         setIsLoading(false);
       }
