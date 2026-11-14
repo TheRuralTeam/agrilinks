@@ -532,12 +532,13 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   }
 
   const handleShare = async () => {
+    const shareUrl = new URL(`/produto/${product.id}`, window.location.origin).toString()
     try {
       if (navigator.share) {
         await navigator.share({
           title: product.product_type,
           text: `Confira ${product.product_type} por ${formatPrice(product.price)}!`,
-          url: window.location.href,
+          url: shareUrl,
         })
         return
       }
@@ -545,7 +546,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
         toast.error('A partilha não está disponível neste dispositivo.')
         return
       }
-      await navigator.clipboard.writeText(window.location.href)
+      await navigator.clipboard.writeText(shareUrl)
       toast.success('Link copiado!')
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') return
