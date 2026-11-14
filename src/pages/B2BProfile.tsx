@@ -329,7 +329,7 @@ const B2BProfile = () => {
             <Building2 size={18} color={T.g600} /> Sobre este perfil
           </h3>
           <p className="mt-2 text-sm leading-6" style={{ color: T.muted }}>
-            Este utilizador ainda não publicou informações comerciais adicionais.
+            Este perfil não disponibiliza informações comerciais adicionais.
           </p>
         </section>
 
