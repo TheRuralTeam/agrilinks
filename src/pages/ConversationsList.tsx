@@ -67,6 +67,7 @@ const ConversationsList = () => {
   const [userResults, setUserResults] = useState<UserProfile[]>([]);
   const [allConversations, setAllConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(false);
+  const [conversationLoadError, setConversationLoadError] = useState<string | null>(null);
   const [searchingUsers, setSearchingUsers] = useState(false);
   const [userSearchError, setUserSearchError] = useState<string | null>(null);
   const [newConversationOpen, setNewConversationOpen] = useState(false);
@@ -79,6 +80,7 @@ const ConversationsList = () => {
   const loadConversations = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    setConversationLoadError(null);
     try {
       const { data, error } = await supabase
         .from("conversations")
@@ -115,13 +117,10 @@ const ConversationsList = () => {
           avatar: peerProfile?.avatar_url || conversation.avatar,
         };
       }));
+      setConversationLoadError(null);
     } catch (error) {
       console.error("Erro ao carregar conversas:", error);
-      toast({
-        title: t('common.error'),
-        description: t('messages.noMessages'),
-        variant: "destructive",
-      });
+      setConversationLoadError("Não foi possível consultar as conversas. Verifique a ligação e tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -371,18 +370,14 @@ const ConversationsList = () => {
             </h2>
             <div className="space-y-2">
               {userResults.map((usr) => (
-                <Card
-                  key={usr.id}
-                  onClick={() => startConversation(usr.id)}
-                  className="border-none shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden group"
-                  style={{ backgroundColor: T.white }}
-                >
+                <button type="button" key={usr.id} aria-label={`Iniciar conversa com ${usr.full_name?.trim() || 'Utilizador AgriLink'}`} onClick={() => startConversation(usr.id)} className="w-full text-left focus-visible:outline-none focus-visible:ring-2" style={{ '--tw-ring-color': T.gBorder } as React.CSSProperties}>
+                  <Card className="border-none shadow-sm transition-all hover:shadow-md overflow-hidden group" style={{ backgroundColor: T.white }}>
                   <CardContent className="flex items-center gap-4 p-4">
                     <div className="relative">
                       <Avatar className="h-12 w-12 border-2 transition-transform group-hover:scale-105" style={{ borderColor: T.g50 }}>
                         <AvatarImage src={usr.avatar_url || "/default-avatar.png"} />
                         <AvatarFallback style={{ backgroundColor: T.g100, color: T.g700 }}>
-                          {usr.full_name.charAt(0).toUpperCase()}
+                          {(usr.full_name?.trim() || 'U').charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="absolute -bottom-1 -right-1 bg-white p-1 rounded-full shadow-sm">
@@ -391,14 +386,15 @@ const ConversationsList = () => {
                     </div>
                     <div className="flex-1">
                       <p className="font-semibold text-sm" style={{ color: T.ink }}>
-                        {highlightText(usr.full_name, searchTerm)}
+                        {highlightText(usr.full_name?.trim() || 'Utilizador AgriLink', searchTerm)}
                       </p>
                       <p className="text-xs mt-0.5" style={{ color: T.muted }}>
                         {t('messages.clickToStart')}
                       </p>
                     </div>
                   </CardContent>
-                </Card>
+                  </Card>
+                </button>
               ))}
             </div>
           </section>
@@ -414,12 +410,8 @@ const ConversationsList = () => {
             )}
             <div className="space-y-3">
               {conversationResults.map((conv) => (
-                <Card
-                  key={conv.id}
-                  onClick={() => navigate(`/messages/${conv.id}`)}
-                  className="border-none shadow-sm hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
-                  style={{ backgroundColor: T.white }}
-                >
+                <button type="button" key={conv.id} aria-label={`Abrir conversa com ${conv.title || 'Utilizador AgriLink'}`} onClick={() => navigate(`/messages/${conv.id}`)} className="w-full text-left focus-visible:outline-none focus-visible:ring-2" style={{ '--tw-ring-color': T.gBorder } as React.CSSProperties}>
+                <Card className="border-none shadow-sm transition-all hover:shadow-md group relative overflow-hidden" style={{ backgroundColor: T.white }}>
                   {conv.unread_count > 0 && (
                     <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: T.g500 }} />
                   )}
@@ -458,13 +450,21 @@ const ConversationsList = () => {
                     )}
                   </CardContent>
                 </Card>
+                </button>
               ))}
             </div>
           </section>
         )}
 
+        {conversationLoadError && (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+            <p>{conversationLoadError}</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => void loadConversations()}>Tentar novamente</Button>
+          </div>
+        )}
+
         {/* Estados Vazios */}
-        {!loading && searchTerm.trim() !== "" && userResults.length === 0 && conversationResults.length === 0 && (
+        {!loading && !userSearchError && !conversationLoadError && searchTerm.trim() !== "" && userResults.length === 0 && conversationResults.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in-95">
             <div className="bg-white p-6 rounded-full shadow-sm mb-6">
               <Search className="h-10 w-10" style={{ color: T.faint }} />
@@ -476,7 +476,7 @@ const ConversationsList = () => {
           </div>
         )}
 
-        {!loading && searchTerm.trim() === "" && conversationResults.length === 0 && (
+        {!loading && !conversationLoadError && searchTerm.trim() === "" && conversationResults.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in-95">
             <div className="bg-white p-8 rounded-full shadow-sm mb-6">
               <MessageSquare className="h-12 w-12" style={{ color: T.g100 }} />
