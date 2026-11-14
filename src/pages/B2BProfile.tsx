@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import Loader from '../components/ui/Loader';
 import { ProductCard } from '../components/ProductCard';
 import type { Product } from '../components/ProductCard';
-import { fetchActiveProducts } from '../features/products/productsService';
+import { fetchProductsByOwner } from '../features/products/productsService';
 import { getProfileDisplayName, getProfileRoleLabel, resolveAvatarUrl } from '../lib/profileDisplay';
 import { T } from '../lib/brand';
 import { angolaProvinces } from '../data/angola-locations';
@@ -102,7 +102,7 @@ const B2BProfile = () => {
 
       if (publicProfile.user_type === 'agricultor' || publicProfile.user_type === 'agente') {
         try {
-          const publicProducts = await fetchActiveProducts(id, 0, 20);
+          const publicProducts = await fetchProductsByOwner(id, user?.id, 20);
           if (requestId !== requestSequence.current) return;
           setProducts(publicProducts as Product[]);
         } catch (error) {
@@ -119,7 +119,7 @@ const B2BProfile = () => {
     } finally {
       if (requestId === requestSequence.current) setLoading(false);
     }
-  }, [id]);
+  }, [id, user?.id]);
 
   useEffect(() => {
     if (!id) {
