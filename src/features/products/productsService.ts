@@ -183,15 +183,15 @@ export const fetchProductComments = async (productId: string, userId?: string) =
 
   return comments.map((comment) => ({
     ...comment,
-    user_name: userById.get(comment.user_id)?.full_name || 'Utilizador',
-    user_type: userById.get(comment.user_id)?.user_type || 'agricultor',
+    user_name: userById.get(comment.user_id)?.full_name || 'Utilizador AgriLink',
+    user_type: userById.get(comment.user_id)?.user_type || 'utilizador',
     user_avatar: userById.get(comment.user_id)?.avatar_url,
     likes_count: likesByComment.get(comment.id) || 0,
     is_liked: likedComments.has(comment.id),
     replies: (repliesByComment.get(comment.id) || []).map((reply) => ({
       ...reply,
-      user_name: replyUserById.get(reply.user_id)?.full_name || 'Utilizador',
-      user_type: replyUserById.get(reply.user_id)?.user_type || 'agricultor',
+      user_name: replyUserById.get(reply.user_id)?.full_name || 'Utilizador AgriLink',
+      user_type: replyUserById.get(reply.user_id)?.user_type || 'utilizador',
     })),
   }))
 }
