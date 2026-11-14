@@ -143,7 +143,7 @@ const SearchPage = () => {
     } catch (err) {
       if (requestId !== searchRequestId.current) return
       console.error('[AgriLink] Marketplace search failed:', err)
-      setSearchError(err instanceof Error ? err.message : 'Não foi possível carregar os resultados. Verifique a ligação e tente novamente.')
+      setSearchError('Não foi possível consultar os resultados. Verifique a ligação e tente novamente.')
     } finally {
       if (requestId === searchRequestId.current) setLoading(false)
     }
