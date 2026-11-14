@@ -306,6 +306,7 @@ const SearchPage = () => {
               <Search className="h-4 w-4 text-[#A8BAA9] flex-shrink-0" />
               <input
                 placeholder="Pesquisar produtos, agricultores..."
+                aria-label="Pesquisar produtos e perfis públicos"
                 className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm text-[#111714] placeholder:text-[#A8BAA9]"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -314,6 +315,8 @@ const SearchPage = () => {
 
             <button
               onClick={() => setShowFilters(!showFilters)}
+              aria-label={showFilters ? 'Fechar filtros' : 'Abrir filtros'}
+              aria-expanded={showFilters}
               className="flex items-center justify-center w-9 h-9 rounded-full flex-shrink-0 transition-colors"
               style={{
                 background: showFilters ? '#2c863b' : 'rgba(118,118,128,0.08)',
@@ -456,9 +459,11 @@ const SearchPage = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {userResults.map(user => (
-                <div
+                <button
+                  type="button"
                   key={user.id}
-                  className="rounded-2xl p-4 transition-shadow cursor-pointer group"
+                  aria-label={`Ver perfil de ${user.full_name?.trim() || 'Utilizador AgriLink'}`}
+                  className="w-full rounded-2xl p-4 text-left transition-shadow hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2c863b] group"
                   style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.05)' }}
                   onClick={() => navigate(`/perfil/${user.id}`)}
                 >
@@ -476,7 +481,7 @@ const SearchPage = () => {
                       <p className="text-xs text-[#758A79] capitalize">{user.user_type || 'Membro AgriLink'}</p>
                     </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
