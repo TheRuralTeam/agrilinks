@@ -204,7 +204,7 @@ const UserProfile = () => {
     );
   }
 
-  const profileDisplayName = getProfileDisplayName(userData);
+  const profileDisplayName = getProfileDisplayName(userData) || 'Utilizador AgriLink';
   const profileRoleLabel = getProfileRoleLabel(userData.user_type);
   const profileAvatarUrl = resolveAvatarUrl(userData.avatar_url);
   const canShowProducts = userData.user_type === 'agricultor' || userData.user_type === 'agente';
