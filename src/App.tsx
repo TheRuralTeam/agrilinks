@@ -43,6 +43,7 @@ const UserProfile = lazy(() => import("./pages/UserProfile"));
 const B2BProfile = lazy(() => import("./pages/B2BProfile"));
 const CompletarPerfil = lazy(() => import("./pages/CompletarPerfil"));
 const PublicProductLocation = lazy(() => import("./pages/PublicProductLocation"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const MeusContratos = lazy(() => import("./pages/MeusContratos"));
 const ProximasCargas = lazy(() => import("./pages/ProximasCargas"));
@@ -191,6 +192,7 @@ const AppRoutes = () => {
         <Route path="/change-password" element={<ChangePassword />} />
         <Route path="/admin-password-resets" element={<PermissionRoute permissions={["manage_users"]} allowRootAdmins><AdminPasswordResets /></PermissionRoute>} />
         <Route path="/termos-publicidade" element={<TermsOfService />} />
+        <Route path="/produto/:id" element={<ProductDetail />} />
         <Route path="/produto/:id/localizacao" element={<PublicProductLocation />} />
         <Route path="/mapa" element={<MapPreviewRoute render={(readOnly) => <MapView readOnly={readOnly} />} />} />
 
