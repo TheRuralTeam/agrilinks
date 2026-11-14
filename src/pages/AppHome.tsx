@@ -601,7 +601,6 @@ const AppHome = () => {
                   fontSize:14, outline:'none', background: T.white, color: T.ink,
                   transition:'border-color 0.18s, box-shadow 0.18s', width:'100%', boxSizing:'border-box',
                 }}
-                onFocus={() => {}}
               />
             </div>
 
