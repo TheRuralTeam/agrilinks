@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BadgeCheck, Building2, MessageCircle, Package, ShoppingQuote } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, Building2, FileText, MessageCircle, Package } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
@@ -327,7 +327,7 @@ const B2BProfile = () => {
                 <MessageCircle className="mr-2 h-4 w-4" /> Enviar mensagem
               </Button>
               <Button type="button" variant="outline" onClick={handleRFQ} className="rounded-xl">
-                <ShoppingQuote className="mr-2 h-4 w-4" /> Solicitar cotação
+                <FileText className="mr-2 h-4 w-4" /> Solicitar cotação
               </Button>
             </div>
           </div>
