@@ -46,7 +46,6 @@ interface Conversation {
 // --- Constantes ---
 
 const MAX_FILE_SIZE = 35 * 1024 * 1024; // 35MB
-const BUCKET_NAME = "chatfiles";
 const MAX_MESSAGE_LENGTH = 5000;
 
 const AGRO_EMOJIS = [
