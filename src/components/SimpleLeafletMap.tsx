@@ -96,6 +96,7 @@ const SimpleLeafletMap: React.FC<Props> = ({
     }).catch(() => {
       if (cancelled) return;
       loaderPromise = null;
+      document.getElementById('leaflet-js')?.remove();
       setMapLoadError(true);
     });
     return () => {
@@ -134,7 +135,7 @@ const SimpleLeafletMap: React.FC<Props> = ({
     <div className={className} style={{ width: '100%', height, position: 'relative', ...style }}>
       <div ref={ref} style={{ width: '100%', height: '100%' }} />
       {mapLoadError && (
-        <div role="alert" className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-inherit bg-white/95 p-4 text-center">
+        <div role="alert" className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-lg bg-white/95 p-4 text-center">
           <p className="text-sm text-gray-700">Não foi possível carregar o mapa. Verifique a ligação à internet.</p>
           <button type="button" onClick={() => { setMapLoadError(false); setLoadAttempt((attempt) => attempt + 1); }} className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50">
             Tentar novamente
