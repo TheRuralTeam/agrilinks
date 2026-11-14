@@ -28,7 +28,7 @@ interface Conversation {
 
 interface UserProfile {
   id: string;
-  full_name: string;
+  full_name: string | null;
   avatar_url: string | null;
 }
 
@@ -128,7 +128,7 @@ const ConversationsList = () => {
       setLoading(true);
       try {
         const { data: users, error: usersError } = await supabase
-          .from("users")
+          .from("public_user_profiles")
           .select("id, full_name, avatar_url")
           .ilike("full_name", `%${searchTerm}%`)
           .neq("id", user.id)
@@ -170,7 +170,7 @@ const ConversationsList = () => {
     const { data: existingConv, error: searchError } = await supabase
       .from("conversations")
       .select("id")
-      .or(`and(user_id.eq.${user.id},participant_id.eq.${participantId}),and(user_id.eq.${participantId},participant_id.eq.${user.id})`)
+      .or(`and(user_id.eq.${user.id},participant_id.eq.${participantId}),and(user_id.eq.${user.id},peer_user_id.eq.${participantId}),and(user_id.eq.${participantId},participant_id.eq.${user.id}),and(user_id.eq.${participantId},peer_user_id.eq.${user.id})`)
       .limit(1);
 
     if (searchError) {
@@ -192,6 +192,7 @@ const ConversationsList = () => {
       const newConvData = {
         user_id: user.id,
         participant_id: participantId,
+        peer_user_id: participantId,
         title: participantName,
         avatar: participantAvatar,
         last_message: null,
@@ -206,6 +207,7 @@ const ConversationsList = () => {
         .single();
 
       if (createError) throw createError;
+      if (!createdConv?.id) throw new Error("O servidor não confirmou a criação da conversa.");
       navigate(`/messages/${createdConv.id}`);
     } catch (error) {
       console.error("Erro ao criar nova conversa:", error);
@@ -241,7 +243,7 @@ const ConversationsList = () => {
     setNewConvSearchTerm("");
     try {
       const { data: users, error } = await supabase
-        .from("users")
+        .from("public_user_profiles")
         .select("id, full_name, avatar_url")
         .neq("id", user.id)
         .order("full_name", { ascending: true })
@@ -263,8 +265,8 @@ const ConversationsList = () => {
   };
 
   const filteredUsers = useMemo(() => {
-    return allUsers.filter(usr =>
-      usr.full_name.toLowerCase().includes(newConvSearchTerm.toLowerCase())
+    return allUsers.filter((usr) =>
+      (usr.full_name || '').toLowerCase().includes(newConvSearchTerm.toLowerCase())
     );
   }, [allUsers, newConvSearchTerm]);
 
@@ -341,7 +343,7 @@ const ConversationsList = () => {
               {userResults.map((usr) => (
                 <Card
                   key={usr.id}
-                  onClick={() => startConversation(usr.id, usr.full_name, usr.avatar_url)}
+                  onClick={() => startConversation(usr.id, usr.full_name?.trim() || 'Utilizador AgriLink', usr.avatar_url)}
                   className="border-none shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden group"
                   style={{ backgroundColor: T.white }}
                 >
@@ -515,7 +517,7 @@ const ConversationsList = () => {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <p className="font-bold text-sm" style={{ color: T.ink }}>{usr.full_name}</p>
+                      <p className="font-bold text-sm" style={{ color: T.ink }}>{usr.full_name || 'Utilizador AgriLink'}</p>
                       <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: T.g600 }}>
                         Disponível
                       </p>
