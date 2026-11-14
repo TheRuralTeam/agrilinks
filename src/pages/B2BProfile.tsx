@@ -143,34 +143,24 @@ const B2BProfile = () => {
     if (!id || !companyData) return;
 
     try {
-      const { data: existingConv, error: existingError } = await supabase
+      const { data: legacyConversation, error: legacyError } = await supabase
         .from('conversations')
         .select('id')
-        .or(`and(user_id.eq.${user.id},participant_id.eq.${id}),and(user_id.eq.${user.id},peer_user_id.eq.${id}),and(user_id.eq.${id},participant_id.eq.${user.id}),and(user_id.eq.${id},peer_user_id.eq.${user.id})`)
+        .or(`and(user_id.eq.${user.id},peer_user_id.eq.${id}),and(user_id.eq.${id},peer_user_id.eq.${user.id})`)
         .limit(1);
-
-      if (existingError) throw existingError;
-      if (existingConv?.[0]?.id) {
-        navigate(`/messages/${existingConv[0].id}`);
+      if (legacyError) throw legacyError;
+      if (legacyConversation?.[0]?.id) {
+        navigate(`/messages/${legacyConversation[0].id}`);
         return;
       }
 
-      const { data: newConv, error: createError } = await supabase
-        .from('conversations')
-        .insert({
-          user_id: user.id,
-          participant_id: id,
-          peer_user_id: id,
-          title: companyData.name,
-          avatar: companyData.logo,
-          last_timestamp: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
-
-      if (createError) throw createError;
-      if (!newConv?.id) throw new Error('O servidor não confirmou a criação da conversa.');
-      navigate(`/messages/${newConv.id}`);
+      const { data: conversationId, error } = await supabase.rpc('get_or_create_conversation', {
+        p_user_id: user.id,
+        p_other_user_id: id,
+      });
+      if (error) throw error;
+      if (!conversationId) throw new Error('O servidor não confirmou a criação da conversa.');
+      navigate(`/messages/${conversationId}`);
     } catch (error) {
       console.error('[AgriLink] Não foi possível iniciar a conversa:', error);
       toast.error('Não foi possível iniciar a conversa. Verifique a ligação e tente novamente.');
