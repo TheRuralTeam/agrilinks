@@ -75,7 +75,8 @@ export default function BuyerCart() {
     Number.isFinite(parsedDeliveryLatitude) && Number.isFinite(parsedDeliveryLongitude) &&
     parsedDeliveryLatitude >= -90 && parsedDeliveryLatitude <= 90 &&
     parsedDeliveryLongitude >= -180 && parsedDeliveryLongitude <= 180;
-  const hasAnyDeliveryCoordinates = deliveryLatitude.trim() !== "" || deliveryLongitude.trim() !== "";
+  const hasAnyDeliveryCoordinates = deliveryLatitude.trim() !== "" || deliveryLongitude.trim() !== "" ||
+    /^-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?$/.test(deliveryLocation.trim());
   const resolvedDeliveryLocation = deliveryLocation.trim() ||
     (deliveryCoordinatesValid ? `Coordenadas: ${parsedDeliveryLatitude!.toFixed(6)}, ${parsedDeliveryLongitude!.toFixed(6)}` : "");
 
