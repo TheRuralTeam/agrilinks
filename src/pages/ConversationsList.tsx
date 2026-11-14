@@ -18,12 +18,14 @@ import { T } from '../lib/brand';
 
 interface Conversation {
   id: string;
+  user_id: string;
   title: string;
   last_message: string | null;
   last_timestamp: string;
   unread_count: number;
   avatar: string | null;
-  participant_id: string;
+  participant_id: string | null;
+  peer_user_id?: string | null;
 }
 
 interface UserProfile {
@@ -82,7 +84,34 @@ const ConversationsList = () => {
         .order("last_timestamp", { ascending: false });
 
       if (error) throw error;
-      setAllConversations((data as Conversation[]) || []);
+      const rows = (data as Conversation[]) || [];
+      const peerIds = [...new Set(rows.map((conversation) =>
+        conversation.user_id === user.id
+          ? (conversation.participant_id || conversation.peer_user_id)
+          : conversation.user_id
+      ).filter((peerId): peerId is string => Boolean(peerId && peerId !== user.id)))];
+
+      let profileById = new Map<string, UserProfile>();
+      if (peerIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from("public_user_profiles")
+          .select("id, full_name, avatar_url")
+          .in("id", peerIds);
+        if (profilesError) throw profilesError;
+        profileById = new Map(((profiles || []) as UserProfile[]).map((profile) => [profile.id, profile]));
+      }
+
+      setAllConversations(rows.map((conversation) => {
+        const peerId = conversation.user_id === user.id
+          ? (conversation.participant_id || conversation.peer_user_id)
+          : conversation.user_id;
+        const peerProfile = peerId ? profileById.get(peerId) : undefined;
+        return {
+          ...conversation,
+          title: peerProfile?.full_name?.trim() || conversation.title || "Conversa AgriLink",
+          avatar: peerProfile?.avatar_url || conversation.avatar,
+        };
+      }));
     } catch (error) {
       console.error("Erro ao carregar conversas:", error);
       toast({
