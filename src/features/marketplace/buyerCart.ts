@@ -15,6 +15,40 @@ export type BuyerCartItem = {
 
 const cartKey = (userId: string) => `agrilink:buyer-cart:${userId}`;
 
+const checkoutKey = (userId: string) => `agrilink:buyer-cart-checkout:${userId}`;
+
+function createIdempotencyUuid(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') return globalThis.crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
+    const random = Math.floor(Math.random() * 16);
+    const value = character === 'x' ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
+/** Returns the same checkout key after reload until the cart or checkout details change. */
+export function readBuyerCartIdempotencyKey(userId: string): string {
+  if (typeof window === 'undefined') return createIdempotencyUuid();
+  try {
+    const stored = window.localStorage.getItem(checkoutKey(userId));
+    if (stored && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stored)) return stored;
+    const next = createIdempotencyUuid();
+    window.localStorage.setItem(checkoutKey(userId), next);
+    return next;
+  } catch {
+    return createIdempotencyUuid();
+  }
+}
+
+export function writeBuyerCartIdempotencyKey(userId: string, key: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(checkoutKey(userId), key);
+  } catch {
+    // Checkout still works for the current session; the server validates the key.
+  }
+}
+
 export function readBuyerCart(userId: string): BuyerCartItem[] {
   try {
     const parsed = JSON.parse(localStorage.getItem(cartKey(userId)) || '[]');
