@@ -83,7 +83,7 @@ const ConversationsList = () => {
       const { data, error } = await supabase
         .from("conversations")
         .select("*")
-        .or(`user_id.eq.${user.id},participant_id.eq.${user.id}`)
+        .or(`user_id.eq.${user.id},participant_id.eq.${user.id},peer_user_id.eq.${user.id}`)
         .order("last_timestamp", { ascending: false });
 
       if (error) throw error;
