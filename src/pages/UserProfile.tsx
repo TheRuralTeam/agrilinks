@@ -153,7 +153,7 @@ const UserProfile = () => {
       const { data: existingConv, error: existingError } = await supabase
         .from('conversations')
         .select('id')
-        .or(`and(user_id.eq.${user.id},peer_user_id.eq.${id}),and(user_id.eq.${id},peer_user_id.eq.${user.id})`)
+        .or(`and(user_id.eq.${user.id},participant_id.eq.${id}),and(user_id.eq.${user.id},peer_user_id.eq.${id}),and(user_id.eq.${id},participant_id.eq.${user.id}),and(user_id.eq.${id},peer_user_id.eq.${user.id})`)
         .limit(1);
 
       if (existingError) throw existingError;
@@ -166,6 +166,7 @@ const UserProfile = () => {
         .from('conversations')
         .insert({
           user_id: user.id,
+          participant_id: id,
           peer_user_id: id,
           title: userData.full_name || 'Utilizador AgriLink',
           avatar: userData.avatar_url,
