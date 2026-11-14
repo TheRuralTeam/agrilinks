@@ -112,7 +112,7 @@ const UserProfile = () => {
         } catch (error) {
           if (requestId !== requestSequence.current) return;
           console.error('[AgriLink] Não foi possível carregar os produtos públicos:', error);
-          setProductsLoadError(error instanceof Error ? error.message : 'Não foi possível carregar os produtos publicados.');
+          setProductsLoadError('Não foi possível consultar os produtos publicados. Tente novamente.');
         }
       }
     } catch (error) {
