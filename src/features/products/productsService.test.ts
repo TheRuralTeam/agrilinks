@@ -36,8 +36,6 @@ describe('productsService', () => {
 
     expect(products).toEqual([])
   })
-})
-
 
   it('propagates catalogue query failures instead of reporting a false empty feed', async () => {
     const queryError = new Error('Supabase unavailable')
@@ -57,3 +55,4 @@ describe('productsService', () => {
 
     await expect(fetchActiveProducts()).rejects.toThrow('Supabase unavailable')
   })
+})
