@@ -148,7 +148,7 @@ const FarmerFormWithAuth = () => {
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/app')}
               className="text-primary-foreground hover:bg-primary-foreground/10"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
