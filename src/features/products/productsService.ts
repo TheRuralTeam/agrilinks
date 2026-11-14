@@ -2,6 +2,7 @@ import { supabase } from '../../integrations/supabase/client'
 
 export interface ProductFeedOptions {
   userId?: string
+  ownerId?: string
   status?: string
   limit?: number
   province?: string
@@ -17,6 +18,7 @@ export interface ProductFeedOptions {
  */
 export const fetchProductsFeed = async ({
   userId,
+  ownerId,
   status = 'active',
   limit = 20,
   province,
@@ -31,6 +33,7 @@ export const fetchProductsFeed = async ({
     .order('created_at', { ascending: false })
     .range(page * limit, page * limit + limit - 1)
 
+  if (ownerId) query = query.eq('user_id', ownerId)
   if (province) query = query.eq('province_id', province)
 
   if (search?.trim()) {
@@ -48,34 +51,48 @@ export const fetchProductsFeed = async ({
 
   const productIds = productsData.map((p) => p.id)
   const userIds = [...new Set(productsData.map((product) => product.user_id).filter(Boolean))]
-  const [{ data: publicProfiles, error: profilesError }, { data: myLikes, error: likesError }] = await Promise.all([
+  const [
+    { data: publicProfiles, error: profilesError },
+    { data: myLikes, error: likesError },
+    { data: commentRows, error: commentsError },
+  ] = await Promise.all([
     userIds.length
       ? supabase.from('public_user_profiles').select('id, verified').in('id', userIds)
       : Promise.resolve({ data: [] as { id: string; verified: boolean | null }[], error: null }),
     userId
       ? supabase.from('product_likes').select('product_id').eq('user_id', userId).in('product_id', productIds)
       : Promise.resolve({ data: [], error: null }),
+    supabase.from('product_comments').select('product_id').in('product_id', productIds),
   ])
 
   if (profilesError) throw profilesError
   if (likesError) throw likesError
+  if (commentsError) throw commentsError
 
   const verifiedByUserId = new Map<string, boolean>(
     (publicProfiles || []).map((profile): [string, boolean] => [profile.id, profile.verified === true]),
   )
   const likedProductIds = new Set((myLikes || []).map((like) => like.product_id))
+  const commentCounts = new Map<string, number>()
+  for (const comment of commentRows || []) {
+    commentCounts.set(comment.product_id, (commentCounts.get(comment.product_id) || 0) + 1)
+  }
 
   return productsData.map((product) => ({
     ...product,
     likes_count: Number(product.likes_count || 0),
     is_liked: likedProductIds.has(product.id),
     user_verified: verifiedByUserId.get(product.user_id) ?? false,
+    comments_count: commentCounts.get(product.id) || 0,
     comments: [],
   }))
 }
 
 export const fetchActiveProducts = async (userId?: string, page = 0, limit = 20) =>
   fetchProductsFeed({ userId, status: 'active', limit, page })
+
+export const fetchProductsByOwner = async (ownerId: string, userId?: string, limit = 20) =>
+  fetchProductsFeed({ ownerId, userId, status: 'active', limit, page: 0 })
 
 
 export const fetchProductById = async (productId: string, userId?: string) => {
@@ -89,15 +106,17 @@ export const fetchProductById = async (productId: string, userId?: string) => {
   if (error) throw error
   if (!product) return null
 
-  const [{ data: publicProfile, error: profileError }, likesResult] = await Promise.all([
+  const [{ data: publicProfile, error: profileError }, likesResult, commentsCountResult] = await Promise.all([
     supabase.from('public_user_profiles').select('verified').eq('id', product.user_id).maybeSingle(),
     userId
       ? supabase.from('product_likes').select('id').eq('product_id', productId).eq('user_id', userId).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
+    supabase.from('product_comments').select('id', { count: 'exact', head: true }).eq('product_id', productId),
   ])
 
   if (profileError) throw profileError
   if (likesResult.error) throw likesResult.error
+  if (commentsCountResult.error) throw commentsCountResult.error
 
   return {
     ...product,
@@ -105,6 +124,7 @@ export const fetchProductById = async (productId: string, userId?: string) => {
     user_verified: Boolean(publicProfile?.verified),
     likes_count: Number(product.likes_count || 0),
     is_liked: Boolean(likesResult.data),
+    comments_count: commentsCountResult.count || 0,
     comments: [],
   }
 }
