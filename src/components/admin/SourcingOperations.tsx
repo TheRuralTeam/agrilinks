@@ -99,9 +99,14 @@ export default function SourcingOperations({ requests, canManage }: { requests: 
   const [verificationTargetId, setVerificationTargetId] = useState<string | null>(null);
   const [verificationEvidence, setVerificationEvidence] = useState("");
   const [busyQuoteId, setBusyQuoteId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [quoteReviewTarget, setQuoteReviewTarget] = useState<{ quote: Quote; action: "confirm" | "reject" } | null>(null);
+  const [quoteReviewMethod, setQuoteReviewMethod] = useState("phone");
+  const [quoteReviewEvidence, setQuoteReviewEvidence] = useState("");
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const [supplierResult, quoteResult] = await Promise.all([
         supabase.from("sourcing_supplier_leads").select("*").order("created_at", { ascending: false }),
@@ -113,7 +118,7 @@ export default function SourcingOperations({ requests, canManage }: { requests: 
       setQuotes((quoteResult.data ?? []) as Quote[]);
     } catch (error) {
       console.error("[AgriLink Sourcing] Falha ao carregar fornecedores/cotações:", error);
-      toast.error("Não foi possível carregar fornecedores e cotações.");
+      setLoadError(error instanceof Error ? error.message : "Não foi possível carregar fornecedores e cotações.");
     } finally {
       setLoading(false);
     }
@@ -226,36 +231,40 @@ export default function SourcingOperations({ requests, canManage }: { requests: 
     }
   };
 
-  const confirmQuote = async (quote: Quote) => {
-    if (!canManage) return;
-    if (quote.valid_until && quote.valid_until < currentLuandaDate()) {
+  const submitQuoteReview = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!canManage || !quoteReviewTarget) return;
+    const { quote, action } = quoteReviewTarget;
+    if (action === "confirm" && quote.valid_until && quote.valid_until < currentLuandaDate()) {
       toast.error("Esta cotação expirou. Registe a expiração antes de continuar.");
+      setQuoteReviewTarget(null);
       return;
     }
-    const method = window.prompt("Como confirmou a disponibilidade? Indique: phone, in_person, marketplace, document ou other");
-    if (!method || !["phone", "in_person", "marketplace", "document", "other"].includes(method.trim())) {
-      toast.error("Confirmação cancelada. Escolha um método de verificação válido.");
+    if (quoteReviewEvidence.trim().length < 4) {
+      toast.error("A evidência ou o motivo deve conter pelo menos 4 caracteres.");
       return;
     }
-    const evidence = window.prompt("Registe a evidência: contacto, data, responsável ou referência.");
-    if (!evidence?.trim()) {
-      toast.error("Confirmação cancelada. A evidência é obrigatória.");
+    if (action === "confirm" && !["phone", "in_person", "marketplace", "document", "other"].includes(quoteReviewMethod)) {
+      toast.error("Seleccione um método de verificação válido.");
       return;
     }
+
     setBusyQuoteId(quote.id);
     try {
       const { error } = await supabase.rpc("update_sourcing_supplier_quote_review", {
         p_quote_id: quote.id,
-        p_action: "confirm_availability",
-        p_confirmation_method: method.trim(),
-        p_evidence: evidence.trim(),
+        p_action: action === "confirm" ? "confirm_availability" : "reject",
+        p_confirmation_method: action === "confirm" ? quoteReviewMethod : null,
+        p_evidence: quoteReviewEvidence.trim(),
       });
       if (error) throw error;
-      toast.success("Disponibilidade confirmada e evidência registada.");
+      toast.success(action === "confirm" ? "Disponibilidade confirmada e evidência registada." : "Cotação rejeitada e motivo registado.");
+      setQuoteReviewTarget(null);
+      setQuoteReviewEvidence("");
       await loadData();
     } catch (error) {
-      console.error("[AgriLink Sourcing] Falha ao confirmar disponibilidade:", error);
-      toast.error(error instanceof Error ? error.message : "Não foi possível confirmar a disponibilidade.");
+      console.error("[AgriLink Sourcing] Falha ao rever cotação:", error);
+      toast.error(error instanceof Error ? error.message : "Não foi possível actualizar a cotação.");
     } finally {
       setBusyQuoteId(null);
     }
@@ -263,23 +272,23 @@ export default function SourcingOperations({ requests, canManage }: { requests: 
 
   const updateQuoteStatus = async (quote: Quote, status: "rejected" | "expired") => {
     if (!canManage) return;
-    const evidence = status === "rejected"
-      ? window.prompt("Indique o motivo da rejeição da cotação.")
-      : `Validade terminada em ${quote.valid_until || "data registada"}.`;
-    if (!evidence?.trim()) {
-      toast.error("Operação cancelada. Registe o motivo da decisão.");
+    if (status === "rejected") {
+      setQuoteReviewTarget({ quote, action: "reject" });
+      setQuoteReviewEvidence("");
       return;
     }
+
+    const evidence = `Validade da cotação terminada em ${quote.valid_until || "data registada"}.`;
     setBusyQuoteId(quote.id);
     try {
       const { error } = await supabase.rpc("update_sourcing_supplier_quote_review", {
         p_quote_id: quote.id,
-        p_action: status === "rejected" ? "reject" : "expire",
+        p_action: "expire",
         p_confirmation_method: null,
-        p_evidence: evidence.trim(),
+        p_evidence: evidence,
       });
       if (error) throw error;
-      toast.success(status === "rejected" ? "Cotação rejeitada e motivo registado." : "Expiração da cotação registada.");
+      toast.success("Expiração da cotação registada.");
       await loadData();
     } catch (error) {
       console.error("[AgriLink Sourcing] Falha ao actualizar cotação:", error);
@@ -304,6 +313,7 @@ export default function SourcingOperations({ requests, canManage }: { requests: 
       </div>
 
       {!canManage && <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">A sua conta pode consultar esta secção, mas não tem permissão para alterar fornecedores ou cotações.</div>}
+      {loadError && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"><span>Não foi possível carregar fornecedores e cotações: {loadError}</span><Button size="sm" variant="outline" onClick={() => void loadData()}>Tentar novamente</Button></div>}
 
       {showSupplierForm && (
         <form onSubmit={saveSupplier} className="grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-3">
@@ -339,7 +349,7 @@ export default function SourcingOperations({ requests, canManage }: { requests: 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
           <div className="border-b border-gray-100 px-4 py-3"><h3 className="font-semibold">Fornecedores identificados ({suppliers.length})</h3><p className="text-xs text-gray-500">Os contactos não são apresentados publicamente.</p></div>
-          {loading ? <div className="flex items-center gap-2 p-5 text-sm text-gray-500"><Loader2 className="h-4 w-4 animate-spin" />A carregar…</div> : suppliers.length === 0 ? <p className="p-5 text-sm text-gray-500">Ainda não existem fornecedores registados.</p> : (
+          {loading ? <div className="flex items-center gap-2 p-5 text-sm text-gray-500"><Loader2 className="h-4 w-4 animate-spin" />A carregar…</div> : loadError ? null : suppliers.length === 0 ? <p className="p-5 text-sm text-gray-500">Ainda não existem fornecedores registados.</p> : (
             <div className="divide-y divide-gray-100">{suppliers.map((supplier) => (
               <div key={supplier.id} className="space-y-2 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="font-semibold text-gray-900">{supplier.company_name}</p><p className="text-sm text-gray-600">{supplier.product_name} · {supplier.phone}</p><p className="text-xs text-gray-500">{[provinceName(supplier.province_id), municipalityName(supplier.province_id, supplier.municipality_id), supplier.locality].filter(Boolean).join(" · ")}</p></div><span className={supplier.verification_status === "confirmed" ? "rounded-full bg-green-50 px-2 py-1 text-xs font-semibold text-green-700" : "rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800"}>{supplier.verification_status === "confirmed" ? "Confirmado pela equipa" : supplier.verification_status === "contacted" ? "Contactado" : supplier.verification_status === "unavailable" ? "Indisponível" : supplier.verification_status === "rejected" ? "Rejeitado" : "Por verificar"}</span></div>
@@ -353,7 +363,7 @@ export default function SourcingOperations({ requests, canManage }: { requests: 
 
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
           <div className="border-b border-gray-100 px-4 py-3"><h3 className="font-semibold">Cotações e disponibilidade ({quotes.length})</h3><p className="text-xs text-gray-500">A quantidade só conta como confirmada após validação da equipa.</p></div>
-          {loading ? <div className="p-5 text-sm text-gray-500">A carregar…</div> : quotes.length === 0 ? <p className="p-5 text-sm text-gray-500">Ainda não existem cotações registadas.</p> : (
+          {loading ? <div className="p-5 text-sm text-gray-500">A carregar…</div> : loadError ? null : quotes.length === 0 ? <p className="p-5 text-sm text-gray-500">Ainda não existem cotações registadas.</p> : (
             <div className="divide-y divide-gray-100">{quotes.map((quote) => {
               const supplier = suppliers.find((item) => item.id === quote.supplier_id);
               const request = requests.find((item) => item.id === quote.sourcing_request_id);
@@ -366,7 +376,13 @@ export default function SourcingOperations({ requests, canManage }: { requests: 
                 {availabilityConfirmed && request && quote.available_quantity < request.quantity && <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">Disponibilidade parcial: {Number(quote.available_quantity).toLocaleString("pt-AO")} de {Number(request.quantity).toLocaleString("pt-AO")} {unitLabel(quote.unit)}. Ainda faltam {Number(request.quantity - quote.available_quantity).toLocaleString("pt-AO")} para cobrir o pedido completo.</p>}
                 {quote.quality_notes && <p className="text-xs text-gray-600">Qualidade: {quote.quality_notes}</p>}
                 {quote.notes && <p className="text-xs text-gray-600">Notas: {quote.notes}</p>}
-                {canManage && !accepted && !expired && quote.confirmation_status === "pending" && <div className="flex flex-wrap gap-2">{!availabilityConfirmed && <Button size="sm" onClick={() => void confirmQuote(quote)} disabled={busyQuoteId === quote.id}>{busyQuoteId === quote.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Confirmar disponibilidade</Button>}<Button size="sm" variant="outline" onClick={() => void updateQuoteStatus(quote, "rejected")} disabled={busyQuoteId === quote.id}>Rejeitar</Button></div>}
+                {canManage && !accepted && !expired && quote.confirmation_status === "pending" && <div className="flex flex-wrap gap-2">{!availabilityConfirmed && <Button size="sm" onClick={() => { setQuoteReviewTarget({ quote, action: "confirm" }); setQuoteReviewMethod("phone"); setQuoteReviewEvidence(""); }} disabled={busyQuoteId === quote.id}>{busyQuoteId === quote.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Confirmar disponibilidade</Button>}<Button size="sm" variant="outline" onClick={() => void updateQuoteStatus(quote, "rejected")} disabled={busyQuoteId === quote.id}>Rejeitar</Button></div>}
+                 {quoteReviewTarget?.quote.id === quote.id && <form onSubmit={submitQuoteReview} className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                   <p className="text-sm font-semibold text-gray-900">{quoteReviewTarget.action === "confirm" ? "Registar confirmação da disponibilidade" : "Registar rejeição da cotação"}</p>
+                   {quoteReviewTarget.action === "confirm" && <div><label className={labelClass}>Método de confirmação *</label><select className={fieldClass} value={quoteReviewMethod} onChange={(event) => setQuoteReviewMethod(event.target.value)} required><option value="phone">Contacto telefónico</option><option value="in_person">Verificação presencial</option><option value="marketplace">Marketplace</option><option value="document">Documento comprovativo</option><option value="other">Outro método</option></select></div>}
+                   <div><label className={labelClass}>{quoteReviewTarget.action === "confirm" ? "Evidência da confirmação *" : "Motivo da rejeição *"}</label><textarea className={fieldClass} rows={3} minLength={4} maxLength={2000} value={quoteReviewEvidence} onChange={(event) => setQuoteReviewEvidence(event.target.value)} placeholder={quoteReviewTarget.action === "confirm" ? "Contacto, data, responsável ou referência que confirma a disponibilidade." : "Indique o motivo objectivo da rejeição."} required /></div>
+                   <div className="flex flex-wrap gap-2"><Button type="submit" size="sm" disabled={busyQuoteId === quote.id || quoteReviewEvidence.trim().length < 4}>{busyQuoteId === quote.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{quoteReviewTarget.action === "confirm" ? "Guardar confirmação" : "Confirmar rejeição"}</Button><Button type="button" size="sm" variant="outline" onClick={() => { setQuoteReviewTarget(null); setQuoteReviewEvidence(""); }}>Cancelar</Button></div>
+                 </form>}
                 {(accepted || availabilityConfirmed) && <p className="flex items-center gap-1 text-xs font-medium text-green-700"><ShieldCheck className="h-3.5 w-3.5" />{accepted ? "Cotação aceite na compra" : "Disponibilidade confirmada em"} {quote.confirmed_at ? new Date(quote.confirmed_at).toLocaleString("pt-AO") : "data não disponível"}</p>}
                 {isExpiredByDate && quote.confirmation_status !== "expired" && <p className="flex items-center gap-1 text-xs text-amber-700"><CircleAlert className="h-3.5 w-3.5" />Cotação fora da validade; não deve ser tratada como disponibilidade actual.</p>}
                 {canManage && isExpiredByDate && quote.confirmation_status !== "expired" && !accepted && <Button size="sm" variant="outline" onClick={() => void updateQuoteStatus(quote, "expired")} disabled={busyQuoteId === quote.id}>Registar expiração no histórico</Button>}
