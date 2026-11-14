@@ -993,12 +993,17 @@ const Profile = () => {
     }
     if (!order.user_id) return
     try {
-      const { data: existingConv } = await supabase.from('conversations').select('id').or(`and(user_id.eq.${user.id},peer_user_id.eq.${order.user_id}),and(user_id.eq.${order.user_id},peer_user_id.eq.${user.id})`).limit(1)
+      const { data: existingConv, error: existingConversationError } = await supabase.from('conversations').select('id').or(`and(user_id.eq.${user.id},peer_user_id.eq.${order.user_id}),and(user_id.eq.${order.user_id},peer_user_id.eq.${user.id})`).limit(1)
+      if (existingConversationError) throw existingConversationError
       if (existingConv && existingConv.length > 0) { navigate(`/messages/${existingConv[0].id}`); return }
       const { data: newConv, error } = await supabase.from('conversations').insert({ user_id: user.id, peer_user_id: order.user_id, title: order.buyer?.full_name || 'Comprador', last_timestamp: new Date().toISOString() }).select('id').single()
       if (error) throw error
+      if (!newConv?.id) throw new Error('O servidor não confirmou a criação da conversa.')
       navigate(`/messages/${newConv.id}`)
-    } catch (error) { console.error(error) }
+    } catch (error: any) {
+      console.error(error)
+      toast({ title: 'Não foi possível abrir a conversa', description: error?.message || 'Verifique as permissões e tente novamente.', variant: 'destructive' })
+    }
   }
 
   const formatDate = (d: string | null | undefined) => d ? new Date(d).toLocaleDateString('pt-AO') : 'Data indisponível'
