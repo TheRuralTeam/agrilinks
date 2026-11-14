@@ -461,13 +461,13 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
       if (commentError) throw commentError
       if (!newComment) throw new Error('O comentário não foi criado.')
       const { data: userData, error: userError } = await supabase
-        .from('users').select('full_name, user_type, avatar_url').eq('id', user.id).single()
-      if (userError) throw userError
+        .from('public_user_profiles').select('full_name, user_type, avatar_url').eq('id', user.id).maybeSingle()
+      if (userError) console.error('Comentário criado; não foi possível carregar o perfil público do autor:', userError)
       const commentWithUserInfo: Comment = {
         ...newComment,
-        user_name: userData?.full_name || 'Usuário',
-        user_type: userData?.user_type || 'agricultor',
-        user_avatar: userData?.avatar_url,
+        user_name: userData?.full_name?.trim() || 'Utilizador AgriLink',
+        user_type: userData?.user_type || 'utilizador',
+        user_avatar: userData?.avatar_url || null,
         likes_count: 0, is_liked: false, replies: []
       }
       onProductUpdate({ ...product, comments: [commentWithUserInfo, ...(product.comments || [])] })
@@ -513,11 +513,11 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
       if (replyError) throw replyError
       if (!newReply) throw new Error('A resposta não foi criada.')
       const { data: userData, error: userError } = await supabase
-        .from('users').select('full_name, user_type').eq('id', user.id).single()
-      if (userError) throw userError
+        .from('public_user_profiles').select('full_name, user_type').eq('id', user.id).maybeSingle()
+      if (userError) console.error('Resposta criada; não foi possível carregar o perfil público do autor:', userError)
       const replyWithUser: CommentReply = {
-        ...newReply, user_name: userData?.full_name || 'Usuário',
-        user_type: userData?.user_type || 'agricultor'
+        ...newReply, user_name: userData?.full_name?.trim() || 'Utilizador AgriLink',
+        user_type: userData?.user_type || 'utilizador'
       }
       const updatedComments = product.comments?.map(c =>
         c.id === commentId ? { ...c, replies: [...(c.replies || []), replyWithUser] } : c
@@ -530,17 +530,24 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   }
 
   const handleShare = async () => {
-    if (navigator.share) {
-      try {
+    try {
+      if (navigator.share) {
         await navigator.share({
           title: product.product_type,
           text: `Confira ${product.product_type} por ${formatPrice(product.price)}!`,
           url: window.location.href,
         })
-      } catch { /* cancelled */ }
-    } else {
-      navigator.clipboard.writeText(window.location.href)
+        return
+      }
+      if (!navigator.clipboard?.writeText) {
+        toast.error('A partilha não está disponível neste dispositivo.')
+        return
+      }
+      await navigator.clipboard.writeText(window.location.href)
       toast.success('Link copiado!')
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return
+      toast.error('Não foi possível partilhar o produto. Tente novamente.')
     }
   }
 
