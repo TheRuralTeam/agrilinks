@@ -5,7 +5,8 @@ import { supabase } from '../integrations/supabase/client';
 import Loader from '../components/ui/Loader';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
-import { ProductCard, Product } from '../components/ProductCard';
+import { ProductCard } from '../components/ProductCard';
+import type { Product } from '../components/ProductCard';
 import { getProfileDisplayName, getProfileRoleLabel, resolveAvatarUrl } from '../lib/profileDisplay';
 import { T } from '../lib/brand';
 
