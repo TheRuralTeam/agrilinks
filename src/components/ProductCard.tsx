@@ -374,7 +374,7 @@ export interface Product {
   status: string; created_at: string | null; user_id: string
   location_lat?: number | null; location_lng?: number | null
   category?: string | null
-  likes_count?: number; is_liked?: boolean; comments?: Comment[]
+  likes_count?: number; is_liked?: boolean; comments?: Comment[]; comments_count?: number
   user_verified?: boolean
 }
 interface ProductCardProps {
@@ -399,6 +399,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   const [mapModalOpen, setMapModalOpen] = useState(false)
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [commentsLoaded, setCommentsLoaded] = useState(false)
+  const commentsCount = product.comments?.length ?? product.comments_count ?? 0
 
   const formatDate = (d: string | null | undefined) =>
     d ? new Date(d).toLocaleDateString('pt-AO', { day: '2-digit', month: 'short' }) : 'Data indisponível'
@@ -758,7 +759,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                 onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = commentVisible ? T.g50 : 'transparent')}
               >
                 <MessageCircle size={17} />
-                {product.comments?.length ? <span>{product.comments.length}</span> : null}
+                {commentsCount > 0 ? <span>{commentsCount}</span> : null}
               </button>
             </div>
 
