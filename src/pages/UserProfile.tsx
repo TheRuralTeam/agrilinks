@@ -118,7 +118,7 @@ const UserProfile = () => {
     } catch (error) {
       if (requestId !== requestSequence.current) return;
       console.error('[AgriLink] Não foi possível carregar o perfil público:', error);
-      setLoadError(error instanceof Error ? error.message : 'Não foi possível carregar este perfil. Verifique a ligação e tente novamente.');
+      setLoadError('Não foi possível consultar este perfil. Verifique a ligação e tente novamente.');
       setUserData(null);
     } finally {
       if (requestId === requestSequence.current) setLoading(false);
