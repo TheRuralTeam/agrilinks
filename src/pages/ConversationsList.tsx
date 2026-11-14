@@ -65,6 +65,8 @@ const ConversationsList = () => {
   const [userResults, setUserResults] = useState<UserProfile[]>([]);
   const [allConversations, setAllConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+  const [userSearchError, setUserSearchError] = useState<string | null>(null);
   const [newConversationOpen, setNewConversationOpen] = useState(false);
   const [newConvSearchTerm, setNewConvSearchTerm] = useState("");
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
@@ -119,40 +121,43 @@ const ConversationsList = () => {
   }, [user, loadConversations]);
 
   useEffect(() => {
+    let active = true;
     if (!user || searchTerm.trim() === "") {
       setUserResults([]);
-      return;
+      setUserSearchError(null);
+      setSearchingUsers(false);
+      return () => { active = false; };
     }
 
     const timeout = setTimeout(async () => {
-      setLoading(true);
+      if (!active) return;
+      setSearchingUsers(true);
+      setUserSearchError(null);
+      setUserResults([]);
       try {
         const { data: users, error: usersError } = await supabase
           .from("public_user_profiles")
           .select("id, full_name, avatar_url")
-          .ilike("full_name", `%${searchTerm}%`)
+          .ilike("full_name", `%${searchTerm.trim().replace(/[%_(),]/g, " ")}%`)
           .neq("id", user.id)
+          .order("full_name", { ascending: true })
           .limit(10);
 
-        if (usersError) {
-          console.error("Erro ao buscar usuários:", usersError);
-        } else {
-          setUserResults((users as UserProfile[]) || []);
-        }
-      } catch (err) {
-        console.error("Erro na busca:", err);
-        toast({
-          title: t('common.error'),
-          description: t('messages.noResults'),
-          variant: "destructive"
-        });
+        if (usersError) throw usersError;
+        if (active) setUserResults((users as UserProfile[]) || []);
+      } catch (error) {
+        console.error("Erro ao buscar perfis públicos:", error);
+        if (active) setUserSearchError("Não foi possível pesquisar utilizadores. Tente novamente.");
       } finally {
-        setLoading(false);
+        if (active) setSearchingUsers(false);
       }
     }, 300);
 
-    return () => clearTimeout(timeout);
-  }, [user, searchTerm, toast, t]);
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+  }, [user, searchTerm]);
 
   const conversationResults = useMemo(() => {
     if (searchTerm.trim() === "") return allConversations;
@@ -325,11 +330,17 @@ const ConversationsList = () => {
 
       {/* Lista de Conversas */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-        {loading && searchTerm.trim() !== "" && (
+        {searchingUsers && searchTerm.trim() !== "" && (
           <div className="flex justify-center py-4">
             <div className="animate-pulse text-sm font-medium" style={{ color: T.g600 }}>
               {t('messages.searching')}...
             </div>
+          </div>
+        )}
+
+        {userSearchError && searchTerm.trim() !== "" && (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+            {userSearchError}
           </div>
         )}
 
