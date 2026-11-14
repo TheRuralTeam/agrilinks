@@ -70,10 +70,9 @@ interface Product extends ProductCardType {}
 
 interface UserResult {
   id: string
-  full_name: string
-  email: string
-  user_type: string
-  avatar_url?: string
+  full_name: string | null
+  user_type: string | null
+  avatar_url?: string | null
 }
 
 type SortOption = 'recent' | 'popular' | 'price_asc' | 'price_desc'
@@ -128,9 +127,11 @@ const SearchPage = () => {
 
       if (term.trim() && (activeTab === 'all' || activeTab === 'users')) {
         const { data: users, error: usersError } = await supabase
-          .from('users')
-          .select('id, full_name, email, user_type, avatar_url')
-          .or(`full_name.ilike.%${term.trim().replace(/[%(),]/g, ' ')}%,email.ilike.%${term.trim().replace(/[%(),]/g, ' ')}%`)
+          .from('public_user_profiles')
+          .select('id, full_name, user_type, avatar_url')
+          .in('user_type', ['agricultor', 'agente'])
+          .ilike('full_name', `%${term.trim().replace(/[%(),]/g, ' ')}%`)
+          .order('full_name', { ascending: true })
           .limit(20)
 
         if (usersError) throw usersError
@@ -465,14 +466,14 @@ const SearchPage = () => {
                     <Avatar className="h-12 w-12 border-2 border-[#E8F5E9] group-hover:border-[#2c863b] transition-colors">
                       <AvatarImage src={user.avatar_url} />
                       <AvatarFallback className="bg-[#F2FAF3] text-[#2c863b] font-bold">
-                        {user.full_name.substring(0, 2).toUpperCase()}
+                        {(user.full_name?.trim() || 'Utilizador AgriLink').slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-[#111714] truncate group-hover:text-[#2c863b] transition-colors">
-                        {user.full_name}
+                        {user.full_name?.trim() || 'Utilizador AgriLink'}
                       </p>
-                      <p className="text-xs text-[#758A79] capitalize">{user.user_type}</p>
+                      <p className="text-xs text-[#758A79] capitalize">{user.user_type || 'Membro AgriLink'}</p>
                     </div>
                   </div>
                 </div>
