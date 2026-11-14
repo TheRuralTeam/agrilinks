@@ -418,9 +418,7 @@ const Profile = () => {
     })
   }, [])
   const reportProfileLoadError = React.useCallback((key: string, label: string, error: unknown) => {
-    const detail = error && typeof error === 'object' && 'message' in error
-      ? String((error as { message: unknown }).message)
-      : 'Verifique a ligação e tente novamente.'
+    const detail = 'Não foi possível consultar esta informação. Tente novamente.'
     setProfileLoadErrors((previous) => ({ ...previous, [key]: `${label}: ${detail}` }))
   }, [])
 
