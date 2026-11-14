@@ -198,63 +198,38 @@ const ConversationsList = () => {
     );
   }, [allConversations, searchTerm]);
 
-  const startConversation = useCallback(async (
-    participantId: string, 
-    participantName: string, 
-    participantAvatar: string | null
-  ) => {
-    if (!user) return;
-    const { data: existingConv, error: searchError } = await supabase
-      .from("conversations")
-      .select("id")
-      .or(`and(user_id.eq.${user.id},participant_id.eq.${participantId}),and(user_id.eq.${user.id},peer_user_id.eq.${participantId}),and(user_id.eq.${participantId},participant_id.eq.${user.id}),and(user_id.eq.${participantId},peer_user_id.eq.${user.id})`)
-      .limit(1);
-
-    if (searchError) {
-      console.error("Erro ao buscar conversa existente:", searchError);
-      toast({
-        title: t('common.error'),
-        description: t('messages.noResults'),
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (existingConv && existingConv.length > 0) {
-      navigate(`/messages/${existingConv[0].id}`);
+  const startConversation = useCallback(async (participantId: string) => {
+    if (!user) {
+      toast.error("Inicie sessão para iniciar uma conversa.");
+      navigate("/login");
       return;
     }
 
     try {
-      const newConvData = {
-        user_id: user.id,
-        participant_id: participantId,
-        peer_user_id: participantId,
-        title: participantName,
-        avatar: participantAvatar,
-        last_message: null,
-        last_timestamp: new Date().toISOString(),
-        unread_count: 0,
-      };
-
-      const { data: createdConv, error: createError } = await supabase
+      // Preserve conversations created by older clients that only populated peer_user_id.
+      const { data: legacyConversation, error: legacyError } = await supabase
         .from("conversations")
-        .insert([newConvData])
         .select("id")
-        .single();
+        .or(`and(user_id.eq.${user.id},peer_user_id.eq.${participantId}),and(user_id.eq.${participantId},peer_user_id.eq.${user.id})`)
+        .limit(1);
+      if (legacyError) throw legacyError;
+      if (legacyConversation?.[0]?.id) {
+        navigate(`/messages/${legacyConversation[0].id}`);
+        return;
+      }
 
-      if (createError) throw createError;
-      if (!createdConv?.id) throw new Error("O servidor não confirmou a criação da conversa.");
-      navigate(`/messages/${createdConv.id}`);
-    } catch (error) {
-      console.error("Erro ao criar nova conversa:", error);
-      toast({
-        title: t('common.error'),
-        description: t('messages.noResults'),
-        variant: "destructive"
+      const { data: conversationId, error: createError } = await supabase.rpc("get_or_create_conversation", {
+        p_user_id: user.id,
+        p_other_user_id: participantId,
       });
+      if (createError) throw createError;
+      if (!conversationId) throw new Error("O servidor não confirmou a criação da conversa.");
+      navigate(`/messages/${conversationId}`);
+    } catch (error) {
+      console.error("Erro ao iniciar conversa:", error);
+      toast.error("Não foi possível iniciar a conversa. Verifique a ligação e tente novamente.");
     }
-  }, [user, navigate, toast, t]);
+  }, [user, navigate]);
 
   const formatTime = (timestamp: string) => {
     if (!timestamp) return "";
@@ -398,7 +373,7 @@ const ConversationsList = () => {
               {userResults.map((usr) => (
                 <Card
                   key={usr.id}
-                  onClick={() => startConversation(usr.id, usr.full_name?.trim() || 'Utilizador AgriLink', usr.avatar_url)}
+                  onClick={() => startConversation(usr.id)}
                   className="border-none shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden group"
                   style={{ backgroundColor: T.white }}
                 >
