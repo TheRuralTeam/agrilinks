@@ -813,27 +813,28 @@ const AdminDashboard = () => {
     }
   }, [adminFreightPrice, hasPermission, isSupportAgent]);
 
-  const updateSourcingStatus = useCallback(async (id: string, newStatus: string, adminNotes?: string) => {
+  const updateSourcingStatus = useCallback(async (id: string, newStatus: string, adminNotes?: string): Promise<boolean> => {
     if (!hasPermission("manage_sourcing")) {
       toast.error("Não tem permissão para gerir pedidos de sourcing.");
-      return;
+      return false;
     }
 
     const allowedStatuses = new Set(["pending", "in_progress", "reviewing", "quoted", "approved", "fulfilled", "completed", "rejected", "cancelled"]);
     if (!allowedStatuses.has(newStatus)) {
       toast.error("Estado de sourcing inválido.");
-      return;
+      return false;
     }
 
     let notes = adminNotes;
     if (["completed", "rejected"].includes(newStatus) && !notes?.trim()) {
-      notes = window.prompt(newStatus === "completed"
-        ? "Registe a evidência da conclusão do pedido."
-        : "Indique o motivo da rejeição do pedido.") || undefined;
-      if (!notes?.trim()) {
-        toast.error("Operação cancelada. A evidência ou o motivo é obrigatório.");
-        return;
+      const request = sourcingRequests.find((item) => item.id === id);
+      if (!request) {
+        toast.error("O pedido de sourcing já não está disponível. Atualize a lista e tente novamente.");
+        return false;
       }
+      setSourcingNoteTarget({ ...request, status: newStatus });
+      setSourcingNote("");
+      return false;
     }
 
     try {
@@ -849,13 +850,15 @@ const AdminDashboard = () => {
       if (notes !== undefined) updateData.admin_notes = notes.trim() || null;
       setSourcingRequests((prev) => prev.map((request) => (request.id === id ? { ...request, ...updateData } : request)));
       toast.success("Pedido de sourcing actualizado.");
+      return true;
     } catch (error) {
       const message = error && typeof error === "object" && "message" in error
         ? String((error as { message: unknown }).message)
         : "Não foi possível actualizar o pedido de sourcing.";
       toast.error(message);
+      return false;
     }
-  }, [hasPermission]);
+  }, [hasPermission, sourcingRequests]);
 
   const changeUserType = useCallback(async (userId: string, userType: User["user_type"]) => {
     if (!userType || !hasPermission("manage_users")) {
@@ -2796,34 +2799,45 @@ const AdminDashboard = () => {
                     <img src={agrilinkLogo} alt="AgriLink" className="h-full w-full object-contain" />
                   </div>
                   <div>
-                    <DialogTitle className="text-lg">Notas do pedido de sourcing</DialogTitle>
+                    <DialogTitle className="text-lg">
+                      {sourcingNoteTarget?.status === "completed" ? "Confirmar conclusão do pedido" : sourcingNoteTarget?.status === "rejected" ? "Rejeitar pedido de sourcing" : "Notas do pedido de sourcing"}
+                    </DialogTitle>
                     <p className="mt-0.5 text-xs text-muted-foreground">{sourcingNoteTarget?.product_name || "Pedido de sourcing"}</p>
                   </div>
                 </div>
               </DialogHeader>
               <div className="mt-4 space-y-2">
-                <label htmlFor="admin-sourcing-note" className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Nota administrativa</label>
+                <label htmlFor="admin-sourcing-note" className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
+                  {sourcingNoteTarget?.status === "completed" ? "Evidência da conclusão *" : sourcingNoteTarget?.status === "rejected" ? "Motivo da rejeição *" : "Nota administrativa"}
+                </label>
                 <Textarea
                   id="admin-sourcing-note"
                   value={sourcingNote}
                   onChange={(e) => setSourcingNote(e.target.value)}
-                  placeholder="Registe aqui o acompanhamento, decisão ou observação operacional."
+                  placeholder={sourcingNoteTarget?.status === "completed" ? "Indique a evidência que confirma a conclusão do pedido." : sourcingNoteTarget?.status === "rejected" ? "Registe o motivo objetivo da rejeição do pedido." : "Registe aqui o acompanhamento, decisão ou observação operacional."}
+                  required={["completed", "rejected"].includes(sourcingNoteTarget?.status || "")}
+                  minLength={["completed", "rejected"].includes(sourcingNoteTarget?.status || "") ? 4 : undefined}
+                  maxLength={2000}
                   rows={6}
                   className="resize-none rounded-xl"
                   autoFocus
                 />
               </div>
               <DialogFooter className="mt-5 gap-2">
-                <Button variant="ghost" onClick={() => setSourcingNoteTarget(null)}>Cancelar</Button>
+                <Button variant="ghost" onClick={() => { setSourcingNoteTarget(null); setSourcingNote(""); }}>Cancelar</Button>
                 <Button
-                  onClick={() => {
+                  disabled={["completed", "rejected"].includes(sourcingNoteTarget?.status || "") && sourcingNote.trim().length < 4}
+                  onClick={async () => {
                     if (!sourcingNoteTarget) return;
-                    updateSourcingStatus(sourcingNoteTarget.id, sourcingNoteTarget.status, sourcingNote.trim());
-                    setSourcingNoteTarget(null);
+                    const saved = await updateSourcingStatus(sourcingNoteTarget.id, sourcingNoteTarget.status, sourcingNote.trim());
+                    if (saved) {
+                      setSourcingNoteTarget(null);
+                      setSourcingNote("");
+                    }
                   }}
                   className="bg-primary text-white hover:bg-primary/90"
                 >
-                  Guardar nota
+                  {sourcingNoteTarget?.status === "completed" ? "Confirmar conclusão" : sourcingNoteTarget?.status === "rejected" ? "Confirmar rejeição" : "Guardar nota"}
                 </Button>
               </DialogFooter>
             </div>
