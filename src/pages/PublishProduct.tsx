@@ -79,18 +79,21 @@ const PublishProduct = () => {
     );
   }
 
-  if (userProfile?.user_type === 'comprador') {
+  const userType = String(userProfile?.user_type ?? '').toLowerCase();
+  const canPublishProducts = ['agricultor', 'agente'].includes(userType);
+
+  if (user && userProfile?.user_type && !canPublishProducts) {
     return (
       <div className="min-h-screen bg-background p-4 flex items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
             <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h2 className="text-xl font-semibold mb-2">Acesso Restrito</h2>
+            <h2 className="text-xl font-semibold mb-2">Publicação não disponível</h2>
             <p className="text-muted-foreground mb-4">
-              Compradores não podem publicar produtos. Esta funcionalidade é apenas para agricultores e agentes.
+              A publicação de produtos está disponível apenas para agricultores e agentes. O seu perfil actual ({userType}) não tem esta permissão.
             </p>
             <Button onClick={() => navigate('/app')} className="w-full">
-              Voltar ao Início
+              Voltar ao Feed
             </Button>
           </CardContent>
         </Card>
