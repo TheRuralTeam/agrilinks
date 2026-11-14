@@ -109,7 +109,7 @@ export default function MyPurchases() {
       }
       setPurchases(rows.map((row) => ({ ...row, product_name: productNames[row.product_id] || 'Produto' })) as Purchase[])
     } catch (error: any) {
-      const message = error?.message || 'Não foi possível consultar o histórico de compras. Verifique a ligação e tente novamente.'
+      const message = 'Não foi possível consultar o histórico de compras. Verifique a ligação e tente novamente.'
       setLoadError(message)
       toast({ title: 'Não foi possível carregar as compras', description: message, variant: 'destructive' })
     } finally {
