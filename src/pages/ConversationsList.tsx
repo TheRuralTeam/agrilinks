@@ -74,6 +74,7 @@ const ConversationsList = () => {
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [dialogUsersLoading, setDialogUsersLoading] = useState(false);
   const [dialogUsersError, setDialogUsersError] = useState<string | null>(null);
+  const [dialogReloadKey, setDialogReloadKey] = useState(0);
 
   const loadConversations = useCallback(async () => {
     if (!user) return;
@@ -310,11 +311,11 @@ const ConversationsList = () => {
       active = false;
       clearTimeout(timeout);
     };
-  }, [newConversationOpen, newConvSearchTerm, user?.id]);
+  }, [newConversationOpen, newConvSearchTerm, user?.id, dialogReloadKey]);
 
   const filteredUsers = useMemo(() => {
     return allUsers.filter((usr) =>
-      (usr.full_name || '').toLowerCase().includes(newConvSearchTerm.toLowerCase())
+      (usr.full_name || '').toLowerCase().includes(newConvSearchTerm.trim().toLowerCase())
     );
   }, [allUsers, newConvSearchTerm]);
 
@@ -554,7 +555,7 @@ const ConversationsList = () => {
               ) : dialogUsersError ? (
                 <div role="alert" className="py-8 text-center">
                   <p className="text-sm" style={{ color: T.muted }}>{dialogUsersError}</p>
-                  <Button variant="outline" size="sm" className="mt-3" onClick={() => setNewConvSearchTerm((value) => `${value} `.trim())}>Tentar novamente</Button>
+                  <Button variant="outline" size="sm" className="mt-3" onClick={() => setDialogReloadKey((value) => value + 1)}>Tentar novamente</Button>
                 </div>
               ) : filteredUsers.length === 0 ? (
                 <div className="py-12 text-center">
