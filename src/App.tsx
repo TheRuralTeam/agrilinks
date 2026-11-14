@@ -16,7 +16,6 @@ import NotificationRuntime from "./components/NotificationRuntime";
 const Index = lazy(() => import("./pages/Index"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const Registration = lazy(() => import("./pages/Registration"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
 const ProformaInvoices = lazy(() => import("./pages/ProformaInvoices"));
 const TechnicalSheet = lazy(() => import("./pages/TechnicalSheet"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
@@ -345,9 +344,9 @@ const AppRoutes = () => {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
+            <PermissionRoute permissions={['view_analytics']}>
+              <Navigate to="/admindashboard" replace />
+            </PermissionRoute>
           }
         />
         <Route
