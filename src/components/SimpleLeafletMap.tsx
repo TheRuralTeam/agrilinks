@@ -61,6 +61,8 @@ const SimpleLeafletMap: React.FC<Props> = ({
   clickMarkerColor = '#1A5C24',
 }) => {
   const ref = useRef<HTMLDivElement>(null);
+  const [mapLoadError, setMapLoadError] = React.useState(false);
+  const [loadAttempt, setLoadAttempt] = React.useState(0);
   const mapRef = useRef<any>(null);
   const layerRef = useRef<any>(null);
   const clickMarkerRef = useRef<any>(null);
@@ -70,6 +72,7 @@ const SimpleLeafletMap: React.FC<Props> = ({
     loadLeaflet().then(L => {
       if (cancelled || !ref.current || mapRef.current) return;
       const m = L.map(ref.current, { center: [center.lat, center.lng], zoom });
+      setMapLoadError(false);
       L.tileLayer(MAP_TILE_LAYERS.light.url, {
         attribution: MAP_TILE_LAYERS.light.attribution,
         subdomains: MAP_TILE_LAYERS.subdomains,
@@ -90,7 +93,11 @@ const SimpleLeafletMap: React.FC<Props> = ({
       // initial markers
       renderMarkers(L);
       setTimeout(() => m.invalidateSize(), 100);
-    }).catch(() => {/* noop */});
+    }).catch(() => {
+      if (cancelled) return;
+      loaderPromise = null;
+      setMapLoadError(true);
+    });
     return () => {
       cancelled = true;
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
@@ -98,7 +105,7 @@ const SimpleLeafletMap: React.FC<Props> = ({
       clickMarkerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadAttempt]);
 
   const renderMarkers = (L: any) => {
     if (!layerRef.current) return;
@@ -123,7 +130,19 @@ const SimpleLeafletMap: React.FC<Props> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(markers)]);
 
-  return <div ref={ref} className={className} style={{ width: '100%', height, ...style }} />;
+  return (
+    <div className={className} style={{ width: '100%', height, position: 'relative', ...style }}>
+      <div ref={ref} style={{ width: '100%', height: '100%' }} />
+      {mapLoadError && (
+        <div role="alert" className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-inherit bg-white/95 p-4 text-center">
+          <p className="text-sm text-gray-700">Não foi possível carregar o mapa. Verifique a ligação à internet.</p>
+          <button type="button" onClick={() => { setMapLoadError(false); setLoadAttempt((attempt) => attempt + 1); }} className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50">
+            Tentar novamente
+          </button>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default SimpleLeafletMap;
