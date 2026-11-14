@@ -11,9 +11,7 @@ import {
   Clock,
   CheckCheck,
   Download,
-  Smile,
-  User
-  Video,
+  Smile
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../integrations/supabase/client";
