@@ -74,14 +74,8 @@ export const fetchProductsFeed = async ({
   }))
 }
 
-export const fetchActiveProducts = async (userId?: string, page = 0, limit = 20) => {
-  try {
-    return await fetchProductsFeed({ userId, status: 'active', limit, page })
-  } catch (error) {
-    console.warn('[AgriLink] Product feed unavailable:', error)
-    return []
-  }
-}
+export const fetchActiveProducts = async (userId?: string, page = 0, limit = 20) =>
+  fetchProductsFeed({ userId, status: 'active', limit, page })
 
 
 export const fetchProductById = async (productId: string, userId?: string) => {
