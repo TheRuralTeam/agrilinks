@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import {
   Search, LayoutDashboard, ShoppingCart, Bell,
   ChevronDown, CheckCircle2, Package, Activity,
-  MapPin, TrendingUp, Menu, X, WifiOff
+  MapPin, TrendingUp, Menu, X, WifiOff, AlertCircle
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
 import { supabase } from '../integrations/supabase/client'
@@ -67,6 +67,7 @@ const AppHome = () => {
   const { requireAct } = useCanAct()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [feedError, setFeedError] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [mapModalOpen, setMapModalOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
@@ -125,6 +126,7 @@ const AppHome = () => {
 
   const fetchProducts = useCallback(async (page = 0, append = false) => {
     if (page === 0) {
+      setFeedError(false)
       let hasCachedFeed = false
       try { hasCachedFeed = Boolean(JSON.parse(sessionStorage.getItem('agrilink:marketplace:feed') || 'null')?.products?.length) } catch {}
       if (!hasCachedFeed) setLoading(true)
@@ -149,6 +151,7 @@ const AppHome = () => {
     } catch (err) {
       console.error('[AgriLink] Erro ao carregar Marketplace:', err)
       if (page === 0) {
+        setFeedError(true)
         try {
           const cached = JSON.parse(sessionStorage.getItem('agrilink:marketplace:feed') || 'null')
           if (Array.isArray(cached.products)) {
@@ -160,6 +163,8 @@ const AppHome = () => {
         } catch {
           setProducts([])
         }
+      } else {
+        toast.error('Não foi possível carregar mais produtos. Tente novamente.')
       }
     } finally {
       if (page === 0) setLoading(false)
@@ -305,9 +310,11 @@ const AppHome = () => {
   /* ── Main render ── */
   return (
     <div className="min-h-screen" style={{ background: T.canvas, fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif" }}>
-      {!isOnline && (
-        <div style={{ padding:'8px 16px', textAlign:'center', fontSize:12, fontWeight:600, background:T.g50, color:T.g700 }}>
-          Modo offline: a mostrar os últimos produtos disponíveis neste dispositivo.
+      {(!isOnline || feedError) && (
+        <div role="status" style={{ padding:'8px 16px', textAlign:'center', fontSize:12, fontWeight:600, background:T.g50, color:T.g700 }}>
+          {isOnline
+            ? 'Não foi possível atualizar o catálogo. A mostrar os últimos produtos guardados, quando disponíveis.'
+            : 'Sem ligação à internet. A mostrar os últimos produtos guardados, quando disponíveis.'}
         </div>
       )}
 
@@ -525,8 +532,24 @@ const AppHome = () => {
           </div>
         )}
 
+        {/* Falha de consulta: não confundir com catálogo vazio */}
+        {!loading && feedError && filteredProducts.length === 0 && (
+          <div role="alert" style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'72px 20px', textAlign:'center' }}>
+            <div style={{ width:44, height:44, borderRadius:12, border:`1px solid ${T.rule}`, background:T.g50, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:14 }}>
+              <AlertCircle size={19} color={T.g600} />
+            </div>
+            <h3 style={{ fontSize:20, color:T.ink, margin:'0 0 8px', fontWeight:700 }}>Não foi possível carregar os produtos</h3>
+            <p style={{ fontSize:13, color:T.faint, maxWidth:340, lineHeight:1.65, marginBottom:16 }}>
+              O catálogo não respondeu. Verifique a ligação e tente novamente.
+            </p>
+            <button type="button" onClick={() => void fetchProducts(0, false)} style={{ minHeight:40, padding:'0 18px', borderRadius:10, border:0, background:T.g600, color:T.white, fontSize:13, fontWeight:700, cursor:'pointer' }}>
+              Tentar novamente
+            </button>
+          </div>
+        )}
+
         {/* Empty / offline state */}
-        {!loading && filteredProducts.length === 0 && (
+        {!loading && !feedError && filteredProducts.length === 0 && (
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'100px 20px', textAlign:'center' }}>
             <div style={{ width: 44, height: 44, borderRadius: 10, border: `1px solid ${T.rule}`, background: T.g50, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><Package size={18} color={T.g500} /></div>
             <h3 style={{ fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif", fontSize:22, color: T.ink, margin:'0 0 10px', fontWeight:700 }}>
