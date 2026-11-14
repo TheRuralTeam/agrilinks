@@ -430,11 +430,16 @@ const Profile = () => {
       const { data, error } = await supabase.from('products').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
       if (error) throw error
       const statsMap: { [productId: string]: { likes: number; comments: number } } = {}
-      for (const product of (data || [])) {
-        const { count: likesCount } = await supabase.from('product_likes').select('*', { count: 'exact', head: true }).eq('product_id', product.id)
-        const { count: commentsCount } = await supabase.from('product_comments').select('*', { count: 'exact', head: true }).eq('product_id', product.id)
-        statsMap[product.id] = { likes: likesCount || 0, comments: commentsCount || 0 }
-      }
+      const stats = await Promise.all((data || []).map(async (product) => {
+        const [likesResult, commentsResult] = await Promise.all([
+          supabase.from('product_likes').select('*', { count: 'exact', head: true }).eq('product_id', product.id),
+          supabase.from('product_comments').select('*', { count: 'exact', head: true }).eq('product_id', product.id),
+        ])
+        if (likesResult.error) throw likesResult.error
+        if (commentsResult.error) throw commentsResult.error
+        return [product.id, { likes: likesResult.count || 0, comments: commentsResult.count || 0 }] as const
+      }))
+      for (const [productId, engagement] of stats) statsMap[productId] = engagement
       setProductStats(statsMap)
       setUserProducts((data || []).map(p => ({ ...p, status: p.status as 'active' | 'inactive' | 'removed', views: statsMap[p.id]?.comments || 0, interests: statsMap[p.id]?.likes || 0 })))
       clearProfileLoadError('products')
@@ -485,7 +490,8 @@ const Profile = () => {
       const { data: orders, error: ordersError } = await supabase.from('pre_orders').select('id, product_id, user_id, quantity, location, status, stock_fully_requested, created_at, updated_at, unit_price, total_price, reservation_expires_at, payment_status').in('product_id', productIds).is('deleted_at', null).order('created_at', { ascending: false })
       if (ordersError) throw ordersError
       const ordersWithDetails = await Promise.all((orders || []).map(async (order) => {
-        const { data: product } = await supabase.from('products').select('product_type, price').eq('id', order.product_id).single()
+        const { data: product, error: productError } = await supabase.from('products').select('product_type, price').eq('id', order.product_id).single()
+        if (productError) throw productError
         const { data: buyerContact, error: buyerContactError } = await supabase.rpc('get_order_buyer_contact', { p_pre_order_id: order.id })
         if (buyerContactError) throw buyerContactError
         const buyer = buyerContact?.[0] || null
