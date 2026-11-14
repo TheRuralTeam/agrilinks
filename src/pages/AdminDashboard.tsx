@@ -534,7 +534,6 @@ const AdminDashboard = () => {
       if (ordersRes.error) {
         console.error("Erro ao carregar pedidos:", ordersRes.error);
         reportDataError("orders", "Pedidos", ordersRes.error);
-        toast.error("Não foi possível carregar os pedidos.");
       } else {
         setOrders(ordersRes.data || []);
         clearDataError("orders");
