@@ -408,6 +408,21 @@ const Profile = () => {
   const [showSourcingForm, setShowSourcingForm] = useState(false)
   const [sourcingForm, setSourcingForm] = useState({ product_name: '', quantity: '', unit: 'kg', quality_specification: '', delivery_province_id: '', delivery_municipality_id: '', delivery_location: '', delivery_date: '', description: '' })
   const [submittingSourcing, setSubmittingSourcing] = useState(false)
+  const [profileLoadErrors, setProfileLoadErrors] = useState<Record<string, string>>({})
+  const clearProfileLoadError = React.useCallback((key: string) => {
+    setProfileLoadErrors((previous) => {
+      if (!(key in previous)) return previous
+      const next = { ...previous }
+      delete next[key]
+      return next
+    })
+  }, [])
+  const reportProfileLoadError = React.useCallback((key: string, label: string, error: unknown) => {
+    const detail = error && typeof error === 'object' && 'message' in error
+      ? String((error as { message: unknown }).message)
+      : 'Verifique a ligação e tente novamente.'
+    setProfileLoadErrors((previous) => ({ ...previous, [key]: `${label}: ${detail}` }))
+  }, [])
 
   const fetchUserProducts = React.useCallback(async () => {
     if (!user?.id) { setUserProducts([]); return }
@@ -422,8 +437,12 @@ const Profile = () => {
       }
       setProductStats(statsMap)
       setUserProducts((data || []).map(p => ({ ...p, status: p.status as 'active' | 'inactive' | 'removed', views: statsMap[p.id]?.comments || 0, interests: statsMap[p.id]?.likes || 0 })))
-    } catch (error) { console.error(error) }
-  }, [user?.id])
+      clearProfileLoadError('products')
+    } catch (error) {
+      console.error(error)
+      reportProfileLoadError('products', 'Publicações', error)
+    }
+  }, [user?.id, clearProfileLoadError, reportProfileLoadError])
 
   const fetchFichasRecebimento = React.useCallback(async () => {
     if (!user?.id) { setFichasRecebimento([]); return }
@@ -431,8 +450,12 @@ const Profile = () => {
       const { data, error } = await supabase.from('fichas_recebimento' as any).select('*').eq('user_id', user.id).order('created_at', { ascending: false })
       if (error) throw error
       setFichasRecebimento((data || []) as any)
-    } catch (error) { console.error(error) }
-  }, [user?.id])
+      clearProfileLoadError('fichas')
+    } catch (error) {
+      console.error(error)
+      reportProfileLoadError('fichas', 'Fichas de recebimento', error)
+    }
+  }, [user?.id, clearProfileLoadError, reportProfileLoadError])
 
   const fetchAgentStats = React.useCallback(async () => {
     if (!user?.id) { setAgentStats({ totalReferrals: 0, totalPoints: 0, recentReferrals: [] }); return }
@@ -442,16 +465,22 @@ const Profile = () => {
       if (data && data.length > 0) {
         const s = data[0]
         setAgentStats({ totalReferrals: Number(s.total_referrals) || 0, totalPoints: Number(s.total_points) || 0, recentReferrals: Array.isArray(s.recent_referrals) ? s.recent_referrals : [] })
+      } else {
+        setAgentStats({ totalReferrals: 0, totalPoints: 0, recentReferrals: [] })
       }
-    } catch (error) { console.error(error) }
-  }, [user?.id])
+      clearProfileLoadError('agentStats')
+    } catch (error) {
+      console.error(error)
+      reportProfileLoadError('agentStats', 'Estatísticas de agente', error)
+    }
+  }, [user?.id, clearProfileLoadError, reportProfileLoadError])
 
   const fetchReceivedOrders = React.useCallback(async () => {
     if (!user?.id) { setReceivedOrders([]); return }
     try {
       const { data: userProductIds, error: prodError } = await supabase.from('products').select('id').eq('user_id', user.id)
       if (prodError) throw prodError
-      if (!userProductIds || userProductIds.length === 0) { setReceivedOrders([]); return }
+      if (!userProductIds || userProductIds.length === 0) { setReceivedOrders([]); clearProfileLoadError('receivedOrders'); return }
       const productIds = userProductIds.map(p => p.id)
       const { data: orders, error: ordersError } = await supabase.from('pre_orders').select('id, product_id, user_id, quantity, location, status, stock_fully_requested, created_at, updated_at, unit_price, total_price, reservation_expires_at, payment_status').in('product_id', productIds).is('deleted_at', null).order('created_at', { ascending: false })
       if (ordersError) throw ordersError
@@ -463,8 +492,12 @@ const Profile = () => {
         return { ...order, product: product || undefined, buyer: buyer || undefined, stockFullyRequested: Boolean((order as any).stock_fully_requested) } as ReceivedOrder
       }))
       setReceivedOrders(ordersWithDetails)
-    } catch (error) { console.error(error) }
-  }, [user?.id])
+      clearProfileLoadError('receivedOrders')
+    } catch (error) {
+      console.error(error)
+      reportProfileLoadError('receivedOrders', 'Encomendas recebidas', error)
+    }
+  }, [user?.id, clearProfileLoadError, reportProfileLoadError])
 
   const refreshAgentStatuses = React.useCallback(async (requests: SourcingRequest[]) => {
     if (!user?.id || requests.length === 0) return
@@ -478,10 +511,12 @@ const Profile = () => {
         if (task.request_id) next[task.request_id] = task
       }
       setSourcingAgentStatuses((previous) => ({ ...previous, ...next }))
+      clearProfileLoadError('agentTasks')
     } catch (error) {
       console.error('[AgriLink Agents] Não foi possível actualizar o estado dos agentes:', error)
+      reportProfileLoadError('agentTasks', 'Estado dos agentes', error)
     }
-  }, [user?.id])
+  }, [user?.id, clearProfileLoadError, reportProfileLoadError])
 
   const reanalyzeSourcingRequest = React.useCallback(async (request: SourcingRequest) => {
     if (!user?.id) {
@@ -538,9 +573,13 @@ const Profile = () => {
       if (error) throw error
       const requests = (data || []) as SourcingRequest[]
       setSourcingRequests(requests)
+      clearProfileLoadError('sourcingRequests')
       await refreshAgentStatuses(requests)
-    } catch (error) { console.error(error) }
-  }, [user?.id, refreshAgentStatuses])
+    } catch (error) {
+      console.error(error)
+      reportProfileLoadError('sourcingRequests', 'Pedidos de sourcing', error)
+    }
+  }, [user?.id, refreshAgentStatuses, clearProfileLoadError, reportProfileLoadError])
 
   const fetchSourcingQuotes = React.useCallback(async () => {
     const requestIds = sourcingRequests.map((request) => request.id)
@@ -556,22 +595,29 @@ const Profile = () => {
       const dateParts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Luanda', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date())
       const today = `${dateParts.find((part) => part.type === 'year')?.value}-${dateParts.find((part) => part.type === 'month')?.value}-${dateParts.find((part) => part.type === 'day')?.value}`
       setSourcingQuotes(((data || []) as SourcingQuote[]).filter((quote) => !quote.valid_until || quote.valid_until >= today))
+      clearProfileLoadError('sourcingQuotes')
     } catch (error) {
       console.error('[AgriLink Sourcing] Erro ao carregar cotações confirmadas:', error)
-      setSourcingQuotes([])
+      reportProfileLoadError('sourcingQuotes', 'Cotações confirmadas', error)
     } finally { setSourcingQuotesLoading(false) }
-  }, [user?.id, sourcingRequests])
+  }, [user?.id, sourcingRequests, clearProfileLoadError, reportProfileLoadError])
 
   useEffect(() => { void fetchSourcingQuotes() }, [fetchSourcingQuotes])
 
   const fetchBuyerStats = React.useCallback(async () => {
     if (!user?.id) { setBuyerStats({ completedOrders: 0, favoriteProducts: 0 }); return }
     try {
-      const { count: completedCount } = await supabase.from('pre_orders').select('*', { count: 'exact', head: true }).eq('user_id', user.id).in('status', ['completed', 'accepted'])
-      const { count: likesCount } = await supabase.from('product_likes').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
+      const { count: completedCount, error: completedError } = await supabase.from('pre_orders').select('*', { count: 'exact', head: true }).eq('user_id', user.id).in('status', ['completed', 'accepted'])
+      if (completedError) throw completedError
+      const { count: likesCount, error: likesError } = await supabase.from('product_likes').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
+      if (likesError) throw likesError
       setBuyerStats({ completedOrders: completedCount || 0, favoriteProducts: likesCount || 0 })
-    } catch (error) { console.error(error) }
-  }, [user?.id])
+      clearProfileLoadError('buyerStats')
+    } catch (error) {
+      console.error(error)
+      reportProfileLoadError('buyerStats', 'Estatísticas de comprador', error)
+    }
+  }, [user?.id, clearProfileLoadError, reportProfileLoadError])
 
   const fetchBuyerPreOrders = React.useCallback(async () => {
     if (!user?.id) { setBuyerPreOrders([]); return }
@@ -586,8 +632,12 @@ const Profile = () => {
         return { ...order, product: product || undefined } as BuyerPreOrder
       }))
       setBuyerPreOrders(rows)
-    } catch (error) { console.error(error); setBuyerPreOrders([]) }
-  }, [user?.id])
+      clearProfileLoadError('buyerPreOrders')
+    } catch (error) {
+      console.error(error)
+      reportProfileLoadError('buyerPreOrders', 'Pré-compras', error)
+    }
+  }, [user?.id, clearProfileLoadError, reportProfileLoadError])
 
   const fetchBuyerFreightQuotes = React.useCallback(async () => {
     if (!user?.id) { setBuyerFreightQuotes([]); return }
@@ -598,8 +648,12 @@ const Profile = () => {
         .order('created_at', { ascending: false })
       if (error) throw error
       setBuyerFreightQuotes((data || []) as BuyerFreightQuote[])
-    } catch (error) { console.error(error); setBuyerFreightQuotes([]) }
-  }, [user?.id])
+      clearProfileLoadError('buyerFreightQuotes')
+    } catch (error) {
+      console.error(error)
+      reportProfileLoadError('buyerFreightQuotes', 'Propostas de transporte', error)
+    }
+  }, [user?.id, clearProfileLoadError, reportProfileLoadError])
 
   const downloadTransactionReceipt = async (preOrderId: string) => {
     if (receiptBusyId) return
@@ -1021,6 +1075,27 @@ const Profile = () => {
           </div>
         </div>
       </header>
+
+      {Object.keys(profileLoadErrors).length > 0 && (
+        <div role="alert" className="mx-auto mt-4 flex w-full max-w-6xl flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          <div>
+            <p className="font-semibold">Algumas informações do perfil não puderam ser actualizadas.</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {Object.values(profileLoadErrors).map((message) => <li key={message}>{message}</li>)}
+            </ul>
+          </div>
+          <button type="button" className="self-start rounded-lg border border-amber-300 bg-white px-3 py-2 font-semibold hover:bg-amber-100" onClick={() => {
+            void fetchUserProducts()
+            void fetchFichasRecebimento()
+            void fetchAgentStats()
+            void fetchReceivedOrders()
+            void fetchSourcingRequests()
+            void fetchBuyerStats()
+            void fetchBuyerPreOrders()
+            void fetchBuyerFreightQuotes()
+          }}>Tentar novamente</button>
+        </div>
+      )}
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 20px', display: 'grid', gridTemplateColumns: '1fr', gap: 22 }} className="ag-layout">
 
