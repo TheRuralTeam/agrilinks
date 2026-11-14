@@ -66,7 +66,7 @@ const Notifications = () => {
       setNotifications((data ?? []) as Notification[]);
     } catch (error) {
       console.error('Erro ao buscar notificações:', error);
-      setLoadError(error instanceof Error ? error.message : 'Não foi possível consultar as notificações. Verifique a ligação e tente novamente.');
+      setLoadError('Não foi possível consultar as notificações. Verifique a ligação e tente novamente.');
     } finally {
       setLoading(false);
     }
