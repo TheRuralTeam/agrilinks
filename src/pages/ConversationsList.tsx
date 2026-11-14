@@ -72,6 +72,8 @@ const ConversationsList = () => {
   const [newConversationOpen, setNewConversationOpen] = useState(false);
   const [newConvSearchTerm, setNewConvSearchTerm] = useState("");
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
+  const [dialogUsersLoading, setDialogUsersLoading] = useState(false);
+  const [dialogUsersError, setDialogUsersError] = useState<string | null>(null);
 
   const loadConversations = useCallback(async () => {
     if (!user) return;
@@ -271,32 +273,44 @@ const ConversationsList = () => {
     }
   };
 
-  const openNewConversationDialog = async () => {
+  const openNewConversationDialog = () => {
     if (!user) return;
     setNewConversationOpen(true);
     setNewConvSearchTerm("");
-    try {
-      const { data: users, error } = await supabase
-        .from("public_user_profiles")
-        .select("id, full_name, avatar_url")
-        .neq("id", user.id)
-        .order("full_name", { ascending: true })
-        .limit(50);
-      
-      if (error) {
-        console.error("Erro ao buscar usuários:", error);
-        toast({
-          title: t('common.error'),
-          description: t('messages.noUserFound'),
-          variant: "destructive"
-        });
-      } else {
-        setAllUsers((users as UserProfile[]) || []);
-      }
-    } catch (err) {
-      console.error("Erro ao carregar usuários:", err);
-    }
+    setAllUsers([]);
+    setDialogUsersError(null);
   };
+
+  useEffect(() => {
+    if (!newConversationOpen || !user?.id) return;
+    let active = true;
+    const timeout = setTimeout(async () => {
+      setDialogUsersLoading(true);
+      setDialogUsersError(null);
+      try {
+        const baseQuery = supabase
+          .from("public_user_profiles")
+          .select("id, full_name, avatar_url")
+          .neq("id", user.id)
+          .order("full_name", { ascending: true });
+        const result = newConvSearchTerm.trim()
+          ? await baseQuery.ilike("full_name", `%${newConvSearchTerm.trim().replace(/[%_(),]/g, " ")}%`).limit(20)
+          : await baseQuery.limit(50);
+        if (result.error) throw result.error;
+        if (active) setAllUsers((result.data as UserProfile[]) || []);
+      } catch (error) {
+        console.error("Erro ao pesquisar contactos públicos:", error);
+        if (active) setDialogUsersError("Não foi possível carregar os contactos. Tente novamente.");
+      } finally {
+        if (active) setDialogUsersLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+  }, [newConversationOpen, newConvSearchTerm, user?.id]);
 
   const filteredUsers = useMemo(() => {
     return allUsers.filter((usr) =>
@@ -526,6 +540,7 @@ const ConversationsList = () => {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: T.faint }} />
               <Input
                 placeholder={t('messages.searchUser')}
+                aria-label={t('messages.searchUser')}
                 value={newConvSearchTerm}
                 onChange={(e) => setNewConvSearchTerm(e.target.value)}
                 className="pl-11 h-12 bg-white border-none rounded-2xl shadow-sm focus-visible:ring-2"
@@ -534,7 +549,14 @@ const ConversationsList = () => {
             </div>
 
             <div className="max-h-[350px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
-              {filteredUsers.length === 0 ? (
+              {dialogUsersLoading ? (
+                <div className="py-10 text-center text-sm" style={{ color: T.muted }}>A pesquisar contactos…</div>
+              ) : dialogUsersError ? (
+                <div role="alert" className="py-8 text-center">
+                  <p className="text-sm" style={{ color: T.muted }}>{dialogUsersError}</p>
+                  <Button variant="outline" size="sm" className="mt-3" onClick={() => setNewConvSearchTerm((value) => `${value} `.trim())}>Tentar novamente</Button>
+                </div>
+              ) : filteredUsers.length === 0 ? (
                 <div className="py-12 text-center">
                   <p className="text-sm font-medium" style={{ color: T.muted }}>
                     {newConvSearchTerm ? t('messages.noUserFound') : 'Nenhum contacto disponível'}
@@ -542,13 +564,16 @@ const ConversationsList = () => {
                 </div>
               ) : (
                 filteredUsers.map((usr) => (
-                  <div
+                  <button
+                    type="button"
                     key={usr.id}
+                    aria-label={`Iniciar conversa com ${usr.full_name?.trim() || 'Utilizador AgriLink'}`}
                     onClick={() => {
-                      startConversation(usr.id, usr.full_name, usr.avatar_url);
+                      startConversation(usr.id, usr.full_name?.trim() || 'Utilizador AgriLink', usr.avatar_url);
                       setNewConversationOpen(false);
                     }}
-                    className="flex items-center gap-4 p-3 rounded-2xl cursor-pointer transition-all hover:bg-white hover:shadow-sm group"
+                    className="flex w-full items-center gap-4 rounded-2xl p-3 text-left transition-all hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 group"
+                    style={{ '--tw-ring-color': T.gBorder } as React.CSSProperties}
                   >
                     <Avatar className="h-12 w-12 border-2 border-transparent group-hover:border-g100 transition-all">
                       <AvatarImage src={usr.avatar_url || "/default-avatar.png"} />
@@ -568,7 +593,7 @@ const ConversationsList = () => {
                     >
                       <Plus className="h-4 w-4" style={{ color: T.g600 }} />
                     </div>
-                  </div>
+                  </button>
                 ))
               )}
             </div>
