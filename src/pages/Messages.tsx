@@ -375,7 +375,14 @@ const Messages = () => {
   }, []);
 
   const sendMessage = useCallback(async () => {
-    if (!user || !conversation?.participant_id || !id) return;
+    if (!user || !conversation || !id) return;
+    const recipientId = conversation.user_id === user.id
+      ? (conversation.participant_id || conversation.peer_user_id || null)
+      : (conversation.user_id || conversation.peer_user_id || conversation.participant_id || null);
+    if (!recipientId) {
+      toast({ title: "Destinatário indisponível", description: "Não foi possível identificar o outro participante desta conversa.", variant: "destructive" });
+      return;
+    }
     if (!newMessage.trim() && selectedFiles.length === 0) return;
     if (selectedFiles.length > 0) {
       toast({
@@ -398,14 +405,20 @@ const Messages = () => {
         }
       }
       const plainContent = newMessage.trim() || (filesData.length > 0 ? `📎 ${filesData.length} arquivo(s)` : "");
-      const encryptedContent = await encryptChatMessage(plainContent, id, user.id, conversation.participant_id);
+      const encryptedContent = await encryptChatMessage(plainContent, id, user.id, recipientId);
       const { data, error } = await supabase.from("messages").insert([{
-        conversation_id: id, sender_id: user.id, receiver_id: conversation.participant_id,
+        conversation_id: id, sender_id: user.id, receiver_id: recipientId,
         content: encryptedContent, read: false, files: filesData.length > 0 ? filesData : undefined
       }]).select().single();
       if (error) throw error;
       setSentMessageIds((prev) => new Set([...prev, data.id]));
-      await supabase.from("conversations").update({ last_message: "🔒 Mensagem encriptada", last_timestamp: new Date().toISOString() }).eq("id", id);
+      setMessages((previous) => previous.some((message) => message.id === data.id)
+        ? previous
+        : [...previous, { ...data, content: plainContent, files: [] } as Message]);
+      const { error: conversationUpdateError } = await supabase.from("conversations")
+        .update({ last_message: "🔒 Mensagem encriptada", last_timestamp: new Date().toISOString() })
+        .eq("id", id);
+      if (conversationUpdateError) console.error("Mensagem enviada, mas a lista de conversas não foi actualizada:", conversationUpdateError);
       setNewMessage("");
       setSelectedFiles([]);
     } catch (err) {
