@@ -234,8 +234,28 @@ const Messages = () => {
     const loadConversation = async () => {
       try {
         const { data, error } = await supabase.from("conversations").select("*").eq("id", id).single();
-        if (error || !data) throw error;
-        setConversation(data as Conversation);
+        if (error) throw error;
+        if (!data) throw new Error("Conversa não encontrada.");
+
+        const peerId = data.user_id === user.id
+          ? (data.participant_id || data.peer_user_id || null)
+          : (data.user_id || data.peer_user_id || data.participant_id || null);
+        let conversationTitle = data.title || "Conversa AgriLink";
+        let conversationAvatar = data.avatar || null;
+        if (peerId && peerId !== user.id) {
+          const { data: peerProfile, error: peerProfileError } = await supabase
+            .from("public_user_profiles")
+            .select("full_name, avatar_url")
+            .eq("id", peerId)
+            .maybeSingle();
+          if (peerProfileError) {
+            console.error("Não foi possível actualizar o nome público da conversa:", peerProfileError);
+          } else if (peerProfile) {
+            conversationTitle = peerProfile.full_name?.trim() || conversationTitle;
+            conversationAvatar = peerProfile.avatar_url || conversationAvatar;
+          }
+        }
+        setConversation({ ...data, title: conversationTitle, avatar: conversationAvatar } as Conversation);
       } catch (err) {
         console.error("Erro ao carregar conversa:", err);
         toast({ title: "Erro", description: "Não foi possível carregar a conversa", variant: "destructive" });
