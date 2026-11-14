@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { toast } from 'sonner'
 import {
-  Search, LayoutDashboard, ShoppingCart, Bell,
+  Search, ShoppingCart, Bell,
   ChevronDown, CheckCircle2, Package, Activity,
-  MapPin, TrendingUp, Menu, X, WifiOff, AlertCircle
+  MapPin, TrendingUp, WifiOff, AlertCircle
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
 import { supabase } from '../integrations/supabase/client'
@@ -63,7 +63,7 @@ const ProductSkeleton = () => (
    ════════════════════════════════════════════════════════════════════════════ */
 const AppHome = () => {
   const navigate = useNavigate()
-  const { user, userProfile, isAdmin, isRootAdmin, isSuperRoot, refreshProfile } = useAuth()
+  const { user, userProfile, refreshProfile } = useAuth()
   const { requireAct } = useCanAct()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -74,7 +74,6 @@ const AppHome = () => {
   const [orderData, setOrderData] = useState({ quantity: 1, location: '' })
   const [deliveryCoordinates, setDeliveryCoordinates] = useState<{ latitude: number; longitude: number } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string>('all')
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [feedPage, setFeedPage] = useState(0)
@@ -365,69 +364,7 @@ const AppHome = () => {
             </span>
           </button>
 
-          {/* Right actions */}
-          <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink: 0 }}>
-
-            {(isAdmin || isRootAdmin || isSuperRoot) && (
-              <button
-                style={{
-                  padding:'7px 13px', borderRadius: 980, border:'none', background: 'rgba(118,118,128,0.08)',
-                  cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontSize:13,
-                  fontWeight:600, color: T.ink, transition:'background 0.15s',
-                }}
-                onClick={() => navigate('/admindashboard')}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(118,118,128,0.13)' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(118,118,128,0.08)' }}
-                className="hidden sm:flex"
-              >
-                <LayoutDashboard size={14} color={T.g500}/>
-                <span>Dashboard</span>
-              </button>
-            )}
-
-            {/* Mobile Menu Toggle */}
-            <button
-              type="button"
-              aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
-              aria-expanded={mobileMenuOpen}
-              aria-controls="app-mobile-navigation"
-              style={{
-                width:32, height:32, borderRadius:'50%', border:'none', background:'rgba(118,118,128,0.08)',
-                cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-                color: T.mid, transition:'background 0.15s',
-              }}
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="sm:hidden"
-            >
-              {mobileMenuOpen ? <X size={17}/> : <Menu size={17}/>}
-            </button>
-          </div>
         </div>
-
-        {/* Mobile Navigation Menu */}
-        {mobileMenuOpen && (
-          <div id="app-mobile-navigation" style={{
-            position:'absolute', top:62, left:0, right:0,
-            background: 'rgba(255,255,255,0.92)', backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)',
-            borderBottom: `1px solid rgba(0,0,0,0.06)`,
-            padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12,
-            boxShadow: `0 8px 24px rgba(0,0,0,0.06)`,
-          }} className="sm:hidden">
-            {(isAdmin || isRootAdmin || isSuperRoot) && (
-              <button
-                style={{
-                  padding:'10px', borderRadius:10, border:`1px solid ${T.rule}`, background: T.g50,
-                  cursor:'pointer', display:'flex', alignItems:'center', gap:10, fontSize:14,
-                  fontWeight:600, color: T.g600, width: '100%'
-                }}
-                onClick={() => { navigate('/admindashboard'); setMobileMenuOpen(false) }}
-              >
-                <LayoutDashboard size={16}/>
-                Dashboard Administrativo
-              </button>
-            )}
-          </div>
-        )}
       </header>
 
       {/* ═══ CATEGORY FILTERS ════════════════════════════════════════════════ */}
