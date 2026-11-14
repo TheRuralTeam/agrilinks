@@ -68,7 +68,7 @@ const MeusContratos = () => {
       } catch (error) {
         if (!active) return
         console.error('Erro ao carregar contratos:', error)
-        setLoadError(error instanceof Error ? error.message : 'Não foi possível carregar os contratos. Verifique a ligação e tente novamente.')
+        setLoadError('Não foi possível consultar os contratos. Verifique a ligação e tente novamente.')
       } finally {
         if (active) setLoading(false)
       }
