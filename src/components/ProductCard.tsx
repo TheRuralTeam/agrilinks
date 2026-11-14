@@ -399,7 +399,9 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   const [mapModalOpen, setMapModalOpen] = useState(false)
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [commentsLoaded, setCommentsLoaded] = useState(false)
-  const commentsCount = product.comments?.length ?? product.comments_count ?? 0
+  const commentsCount = commentsLoaded
+    ? (product.comments?.length ?? 0)
+    : (product.comments_count ?? product.comments?.length ?? 0)
 
   const formatDate = (d: string | null | undefined) =>
     d ? new Date(d).toLocaleDateString('pt-AO', { day: '2-digit', month: 'short' }) : 'Data indisponível'
