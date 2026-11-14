@@ -94,8 +94,8 @@ const B2BProfile = () => {
 
       setCompanyData({
         id: publicProfile.id,
-        name: getProfileDisplayName(publicProfile),
-        logo: resolveAvatarUrl(publicProfile.avatar_url),
+        name: getProfileDisplayName(publicProfile) || 'Utilizador AgriLink',
+        logo: resolveAvatarUrl(publicProfile.avatar_url) || null,
         userType: publicProfile.user_type,
         isVerified: Boolean(publicProfile.verified),
       });
