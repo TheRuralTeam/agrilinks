@@ -446,7 +446,7 @@ const SearchPage = () => {
         )}
 
         {/* Resultados de Usuários - Grelha de 4 Colunas */}
-        {(activeTab === 'all' || activeTab === 'users') && userResults.length > 0 && (
+        {!searchError && (activeTab === 'all' || activeTab === 'users') && userResults.length > 0 && (
           <div className="animate-in fade-in duration-500">
             <div className="flex items-center gap-2 mb-4">
               <User className="h-5 w-5 text-[#2c863b]" />
@@ -482,7 +482,7 @@ const SearchPage = () => {
         )}
 
         {/* Resultados de Produtos - Grelha de 4 Colunas */}
-        {(activeTab === 'all' || activeTab === 'products') && sortedProducts.length > 0 && (
+        {!searchError && (activeTab === 'all' || activeTab === 'products') && sortedProducts.length > 0 && (
           <div className="animate-in fade-in duration-500">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
