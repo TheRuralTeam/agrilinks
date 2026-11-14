@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { toast } from 'sonner'
 import {
   Search, ShoppingCart, Bell,
-  ChevronDown, CheckCircle2, Package, Activity,
-  MapPin, TrendingUp, WifiOff, AlertCircle
+  CheckCircle2, Package, MapPin, WifiOff, AlertCircle
 } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../components/ui/dialog'
 import { supabase } from '../integrations/supabase/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useCanAct } from '../hooks/useCanAct'
