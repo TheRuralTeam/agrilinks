@@ -122,22 +122,31 @@ export const fetchProductComments = async (productId: string, userId?: string) =
   const commentIds = comments.map((comment) => comment.id)
   const userIds = [...new Set(comments.map((comment) => comment.user_id).filter(Boolean))]
 
-  const [{ data: likes }, { data: replies }, { data: users }] = await Promise.all([
+  const [likesResult, repliesResult, usersResult] = await Promise.all([
     supabase.from('comment_likes').select('id, comment_id, user_id').in('comment_id', commentIds),
     supabase.from('comment_replies').select('id, comment_id, user_id, reply_text, created_at').in('comment_id', commentIds).order('created_at', { ascending: true }),
     userIds.length
-      ? supabase.from('users').select('id, full_name, user_type, avatar_url').in('id', userIds)
-      : Promise.resolve({ data: [] }),
+      ? supabase.from('public_user_profiles').select('id, full_name, user_type, avatar_url').in('id', userIds)
+      : Promise.resolve({ data: [] as { id: string; full_name: string | null; user_type: string | null; avatar_url: string | null }[], error: null }),
   ])
 
-  const replyRows = replies || []
-  const replyUserIds = [...new Set(replyRows.map((reply) => reply.user_id).filter(Boolean))]
-  const { data: replyUsers } = replyUserIds.length
-    ? await supabase.from('users').select('id, full_name, user_type').in('id', replyUserIds)
-    : { data: [] }
+  if (likesResult.error) throw likesResult.error
+  if (repliesResult.error) throw repliesResult.error
+  if (usersResult.error) throw usersResult.error
 
-  const userById = new Map((users || []).map((u) => [u.id, u]))
-  const replyUserById = new Map((replyUsers || []).map((u) => [u.id, u]))
+  const likes = likesResult.data || []
+  const replyRows = repliesResult.data || []
+  const replyUserIds = [...new Set(replyRows.map((reply) => reply.user_id).filter(Boolean))]
+  const replyUsersResult = replyUserIds.length
+    ? await supabase.from('public_user_profiles').select('id, full_name, user_type').in('id', replyUserIds)
+    : { data: [] as { id: string; full_name: string | null; user_type: string | null }[], error: null }
+
+  if (replyUsersResult.error) throw replyUsersResult.error
+
+  const users = usersResult.data || []
+  const replyUsers = replyUsersResult.data || []
+  const userById = new Map(users.map((u) => [u.id, u]))
+  const replyUserById = new Map(replyUsers.map((u) => [u.id, u]))
   const repliesByComment = new Map<string, typeof replyRows>()
   for (const reply of replyRows) {
     const list = repliesByComment.get(reply.comment_id) || []
