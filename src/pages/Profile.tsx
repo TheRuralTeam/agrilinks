@@ -1032,19 +1032,19 @@ const Profile = () => {
 
   const statItems = isAgente
     ? [
-        { value: agentStats?.totalReferrals || 0, label: t('profile.usersReferred'), color: T.g600 },
-        { value: agentStats?.totalPoints || 0, label: t('profile.pointsEarned'), color: T.gold },
+        { value: profileLoadErrors.agentStats ? '—' : agentStats?.totalReferrals || 0, label: t('profile.usersReferred'), color: T.g600 },
+        { value: profileLoadErrors.agentStats ? '—' : agentStats?.totalPoints || 0, label: t('profile.pointsEarned'), color: T.gold },
       ]
     : isComprador
     ? [
-        { value: fichasRecebimento.length, label: t('profile.fichasCreated'), color: T.g600 },
-        { value: buyerStats.completedOrders, label: t('profile.purchasesCompleted'), color: T.g600 },
-        { value: buyerStats.favoriteProducts, label: t('profile.favoriteProducts'), color: T.gold },
+        { value: profileLoadErrors.fichas ? '—' : fichasRecebimento.length, label: t('profile.fichasCreated'), color: T.g600 },
+        { value: profileLoadErrors.buyerStats ? '—' : buyerStats.completedOrders, label: t('profile.purchasesCompleted'), color: T.g600 },
+        { value: profileLoadErrors.buyerStats ? '—' : buyerStats.favoriteProducts, label: t('profile.favoriteProducts'), color: T.gold },
       ]
     : [
-        { value: activeProducts, label: t('profile.activeProducts'), color: T.g600 },
-        { value: totalComments, label: t('profile.comments'), color: T.g600 },
-        { value: totalLikes, label: t('profile.likes'), color: T.gold },
+        { value: profileLoadErrors.products ? '—' : activeProducts, label: t('profile.activeProducts'), color: T.g600 },
+        { value: profileLoadErrors.products ? '—' : totalComments, label: t('profile.comments'), color: T.g600 },
+        { value: profileLoadErrors.products ? '—' : totalLikes, label: t('profile.likes'), color: T.gold },
       ]
 
   return (
