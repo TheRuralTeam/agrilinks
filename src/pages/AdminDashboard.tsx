@@ -326,6 +326,7 @@ const AdminDashboard = () => {
   const [topAgents, setTopAgents] = useState<TopAgent[]>([]);
   const [allReferrals, setAllReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dataLoadErrors, setDataLoadErrors] = useState<Record<string, string>>({});
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const requestedTab = new URLSearchParams(location.search).get("tab");
@@ -481,6 +482,21 @@ const AdminDashboard = () => {
   const fetchAllData = useCallback(async (silent = false) => {
     // Atualizações periódicas não devem desmontar o painel nem interromper a interação.
     if (!silent) setLoading(true);
+    const reportDataError = (key: string, label: string, error: unknown) => {
+      const detail = error && typeof error === "object" && "message" in error
+        ? String((error as { message: unknown }).message)
+        : "Verifique a ligação e tente novamente.";
+      setDataLoadErrors((previous) => ({ ...previous, [key]: `${label}: ${detail}` }));
+    };
+    const clearDataError = (key: string) => {
+      setDataLoadErrors((previous) => {
+        if (!(key in previous)) return previous;
+        const next = { ...previous };
+        delete next[key];
+        return next;
+      });
+    };
+    clearDataError("general");
     try {
       const [prodRes, usersRes, transRes, notRes, fichasRes, sourcingRes, topAgentsRes, referralsRes, ordersRes] = await Promise.all([
         supabase.from("products").select("*").order("created_at", { ascending: false }),
@@ -495,35 +511,43 @@ const AdminDashboard = () => {
       ]);
       // Preservar os dados actuais quando uma consulta falha; não transformar falhas
       // temporárias de rede/RLS em listas vazias no painel.
-      if (prodRes.error) console.error("Erro ao carregar produtos:", prodRes.error);
-      else setProducts(prodRes.data || []);
+      if (prodRes.error) { console.error("Erro ao carregar produtos:", prodRes.error); reportDataError("products", "Produtos", prodRes.error); }
+      else { setProducts(prodRes.data || []); clearDataError("products"); }
 
-      if (usersRes.error) console.error("Erro ao carregar utilizadores:", usersRes.error);
-      else setUsers(usersRes.data || []);
+      if (usersRes.error) { console.error("Erro ao carregar utilizadores:", usersRes.error); reportDataError("users", "Utilizadores", usersRes.error); }
+      else { setUsers(usersRes.data || []); clearDataError("users"); }
 
-      if (transRes.error) console.error("Erro ao carregar transações:", transRes.error);
-      else setTransactions(transRes.data || []);
+      if (transRes.error) { console.error("Erro ao carregar transações:", transRes.error); reportDataError("transactions", "Transacções", transRes.error); }
+      else { setTransactions(transRes.data || []); clearDataError("transactions"); }
 
-      if (notRes.error) console.error("Erro ao carregar notificações:", notRes.error);
-      else setNotifications(notRes.data || []);
+      if (notRes.error) { console.error("Erro ao carregar notificações:", notRes.error); reportDataError("notifications", "Notificações", notRes.error); }
+      else { setNotifications(notRes.data || []); clearDataError("notifications"); }
 
-      if (fichasRes.error) console.error("Erro ao carregar fichas:", fichasRes.error);
-      else setFichas(fichasRes.data || []);
+      if (fichasRes.error) { console.error("Erro ao carregar fichas:", fichasRes.error); reportDataError("fichas", "Fichas de recebimento", fichasRes.error); }
+      else { setFichas(fichasRes.data || []); clearDataError("fichas"); }
 
-      if (sourcingRes.error) console.error("Erro ao carregar pedidos de sourcing:", sourcingRes.error);
-      else setSourcingRequests(sourcingRes.data || []);
+      if (sourcingRes.error) { console.error("Erro ao carregar pedidos de sourcing:", sourcingRes.error); reportDataError("sourcing", "Pedidos de sourcing", sourcingRes.error); }
+      else { setSourcingRequests(sourcingRes.data || []); clearDataError("sourcing"); }
 
-      if (topAgentsRes.error) console.error("Erro ao carregar agentes:", topAgentsRes.error);
-      else setTopAgents(topAgentsRes.data || []);
+      if (topAgentsRes.error) { console.error("Erro ao carregar agentes:", topAgentsRes.error); reportDataError("agents", "Agentes", topAgentsRes.error); }
+      else { setTopAgents(topAgentsRes.data || []); clearDataError("agents"); }
       if (ordersRes.error) {
         console.error("Erro ao carregar pedidos:", ordersRes.error);
+        reportDataError("orders", "Pedidos", ordersRes.error);
         toast.error("Não foi possível carregar os pedidos.");
       } else {
         setOrders(ordersRes.data || []);
+        clearDataError("orders");
       }
       
-      // Process referrals with user data
-      if (referralsRes.data && usersRes.data) {
+      if (referralsRes.error) {
+        console.error("Erro ao carregar referências:", referralsRes.error);
+        reportDataError("referrals", "Referências de agentes", referralsRes.error);
+      } else {
+        clearDataError("referrals");
+      }
+      // Process referrals only when both source queries succeeded.
+      if (!referralsRes.error && !usersRes.error && referralsRes.data && usersRes.data) {
         const usersMap = new Map(usersRes.data.map(u => [u.id, u]));
         const processedReferrals: Referral[] = referralsRes.data.map((r: any) => {
           const agent = usersMap.get(r.agent_id);
@@ -544,6 +568,7 @@ const AdminDashboard = () => {
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
+      reportDataError("general", "Painel administrativo", error);
     } finally {
       if (!silent) setLoading(false);
     }
@@ -1060,6 +1085,15 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-[#F7F9F7]">
+      {Object.keys(dataLoadErrors).length > 0 && (
+        <div role="alert" className="mx-4 mt-4 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          <div>
+            <p className="font-semibold">Alguns dados do painel não puderam ser actualizados.</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">{Object.entries(dataLoadErrors).map(([key, message]) => <li key={key}>{message}</li>)}</ul>
+          </div>
+          <Button variant="outline" className="self-start" onClick={() => void fetchAllData()} disabled={loading}>Tentar novamente</Button>
+        </div>
+      )}
 
       {/* ═══ SIDEBAR (navegação vertical) ═══════════════════════════════════ */}
       <aside className={`fixed top-0 left-0 h-screen w-64 bg-white border-r border-gray-100 z-40 flex flex-col transition-transform duration-300 ease-out ${menuOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}>
