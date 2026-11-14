@@ -63,7 +63,7 @@ const ProductSkeleton = () => (
    ════════════════════════════════════════════════════════════════════════════ */
 const AppHome = () => {
   const navigate = useNavigate()
-  const { user, userProfile, isAdmin, refreshProfile } = useAuth()
+  const { user, userProfile, isAdmin, isRootAdmin, isSuperRoot, refreshProfile } = useAuth()
   const { requireAct } = useCanAct()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -368,7 +368,7 @@ const AppHome = () => {
           {/* Right actions */}
           <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink: 0 }}>
 
-            {isAdmin && (
+            {(isAdmin || isRootAdmin || isSuperRoot) && (
               <button
                 style={{
                   padding:'7px 13px', borderRadius: 980, border:'none', background: 'rgba(118,118,128,0.08)',
@@ -413,7 +413,7 @@ const AppHome = () => {
             padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12,
             boxShadow: `0 8px 24px rgba(0,0,0,0.06)`,
           }} className="sm:hidden">
-            {isAdmin && (
+            {(isAdmin || isRootAdmin || isSuperRoot) && (
               <button
                 style={{
                   padding:'10px', borderRadius:10, border:`1px solid ${T.rule}`, background: T.g50,
