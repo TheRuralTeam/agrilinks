@@ -58,6 +58,7 @@ const debounce = <T extends (...args: unknown[]) => void>(func: T, delay = 300) 
 // --- Componente Principal ---
 
 const ConversationsList = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
