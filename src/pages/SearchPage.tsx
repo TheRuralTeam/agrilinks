@@ -469,7 +469,7 @@ const SearchPage = () => {
                 >
                   <div className="flex items-center gap-3">
                     <Avatar className="h-12 w-12 border-2 border-[#E8F5E9] group-hover:border-[#2c863b] transition-colors">
-                      <AvatarImage src={user.avatar_url} />
+                      <AvatarImage src={user.avatar_url ?? undefined} />
                       <AvatarFallback className="bg-[#F2FAF3] text-[#2c863b] font-bold">
                         {(user.full_name?.trim() || 'Utilizador AgriLink').slice(0, 2).toUpperCase()}
                       </AvatarFallback>
