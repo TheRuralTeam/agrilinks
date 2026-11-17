@@ -29,6 +29,19 @@ using (
   )
 );
 
+-- Legacy attachments were stored as flat UUID filenames, without a conversation ID.
+-- Keep them private and readable only by their original uploader; never guess the
+-- conversation from the owner or expose them to every authenticated user.
+create policy "Owners can read legacy flat chat files"
+on storage.objects
+for select
+to authenticated
+using (
+  bucket_id in ('chat-files', 'chatfiles')
+  and array_length(storage.foldername(name), 1) is null
+  and owner_id = auth.uid()::text
+);
+
 create policy "Conversation participants can upload private chat files"
 on storage.objects
 for insert
