@@ -849,7 +849,7 @@ const AdminDashboard = () => {
       return false;
     }
 
-    let notes = adminNotes;
+    const notes = adminNotes;
     if (["completed", "rejected"].includes(newStatus) && !notes?.trim()) {
       const request = sourcingRequests.find((item) => item.id === id);
       if (!request) {
