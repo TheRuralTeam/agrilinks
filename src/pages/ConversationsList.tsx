@@ -58,7 +58,6 @@ const debounce = <T extends (...args: unknown[]) => void>(func: T, delay = 300) 
 // --- Componente Principal ---
 
 const ConversationsList = () => {
-  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -124,7 +123,7 @@ const ConversationsList = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, toast, t]);
+  }, [user]);
 
   useEffect(() => {
     loadConversations();
@@ -199,7 +198,7 @@ const ConversationsList = () => {
 
   const startConversation = useCallback(async (participantId: string) => {
     if (!user) {
-      toast.error("Inicie sessão para iniciar uma conversa.");
+      toast({ title: "Inicie sessão para iniciar uma conversa.", variant: "destructive" });
       navigate("/login");
       return;
     }
@@ -226,9 +225,9 @@ const ConversationsList = () => {
       navigate(`/messages/${conversationId}`);
     } catch (error) {
       console.error("Erro ao iniciar conversa:", error);
-      toast.error("Não foi possível iniciar a conversa. Verifique a ligação e tente novamente.");
+      toast({ title: "Não foi possível iniciar a conversa", description: "Verifique a ligação e tente novamente.", variant: "destructive" });
     }
-  }, [user, navigate]);
+  }, [user, navigate, toast]);
 
   const formatTime = (timestamp: string) => {
     if (!timestamp) return "";
@@ -545,7 +544,7 @@ const ConversationsList = () => {
                     key={usr.id}
                     aria-label={`Iniciar conversa com ${usr.full_name?.trim() || 'Utilizador AgriLink'}`}
                     onClick={() => {
-                      startConversation(usr.id, usr.full_name?.trim() || 'Utilizador AgriLink', usr.avatar_url);
+                      startConversation(usr.id);
                       setNewConversationOpen(false);
                     }}
                     className="flex w-full items-center gap-4 rounded-2xl p-3 text-left transition-all hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 group"
@@ -554,7 +553,7 @@ const ConversationsList = () => {
                     <Avatar className="h-12 w-12 border-2 border-transparent group-hover:border-g100 transition-all">
                       <AvatarImage src={usr.avatar_url || "/default-avatar.png"} />
                       <AvatarFallback style={{ backgroundColor: T.g100, color: T.g700 }}>
-                        {usr.full_name.charAt(0).toUpperCase()}
+                        {(usr.full_name?.trim() || 'U').charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
