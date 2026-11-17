@@ -61,7 +61,7 @@ export default function BuyerCart() {
   const [deliveryDate, setDeliveryDate] = useState(localDate());
   const [freightPreference, setFreightPreference] = useState<"single_quote_requested" | "separate_deliveries">("single_quote_requested");
   const [submitting, setSubmitting] = useState(false);
-  const [idempotencyKey, setIdempotencyKey] = useState(uuid);
+  const [idempotencyKey, setIdempotencyKey] = useState<string>(uuid);
 
   useEffect(() => {
     if (user?.id) {
