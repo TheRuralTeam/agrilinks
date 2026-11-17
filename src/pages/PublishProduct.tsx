@@ -21,6 +21,8 @@ import SimpleLeafletMap from '../components/SimpleLeafletMap';
 import { validateProductSubmission } from '../features/products/businessRules'
 import IdentityActionDialog from '../components/IdentityActionDialog'
 
+const MAX_PRODUCT_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+
 const PublishProduct = () => {
   const navigate = useNavigate();
   const { user, userProfile, refreshProfile } = useAuth();
@@ -111,6 +113,14 @@ const PublishProduct = () => {
     const validFiles = files.filter((file) => {
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
         toast({ title: "Ficheiro inválido", description: `${file.name} não é uma imagem. Escolha JPG, PNG ou WEBP.`, variant: "destructive" });
+        return false;
+      }
+      if (file.size <= 0 || file.size > MAX_PRODUCT_IMAGE_SIZE_BYTES) {
+        toast({
+          title: "Tamanho de imagem inválido",
+          description: `${file.name} excede o limite de 10 MB ou está vazio. Escolha uma imagem menor.`,
+          variant: "destructive",
+        });
         return false;
       }
       return true;
@@ -212,15 +222,21 @@ const PublishProduct = () => {
     }
 
     setLoading(true);
+    const uploadedPaths: string[] = [];
 
     try {
       const uploadedUrls: string[] = [];
       for (let i = 0; i < selectedImages.length; i++) {
         const file = selectedImages[i];
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}-${i}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from('product-photos').upload(fileName, file);
+        const fileExt = file.type === 'image/jpeg' ? 'jpg' : file.type === 'image/png' ? 'png' : 'webp';
+        const fileName = user.id + '/' + crypto.randomUUID() + '.' + fileExt;
+        const { error: uploadError } = await supabase.storage.from('product-photos').upload(fileName, file, {
+          contentType: file.type,
+          cacheControl: '3600',
+          upsert: false,
+        });
         if (uploadError) throw uploadError;
+        uploadedPaths.push(fileName);
         const { data: { publicUrl } } = supabase.storage.from('product-photos').getPublicUrl(fileName);
         uploadedUrls.push(publicUrl);
       }
@@ -263,6 +279,12 @@ const PublishProduct = () => {
       toast({ title: "Produto enviado para aprovação", description: "O seu produto foi recebido e ficará visível no feed após aprovação dos administradores." });
       navigate('/perfil');
     } catch (error: any) {
+      if (uploadedPaths.length > 0) {
+        const { error: cleanupError } = await supabase.storage.from('product-photos').remove(uploadedPaths);
+        if (cleanupError) {
+          console.error('Falha ao limpar imagens após publicação incompleta:', cleanupError);
+        }
+      }
       console.error('Erro ao publicar produto:', error);
       toast({ title: "Erro ao publicar produto", description: error.message || "Ocorreu um erro ao publicar o produto. Verifique os campos e tente novamente.", variant: "destructive" });
     } finally {
