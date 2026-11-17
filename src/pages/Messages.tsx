@@ -32,6 +32,15 @@ interface Message {
   files?: { url: string; name: string; size?: number }[] | null;
 }
 
+interface MessageBubbleProps {
+  message: Message;
+  isOwn: boolean;
+  senderName: string;
+  isSent: boolean;
+  showAvatar: boolean;
+  avatarUrl?: string | null;
+}
+
 interface Conversation {
   id: string;
   title: string;
