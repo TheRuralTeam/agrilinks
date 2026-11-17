@@ -165,8 +165,8 @@ export const fetchProductComments = async (productId: string, userId?: string) =
 
   const users = usersResult.data || []
   const replyUsers = replyUsersResult.data || []
-  const userById = new Map(users.map((u) => [u.id, u]))
-  const replyUserById = new Map(replyUsers.map((u) => [u.id, u]))
+  const userById = new Map(users.map((u): [string, (typeof users)[number]] => [u.id, u]))
+  const replyUserById = new Map(replyUsers.map((u): [string, (typeof replyUsers)[number]] => [u.id, u]))
   const repliesByComment = new Map<string, typeof replyRows>()
   for (const reply of replyRows) {
     const list = repliesByComment.get(reply.comment_id) || []
