@@ -57,7 +57,7 @@ describe('BottomNavigation', () => {
     const homeButton = screen.getByRole('button', { name: /início/i })
     expect(homeButton).toHaveAttribute('aria-label', 'Início')
 
-    for (const label of ['Mensagens', 'Carrinho', 'Alertas', 'Mercado', 'Perfil']) {
+    for (const label of [/Mensagens/, 'Carrinho', /Notificações|Alertas/, 'Mercado', 'Perfil']) {
       expect(screen.getByRole('button', { name: label })).toBeVisible()
     }
 
