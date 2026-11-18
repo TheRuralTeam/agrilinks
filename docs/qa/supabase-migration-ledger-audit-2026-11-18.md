@@ -170,3 +170,25 @@ Estas versões não têm nome no ledger e não apresentam ficheiro local num int
 - Repositório: https://github.com/TheRuralTeam/agrilinks/tree/main/supabase/migrations
 - Projecto Supabase: `oqcrfqtlfqwrxxmsjpaf`
 - Data da auditoria: 18/11/2026
+
+## E. Pesquisa de recuperação em refs e artefactos — 18/11/2026
+
+Foi feita uma segunda pesquisa read-only nas fontes históricas disponíveis:
+
+- GitHub: 56 branches listadas; foram inspeccionadas refs históricas relevantes, incluindo `restauracao`, `security/firewall-layer`, `security/revoke-public-trigger-rpc-execution`, `security/sourcing-rpc-only-writes`, `qa/production-stabilization-2026-10-07`, `audit/e2e-functional-hardening`, `auditoria/cache-seguro-pwa-20261009` e `qa/libertar-previews-publicacao-20261010`.
+- A branch `restauracao` contém 60 ficheiros SQL. Os 41 candidatos temporais (registos remotos sem nome) estão todos presentes nessa branch e têm o mesmo blob SHA que os respectivos ficheiros da `main` (41/41). Isto confirma que os ficheiros candidatos são idênticos entre as duas refs; não prova, por si só, que cada SQL foi exactamente o executado no remoto.
+- A branch `restauracao` não acrescenta ficheiros SQL exclusivos em relação à `main`.
+- Não foi encontrada, nas refs históricas inspeccionadas, correspondência por nome normalizado para os registos remotos nomeados que continuam sem ficheiro na `main`.
+- O endpoint de tags devolveu lista vazia.
+- A execução CI do PR #61 terminou com sucesso; a consulta de artefactos dessa execução devolveu zero artefactos.
+- O projecto Supabase tem apenas a branch `main`; não existem branches de preview/desenvolvimento do projecto para consultar.
+
+### Resultado desta pesquisa
+
+Os 41 registos sem nome com candidato temporal ficam classificados como **correspondência forte por proximidade temporal e identidade do ficheiro entre refs**, mas ainda sem prova criptográfica de correspondência com o SQL aplicado remotamente.
+
+Os 44 registos nomeados sem ficheiro e os 22 registos sem nome sem candidato temporal continuam **sem fonte SQL recuperada**. Não foram criados ficheiros SQL substitutos, nem se inferiu conteúdo a partir do schema actual.
+
+### Próxima acção técnica segura
+
+Para os 66 registos ainda sem fonte, a recuperação terá de vir de uma cópia local antiga, exportação/backup do projecto, histórico de terminal/CLI, artefactos externos ou outro repositório/ambiente de desenvolvimento. O ledger remoto e o schema actual não contêm o texto original das migrations. Até existir essa fonte, manter bloqueados `db push`, `migration repair` e qualquer alteração ao histórico remoto.
