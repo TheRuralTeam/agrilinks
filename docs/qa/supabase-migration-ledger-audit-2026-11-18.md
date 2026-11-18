@@ -304,3 +304,33 @@ Foi feita uma comparação directa dos arrays `statements` do ledger remoto com 
 - O backup lógico local continua pendente.
 - Esta actualização é documental. Não foi executado DDL, `db push`, `migration repair`, reset, nem qualquer escrita no Supabase remoto.
 - A reconciliação continua bloqueada até existir backup verificável e uma comparação SQL fiável de todos os pares candidatos.
+
+
+## I. Comparação lexical dos cinco pares bloqueados — 18/11/2026
+
+Foi executada uma comparação token-aware read-only entre os arrays `statements` do ledger remoto e os ficheiros locais da branch de auditoria. O comparador ignora whitespace e comentários SQL, mas preserva tokens, literais, identificadores entre aspas, operadores e blocos dollar-quoted como unidades indivisíveis. Não é um parser PostgreSQL completo; serve para confirmar diferenças lexicais e não para certificar equivalência semântica global.
+
+| Versão remota | Tokens ledger | Tokens ficheiro local | Resultado |
+|---|---:|---:|---|
+| `20261009120808` | 55 | 61 | Divergente desde o primeiro token: ledger inicia a função; ficheiro local inicia um bloco `DO` de criação/verificação do segredo Vault |
+| `20261006222001` | 159 | 366 | Divergente desde o primeiro token: ledger inicia funções de ciclo de vida; ficheiro local inicia alterações de schema |
+| `20261007060202` | 205 | 205 | Divergente no corpo dollar-quoted da função: papel remoto `support`, ficheiro local `support_agent` |
+| `20261008102346` | 500 | 502 | Divergente nos privilégios: ledger revoga de `PUBLIC`; ficheiro local revoga de `PUBLIC, anon` |
+| `20261014090931` | 80 | 80 | Divergente desde o primeiro token: ledger inicia a função `accept_freight_load`; ficheiro local inicia por `ALTER TABLE` para adicionar `driver_arrived_at` |
+
+### Conclusão desta comparação
+
+- Os cinco pares são lexicalmente diferentes. Não são diferenças de timestamp ou whitespace.
+- No caso QR, a divergência `support` vs `support_agent` altera directamente a autorização de consulta.
+- No caso P2P, a divergência na lista de roles afecta os privilégios revogados.
+- Os outros três pares apresentam estruturas/ordens de operações distintas, não devendo ser combinados nem substituídos automaticamente.
+- Esta comparação valida apenas os cinco pares indicados. Os restantes candidatos continuam sem certificação lexical; os totais positivos anteriormente indicados na secção G permanecem retirados.
+
+### Estado de CI do commit de auditoria
+
+- Commit auditado: `9f063782bf9d63b2131a94f3eb23d855e01ac7a6`.
+- Check Vercel reportado para esse commit: `success`.
+- Não foi devolvido um workflow run GitHub Actions associado ao SHA consultado; portanto, não declarar o CI completo como aprovado para este commit com base apenas no check Vercel.
+- O workflow #1170 relativo ao commit anterior `9a860d3` permanece registado como concluído com sucesso na secção H.
+
+A comparação foi read-only. Nenhuma migration foi aplicada, reparada ou renomeada; nenhuma alteração foi feita ao ledger remoto. O backup lógico verificável continua pendente.
