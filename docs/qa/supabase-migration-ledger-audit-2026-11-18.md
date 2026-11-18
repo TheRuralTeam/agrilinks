@@ -192,3 +192,37 @@ Os 44 registos nomeados sem ficheiro e os 22 registos sem nome sem candidato tem
 ### Próxima acção técnica segura
 
 Para os 66 registos ainda sem fonte, a recuperação terá de vir de uma cópia local antiga, exportação/backup do projecto, histórico de terminal/CLI, artefactos externos ou outro repositório/ambiente de desenvolvimento. O ledger remoto e o schema actual não contêm o texto original das migrations. Até existir essa fonte, manter bloqueados `db push`, `migration repair` e qualquer alteração ao histórico remoto.
+
+
+## F. Nova descoberta: SQL preservado no ledger remoto — 18/11/2026
+
+Uma consulta read-only à definição e aos dados de `supabase_migrations.schema_migrations` identificou as colunas `statements` e `rollback`, além de `version` e `name`.
+
+Resultado confirmado no projecto remoto:
+
+| Indicador | Resultado |
+|---|---:|
+| Registos totais | 208 |
+| Registos com `statements IS NOT NULL` | 208 |
+| Registos com array `statements` não vazio | 208 |
+| Registos com `rollback` não nulo | 0 |
+| Registos com 1 elemento em `statements` | 193 |
+| Registos com múltiplos elementos em `statements` | 15 |
+
+### Validação de conteúdo
+
+- Na versão `20261101010028`, o único elemento de `statements` corresponde ao conteúdo do ficheiro `supabase/migrations/20261101010028_sourcing_purchase_lifecycle.sql` na branch `main`, byte a byte até ao fim do SQL armazenado. O ficheiro local acrescenta apenas o wrapper terminal `commit;` e a quebra de linha final, ausentes no texto armazenado.
+- Na versão `20260917170000`, o ledger contém 19 elementos ordenados em `statements`; o início do primeiro elemento corresponde ao início do ficheiro local `20260917170000_auth_rpc_hardening.sql`. Os elementos são segmentos SQL, não um ficheiro serializado byte a byte; a reconstrução deve preservar a ordem e reintroduzir separadores/terminadores SQL de forma controlada.
+
+### Consequência para a recuperação
+
+A conclusão anterior de que o ledger remoto não contém o SQL original fica **revogada**. O ledger conserva os textos SQL executados para os 208 registos, embora a representação em array não garanta reprodução byte a byte do ficheiro original, incluindo comentários, espaçamento e wrappers transaccionais.
+
+Isto fornece uma fonte primária para recuperar os comandos SQL aplicados nas 66 versões que não tinham ficheiro local correspondente. Antes de criar ficheiros de migration recuperados, é necessário:
+1. exportar e preservar os arrays `statements` completos, com as versões e nomes;
+2. reconstruir cada ficheiro mantendo a ordem dos elementos e sem executar SQL;
+3. validar a reconstrução contra os ficheiros locais conhecidos, incluindo migrations de um e de múltiplos elementos;
+4. marcar explicitamente a proveniência como **recuperado do ledger remoto**, sem afirmar identidade byte a byte quando não demonstrada;
+5. comparar os 41 candidatos sem nome com os respectivos ficheiros locais antes de associar formalmente as versões.
+
+Nenhuma migration foi executada, reparada ou alterada no projecto remoto. O backup lógico local continua pendente; esta descoberta não o substitui.
