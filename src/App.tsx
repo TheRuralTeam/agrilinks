@@ -16,7 +16,6 @@ import NotificationRuntime from "./components/NotificationRuntime";
 const Index = lazy(() => import("./pages/Index"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const Registration = lazy(() => import("./pages/Registration"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
 const ProformaInvoices = lazy(() => import("./pages/ProformaInvoices"));
 const TechnicalSheet = lazy(() => import("./pages/TechnicalSheet"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
@@ -44,6 +43,7 @@ const UserProfile = lazy(() => import("./pages/UserProfile"));
 const B2BProfile = lazy(() => import("./pages/B2BProfile"));
 const CompletarPerfil = lazy(() => import("./pages/CompletarPerfil"));
 const PublicProductLocation = lazy(() => import("./pages/PublicProductLocation"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const MeusContratos = lazy(() => import("./pages/MeusContratos"));
 const ProximasCargas = lazy(() => import("./pages/ProximasCargas"));
@@ -192,6 +192,7 @@ const AppRoutes = () => {
         <Route path="/change-password" element={<ChangePassword />} />
         <Route path="/admin-password-resets" element={<PermissionRoute permissions={["manage_users"]} allowRootAdmins><AdminPasswordResets /></PermissionRoute>} />
         <Route path="/termos-publicidade" element={<TermsOfService />} />
+        <Route path="/produto/:id" element={<ProductDetail />} />
         <Route path="/produto/:id/localizacao" element={<PublicProductLocation />} />
         <Route path="/mapa" element={<MapPreviewRoute render={(readOnly) => <MapView readOnly={readOnly} />} />} />
 
@@ -345,9 +346,9 @@ const AppRoutes = () => {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
+            <PermissionRoute permissions={['view_analytics']}>
+              <Navigate to="/admindashboard" replace />
+            </PermissionRoute>
           }
         />
         <Route

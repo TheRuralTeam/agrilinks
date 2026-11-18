@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { toast } from 'sonner'
 import {
-  Search, LayoutDashboard, ShoppingCart, Bell,
-  ChevronDown, CheckCircle2, Package, Activity,
-  MapPin, TrendingUp, Menu, X, WifiOff
+  Search, ShoppingCart, Bell,
+  CheckCircle2, Package, MapPin, WifiOff, AlertCircle
 } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../components/ui/dialog'
 import { supabase } from '../integrations/supabase/client'
 import { useAuth } from '../contexts/AuthContext'
 import { useCanAct } from '../hooks/useCanAct'
@@ -63,17 +62,17 @@ const ProductSkeleton = () => (
    ════════════════════════════════════════════════════════════════════════════ */
 const AppHome = () => {
   const navigate = useNavigate()
-  const { user, userProfile, isAdmin, refreshProfile } = useAuth()
+  const { user, userProfile, refreshProfile } = useAuth()
   const { requireAct } = useCanAct()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [feedError, setFeedError] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [mapModalOpen, setMapModalOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [orderData, setOrderData] = useState({ quantity: 1, location: '' })
   const [deliveryCoordinates, setDeliveryCoordinates] = useState<{ latitude: number; longitude: number } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string>('all')
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [feedPage, setFeedPage] = useState(0)
@@ -125,6 +124,7 @@ const AppHome = () => {
 
   const fetchProducts = useCallback(async (page = 0, append = false) => {
     if (page === 0) {
+      setFeedError(false)
       let hasCachedFeed = false
       try { hasCachedFeed = Boolean(JSON.parse(sessionStorage.getItem('agrilink:marketplace:feed') || 'null')?.products?.length) } catch {}
       if (!hasCachedFeed) setLoading(true)
@@ -149,6 +149,7 @@ const AppHome = () => {
     } catch (err) {
       console.error('[AgriLink] Erro ao carregar Marketplace:', err)
       if (page === 0) {
+        setFeedError(true)
         try {
           const cached = JSON.parse(sessionStorage.getItem('agrilink:marketplace:feed') || 'null')
           if (Array.isArray(cached.products)) {
@@ -160,6 +161,8 @@ const AppHome = () => {
         } catch {
           setProducts([])
         }
+      } else {
+        toast.error('Não foi possível carregar mais produtos. Tente novamente.')
       }
     } finally {
       if (page === 0) setLoading(false)
@@ -305,9 +308,11 @@ const AppHome = () => {
   /* ── Main render ── */
   return (
     <div className="min-h-screen" style={{ background: T.canvas, fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif" }}>
-      {!isOnline && (
-        <div style={{ padding:'8px 16px', textAlign:'center', fontSize:12, fontWeight:600, background:T.g50, color:T.g700 }}>
-          Modo offline: a mostrar os últimos produtos disponíveis neste dispositivo.
+      {(!isOnline || feedError) && (
+        <div role="status" style={{ padding:'8px 16px', textAlign:'center', fontSize:12, fontWeight:600, background:T.g50, color:T.g700 }}>
+          {isOnline
+            ? 'Não foi possível atualizar o catálogo. A mostrar os últimos produtos guardados, quando disponíveis.'
+            : 'Sem ligação à internet. A mostrar os últimos produtos guardados, quando disponíveis.'}
         </div>
       )}
 
@@ -321,26 +326,30 @@ const AppHome = () => {
         <div style={{ maxWidth:1320, margin:'0 auto', padding:'0 16px', height:56, display:'flex', alignItems:'center', gap:10 }}>
 
           {/* Logo */}
-          <div
-            style={{ display:'flex', alignItems:'center', cursor:'pointer', flexShrink: 0 }}
+          <button
+            type="button"
+            aria-label="Ir para o início da AgriLink"
             onClick={() => navigate('/')}
+            style={{ display:'flex', alignItems:'center', cursor:'pointer', flexShrink:0, border:0, padding:0, background:'transparent' }}
           >
             <img
               src={agrilinkLogo}
               alt="AgriLink"
-              style={{ height: 26, width: 'auto', objectFit: 'contain', display: 'block' }}
+              style={{ height:26, width:'auto', objectFit:'contain', display:'block' }}
             />
-          </div>
+          </button>
 
           {/* Pesquisa — pílula leve, sempre visível, encolhe em mobile sem sair da navbar */}
-          <div
+          <button
+            type="button"
+            aria-label="Pesquisar produtos"
             onClick={() => navigate('/search')}
             style={{
-              flex: '1 1 auto', minWidth: 0, maxWidth: 480,
+              flex:'1 1 auto', minWidth:0, maxWidth:480,
               display:'flex', alignItems:'center', gap:8,
-              padding:'8px 14px', borderRadius: 980,
-              background: 'rgba(118,118,128,0.08)',
-              cursor:'pointer', transition:'background 0.15s',
+              padding:'8px 14px', borderRadius:980,
+              background:'rgba(118,118,128,0.08)', border:0, textAlign:'left',
+              fontFamily:'inherit', cursor:'pointer', transition:'background 0.15s',
             }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(118,118,128,0.13)' }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(118,118,128,0.08)' }}
@@ -350,69 +359,11 @@ const AppHome = () => {
               fontSize:13, color: T.faint, fontWeight:500,
               overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
             }}>
-              Pesquisar
+              Pesquisar produtos
             </span>
-          </div>
+          </button>
 
-          {/* Right actions */}
-          <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink: 0 }}>
-
-            {isAdmin && (
-              <button
-                style={{
-                  padding:'7px 13px', borderRadius: 980, border:'none', background: 'rgba(118,118,128,0.08)',
-                  cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontSize:13,
-                  fontWeight:600, color: T.ink, transition:'background 0.15s',
-                }}
-                onClick={() => navigate('/admindashboard')}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(118,118,128,0.13)' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(118,118,128,0.08)' }}
-                className="hidden sm:flex"
-              >
-                <LayoutDashboard size={14} color={T.g500}/>
-                <span>Dashboard</span>
-              </button>
-            )}
-
-            {/* Mobile Menu Toggle */}
-            <button
-              style={{
-                width: 32, height: 32, borderRadius: '50%', border:'none', background: 'rgba(118,118,128,0.08)',
-                cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-                color: T.mid, transition:'background 0.15s',
-              }}
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="sm:hidden"
-            >
-              {mobileMenuOpen ? <X size={17}/> : <Menu size={17}/>}
-            </button>
-          </div>
         </div>
-
-        {/* Mobile Navigation Menu */}
-        {mobileMenuOpen && (
-          <div style={{
-            position: 'absolute', top: 62, left: 0, right: 0,
-            background: 'rgba(255,255,255,0.92)', backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)',
-            borderBottom: `1px solid rgba(0,0,0,0.06)`,
-            padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12,
-            boxShadow: `0 8px 24px rgba(0,0,0,0.06)`,
-          }} className="sm:hidden">
-            {isAdmin && (
-              <button
-                style={{
-                  padding:'10px', borderRadius:10, border:`1px solid ${T.rule}`, background: T.g50,
-                  cursor:'pointer', display:'flex', alignItems:'center', gap:10, fontSize:14,
-                  fontWeight:600, color: T.g600, width: '100%'
-                }}
-                onClick={() => { navigate('/admindashboard'); setMobileMenuOpen(false) }}
-              >
-                <LayoutDashboard size={16}/>
-                Dashboard Administrativo
-              </button>
-            )}
-          </div>
-        )}
       </header>
 
       {/* ═══ CATEGORY FILTERS ════════════════════════════════════════════════ */}
@@ -477,7 +428,7 @@ const AppHome = () => {
             Produtos disponíveis
           </h2>
           <p style={{ fontSize:13, color: T.faint, marginTop:4, fontWeight:500 }}>
-            {filteredProducts.length} listings · ordenados por relevância
+            {filteredProducts.length} produtos apresentados · mais recentes primeiro
           </p>
         </div>
 
@@ -507,7 +458,7 @@ const AppHome = () => {
           }
         </div>
 
-        {!loading && filteredProducts.length > 0 && hasMoreProducts && (
+        {!loading && hasMoreProducts && (
           <div style={{ display:'flex', justifyContent:'center', paddingTop:28 }}>
             <button
               type="button"
@@ -520,13 +471,29 @@ const AppHome = () => {
                 boxShadow:'0 4px 18px rgba(0,0,0,0.05)',
               }}
             >
-              {loadingMore ? 'A carregar…' : 'Ver mais produtos'}
+              {loadingMore ? 'A carregar…' : 'Carregar mais produtos'}
+            </button>
+          </div>
+        )}
+
+        {/* Falha de consulta: não confundir com catálogo vazio */}
+        {!loading && feedError && filteredProducts.length === 0 && (
+          <div role="alert" style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'72px 20px', textAlign:'center' }}>
+            <div style={{ width:44, height:44, borderRadius:12, border:`1px solid ${T.rule}`, background:T.g50, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:14 }}>
+              <AlertCircle size={19} color={T.g600} />
+            </div>
+            <h3 style={{ fontSize:20, color:T.ink, margin:'0 0 8px', fontWeight:700 }}>Não foi possível carregar os produtos</h3>
+            <p style={{ fontSize:13, color:T.faint, maxWidth:340, lineHeight:1.65, marginBottom:16 }}>
+              O catálogo não respondeu. Verifique a ligação e tente novamente.
+            </p>
+            <button type="button" onClick={() => void fetchProducts(0, false)} style={{ minHeight:40, padding:'0 18px', borderRadius:10, border:0, background:T.g600, color:T.white, fontSize:13, fontWeight:700, cursor:'pointer' }}>
+              Tentar novamente
             </button>
           </div>
         )}
 
         {/* Empty / offline state */}
-        {!loading && filteredProducts.length === 0 && (
+        {!loading && !feedError && filteredProducts.length === 0 && (
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'100px 20px', textAlign:'center' }}>
             <div style={{ width: 44, height: 44, borderRadius: 10, border: `1px solid ${T.rule}`, background: T.g50, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><Package size={18} color={T.g500} /></div>
             <h3 style={{ fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif", fontSize:22, color: T.ink, margin:'0 0 10px', fontWeight:700 }}>
@@ -534,8 +501,10 @@ const AppHome = () => {
             </h3>
             <p style={{ fontSize:13, color: T.faint, maxWidth:320, lineHeight:1.65 }}>
               {isOnline
-                ? 'Ainda não existem produtos disponíveis nesta categoria.'
-                : 'Verifique a sua ligação e tente novamente. Se já tiver produtos em cache, eles serão apresentados quando disponíveis.'}
+                ? hasMoreProducts
+                  ? 'Ainda estamos a procurar nesta categoria. Carregue mais produtos para continuar.'
+                  : 'Não existem produtos disponíveis nesta categoria.'
+                : 'Verifique a sua ligação e tente novamente. Os últimos produtos guardados serão apresentados quando disponíveis.'}
             </p>
             {!isOnline && (
               <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:14, padding:'6px 12px', borderRadius:980, background: T.g50, color: T.g600, fontSize:12, fontWeight:700 }}>
@@ -631,7 +600,6 @@ const AppHome = () => {
                   fontSize:14, outline:'none', background: T.white, color: T.ink,
                   transition:'border-color 0.18s, box-shadow 0.18s', width:'100%', boxSizing:'border-box',
                 }}
-                onFocus={() => {}}
               />
             </div>
 

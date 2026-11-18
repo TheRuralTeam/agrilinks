@@ -70,6 +70,7 @@ export default function MyPurchases() {
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [checkout, setCheckout] = useState<Record<string, CheckoutState>>({})
   const [selectedRecipients, setSelectedRecipients] = useState<Record<string, string>>({})
   const [paymentDrafts, setPaymentDrafts] = useState<Record<string, PaymentDraft>>({})
@@ -85,6 +86,7 @@ export default function MyPurchases() {
     }
     if (quiet) setRefreshing(true)
     else setLoading(true)
+    setLoadError(null)
     try {
       const { data, error } = await (supabase as any)
         .from('pre_orders')
@@ -107,7 +109,9 @@ export default function MyPurchases() {
       }
       setPurchases(rows.map((row) => ({ ...row, product_name: productNames[row.product_id] || 'Produto' })) as Purchase[])
     } catch (error: any) {
-      toast({ title: 'Não foi possível carregar as compras', description: error?.message || 'Tenta novamente.', variant: 'destructive' })
+      const message = 'Não foi possível consultar o histórico de compras. Verifique a ligação e tente novamente.'
+      setLoadError(message)
+      toast({ title: 'Não foi possível carregar as compras', description: message, variant: 'destructive' })
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -215,12 +219,19 @@ export default function MyPurchases() {
       </header>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <Card><CardContent className="flex items-center gap-3 p-4"><ShoppingBag className="h-5 w-5 text-muted-foreground" /><div><p className="text-2xl font-semibold">{purchases.length}</p><p className="text-xs text-muted-foreground">Compras no histórico</p></div></CardContent></Card>
-        <Card><CardContent className="flex items-center gap-3 p-4"><Clock3 className="h-5 w-5 text-muted-foreground" /><div><p className="text-2xl font-semibold">{purchases.filter((p) => p.status === 'accepted' && p.payment_status !== 'paid').length}</p><p className="text-xs text-muted-foreground">A aguardar pagamento</p></div></CardContent></Card>
-        <Card><CardContent className="flex items-center gap-3 p-4"><CheckCircle2 className="h-5 w-5 text-muted-foreground" /><div><p className="text-2xl font-semibold">{purchases.filter((p) => p.payment_status === 'paid' || p.status === 'completed').length}</p><p className="text-xs text-muted-foreground">Pagas ou concluídas</p></div></CardContent></Card>
+        <Card><CardContent className="flex items-center gap-3 p-4"><ShoppingBag className="h-5 w-5 text-muted-foreground" /><div><p className="text-2xl font-semibold">{loadError ? '—' : purchases.length}</p><p className="text-xs text-muted-foreground">Compras no histórico</p></div></CardContent></Card>
+        <Card><CardContent className="flex items-center gap-3 p-4"><Clock3 className="h-5 w-5 text-muted-foreground" /><div><p className="text-2xl font-semibold">{loadError ? '—' : purchases.filter((p) => p.status === 'accepted' && p.payment_status !== 'paid').length}</p><p className="text-xs text-muted-foreground">A aguardar pagamento</p></div></CardContent></Card>
+        <Card><CardContent className="flex items-center gap-3 p-4"><CheckCircle2 className="h-5 w-5 text-muted-foreground" /><div><p className="text-2xl font-semibold">{loadError ? '—' : purchases.filter((p) => p.payment_status === 'paid' || p.status === 'completed').length}</p><p className="text-xs text-muted-foreground">Pagas ou concluídas</p></div></CardContent></Card>
       </div>
 
-      {purchases.length === 0 ? (
+      {loadError ? (
+        <Card role="alert"><CardContent className="flex flex-col items-center py-10 text-center">
+          <AlertCircle className="mb-3 h-9 w-9 text-destructive" />
+          <h2 className="font-semibold">Não foi possível carregar as compras</h2>
+          <p className="mt-2 max-w-md break-words text-sm text-muted-foreground">{loadError}</p>
+          <Button className="mt-4" variant="outline" onClick={() => void loadPurchases(true)} disabled={refreshing}>{refreshing ? 'A actualizar…' : 'Tentar novamente'}</Button>
+        </CardContent></Card>
+      ) : purchases.length === 0 ? (
         <Card><CardContent className="flex flex-col items-center py-12 text-center"><ShoppingBag className="mb-3 h-10 w-10 text-muted-foreground" /><h2 className="font-semibold">Ainda não tens compras</h2><p className="mt-2 max-w-md text-sm text-muted-foreground">Quando enviares uma pré-compra no marketplace, ela aparecerá aqui para acompanhares a resposta do fornecedor e o pagamento.</p><Button className="mt-4" onClick={() => navigate('/app')}>Explorar marketplace</Button></CardContent></Card>
       ) : (
         <div className="space-y-4">

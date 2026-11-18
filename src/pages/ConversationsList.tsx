@@ -18,17 +18,19 @@ import { T } from '../lib/brand';
 
 interface Conversation {
   id: string;
+  user_id: string;
   title: string;
   last_message: string | null;
   last_timestamp: string;
   unread_count: number;
   avatar: string | null;
-  participant_id: string;
+  participant_id: string | null;
+  peer_user_id?: string | null;
 }
 
 interface UserProfile {
   id: string;
-  full_name: string;
+  full_name: string | null;
   avatar_url: string | null;
 }
 
@@ -65,33 +67,64 @@ const ConversationsList = () => {
   const [userResults, setUserResults] = useState<UserProfile[]>([]);
   const [allConversations, setAllConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(false);
+  const [conversationLoadError, setConversationLoadError] = useState<string | null>(null);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+  const [userSearchError, setUserSearchError] = useState<string | null>(null);
   const [newConversationOpen, setNewConversationOpen] = useState(false);
   const [newConvSearchTerm, setNewConvSearchTerm] = useState("");
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
+  const [dialogUsersLoading, setDialogUsersLoading] = useState(false);
+  const [dialogUsersError, setDialogUsersError] = useState<string | null>(null);
+  const [dialogReloadKey, setDialogReloadKey] = useState(0);
 
   const loadConversations = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    setConversationLoadError(null);
     try {
       const { data, error } = await supabase
         .from("conversations")
         .select("*")
-        .or(`user_id.eq.${user.id},participant_id.eq.${user.id}`)
+        .or(`user_id.eq.${user.id},participant_id.eq.${user.id},peer_user_id.eq.${user.id}`)
         .order("last_timestamp", { ascending: false });
 
       if (error) throw error;
-      setAllConversations((data as Conversation[]) || []);
+      const rows = (data as Conversation[]) || [];
+      const peerIds = [...new Set(rows.map((conversation) =>
+        conversation.user_id === user.id
+          ? (conversation.participant_id || conversation.peer_user_id)
+          : conversation.user_id
+      ).filter((peerId): peerId is string => Boolean(peerId && peerId !== user.id)))];
+
+      let profileById = new Map<string, UserProfile>();
+      if (peerIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from("public_user_profiles")
+          .select("id, full_name, avatar_url")
+          .in("id", peerIds);
+        if (profilesError) throw profilesError;
+        profileById = new Map(((profiles || []) as UserProfile[]).map((profile) => [profile.id, profile]));
+      }
+
+      setAllConversations(rows.map((conversation) => {
+        const peerId = conversation.user_id === user.id
+          ? (conversation.participant_id || conversation.peer_user_id)
+          : conversation.user_id;
+        const peerProfile = peerId ? profileById.get(peerId) : undefined;
+        return {
+          ...conversation,
+          title: peerProfile?.full_name?.trim() || conversation.title || "Conversa AgriLink",
+          avatar: peerProfile?.avatar_url || conversation.avatar,
+        };
+      }));
+      setConversationLoadError(null);
     } catch (error) {
       console.error("Erro ao carregar conversas:", error);
-      toast({
-        title: t('common.error'),
-        description: t('messages.noMessages'),
-        variant: "destructive",
-      });
+      setConversationLoadError("Não foi possível consultar as conversas. Verifique a ligação e tente novamente.");
     } finally {
       setLoading(false);
     }
-  }, [user, toast, t]);
+  }, [user]);
 
   useEffect(() => {
     loadConversations();
@@ -119,40 +152,43 @@ const ConversationsList = () => {
   }, [user, loadConversations]);
 
   useEffect(() => {
+    let active = true;
     if (!user || searchTerm.trim() === "") {
       setUserResults([]);
-      return;
+      setUserSearchError(null);
+      setSearchingUsers(false);
+      return () => { active = false; };
     }
 
     const timeout = setTimeout(async () => {
-      setLoading(true);
+      if (!active) return;
+      setSearchingUsers(true);
+      setUserSearchError(null);
+      setUserResults([]);
       try {
         const { data: users, error: usersError } = await supabase
-          .from("users")
+          .from("public_user_profiles")
           .select("id, full_name, avatar_url")
-          .ilike("full_name", `%${searchTerm}%`)
+          .ilike("full_name", `%${searchTerm.trim().replace(/[%_(),]/g, " ")}%`)
           .neq("id", user.id)
+          .order("full_name", { ascending: true })
           .limit(10);
 
-        if (usersError) {
-          console.error("Erro ao buscar usuários:", usersError);
-        } else {
-          setUserResults((users as UserProfile[]) || []);
-        }
-      } catch (err) {
-        console.error("Erro na busca:", err);
-        toast({
-          title: t('common.error'),
-          description: t('messages.noResults'),
-          variant: "destructive"
-        });
+        if (usersError) throw usersError;
+        if (active) setUserResults((users as UserProfile[]) || []);
+      } catch (error) {
+        console.error("Erro ao buscar perfis públicos:", error);
+        if (active) setUserSearchError("Não foi possível pesquisar utilizadores. Tente novamente.");
       } finally {
-        setLoading(false);
+        if (active) setSearchingUsers(false);
       }
     }, 300);
 
-    return () => clearTimeout(timeout);
-  }, [user, searchTerm, toast, t]);
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+  }, [user, searchTerm]);
 
   const conversationResults = useMemo(() => {
     if (searchTerm.trim() === "") return allConversations;
@@ -161,61 +197,38 @@ const ConversationsList = () => {
     );
   }, [allConversations, searchTerm]);
 
-  const startConversation = useCallback(async (
-    participantId: string, 
-    participantName: string, 
-    participantAvatar: string | null
-  ) => {
-    if (!user) return;
-    const { data: existingConv, error: searchError } = await supabase
-      .from("conversations")
-      .select("id")
-      .or(`and(user_id.eq.${user.id},participant_id.eq.${participantId}),and(user_id.eq.${participantId},participant_id.eq.${user.id})`)
-      .limit(1);
-
-    if (searchError) {
-      console.error("Erro ao buscar conversa existente:", searchError);
-      toast({
-        title: t('common.error'),
-        description: t('messages.noResults'),
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (existingConv && existingConv.length > 0) {
-      navigate(`/messages/${existingConv[0].id}`);
+  const startConversation = useCallback(async (participantId: string) => {
+    if (!user) {
+      toast({ title: "Inicie sessão para iniciar uma conversa.", variant: "destructive" });
+      navigate("/login");
       return;
     }
 
     try {
-      const newConvData = {
-        user_id: user.id,
-        participant_id: participantId,
-        title: participantName,
-        avatar: participantAvatar,
-        last_message: null,
-        last_timestamp: new Date().toISOString(),
-        unread_count: 0,
-      };
-
-      const { data: createdConv, error: createError } = await supabase
+      // Preserve conversations created by older clients that only populated peer_user_id.
+      const { data: legacyConversation, error: legacyError } = await supabase
         .from("conversations")
-        .insert([newConvData])
         .select("id")
-        .single();
+        .or(`and(user_id.eq.${user.id},peer_user_id.eq.${participantId}),and(user_id.eq.${participantId},peer_user_id.eq.${user.id})`)
+        .limit(1);
+      if (legacyError) throw legacyError;
+      if (legacyConversation?.[0]?.id) {
+        navigate(`/messages/${legacyConversation[0].id}`);
+        return;
+      }
 
-      if (createError) throw createError;
-      navigate(`/messages/${createdConv.id}`);
-    } catch (error) {
-      console.error("Erro ao criar nova conversa:", error);
-      toast({
-        title: t('common.error'),
-        description: t('messages.noResults'),
-        variant: "destructive"
+      const { data: conversationId, error: createError } = await supabase.rpc("get_or_create_conversation", {
+        p_user_id: user.id,
+        p_other_user_id: participantId,
       });
+      if (createError) throw createError;
+      if (!conversationId) throw new Error("O servidor não confirmou a criação da conversa.");
+      navigate(`/messages/${conversationId}`);
+    } catch (error) {
+      console.error("Erro ao iniciar conversa:", error);
+      toast({ title: "Não foi possível iniciar a conversa", description: "Verifique a ligação e tente novamente.", variant: "destructive" });
     }
-  }, [user, navigate, toast, t]);
+  }, [user, navigate, toast]);
 
   const formatTime = (timestamp: string) => {
     if (!timestamp) return "";
@@ -235,36 +248,48 @@ const ConversationsList = () => {
     }
   };
 
-  const openNewConversationDialog = async () => {
+  const openNewConversationDialog = () => {
     if (!user) return;
     setNewConversationOpen(true);
     setNewConvSearchTerm("");
-    try {
-      const { data: users, error } = await supabase
-        .from("users")
-        .select("id, full_name, avatar_url")
-        .neq("id", user.id)
-        .order("full_name", { ascending: true })
-        .limit(50);
-      
-      if (error) {
-        console.error("Erro ao buscar usuários:", error);
-        toast({
-          title: t('common.error'),
-          description: t('messages.noUserFound'),
-          variant: "destructive"
-        });
-      } else {
-        setAllUsers((users as UserProfile[]) || []);
-      }
-    } catch (err) {
-      console.error("Erro ao carregar usuários:", err);
-    }
+    setAllUsers([]);
+    setDialogUsersError(null);
   };
 
+  useEffect(() => {
+    if (!newConversationOpen || !user?.id) return;
+    let active = true;
+    const timeout = setTimeout(async () => {
+      setDialogUsersLoading(true);
+      setDialogUsersError(null);
+      try {
+        const baseQuery = supabase
+          .from("public_user_profiles")
+          .select("id, full_name, avatar_url")
+          .neq("id", user.id)
+          .order("full_name", { ascending: true });
+        const result = newConvSearchTerm.trim()
+          ? await baseQuery.ilike("full_name", `%${newConvSearchTerm.trim().replace(/[%_(),]/g, " ")}%`).limit(20)
+          : await baseQuery.limit(50);
+        if (result.error) throw result.error;
+        if (active) setAllUsers((result.data as UserProfile[]) || []);
+      } catch (error) {
+        console.error("Erro ao pesquisar contactos públicos:", error);
+        if (active) setDialogUsersError("Não foi possível carregar os contactos. Tente novamente.");
+      } finally {
+        if (active) setDialogUsersLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+  }, [newConversationOpen, newConvSearchTerm, user?.id, dialogReloadKey]);
+
   const filteredUsers = useMemo(() => {
-    return allUsers.filter(usr =>
-      usr.full_name.toLowerCase().includes(newConvSearchTerm.toLowerCase())
+    return allUsers.filter((usr) =>
+      (usr.full_name || '').toLowerCase().includes(newConvSearchTerm.trim().toLowerCase())
     );
   }, [allUsers, newConvSearchTerm]);
 
@@ -323,11 +348,17 @@ const ConversationsList = () => {
 
       {/* Lista de Conversas */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-        {loading && searchTerm.trim() !== "" && (
+        {searchingUsers && searchTerm.trim() !== "" && (
           <div className="flex justify-center py-4">
             <div className="animate-pulse text-sm font-medium" style={{ color: T.g600 }}>
               {t('messages.searching')}...
             </div>
+          </div>
+        )}
+
+        {userSearchError && searchTerm.trim() !== "" && (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+            {userSearchError}
           </div>
         )}
 
@@ -339,18 +370,14 @@ const ConversationsList = () => {
             </h2>
             <div className="space-y-2">
               {userResults.map((usr) => (
-                <Card
-                  key={usr.id}
-                  onClick={() => startConversation(usr.id, usr.full_name, usr.avatar_url)}
-                  className="border-none shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden group"
-                  style={{ backgroundColor: T.white }}
-                >
+                <button type="button" key={usr.id} aria-label={`Iniciar conversa com ${usr.full_name?.trim() || 'Utilizador AgriLink'}`} onClick={() => startConversation(usr.id)} className="w-full text-left focus-visible:outline-none focus-visible:ring-2" style={{ '--tw-ring-color': T.gBorder } as React.CSSProperties}>
+                  <Card className="border-none shadow-sm transition-all hover:shadow-md overflow-hidden group" style={{ backgroundColor: T.white }}>
                   <CardContent className="flex items-center gap-4 p-4">
                     <div className="relative">
                       <Avatar className="h-12 w-12 border-2 transition-transform group-hover:scale-105" style={{ borderColor: T.g50 }}>
                         <AvatarImage src={usr.avatar_url || "/default-avatar.png"} />
                         <AvatarFallback style={{ backgroundColor: T.g100, color: T.g700 }}>
-                          {usr.full_name.charAt(0).toUpperCase()}
+                          {(usr.full_name?.trim() || 'U').charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="absolute -bottom-1 -right-1 bg-white p-1 rounded-full shadow-sm">
@@ -359,21 +386,22 @@ const ConversationsList = () => {
                     </div>
                     <div className="flex-1">
                       <p className="font-semibold text-sm" style={{ color: T.ink }}>
-                        {highlightText(usr.full_name, searchTerm)}
+                        {highlightText(usr.full_name?.trim() || 'Utilizador AgriLink', searchTerm)}
                       </p>
                       <p className="text-xs mt-0.5" style={{ color: T.muted }}>
                         {t('messages.clickToStart')}
                       </p>
                     </div>
                   </CardContent>
-                </Card>
+                  </Card>
+                </button>
               ))}
             </div>
           </section>
         )}
 
         {/* Lista de Conversas */}
-        {conversationResults.length > 0 && (
+        {!conversationLoadError && conversationResults.length > 0 && (
           <section className="animate-in fade-in duration-500">
             {userResults.length > 0 && searchTerm.trim() !== "" && (
               <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] mb-3 mt-6 px-2" style={{ color: T.muted }}>
@@ -382,12 +410,8 @@ const ConversationsList = () => {
             )}
             <div className="space-y-3">
               {conversationResults.map((conv) => (
-                <Card
-                  key={conv.id}
-                  onClick={() => navigate(`/messages/${conv.id}`)}
-                  className="border-none shadow-sm hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
-                  style={{ backgroundColor: T.white }}
-                >
+                <button type="button" key={conv.id} aria-label={`Abrir conversa com ${conv.title || 'Utilizador AgriLink'}`} onClick={() => navigate(`/messages/${conv.id}`)} className="w-full text-left focus-visible:outline-none focus-visible:ring-2" style={{ '--tw-ring-color': T.gBorder } as React.CSSProperties}>
+                <Card className="border-none shadow-sm transition-all hover:shadow-md group relative overflow-hidden" style={{ backgroundColor: T.white }}>
                   {conv.unread_count > 0 && (
                     <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: T.g500 }} />
                   )}
@@ -426,13 +450,21 @@ const ConversationsList = () => {
                     )}
                   </CardContent>
                 </Card>
+                </button>
               ))}
             </div>
           </section>
         )}
 
+        {conversationLoadError && (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+            <p>{conversationLoadError}</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => void loadConversations()}>Tentar novamente</Button>
+          </div>
+        )}
+
         {/* Estados Vazios */}
-        {!loading && searchTerm.trim() !== "" && userResults.length === 0 && conversationResults.length === 0 && (
+        {!loading && !userSearchError && !conversationLoadError && searchTerm.trim() !== "" && userResults.length === 0 && conversationResults.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in-95">
             <div className="bg-white p-6 rounded-full shadow-sm mb-6">
               <Search className="h-10 w-10" style={{ color: T.faint }} />
@@ -444,7 +476,7 @@ const ConversationsList = () => {
           </div>
         )}
 
-        {!loading && searchTerm.trim() === "" && conversationResults.length === 0 && (
+        {!loading && !conversationLoadError && searchTerm.trim() === "" && conversationResults.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in-95">
             <div className="bg-white p-8 rounded-full shadow-sm mb-6">
               <MessageSquare className="h-12 w-12" style={{ color: T.g100 }} />
@@ -484,6 +516,7 @@ const ConversationsList = () => {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: T.faint }} />
               <Input
                 placeholder={t('messages.searchUser')}
+                aria-label={t('messages.searchUser')}
                 value={newConvSearchTerm}
                 onChange={(e) => setNewConvSearchTerm(e.target.value)}
                 className="pl-11 h-12 bg-white border-none rounded-2xl shadow-sm focus-visible:ring-2"
@@ -492,7 +525,14 @@ const ConversationsList = () => {
             </div>
 
             <div className="max-h-[350px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
-              {filteredUsers.length === 0 ? (
+              {dialogUsersLoading ? (
+                <div className="py-10 text-center text-sm" style={{ color: T.muted }}>A pesquisar contactos…</div>
+              ) : dialogUsersError ? (
+                <div role="alert" className="py-8 text-center">
+                  <p className="text-sm" style={{ color: T.muted }}>{dialogUsersError}</p>
+                  <Button variant="outline" size="sm" className="mt-3" onClick={() => setDialogReloadKey((value) => value + 1)}>Tentar novamente</Button>
+                </div>
+              ) : filteredUsers.length === 0 ? (
                 <div className="py-12 text-center">
                   <p className="text-sm font-medium" style={{ color: T.muted }}>
                     {newConvSearchTerm ? t('messages.noUserFound') : 'Nenhum contacto disponível'}
@@ -500,22 +540,25 @@ const ConversationsList = () => {
                 </div>
               ) : (
                 filteredUsers.map((usr) => (
-                  <div
+                  <button
+                    type="button"
                     key={usr.id}
+                    aria-label={`Iniciar conversa com ${usr.full_name?.trim() || 'Utilizador AgriLink'}`}
                     onClick={() => {
-                      startConversation(usr.id, usr.full_name, usr.avatar_url);
+                      startConversation(usr.id);
                       setNewConversationOpen(false);
                     }}
-                    className="flex items-center gap-4 p-3 rounded-2xl cursor-pointer transition-all hover:bg-white hover:shadow-sm group"
+                    className="flex w-full items-center gap-4 rounded-2xl p-3 text-left transition-all hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 group"
+                    style={{ '--tw-ring-color': T.gBorder } as React.CSSProperties}
                   >
                     <Avatar className="h-12 w-12 border-2 border-transparent group-hover:border-g100 transition-all">
                       <AvatarImage src={usr.avatar_url || "/default-avatar.png"} />
                       <AvatarFallback style={{ backgroundColor: T.g100, color: T.g700 }}>
-                        {usr.full_name.charAt(0).toUpperCase()}
+                        {(usr.full_name?.trim() || 'U').charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <p className="font-bold text-sm" style={{ color: T.ink }}>{usr.full_name}</p>
+                      <p className="font-bold text-sm" style={{ color: T.ink }}>{usr.full_name || 'Utilizador AgriLink'}</p>
                       <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: T.g600 }}>
                         Disponível
                       </p>
@@ -526,7 +569,7 @@ const ConversationsList = () => {
                     >
                       <Plus className="h-4 w-4" style={{ color: T.g600 }} />
                     </div>
-                  </div>
+                  </button>
                 ))
               )}
             </div>

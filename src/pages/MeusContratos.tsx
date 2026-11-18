@@ -40,30 +40,42 @@ const MeusContratos = () => {
   const [contracts, setContracts] = useState<Contract[]>([])
   const [names, setNames] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
+    let active = true
     const load = async () => {
+      setLoading(true)
+      setLoadError(null)
       if (!user) { setLoading(false); return }
-      const { data, error } = await supabase.from('digital_contracts')
-        .select('*')
-        .order('created_at', { ascending: false })
-      if (error) {
-        console.error('Erro ao carregar contratos:', error);
-        setLoading(false);
-        return;
+      try {
+        const { data, error } = await supabase.from('digital_contracts')
+          .select('*')
+          .order('created_at', { ascending: false })
+        if (error) throw error
+        const list = (data || []) as Contract[]
+        const ids = Array.from(new Set(list.flatMap(c => [c.buyer_id, c.supplier_id, c.driver_id, c.agent_id]).filter(Boolean))) as string[]
+        let nextNames: Record<string, string> = {}
+        if (ids.length) {
+          const { data: profiles, error: profilesError } = await supabase.from('public_user_profiles').select('id, full_name').in('id', ids)
+          if (profilesError) throw profilesError
+          nextNames = Object.fromEntries((profiles || []).filter((profile) => profile.id && profile.full_name).map((profile) => [profile.id as string, profile.full_name as string]))
+        }
+        if (!active) return
+        setContracts(list)
+        setNames(nextNames)
+      } catch (error) {
+        if (!active) return
+        console.error('Erro ao carregar contratos:', error)
+        setLoadError('Não foi possível consultar os contratos. Verifique a ligação e tente novamente.')
+      } finally {
+        if (active) setLoading(false)
       }
-      const list = (data || []) as Contract[]
-      setContracts(list)
-
-      const ids = Array.from(new Set(list.flatMap(c => [c.buyer_id, c.supplier_id, c.driver_id, c.agent_id]).filter(Boolean))) as string[]
-      if (ids.length) {
-        const { data: users } = await supabase.from('users_public').select('id, full_name').in('id', ids)
-        setNames(Object.fromEntries((users || []).filter((u) => u.id && u.full_name).map((u) => [u.id as string, u.full_name as string])))
-      }
-      setLoading(false)
     }
-    load()
-  }, [user])
+    void load()
+    return () => { active = false }
+  }, [user, reloadKey])
 
   return (
     <div style={{ minHeight: '100vh', background: T.canvas, fontFamily: FONT, paddingBottom: 140 }}>
@@ -72,7 +84,7 @@ const MeusContratos = () => {
         borderBottom: `1px solid ${T.rule}`, padding: '14px 18px',
         display: 'flex', alignItems: 'center', gap: 12,
       }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.mid, display: 'flex' }}>
+        <button type="button" aria-label="Voltar" onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.mid, display: 'flex' }}>
           <ArrowLeft size={20} />
         </button>
         <h1 style={{ fontFamily: FONT, fontSize: 17, fontWeight: 800, color: T.ink, margin: 0 }}>Meus contratos</h1>
@@ -87,6 +99,12 @@ const MeusContratos = () => {
         ) : loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
             <Loader compact />
+          </div>
+        ) : loadError ? (
+          <div role="alert" className="rounded-2xl border bg-white p-8 text-center" style={{ borderColor: T.rule }}>
+            <p className="font-semibold" style={{ color: T.ink }}>Não foi possível carregar os contratos</p>
+            <p className="mt-2 break-words text-sm" style={{ color: T.muted }}>{loadError}</p>
+            <button type="button" onClick={() => setReloadKey((value) => value + 1)} className="mt-4 rounded-xl px-4 py-2 text-sm font-bold text-white" style={{ background: T.g600 }}>Tentar novamente</button>
           </div>
         ) : contracts.length === 0 ? (
           <EmptyState

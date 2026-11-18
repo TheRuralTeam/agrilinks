@@ -45,6 +45,7 @@ const Notifications = () => {
   const pushNotifications = usePushNotifications();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchNotifications = useCallback(async () => {
     if (!user) {
@@ -53,6 +54,7 @@ const Notifications = () => {
       return;
     }
     setLoading(true);
+    setLoadError(null);
     try {
       const { data, error } = await supabase
         .from('notifications')
@@ -64,6 +66,7 @@ const Notifications = () => {
       setNotifications((data ?? []) as Notification[]);
     } catch (error) {
       console.error('Erro ao buscar notificações:', error);
+      setLoadError('Não foi possível consultar as notificações. Verifique a ligação e tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -232,7 +235,19 @@ const Notifications = () => {
       )}
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
-        {notifications.map((notification) => (
+        {loadError && (
+          <Card role="alert" style={{ background: T.white, border: '1px solid #FECACA' }}>
+            <CardContent className="flex flex-col items-center gap-3 p-6 text-center">
+              <AlertCircle className="h-8 w-8" style={{ color: '#DC2626' }} />
+              <div>
+                <p className="font-semibold" style={{ color: T.ink }}>Não foi possível carregar as notificações</p>
+                <p className="mt-1 break-words text-sm" style={{ color: T.muted }}>{loadError}</p>
+              </div>
+              <Button variant="outline" onClick={() => void fetchNotifications()}>Tentar novamente</Button>
+            </CardContent>
+          </Card>
+        )}
+        {!loadError && notifications.map((notification) => (
           <Card
             key={notification.id}
             style={{ background: notification.read ? T.white : T.g50, border: `1px solid ${notification.read ? T.rule : T.gBorder}` }}
@@ -260,7 +275,7 @@ const Notifications = () => {
           </Card>
         ))}
 
-        {notifications.length === 0 && (
+        {!loadError && notifications.length === 0 && (
           <div className="text-center py-20">
             <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm" style={{ border: `1px solid ${T.rule}` }}><Bell className="h-10 w-10" style={{ color: T.faint }} /></div>
             <p className="font-bold text-lg" style={{ color: T.ink }}>Tudo em dia!</p>

@@ -3,22 +3,30 @@ import { useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import { ArrowLeft, CalendarDays, Crosshair, FileText, LoaderCircle, MapPin, Minus, Plus, ShoppingCart, Trash2, Truck } from "lucide-react";
 import { Button } from "../components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import SimpleLeafletMap from "../components/SimpleLeafletMap";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "../hooks/use-toast";
-import { readBuyerCart, writeBuyerCart, type BuyerCartItem } from "../features/marketplace/buyerCart";
+import { readBuyerCart, writeBuyerCart, readBuyerCartIdempotencyKey, writeBuyerCartIdempotencyKey, type BuyerCartItem } from "../features/marketplace/buyerCart";
 import { supabase } from "../integrations/supabase/client";
 
 const money = (value: number) => new Intl.NumberFormat("pt-AO", {
   style: "currency", currency: "AOA", minimumFractionDigits: 2, maximumFractionDigits: 2,
 }).format(value);
 const localDate = () => {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Luanda",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
 };
-const uuid = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+const uuid = () => globalThis.crypto?.randomUUID?.() ?? 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => { const random = Math.floor(Math.random() * 16); return (character === 'x' ? random : (random & 0x3) | 0x8).toString(16); });
 const weightKgForItem = (item: BuyerCartItem) => {
   if (item.unit.toLowerCase() === "kg") return item.quantity;
   if (item.unit.toLowerCase() === "tonelada") return item.quantity * 1000;
@@ -48,30 +56,47 @@ export default function BuyerCart() {
   const [deliveryLatitude, setDeliveryLatitude] = useState("");
   const [deliveryLongitude, setDeliveryLongitude] = useState("");
   const [locatingDelivery, setLocatingDelivery] = useState(false);
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
+  const [mapPickerSelection, setMapPickerSelection] = useState<{ lat: number; lng: number } | null>(null);
   const [deliveryDate, setDeliveryDate] = useState(localDate());
   const [freightPreference, setFreightPreference] = useState<"single_quote_requested" | "separate_deliveries">("single_quote_requested");
   const [submitting, setSubmitting] = useState(false);
-  const [idempotencyKey, setIdempotencyKey] = useState(uuid);
+  const [idempotencyKey, setIdempotencyKey] = useState<string>(uuid);
 
   useEffect(() => {
-    if (user?.id) setItems(readBuyerCart(user.id));
+    if (user?.id) {
+      setItems(readBuyerCart(user.id));
+      setIdempotencyKey(readBuyerCartIdempotencyKey(user.id));
+    } else {
+      setItems([]);
+      setIdempotencyKey(uuid());
+    }
+  }, [user?.id]);
+
+  const rotateIdempotencyKey = useCallback(() => {
+    const next = uuid();
+    setIdempotencyKey(next);
+    if (user?.id) writeBuyerCartIdempotencyKey(user.id, next);
+    return next;
   }, [user?.id]);
 
   const persist = useCallback((next: BuyerCartItem[]) => {
     setItems(next);
     if (user?.id) writeBuyerCart(user.id, next);
-  }, [user?.id]);
+    rotateIdempotencyKey();
+  }, [user?.id, rotateIdempotencyKey]);
 
   const subtotal = useMemo(() => items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0), [items]);
   const totalWeight = useMemo(() => items.reduce((sum, item) => sum + (weightKgForItem(item) ?? 0), 0), [items]);
   const weightItemsKnown = items.filter((item) => weightKgForItem(item) != null).length;
   const parsedDeliveryLatitude = deliveryLatitude.trim() === "" ? null : Number(deliveryLatitude);
   const parsedDeliveryLongitude = deliveryLongitude.trim() === "" ? null : Number(deliveryLongitude);
-  const hasAnyDeliveryCoordinates = deliveryLatitude.trim() !== "" || deliveryLongitude.trim() !== "";
   const deliveryCoordinatesValid = parsedDeliveryLatitude !== null && parsedDeliveryLongitude !== null &&
     Number.isFinite(parsedDeliveryLatitude) && Number.isFinite(parsedDeliveryLongitude) &&
     parsedDeliveryLatitude >= -90 && parsedDeliveryLatitude <= 90 &&
     parsedDeliveryLongitude >= -180 && parsedDeliveryLongitude <= 180;
+  const hasAnyDeliveryCoordinates = deliveryLatitude.trim() !== "" || deliveryLongitude.trim() !== "" ||
+    /^-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?$/.test(deliveryLocation.trim());
   const resolvedDeliveryLocation = deliveryLocation.trim() ||
     (deliveryCoordinatesValid ? `Coordenadas: ${parsedDeliveryLatitude!.toFixed(6)}, ${parsedDeliveryLongitude!.toFixed(6)}` : "");
 
@@ -93,7 +118,7 @@ export default function BuyerCart() {
       setDeliveryLatitude(latitude.toFixed(6));
       setDeliveryLongitude(longitude.toFixed(6));
       setDeliveryLocation(`Localização GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
-      setIdempotencyKey(uuid());
+      rotateIdempotencyKey();
       toast({ title: "Localização obtida", description: "Confirme se este é o ponto correcto para receber a encomenda." });
     }, (error) => {
       setLocatingDelivery(false);
@@ -109,29 +134,12 @@ export default function BuyerCart() {
     }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 });
   };
 
-  const updateDeliveryCoordinate = (axis: "latitude" | "longitude", value: string) => {
-    if (axis === "latitude") setDeliveryLatitude(value);
-    else setDeliveryLongitude(value);
-    const nextLatitude = axis === "latitude" ? value.trim() : deliveryLatitude.trim();
-    const nextLongitude = axis === "longitude" ? value.trim() : deliveryLongitude.trim();
-    const lat = nextLatitude === "" ? null : Number(nextLatitude);
-    const lng = nextLongitude === "" ? null : Number(nextLongitude);
-    if (lat !== null && lng !== null && Number.isFinite(lat) && Number.isFinite(lng) &&
-        lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-      setDeliveryLocation(`Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
-    } else if (deliveryLocation.startsWith("Coordenadas:") || deliveryLocation.startsWith("Localização GPS:")) {
-      setDeliveryLocation("");
-    }
-    setIdempotencyKey(uuid());
-  };
-
   const updateQuantity = (productId: string, value: number) => {
     persist(items.map((item) => item.product_id !== productId ? item : {
       ...item, quantity: Math.max(item.minimum_quantity, Math.min(item.available_quantity, Math.floor(value || item.minimum_quantity))),
     }));
-    setIdempotencyKey(uuid());
   };
-  const removeItem = (productId: string) => { persist(items.filter((item) => item.product_id !== productId)); setIdempotencyKey(uuid()); };
+  const removeItem = (productId: string) => { persist(items.filter((item) => item.product_id !== productId)); };
 
   const generateProforma = (created?: CreatedCartOrder, sourceItems: BuyerCartItem[] = items, proformaFreightPreference: "single_quote_requested" | "separate_deliveries" = freightPreference) => {
     const sourceTotalWeight = sourceItems.reduce((sum, item) => sum + (weightKgForItem(item) ?? 0), 0);
@@ -264,7 +272,7 @@ export default function BuyerCart() {
         p_requested_delivery_date: deliveryDate,
         p_delivery_lat: deliveryCoordinatesValid ? parsedDeliveryLatitude : null,
         p_delivery_lng: deliveryCoordinatesValid ? parsedDeliveryLongitude : null,
-        p_idempotency_key: uuid(),
+        p_idempotency_key: idempotencyKey,
         p_freight_preference: "separate_deliveries",
       });
       if (error) throw new Error(error.message || "Não foi possível submeter a compra individual.");
@@ -274,7 +282,6 @@ export default function BuyerCart() {
       }
       const remaining = items.filter((line) => line.product_id !== item.product_id);
       persist(remaining);
-      setIdempotencyKey(uuid());
       toast({ title: "Compra individual submetida", description: "Este produto tem uma referência própria. A aceitação, o frete e a entrega serão confirmados separadamente." });
       try { generateProforma(created, [item], "separate_deliveries"); } catch (pdfError) {
         console.error("[AgriLink] Compra individual criada, mas o PDF não foi gerado:", pdfError);
@@ -343,7 +350,6 @@ export default function BuyerCart() {
       }
       try { persist([]); } catch (storageError) { console.error("[AgriLink] Não foi possível limpar o carrinho local após a compra:", storageError); }
       toast({ title: "Encomenda submetida", description: "Foi criada uma encomenda agrupada. Cada produto continua sujeito à aceitação do respectivo fornecedor; o frete e pagamento serão confirmados depois." });
-      setIdempotencyKey(uuid());
       navigate("/minhas-compras");
       try {
         generateProforma(created);
@@ -424,14 +430,14 @@ export default function BuyerCart() {
               <CardHeader><CardTitle>Como prefere organizar o frete?</CardTitle><CardDescription>Escolha a preferência para a equipa logística avaliar.</CardDescription></CardHeader>
               <CardContent className="space-y-3">
                 <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
-                  <input type="radio" name="freight-preference" className="mt-1 accent-green-700" checked={freightPreference === "single_quote_requested"} onChange={() => { setFreightPreference("single_quote_requested"); setIdempotencyKey(uuid()); }} />
+                  <input type="radio" name="freight-preference" className="mt-1 accent-green-700" checked={freightPreference === "single_quote_requested"} onChange={() => { setFreightPreference("single_quote_requested"); rotateIdempotencyKey(); }} />
                   <span className="space-y-1">
                     <span className="block font-medium">Solicitar um frete único AgriLink</span>
                     <span className="block text-sm text-muted-foreground">A AgriLink tentará coordenar uma cotação única para esta encomenda/fatura. Só será cobrado após a logística confirmar viabilidade e preço e o cliente aceitar.</span>
                   </span>
                 </label>
                 <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
-                  <input type="radio" name="freight-preference" className="mt-1 accent-green-700" checked={freightPreference === "separate_deliveries"} onChange={() => { setFreightPreference("separate_deliveries"); setIdempotencyKey(uuid()); }} />
+                  <input type="radio" name="freight-preference" className="mt-1 accent-green-700" checked={freightPreference === "separate_deliveries"} onChange={() => { setFreightPreference("separate_deliveries"); rotateIdempotencyKey(); }} />
                   <span className="space-y-1">
                     <span className="block font-medium">Entregas/fretes separados</span>
                     <span className="block text-sm text-muted-foreground">Cada fornecedor pode estar numa origem diferente e as cargas podem chegar em datas distintas, conforme acordo com a logística e aceitação do comprador.</span>
@@ -445,34 +451,44 @@ export default function BuyerCart() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="cart-delivery-location">Ponto de entrega *</Label>
-                  <Input id="cart-delivery-location" value={deliveryLocation} onChange={(event) => {
-                    setDeliveryLocation(event.target.value);
-                    setDeliveryLatitude("");
-                    setDeliveryLongitude("");
-                    setIdempotencyKey(uuid());
-                  }} placeholder="Escreva o endereço, bairro ou ponto de referência" />
-                  <Button type="button" variant="outline" className="w-full" disabled={locatingDelivery || submitting} onClick={useCurrentDeliveryLocation}>
-                    {locatingDelivery ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Crosshair className="mr-2 h-4 w-4" />}
-                    {locatingDelivery ? "A obter localização..." : "Usar a minha localização actual"}
-                  </Button>
-                  <p className="text-xs text-muted-foreground">O navegador pedirá autorização. A localização só é usada para esta encomenda; confirme que o ponto GPS corresponde ao local de entrega.</p>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="space-y-1">
-                      <Label htmlFor="cart-delivery-latitude">Latitude (opcional)</Label>
-                      <Input id="cart-delivery-latitude" inputMode="decimal" type="number" step="any" min="-90" max="90" value={deliveryLatitude} onChange={(event) => updateDeliveryCoordinate("latitude", event.target.value)} placeholder="-8.8383" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="cart-delivery-longitude">Longitude (opcional)</Label>
-                      <Input id="cart-delivery-longitude" inputMode="decimal" type="number" step="any" min="-180" max="180" value={deliveryLongitude} onChange={(event) => updateDeliveryCoordinate("longitude", event.target.value)} placeholder="13.2344" />
-                    </div>
+                  <div className="flex min-h-11 items-center gap-1 rounded-md border bg-background p-1 focus-within:ring-2 focus-within:ring-ring">
+                    <Button type="button" variant="ghost" size="icon" className="shrink-0" disabled={submitting} onClick={() => {
+                      setMapPickerSelection(deliveryCoordinatesValid ? { lat: parsedDeliveryLatitude!, lng: parsedDeliveryLongitude! } : null);
+                      setMapPickerOpen(true);
+                    }} aria-label="Escolher ponto de entrega no mapa" title="Escolher no mapa">
+                      <MapPin className="h-4 w-4" />
+                    </Button>
+                    <Input id="cart-delivery-location" value={deliveryLocation} onChange={(event) => {
+                      const value = event.target.value;
+                      setDeliveryLocation(value);
+                      const match = value.trim().match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+                      if (match) {
+                        const latitude = Number(match[1]);
+                        const longitude = Number(match[2]);
+                        if (Number.isFinite(latitude) && Number.isFinite(longitude) && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) {
+                          setDeliveryLatitude(latitude.toString());
+                          setDeliveryLongitude(longitude.toString());
+                        } else {
+                          setDeliveryLatitude("");
+                          setDeliveryLongitude("");
+                        }
+                      } else {
+                        setDeliveryLatitude("");
+                        setDeliveryLongitude("");
+                      }
+                      rotateIdempotencyKey();
+                    }} className="min-w-0 border-0 shadow-none focus-visible:ring-0" placeholder="Endereço ou latitude, longitude" aria-label="Endereço ou coordenadas do ponto de entrega" />
+                    <Button type="button" variant="ghost" size="icon" className="shrink-0" disabled={locatingDelivery || submitting} onClick={useCurrentDeliveryLocation} aria-label="Usar a localização actual do dispositivo" title="Usar GPS">
+                      {locatingDelivery ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
+                    </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">Pode escrever as coordenadas manualmente ou obter a posição do dispositivo. Para usar coordenadas, preencha latitude e longitude. Se indicar apenas o endereço, a logística poderá precisar de confirmar o ponto exacto.</p>
-                  {deliveryCoordinatesValid && <p className="flex items-center gap-1 text-xs text-green-700"><MapPin className="h-3.5 w-3.5" /> Coordenadas válidas: {parsedDeliveryLatitude!.toFixed(6)}, {parsedDeliveryLongitude!.toFixed(6)}</p>}
-                  {hasAnyDeliveryCoordinates && !deliveryCoordinatesValid && <p role="alert" className="text-xs text-destructive">Latitude e longitude devem estar preenchidas e dentro dos limites válidos.</p>}
+                  <p className="text-xs text-muted-foreground">Escreva um endereço ou coordenadas no formato latitude, longitude. Também pode escolher no mapa ou usar o GPS do dispositivo.</p>
+                  {deliveryCoordinatesValid && <p className="flex items-center gap-1 text-xs text-green-700"><MapPin className="h-3.5 w-3.5" /> Ponto seleccionado: {parsedDeliveryLatitude!.toFixed(6)}, {parsedDeliveryLongitude!.toFixed(6)}</p>}
+                  {hasAnyDeliveryCoordinates && !deliveryCoordinatesValid && <p role="alert" className="text-xs text-destructive">As coordenadas devem conter latitude e longitude válidas.</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cart-delivery-date">Data solicitada de entrega *</Label>
-                  <Input id="cart-delivery-date" type="date" min={localDate()} value={deliveryDate} onChange={(event) => { setDeliveryDate(event.target.value); setIdempotencyKey(uuid()); }} required />
+                  <Input id="cart-delivery-date" type="date" min={localDate()} value={deliveryDate} onChange={(event) => { setDeliveryDate(event.target.value); rotateIdempotencyKey(); }} required />
                   <p className="text-xs text-muted-foreground">A data só fica confirmada após aceitação do fornecedor e validação logística.</p>
                 </div>
               </CardContent>
@@ -501,6 +517,37 @@ export default function BuyerCart() {
           </aside>
         </div>
       )}
+      <Dialog open={mapPickerOpen} onOpenChange={setMapPickerOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Escolher ponto de entrega</DialogTitle>
+            <DialogDescription>Clique no mapa para marcar o destino. Pode ajustar o marcador antes de confirmar.</DialogDescription>
+          </DialogHeader>
+          <div className="overflow-hidden rounded-lg border">
+            <SimpleLeafletMap
+              center={mapPickerSelection || (deliveryCoordinatesValid ? { lat: parsedDeliveryLatitude!, lng: parsedDeliveryLongitude! } : { lat: -8.8383, lng: 13.2344 })}
+              zoom={mapPickerSelection || deliveryCoordinatesValid ? 14 : 10}
+              height={380}
+              onClick={setMapPickerSelection}
+              markers={mapPickerSelection ? [{ lat: mapPickerSelection.lat, lng: mapPickerSelection.lng }] : deliveryCoordinatesValid ? [{ lat: parsedDeliveryLatitude!, lng: parsedDeliveryLongitude! }] : []}
+            />
+          </div>
+          {mapPickerSelection && <p className="text-xs font-mono text-muted-foreground">Ponto seleccionado: {mapPickerSelection.lat.toFixed(6)}, {mapPickerSelection.lng.toFixed(6)}</p>}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setMapPickerOpen(false)}>Cancelar</Button>
+            <Button type="button" disabled={!mapPickerSelection} onClick={() => {
+              if (!mapPickerSelection) return;
+              const latitude = mapPickerSelection.lat.toFixed(6);
+              const longitude = mapPickerSelection.lng.toFixed(6);
+              setDeliveryLatitude(latitude);
+              setDeliveryLongitude(longitude);
+              setDeliveryLocation(`${latitude}, ${longitude}`);
+              rotateIdempotencyKey();
+              setMapPickerOpen(false);
+            }}>Usar este ponto</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

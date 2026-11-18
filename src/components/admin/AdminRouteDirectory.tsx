@@ -45,7 +45,6 @@ const ROUTES: RouteEntry[] = [
   { label: "Facturas proforma", path: "/facturas-proforma", audience: "Utilizadores autenticados", category: "Documentos" },
   { label: "Ficha de recebimento", path: "/ficharecebimento", audience: "Público/autenticado", category: "Documentos" },
   { label: "Ficha técnica de produto", path: "/ficha-tecnica/:id", audience: "Utilizadores autenticados", category: "Documentos", link: false, note: "Substituir :id por um ID real." },
-  { label: "Dashboard pessoal", path: "/dashboard", audience: "Utilizadores autenticados", category: "Conta" },
   { label: "Painel administrativo", path: "/admindashboard", audience: "Administradores com permissões", category: "Administração" },
   { label: "Lixeira de pedidos", path: "/admindashboard/pedidos/lixeira", audience: "Administração com gestão de pedidos/suporte", category: "Administração" },
   { label: "Redefinição de senhas", path: "/admin-password-resets", audience: "Administração com gestão de utilizadores", category: "Administração" },

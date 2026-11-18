@@ -326,6 +326,7 @@ const AdminDashboard = () => {
   const [topAgents, setTopAgents] = useState<TopAgent[]>([]);
   const [allReferrals, setAllReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dataLoadErrors, setDataLoadErrors] = useState<Record<string, string>>({});
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const requestedTab = new URLSearchParams(location.search).get("tab");
@@ -481,6 +482,21 @@ const AdminDashboard = () => {
   const fetchAllData = useCallback(async (silent = false) => {
     // Atualizações periódicas não devem desmontar o painel nem interromper a interação.
     if (!silent) setLoading(true);
+    const reportDataError = (key: string, label: string, error: unknown) => {
+      const detail = error && typeof error === "object" && "message" in error
+        ? String((error as { message: unknown }).message)
+        : "Verifique a ligação e tente novamente.";
+      setDataLoadErrors((previous) => ({ ...previous, [key]: `${label}: ${detail}` }));
+    };
+    const clearDataError = (key: string) => {
+      setDataLoadErrors((previous) => {
+        if (!(key in previous)) return previous;
+        const next = { ...previous };
+        delete next[key];
+        return next;
+      });
+    };
+    clearDataError("general");
     try {
       const [prodRes, usersRes, transRes, notRes, fichasRes, sourcingRes, topAgentsRes, referralsRes, ordersRes] = await Promise.all([
         supabase.from("products").select("*").order("created_at", { ascending: false }),
@@ -495,35 +511,42 @@ const AdminDashboard = () => {
       ]);
       // Preservar os dados actuais quando uma consulta falha; não transformar falhas
       // temporárias de rede/RLS em listas vazias no painel.
-      if (prodRes.error) console.error("Erro ao carregar produtos:", prodRes.error);
-      else setProducts(prodRes.data || []);
+      if (prodRes.error) { console.error("Erro ao carregar produtos:", prodRes.error); reportDataError("products", "Produtos", prodRes.error); }
+      else { setProducts(prodRes.data || []); clearDataError("products"); }
 
-      if (usersRes.error) console.error("Erro ao carregar utilizadores:", usersRes.error);
-      else setUsers(usersRes.data || []);
+      if (usersRes.error) { console.error("Erro ao carregar utilizadores:", usersRes.error); reportDataError("users", "Utilizadores", usersRes.error); }
+      else { setUsers(usersRes.data || []); clearDataError("users"); }
 
-      if (transRes.error) console.error("Erro ao carregar transações:", transRes.error);
-      else setTransactions(transRes.data || []);
+      if (transRes.error) { console.error("Erro ao carregar transações:", transRes.error); reportDataError("transactions", "Transacções", transRes.error); }
+      else { setTransactions(transRes.data || []); clearDataError("transactions"); }
 
-      if (notRes.error) console.error("Erro ao carregar notificações:", notRes.error);
-      else setNotifications(notRes.data || []);
+      if (notRes.error) { console.error("Erro ao carregar notificações:", notRes.error); reportDataError("notifications", "Notificações", notRes.error); }
+      else { setNotifications(notRes.data || []); clearDataError("notifications"); }
 
-      if (fichasRes.error) console.error("Erro ao carregar fichas:", fichasRes.error);
-      else setFichas(fichasRes.data || []);
+      if (fichasRes.error) { console.error("Erro ao carregar fichas:", fichasRes.error); reportDataError("fichas", "Fichas de recebimento", fichasRes.error); }
+      else { setFichas(fichasRes.data || []); clearDataError("fichas"); }
 
-      if (sourcingRes.error) console.error("Erro ao carregar pedidos de sourcing:", sourcingRes.error);
-      else setSourcingRequests(sourcingRes.data || []);
+      if (sourcingRes.error) { console.error("Erro ao carregar pedidos de sourcing:", sourcingRes.error); reportDataError("sourcing", "Pedidos de sourcing", sourcingRes.error); }
+      else { setSourcingRequests(sourcingRes.data || []); clearDataError("sourcing"); }
 
-      if (topAgentsRes.error) console.error("Erro ao carregar agentes:", topAgentsRes.error);
-      else setTopAgents(topAgentsRes.data || []);
+      if (topAgentsRes.error) { console.error("Erro ao carregar agentes:", topAgentsRes.error); reportDataError("agents", "Agentes", topAgentsRes.error); }
+      else { setTopAgents(topAgentsRes.data || []); clearDataError("agents"); }
       if (ordersRes.error) {
         console.error("Erro ao carregar pedidos:", ordersRes.error);
-        toast.error("Não foi possível carregar os pedidos.");
+        reportDataError("orders", "Pedidos", ordersRes.error);
       } else {
         setOrders(ordersRes.data || []);
+        clearDataError("orders");
       }
       
-      // Process referrals with user data
-      if (referralsRes.data && usersRes.data) {
+      if (referralsRes.error) {
+        console.error("Erro ao carregar referências:", referralsRes.error);
+        reportDataError("referrals", "Referências de agentes", referralsRes.error);
+      } else {
+        clearDataError("referrals");
+      }
+      // Process referrals only when both source queries succeeded.
+      if (!referralsRes.error && !usersRes.error && referralsRes.data && usersRes.data) {
         const usersMap = new Map(usersRes.data.map(u => [u.id, u]));
         const processedReferrals: Referral[] = referralsRes.data.map((r: any) => {
           const agent = usersMap.get(r.agent_id);
@@ -544,6 +567,7 @@ const AdminDashboard = () => {
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
+      reportDataError("general", "Painel administrativo", error);
     } finally {
       if (!silent) setLoading(false);
     }
@@ -813,27 +837,28 @@ const AdminDashboard = () => {
     }
   }, [adminFreightPrice, hasPermission, isSupportAgent]);
 
-  const updateSourcingStatus = useCallback(async (id: string, newStatus: string, adminNotes?: string) => {
+  const updateSourcingStatus = useCallback(async (id: string, newStatus: string, adminNotes?: string): Promise<boolean> => {
     if (!hasPermission("manage_sourcing")) {
       toast.error("Não tem permissão para gerir pedidos de sourcing.");
-      return;
+      return false;
     }
 
     const allowedStatuses = new Set(["pending", "in_progress", "reviewing", "quoted", "approved", "fulfilled", "completed", "rejected", "cancelled"]);
     if (!allowedStatuses.has(newStatus)) {
       toast.error("Estado de sourcing inválido.");
-      return;
+      return false;
     }
 
-    let notes = adminNotes;
+    const notes = adminNotes;
     if (["completed", "rejected"].includes(newStatus) && !notes?.trim()) {
-      notes = window.prompt(newStatus === "completed"
-        ? "Registe a evidência da conclusão do pedido."
-        : "Indique o motivo da rejeição do pedido.") || undefined;
-      if (!notes?.trim()) {
-        toast.error("Operação cancelada. A evidência ou o motivo é obrigatório.");
-        return;
+      const request = sourcingRequests.find((item) => item.id === id);
+      if (!request) {
+        toast.error("O pedido de sourcing já não está disponível. Atualize a lista e tente novamente.");
+        return false;
       }
+      setSourcingNoteTarget({ ...request, status: newStatus });
+      setSourcingNote("");
+      return false;
     }
 
     try {
@@ -849,13 +874,15 @@ const AdminDashboard = () => {
       if (notes !== undefined) updateData.admin_notes = notes.trim() || null;
       setSourcingRequests((prev) => prev.map((request) => (request.id === id ? { ...request, ...updateData } : request)));
       toast.success("Pedido de sourcing actualizado.");
+      return true;
     } catch (error) {
       const message = error && typeof error === "object" && "message" in error
         ? String((error as { message: unknown }).message)
         : "Não foi possível actualizar o pedido de sourcing.";
       toast.error(message);
+      return false;
     }
-  }, [hasPermission]);
+  }, [hasPermission, sourcingRequests]);
 
   const changeUserType = useCallback(async (userId: string, userType: User["user_type"]) => {
     if (!userType || !hasPermission("manage_users")) {
@@ -1057,6 +1084,15 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-[#F7F9F7]">
+      {Object.keys(dataLoadErrors).length > 0 && (
+        <div role="alert" className="mx-4 mt-4 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          <div>
+            <p className="font-semibold">Alguns dados do painel não puderam ser actualizados.</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">{Object.entries(dataLoadErrors).map(([key, message]) => <li key={key}>{message}</li>)}</ul>
+          </div>
+          <Button variant="outline" className="self-start" onClick={() => void fetchAllData()} disabled={loading}>Tentar novamente</Button>
+        </div>
+      )}
 
       {/* ═══ SIDEBAR (navegação vertical) ═══════════════════════════════════ */}
       <aside className={`fixed top-0 left-0 h-screen w-64 bg-white border-r border-gray-100 z-40 flex flex-col transition-transform duration-300 ease-out ${menuOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}>
@@ -2796,34 +2832,45 @@ const AdminDashboard = () => {
                     <img src={agrilinkLogo} alt="AgriLink" className="h-full w-full object-contain" />
                   </div>
                   <div>
-                    <DialogTitle className="text-lg">Notas do pedido de sourcing</DialogTitle>
+                    <DialogTitle className="text-lg">
+                      {sourcingNoteTarget?.status === "completed" ? "Confirmar conclusão do pedido" : sourcingNoteTarget?.status === "rejected" ? "Rejeitar pedido de sourcing" : "Notas do pedido de sourcing"}
+                    </DialogTitle>
                     <p className="mt-0.5 text-xs text-muted-foreground">{sourcingNoteTarget?.product_name || "Pedido de sourcing"}</p>
                   </div>
                 </div>
               </DialogHeader>
               <div className="mt-4 space-y-2">
-                <label htmlFor="admin-sourcing-note" className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Nota administrativa</label>
+                <label htmlFor="admin-sourcing-note" className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
+                  {sourcingNoteTarget?.status === "completed" ? "Evidência da conclusão *" : sourcingNoteTarget?.status === "rejected" ? "Motivo da rejeição *" : "Nota administrativa"}
+                </label>
                 <Textarea
                   id="admin-sourcing-note"
                   value={sourcingNote}
                   onChange={(e) => setSourcingNote(e.target.value)}
-                  placeholder="Registe aqui o acompanhamento, decisão ou observação operacional."
+                  placeholder={sourcingNoteTarget?.status === "completed" ? "Indique a evidência que confirma a conclusão do pedido." : sourcingNoteTarget?.status === "rejected" ? "Registe o motivo objetivo da rejeição do pedido." : "Registe aqui o acompanhamento, decisão ou observação operacional."}
+                  required={["completed", "rejected"].includes(sourcingNoteTarget?.status || "")}
+                  minLength={["completed", "rejected"].includes(sourcingNoteTarget?.status || "") ? 4 : undefined}
+                  maxLength={2000}
                   rows={6}
                   className="resize-none rounded-xl"
                   autoFocus
                 />
               </div>
               <DialogFooter className="mt-5 gap-2">
-                <Button variant="ghost" onClick={() => setSourcingNoteTarget(null)}>Cancelar</Button>
+                <Button variant="ghost" onClick={() => { setSourcingNoteTarget(null); setSourcingNote(""); }}>Cancelar</Button>
                 <Button
-                  onClick={() => {
+                  disabled={["completed", "rejected"].includes(sourcingNoteTarget?.status || "") && sourcingNote.trim().length < 4}
+                  onClick={async () => {
                     if (!sourcingNoteTarget) return;
-                    updateSourcingStatus(sourcingNoteTarget.id, sourcingNoteTarget.status, sourcingNote.trim());
-                    setSourcingNoteTarget(null);
+                    const saved = await updateSourcingStatus(sourcingNoteTarget.id, sourcingNoteTarget.status, sourcingNote.trim());
+                    if (saved) {
+                      setSourcingNoteTarget(null);
+                      setSourcingNote("");
+                    }
                   }}
                   className="bg-primary text-white hover:bg-primary/90"
                 >
-                  Guardar nota
+                  {sourcingNoteTarget?.status === "completed" ? "Confirmar conclusão" : sourcingNoteTarget?.status === "rejected" ? "Confirmar rejeição" : "Guardar nota"}
                 </Button>
               </DialogFooter>
             </div>

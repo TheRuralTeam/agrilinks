@@ -21,27 +21,42 @@ const MarketPriceTicker = () => {
   const [prices, setPrices] = useState<MarketPrice[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
   useEffect(() => {
+    let active = true;
     const load = async () => {
-      const { data } = await supabase
-        .from("market_prices")
-        .select("id, product, unit, price_kz, market_location, market_type, date, price_change_pct")
-        .eq("published", true)
-        .order("date", { ascending: false })
-        .limit(200);
+      setLoading(true);
+      setLoadError(false);
+      try {
+        const { data, error } = await supabase
+          .from("market_prices")
+          .select("id, product, unit, price_kz, market_location, market_type, date, price_change_pct")
+          .eq("published", true)
+          .order("date", { ascending: false })
+          .limit(200);
 
-      // manter só o registo mais recente por produto + localização + tipo
-      const latest = new Map<string, MarketPrice>();
-      (data || []).forEach((row: MarketPrice) => {
-        const key = `${row.product}|${row.market_location}|${row.market_type}`;
-        if (!latest.has(key)) latest.set(key, row);
-      });
-
-      setPrices(Array.from(latest.values()).slice(0, 12));
-      setLoading(false);
+        if (error) throw error;
+        const latest = new Map<string, MarketPrice>();
+        (data || []).forEach((row: MarketPrice) => {
+          const key = `${row.product}|${row.market_location}|${row.market_type}`;
+          if (!latest.has(key)) latest.set(key, row);
+        });
+        if (active) setPrices(Array.from(latest.values()).slice(0, 12));
+      } catch (error) {
+        console.error("[AgriLink] Não foi possível consultar os preços publicados:", error);
+        if (active) {
+          setPrices([]);
+          setLoadError(true);
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
     };
-    load();
-  }, []);
+    void load();
+    return () => { active = false; };
+  }, [reloadKey]);
 
   const lastUpdate = useMemo(() => {
     if (!prices.length) return null;
@@ -59,12 +74,12 @@ const MarketPriceTicker = () => {
             <FontAwesomeIcon icon={faChartLine} /> Preços do Mercado Agroalimentar — Hoje
           </h3>
           <p className="market-ticker-sub">
-            Dados actualizados diariamente. Rastreabilidade total entre o mercado formal e informal.
+            Últimos preços publicados na AgriLink, com data e tipo de mercado de cada registo.
           </p>
         </div>
         {lastUpdate && (
           <span className="market-ticker-stamp">
-            Última actualização · {new Date(lastUpdate).toLocaleDateString("pt-AO")}
+            Último registo · {new Date(lastUpdate).toLocaleDateString("pt-AO")}
           </span>
         )}
       </div>
@@ -75,10 +90,16 @@ const MarketPriceTicker = () => {
             <div key={i} className="market-card market-card-skeleton" />
           ))}
         </div>
+      ) : loadError ? (
+        <div role="alert" className="market-empty">
+          <FontAwesomeIcon icon={faChartLine} />
+          <span>Não foi possível consultar os preços publicados.</span>
+          <button type="button" onClick={() => setReloadKey((value) => value + 1)} className="rounded-lg border px-3 py-2 text-xs font-semibold" style={{ borderColor: "#D8E6DA", color: "#2E7D32" }}>Tentar novamente</button>
+        </div>
       ) : prices.length === 0 ? (
         <div className="market-empty">
           <FontAwesomeIcon icon={faChartLine} />
-          <span>Preços a serem publicados em breve</span>
+          <span>Ainda não existem preços publicados.</span>
         </div>
       ) : (
         <div className="market-grid">

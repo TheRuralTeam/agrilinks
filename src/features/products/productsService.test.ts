@@ -36,4 +36,23 @@ describe('productsService', () => {
 
     expect(products).toEqual([])
   })
+
+  it('propagates catalogue query failures instead of reporting a false empty feed', async () => {
+    const queryError = new Error('Supabase unavailable')
+    mockSupabaseFrom.mockImplementation((table: string) => {
+      if (table === 'products') {
+        const builder: any = {
+          select: () => builder,
+          eq: () => builder,
+          order: () => builder,
+          range: async () => ({ data: null, error: queryError }),
+        }
+        return builder
+      }
+
+      throw new Error(`Unexpected query to ${table}`)
+    })
+
+    await expect(fetchActiveProducts()).rejects.toThrow('Supabase unavailable')
+  })
 })

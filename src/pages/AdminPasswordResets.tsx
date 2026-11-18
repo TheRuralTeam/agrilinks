@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 
 type Account = { id: string; full_name: string | null; email: string | null; phone: string | null; user_type: string | null; is_root_admin?: boolean | null; is_super_root?: boolean | null };
 
@@ -21,6 +22,7 @@ export default function AdminPasswordResets() {
   const [saving, setSaving] = useState(false);
   const [lastPassword, setLastPassword] = useState("");
   const [copied, setCopied] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState<Account | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -51,12 +53,16 @@ export default function AdminPasswordResets() {
     }
     const target = accounts.find((account) => account.id === targetId);
     if (!target) return toast.error("Utilizador não encontrado.");
-    if (!window.confirm(`Vai substituir a senha de ${target.full_name || target.email || target.id} e exigir uma nova senha no próximo login. Continuar?`)) return;
+    setConfirmTarget(target);
+  };
+
+  const confirmPasswordReset = async () => {
+    if (!confirmTarget) return;
     setSaving(true);
     setLastPassword("");
     try {
       const { data, error } = await supabase.functions.invoke("admin-reset-user-password", {
-        body: { user_id: targetId, temporary_password: temporaryPassword },
+        body: { user_id: confirmTarget.id, temporary_password: temporaryPassword },
       });
       if (error) {
         const details = error.context ? await error.context.json().catch(() => null) : null;
@@ -65,6 +71,7 @@ export default function AdminPasswordResets() {
       if (!data?.success) throw new Error(data?.error || "Não foi possível redefinir a senha.");
       setLastPassword(temporaryPassword);
       setTemporaryPassword("");
+      setConfirmTarget(null);
       toast.success("Senha temporária definida. A troca será obrigatória no próximo login.");
     } catch (error: any) {
       toast.error(error?.message || "Falha ao redefinir a senha.");
@@ -129,6 +136,25 @@ export default function AdminPasswordResets() {
             </Button>
           </CardContent>
         </Card>
+        <Dialog open={!!confirmTarget} onOpenChange={(open) => { if (!open && !saving) setConfirmTarget(null); }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Confirmar redefinição de senha</DialogTitle>
+              <DialogDescription>
+                Vai definir uma senha temporária para {confirmTarget?.full_name || confirmTarget?.email || "a conta seleccionada"} e exigir uma nova senha no próximo login. Esta acção altera o acesso à conta.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              Entregue a senha temporária apenas ao titular, através de um canal privado e seguro.
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" disabled={saving} onClick={() => setConfirmTarget(null)}>Cancelar</Button>
+              <Button onClick={() => void confirmPasswordReset()} disabled={saving}>
+                {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> A redefinir…</> : "Confirmar e redefinir"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         {lastPassword && <Card className="border-emerald-200">
           <CardHeader><CardTitle className="text-base">Senha temporária criada</CardTitle><CardDescription>Copie-a agora e entregue-a ao titular por um canal seguro. Esta visualização desaparece ao sair ou actualizar a página.</CardDescription></CardHeader>
           <CardContent className="flex flex-col sm:flex-row gap-3">

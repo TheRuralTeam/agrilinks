@@ -11,33 +11,57 @@ const BottomNavigation = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { isAdmin, isRootAdmin, isSuperRoot, user, userProfile } = useAuth()
-  const [unreadNotifications, setUnreadNotifications] = useState(0)
-  const [unreadMessages, setUnreadMessages] = useState(0)
+  const [unreadNotifications, setUnreadNotifications] = useState<number | null>(null)
+  const [unreadMessages, setUnreadMessages] = useState<number | null>(null)
   const [buyerCartQuantity, setBuyerCartQuantity] = useState(0)
 
   useEffect(() => {
-    if (!user?.id) return
-    const fetchCounts = async () => {
-      const { count: notifCount } = await supabase
-        .from('notifications').select('*', { count:'exact', head:true })
-        .eq('user_id', user.id).eq('read', false)
-      setUnreadNotifications(notifCount || 0)
-
-      const { count: msgCount } = await supabase
-        .from('messages').select('*', { count:'exact', head:true })
-        .eq('receiver_id', user.id).eq('read', false)
-      setUnreadMessages(msgCount || 0)
+    if (!user?.id) {
+      setUnreadNotifications(null)
+      setUnreadMessages(null)
+      return
     }
-    fetchCounts()
 
-    const notifChannel = supabase.channel('notifications-count')
+    let active = true
+    let requestSequence = 0
+
+    const fetchCounts = async () => {
+      const currentSequence = ++requestSequence
+      try {
+        const [notificationResult, messageResult] = await Promise.all([
+          supabase
+            .from('notifications').select('*', { count:'exact', head:true })
+            .eq('user_id', user.id).eq('read', false),
+          supabase
+            .from('messages').select('*', { count:'exact', head:true })
+            .eq('receiver_id', user.id).eq('read', false),
+        ])
+
+        if (!active || currentSequence !== requestSequence) return
+        setUnreadNotifications(notificationResult.error ? null : notificationResult.count ?? 0)
+        setUnreadMessages(messageResult.error ? null : messageResult.count ?? 0)
+      } catch {
+        if (!active || currentSequence !== requestSequence) return
+        setUnreadNotifications(null)
+        setUnreadMessages(null)
+      }
+    }
+
+    void fetchCounts()
+
+    const notifChannel = supabase.channel(`notifications-count-${user.id}`)
       .on('postgres_changes', { event:'*', schema:'public', table:'notifications', filter:`user_id=eq.${user.id}` }, fetchCounts)
       .subscribe()
-    const msgChannel = supabase.channel('messages-count')
+    const msgChannel = supabase.channel(`messages-count-${user.id}`)
       .on('postgres_changes', { event:'*', schema:'public', table:'messages', filter:`receiver_id=eq.${user.id}` }, fetchCounts)
       .subscribe()
 
-    return () => { supabase.removeChannel(notifChannel); supabase.removeChannel(msgChannel) }
+    return () => {
+      active = false
+      requestSequence += 1
+      void supabase.removeChannel(notifChannel)
+      void supabase.removeChannel(msgChannel)
+    }
   }, [user?.id])
 
   useEffect(() => {
@@ -99,14 +123,19 @@ const BottomNavigation = () => {
             const isAction = (item as any).isAction
             const itemLabel = String(item.label ?? '')
             const badgeValue = Number((item as any).cartCount ?? 0) || Number((item as any).badge ?? 0)
+            const accessibleLabel = item.id === 'nav-notifications' && unreadNotifications === null
+              ? 'Notificações; contagem indisponível'
+              : item.id === 'nav-messages' && unreadMessages === null
+                ? 'Mensagens; contagem indisponível'
+                : itemLabel
 
             return (
               <button
                 key={`${item.id}-${item.path}`}
                 type="button"
                 onClick={() => navigate(item.path)}
-                aria-label={itemLabel}
-                title={itemLabel}
+                aria-label={accessibleLabel}
+                title={accessibleLabel}
                 className={`relative flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 text-foreground transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   isAction
                     ? 'bg-primary text-primary-foreground shadow-soft active:scale-[0.97]'

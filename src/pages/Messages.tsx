@@ -4,18 +4,11 @@ import { Button } from "../components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { 
   Send, 
-  Paperclip, 
   ArrowLeft, 
   MessageSquare, 
-  X,
   Clock,
   CheckCheck,
-  Download,
-  MoreVertical,
-  Smile,
-  Phone,
-  Video,
-  User
+  Smile
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../integrations/supabase/client";
@@ -39,6 +32,15 @@ interface Message {
   files?: { url: string; name: string; size?: number }[] | null;
 }
 
+interface MessageBubbleProps {
+  message: Message;
+  isOwn: boolean;
+  senderName: string;
+  isSent: boolean;
+  showAvatar: boolean;
+  avatarUrl?: string | null;
+}
+
 interface Conversation {
   id: string;
   title: string;
@@ -53,7 +55,6 @@ interface Conversation {
 // --- Constantes ---
 
 const MAX_FILE_SIZE = 35 * 1024 * 1024; // 35MB
-const BUCKET_NAME = "chatfiles";
 const MAX_MESSAGE_LENGTH = 5000;
 
 const AGRO_EMOJIS = [
@@ -67,76 +68,6 @@ const AGRO_EMOJIS = [
 
 // --- Componentes Auxiliares ---
 
-interface FilePreviewProps {
-  file: { url: string; name: string; size?: number };
-  onRemove?: () => void;
-  isPreview?: boolean;
-  isOwn?: boolean;
-}
-
-const FilePreview: React.FC<FilePreviewProps> = ({ file, onRemove, isPreview = false, isOwn = false }) => {
-  const getFileIcon = (name: string) => {
-    const ext = name.split(".").pop()?.toLowerCase();
-    if (["pdf", "doc", "docx", "txt"].includes(ext || "")) return "📄";
-    if (["jpg", "jpeg", "png", "gif"].includes(ext || "")) return "🖼️";
-    return "📎";
-  };
-
-  const formatFileSize = (bytes?: number) => {
-    if (!bytes) return "";
-    if (bytes < 1024) return `${bytes}B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
-  };
-
-  return (
-    <div
-      className="flex items-center gap-3 px-3 py-2 rounded-xl border transition-all"
-      style={{ 
-        backgroundColor: isPreview ? T.g50 : (isOwn ? 'rgba(255,255,255,0.1)' : T.canvas),
-        borderColor: isPreview ? T.gBorder : (isOwn ? 'rgba(255,255,255,0.2)' : T.rule)
-      }}
-    >
-      <span className="text-lg">{getFileIcon(file.name)}</span>
-      <div className="flex-1 min-w-0">
-        <p className={`text-xs font-bold truncate ${isOwn ? 'text-white' : ''}`} style={{ color: isOwn ? T.white : T.ink }}>
-          {file.name}
-        </p>
-        {file.size && (
-          <p className="text-[10px]" style={{ color: isOwn ? 'rgba(255,255,255,0.7)' : T.muted }}>
-            {formatFileSize(file.size)}
-          </p>
-        )}
-      </div>
-      {isPreview && onRemove && (
-        <button
-          onClick={onRemove}
-          className="p-1 rounded-full transition-colors hover:bg-white/50"
-        >
-          <X size={14} style={{ color: T.g600 }} />
-        </button>
-      )}
-      {!isPreview && (
-        <a
-          href={file.url}
-          download={file.name}
-          className="p-1 rounded-full transition-colors hover:bg-black/5"
-        >
-          <Download size={14} style={{ color: isOwn ? T.white : T.muted }} />
-        </a>
-      )}
-    </div>
-  );
-};
-
-interface MessageBubbleProps {
-  message: Message;
-  isOwn: boolean;
-  senderName: string;
-  isSent: boolean;
-  showAvatar: boolean;
-  avatarUrl?: string | null;
-}
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
@@ -180,13 +111,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           >
             <p className="text-[14px] leading-relaxed break-words font-medium">{message.content}</p>
 
-            {message.files && message.files.length > 0 && (
-              <div className="mt-3 space-y-2 pt-2 border-t" style={{ borderColor: isOwn ? 'rgba(255,255,255,0.1)' : T.rule }}>
-                {message.files.map((file, idx) => (
-                  <FilePreview key={idx} file={file} isPreview={false} isOwn={isOwn} />
-                ))}
-              </div>
-            )}
           </div>
 
           <div className="flex items-center gap-1.5 mt-1 px-1">
@@ -219,16 +143,16 @@ const Messages = () => {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [sentMessageIds, setSentMessageIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
   const [isSending, setIsSending] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -236,8 +160,28 @@ const Messages = () => {
     const loadConversation = async () => {
       try {
         const { data, error } = await supabase.from("conversations").select("*").eq("id", id).single();
-        if (error || !data) throw error;
-        setConversation(data as Conversation);
+        if (error) throw error;
+        if (!data) throw new Error("Conversa não encontrada.");
+
+        const peerId = data.user_id === user.id
+          ? (data.participant_id || data.peer_user_id || null)
+          : (data.user_id || data.peer_user_id || data.participant_id || null);
+        let conversationTitle = data.title || "Conversa AgriLink";
+        let conversationAvatar = data.avatar || null;
+        if (peerId && peerId !== user.id) {
+          const { data: peerProfile, error: peerProfileError } = await supabase
+            .from("public_user_profiles")
+            .select("full_name, avatar_url")
+            .eq("id", peerId)
+            .maybeSingle();
+          if (peerProfileError) {
+            console.error("Não foi possível actualizar o nome público da conversa:", peerProfileError);
+          } else if (peerProfile) {
+            conversationTitle = peerProfile.full_name?.trim() || conversationTitle;
+            conversationAvatar = peerProfile.avatar_url || conversationAvatar;
+          }
+        }
+        setConversation({ ...data, title: conversationTitle, avatar: conversationAvatar } as Conversation);
       } catch (err) {
         console.error("Erro ao carregar conversa:", err);
         toast({ title: "Erro", description: "Não foi possível carregar a conversa", variant: "destructive" });
@@ -308,6 +252,7 @@ const Messages = () => {
   useEffect(() => {
     if (!user || !id) return;
     setIsLoading(true);
+    setLoadError(null);
     const fetchMessages = async () => {
       try {
         await ensureChatEncryptionKey(user.id);
@@ -327,6 +272,7 @@ const Messages = () => {
         }
       } catch (err) {
         console.error("Erro ao carregar mensagens:", err);
+        setLoadError("Não foi possível consultar as mensagens. Verifique a ligação e tente novamente.");
       } finally {
         setIsLoading(false);
       }
@@ -351,63 +297,40 @@ const Messages = () => {
         }
       ).subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, id]);
+  }, [user, id, reloadToken]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleFilesChange = useCallback((files: FileList) => {
-    const newFiles: File[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (file.size > MAX_FILE_SIZE) {
-        toast({ title: "Arquivo muito grande", description: `${file.name} excede o limite de 35MB`, variant: "destructive" });
-        continue;
-      }
-      newFiles.push(file);
-    }
-    setSelectedFiles((prev) => [...prev, ...newFiles]);
-  }, [toast]);
-
-  const removeFile = useCallback((index: number) => {
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
-  }, []);
-
   const sendMessage = useCallback(async () => {
-    if (!user || !conversation?.participant_id || !id) return;
-    if (!newMessage.trim() && selectedFiles.length === 0) return;
-    if (selectedFiles.length > 0) {
-      toast({
-        title: "Anexos temporariamente bloqueados",
-        description: "Para proteger a conversa, os anexos ficam bloqueados até a cifragem dos ficheiros e a respectiva desencriptação serem implementadas e testadas.",
-        variant: "destructive",
-      });
+    if (!user || !conversation || !id) return;
+    const recipientId = conversation.user_id === user.id
+      ? (conversation.participant_id || conversation.peer_user_id || null)
+      : (conversation.user_id || conversation.peer_user_id || conversation.participant_id || null);
+    if (!recipientId) {
+      toast({ title: "Destinatário indisponível", description: "Não foi possível identificar o outro participante desta conversa.", variant: "destructive" });
       return;
     }
+    if (!newMessage.trim()) return;
     setIsSending(true);
     try {
-      const filesData: Array<{ url: string; name: string; size: number }> = [];
-      for (const file of selectedFiles) {
-        const ext = file.name.split(".").pop();
-        const fileName = `${crypto.randomUUID()}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from(BUCKET_NAME).upload(fileName, file);
-        if (!uploadError) {
-          const { data } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(fileName, 3600);
-          if (data) filesData.push({ url: data.signedUrl, name: file.name, size: file.size });
-        }
-      }
-      const plainContent = newMessage.trim() || (filesData.length > 0 ? `📎 ${filesData.length} arquivo(s)` : "");
-      const encryptedContent = await encryptChatMessage(plainContent, id, user.id, conversation.participant_id);
+      const plainContent = newMessage.trim();
+      const encryptedContent = await encryptChatMessage(plainContent, id, user.id, recipientId);
       const { data, error } = await supabase.from("messages").insert([{
-        conversation_id: id, sender_id: user.id, receiver_id: conversation.participant_id,
-        content: encryptedContent, read: false, files: filesData.length > 0 ? filesData : undefined
+        conversation_id: id, sender_id: user.id, receiver_id: recipientId,
+        content: encryptedContent, read: false
       }]).select().single();
       if (error) throw error;
       setSentMessageIds((prev) => new Set([...prev, data.id]));
-      await supabase.from("conversations").update({ last_message: "🔒 Mensagem encriptada", last_timestamp: new Date().toISOString() }).eq("id", id);
+      setMessages((previous) => previous.some((message) => message.id === data.id)
+        ? previous
+        : [...previous, { ...data, content: plainContent, files: [] } as Message]);
+      const { error: conversationUpdateError } = await supabase.from("conversations")
+        .update({ last_message: "🔒 Mensagem encriptada", last_timestamp: new Date().toISOString() })
+        .eq("id", id);
+      if (conversationUpdateError) console.error("Mensagem enviada, mas a lista de conversas não foi actualizada:", conversationUpdateError);
       setNewMessage("");
-      setSelectedFiles([]);
     } catch (err) {
       console.error("Erro ao enviar mensagem segura:", err);
       toast({
@@ -418,7 +341,7 @@ const Messages = () => {
     } finally {
       setIsSending(false);
     }
-  }, [user, conversation, id, newMessage, selectedFiles, toast]);
+  }, [user, conversation, id, newMessage, toast]);
 
   const groupedMessages = useMemo(() => {
     const groups: { messages: Message[]; sender: string }[] = [];
@@ -460,11 +383,7 @@ const Messages = () => {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/50"><Phone className="h-4 w-4" style={{ color: T.muted }} /></Button>
-            <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/50"><Video className="h-4 w-4" style={{ color: T.muted }} /></Button>
-            <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/50"><MoreVertical className="h-4 w-4" style={{ color: T.muted }} /></Button>
-          </div>
+
         </div>
       </header>
 
@@ -473,6 +392,13 @@ const Messages = () => {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-full py-20">
             <Loader compact />
+          </div>
+        ) : loadError ? (
+          <div role="alert" className="flex h-full flex-col items-center justify-center py-20 text-center">
+            <MessageSquare className="mb-4 h-10 w-10" style={{ color: T.faint }} />
+            <p className="font-bold text-lg" style={{ color: T.ink }}>Não foi possível carregar as mensagens</p>
+            <p className="mt-2 max-w-sm break-words text-sm" style={{ color: T.muted }}>{loadError}</p>
+            <Button variant="outline" className="mt-4" onClick={() => setReloadToken((value) => value + 1)}>Tentar novamente</Button>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-20">
@@ -505,20 +431,7 @@ const Messages = () => {
       {/* Input Footer */}
       <footer className="p-4 md:p-6" style={{ backgroundColor: T.canvas }}>
         <div className="max-w-4xl mx-auto flex flex-col gap-3">
-          {selectedFiles.length > 0 && (
-            <div className="flex gap-2 flex-wrap p-3 rounded-2xl border animate-in slide-in-from-bottom-2" style={{ backgroundColor: T.white, borderColor: T.gBorder }}>
-              {selectedFiles.map((file, idx) => (
-                <FilePreview key={idx} file={{ url: "", name: file.name, size: file.size }} onRemove={() => removeFile(idx)} isPreview={true} />
-              ))}
-            </div>
-          )}
-
           <div className="flex items-end gap-2 bg-white rounded-2xl p-2 shadow-lg border transition-all focus-within:ring-2" style={{ borderColor: T.rule, '--tw-ring-color': T.gBorder } as any}>
-            <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="rounded-xl hover:bg-g50" disabled={isSending}>
-              <Paperclip className="h-5 w-5" style={{ color: T.muted }} />
-            </Button>
-            <input type="file" ref={fileInputRef} className="hidden" multiple onChange={(e) => e.target.files && handleFilesChange(e.target.files)} />
-            
             <textarea
               placeholder="Escreva a sua mensagem..."
               value={newMessage}
@@ -545,7 +458,7 @@ const Messages = () => {
                   </div>
                 )}
               </div>
-              <Button onClick={sendMessage} size="icon" disabled={(!newMessage.trim() && selectedFiles.length === 0) || isSending} className="rounded-xl h-10 w-10 shadow-md transition-transform active:scale-95" style={{ backgroundColor: T.g600, color: T.white }}>
+              <Button onClick={sendMessage} size="icon" disabled={!newMessage.trim() || isSending} className="rounded-xl h-10 w-10 shadow-md transition-transform active:scale-95" style={{ backgroundColor: T.g600, color: T.white }}>
                 {isSending ? <Loader compact className="[&_svg]:text-white" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>

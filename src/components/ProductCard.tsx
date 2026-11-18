@@ -374,7 +374,7 @@ export interface Product {
   status: string; created_at: string | null; user_id: string
   location_lat?: number | null; location_lng?: number | null
   category?: string | null
-  likes_count?: number; is_liked?: boolean; comments?: Comment[]
+  likes_count?: number; is_liked?: boolean; comments?: Comment[]; comments_count?: number
   user_verified?: boolean
 }
 interface ProductCardProps {
@@ -399,6 +399,9 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   const [mapModalOpen, setMapModalOpen] = useState(false)
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [commentsLoaded, setCommentsLoaded] = useState(false)
+  const commentsCount = commentsLoaded
+    ? (product.comments?.length ?? 0)
+    : (product.comments_count ?? product.comments?.length ?? 0)
 
   const formatDate = (d: string | null | undefined) =>
     d ? new Date(d).toLocaleDateString('pt-AO', { day: '2-digit', month: 'short' }) : 'Data indisponível'
@@ -460,13 +463,13 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
       if (commentError) throw commentError
       if (!newComment) throw new Error('O comentário não foi criado.')
       const { data: userData, error: userError } = await supabase
-        .from('users').select('full_name, user_type, avatar_url').eq('id', user.id).single()
-      if (userError) throw userError
+        .from('public_user_profiles').select('full_name, user_type, avatar_url').eq('id', user.id).maybeSingle()
+      if (userError) console.error('Comentário criado; não foi possível carregar o perfil público do autor:', userError)
       const commentWithUserInfo: Comment = {
         ...newComment,
-        user_name: userData?.full_name || 'Usuário',
-        user_type: userData?.user_type || 'agricultor',
-        user_avatar: userData?.avatar_url,
+        user_name: userData?.full_name?.trim() || 'Utilizador AgriLink',
+        user_type: userData?.user_type || 'utilizador',
+        user_avatar: userData?.avatar_url || null,
         likes_count: 0, is_liked: false, replies: []
       }
       onProductUpdate({ ...product, comments: [commentWithUserInfo, ...(product.comments || [])] })
@@ -512,11 +515,11 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
       if (replyError) throw replyError
       if (!newReply) throw new Error('A resposta não foi criada.')
       const { data: userData, error: userError } = await supabase
-        .from('users').select('full_name, user_type').eq('id', user.id).single()
-      if (userError) throw userError
+        .from('public_user_profiles').select('full_name, user_type').eq('id', user.id).maybeSingle()
+      if (userError) console.error('Resposta criada; não foi possível carregar o perfil público do autor:', userError)
       const replyWithUser: CommentReply = {
-        ...newReply, user_name: userData?.full_name || 'Usuário',
-        user_type: userData?.user_type || 'agricultor'
+        ...newReply, user_name: userData?.full_name?.trim() || 'Utilizador AgriLink',
+        user_type: userData?.user_type || 'utilizador'
       }
       const updatedComments = product.comments?.map(c =>
         c.id === commentId ? { ...c, replies: [...(c.replies || []), replyWithUser] } : c
@@ -529,17 +532,25 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   }
 
   const handleShare = async () => {
-    if (navigator.share) {
-      try {
+    const shareUrl = new URL(`/produto/${product.id}`, window.location.origin).toString()
+    try {
+      if (navigator.share) {
         await navigator.share({
           title: product.product_type,
           text: `Confira ${product.product_type} por ${formatPrice(product.price)}!`,
-          url: window.location.href,
+          url: shareUrl,
         })
-      } catch { /* cancelled */ }
-    } else {
-      navigator.clipboard.writeText(window.location.href)
+        return
+      }
+      if (!navigator.clipboard?.writeText) {
+        toast.error('A partilha não está disponível neste dispositivo.')
+        return
+      }
+      await navigator.clipboard.writeText(shareUrl)
       toast.success('Link copiado!')
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return
+      toast.error('Não foi possível partilhar o produto. Tente novamente.')
     }
   }
 
@@ -758,7 +769,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                 onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = commentVisible ? T.g50 : 'transparent')}
               >
                 <MessageCircle size={17} />
-                {product.comments?.length ? <span>{product.comments.length}</span> : null}
+                {commentsCount > 0 ? <span>{commentsCount}</span> : null}
               </button>
             </div>
 

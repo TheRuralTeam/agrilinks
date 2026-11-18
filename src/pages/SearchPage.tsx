@@ -70,10 +70,9 @@ interface Product extends ProductCardType {}
 
 interface UserResult {
   id: string
-  full_name: string
-  email: string
-  user_type: string
-  avatar_url?: string
+  full_name: string | null
+  user_type: string | null
+  avatar_url?: string | null
 }
 
 type SortOption = 'recent' | 'popular' | 'price_asc' | 'price_desc'
@@ -98,6 +97,7 @@ const SearchPage = () => {
   const [productResults, setProductResults] = useState<Product[]>([])
   const [userResults, setUserResults] = useState<UserResult[]>([])
   const [loading, setLoading] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [mapModalOpen, setMapModalOpen] = useState(false)
   const [preOrderModalOpen, setPreOrderModalOpen] = useState(false)
@@ -106,8 +106,12 @@ const SearchPage = () => {
   const [orderData, setOrderData] = useState({ quantity: 1, location: '' })
   const [deliveryCoordinates, setDeliveryCoordinates] = useState<{ latitude: number; longitude: number } | null>(null)
 
+  const searchRequestId = useRef(0)
+
   const searchData = React.useCallback(async (term: string, province?: string, category?: string) => {
+    const requestId = ++searchRequestId.current
     setLoading(true)
+    setSearchError(null)
     try {
       const products = await fetchProductsFeed({
         userId: user?.id,
@@ -118,26 +122,30 @@ const SearchPage = () => {
         category,
       })
 
+      if (requestId !== searchRequestId.current) return
       setProductResults(products as Product[])
 
       if (term.trim() && (activeTab === 'all' || activeTab === 'users')) {
-        const { data: users } = await supabase
-          .from('users')
-          .select('id, full_name, email, user_type, avatar_url')
-          .or(`full_name.ilike.%${term.trim().replace(/[%(),]/g, ' ')}%,email.ilike.%${term.trim().replace(/[%(),]/g, ' ')}%`)
+        const { data: users, error: usersError } = await supabase
+          .from('public_user_profiles')
+          .select('id, full_name, user_type, avatar_url')
+          .in('user_type', ['agricultor', 'agente'])
+          .ilike('full_name', `%${term.trim().replace(/[%(),]/g, ' ')}%`)
+          .order('full_name', { ascending: true })
           .limit(20)
 
+        if (usersError) throw usersError
+        if (requestId !== searchRequestId.current) return
         setUserResults((users || []) as UserResult[])
       } else {
         setUserResults([])
       }
     } catch (err) {
+      if (requestId !== searchRequestId.current) return
       console.error('[AgriLink] Marketplace search failed:', err)
-      setProductResults([])
-      setUserResults([])
-      toast.error('Não foi possível carregar os resultados. Tente novamente.')
+      setSearchError('Não foi possível consultar os resultados. Verifique a ligação e tente novamente.')
     } finally {
-      setLoading(false)
+      if (requestId === searchRequestId.current) setLoading(false)
     }
   }, [user?.id, activeTab])
 
@@ -151,6 +159,7 @@ const SearchPage = () => {
 
     return () => {
       if (searchTimer.current) window.clearTimeout(searchTimer.current)
+      searchRequestId.current += 1
     }
   }, [searchTerm, selectedProvince, selectedCategory, activeTab, searchData])
 
@@ -297,6 +306,7 @@ const SearchPage = () => {
               <Search className="h-4 w-4 text-[#A8BAA9] flex-shrink-0" />
               <input
                 placeholder="Pesquisar produtos, agricultores..."
+                aria-label="Pesquisar produtos e perfis públicos"
                 className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm text-[#111714] placeholder:text-[#A8BAA9]"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -305,6 +315,8 @@ const SearchPage = () => {
 
             <button
               onClick={() => setShowFilters(!showFilters)}
+              aria-label={showFilters ? 'Fechar filtros' : 'Abrir filtros'}
+              aria-expanded={showFilters}
               className="flex items-center justify-center w-9 h-9 rounded-full flex-shrink-0 transition-colors"
               style={{
                 background: showFilters ? '#2c863b' : 'rgba(118,118,128,0.08)',
@@ -421,9 +433,24 @@ const SearchPage = () => {
             <p className="text-[#758A79] font-medium">Buscando as melhores ofertas...</p>
           </div>
         )}
+        {searchError && !loading && (
+          <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
+            <p className="font-semibold text-red-900">Não foi possível carregar os resultados</p>
+            <p className="mt-2 break-words text-sm text-red-800">{searchError}</p>
+            <Button variant="outline" className="mt-4" onClick={() => void searchData(searchTerm, selectedProvince, selectedCategory)}>Tentar novamente</Button>
+          </div>
+        )}
+        {!loading && !searchError && searchTerm.trim() &&
+          (activeTab === 'products' ? sortedProducts.length === 0 : activeTab === 'users' ? userResults.length === 0 : sortedProducts.length === 0 && userResults.length === 0) && (
+          <div className="rounded-2xl border border-dashed border-black/10 bg-white p-10 text-center">
+            <Search className="mx-auto mb-3 h-9 w-9 text-[#A8BAA9]" />
+            <p className="font-semibold text-[#111714]">Nenhum resultado encontrado</p>
+            <p className="mt-2 text-sm text-[#758A79]">Tente outro termo ou ajuste os filtros de pesquisa.</p>
+          </div>
+        )}
 
         {/* Resultados de Usuários - Grelha de 4 Colunas */}
-        {(activeTab === 'all' || activeTab === 'users') && userResults.length > 0 && (
+        {!searchError && (activeTab === 'all' || activeTab === 'users') && userResults.length > 0 && (
           <div className="animate-in fade-in duration-500">
             <div className="flex items-center gap-2 mb-4">
               <User className="h-5 w-5 text-[#2c863b]" />
@@ -432,34 +459,36 @@ const SearchPage = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {userResults.map(user => (
-                <div
+                <button
+                  type="button"
                   key={user.id}
-                  className="rounded-2xl p-4 transition-shadow cursor-pointer group"
+                  aria-label={`Ver perfil de ${user.full_name?.trim() || 'Utilizador AgriLink'}`}
+                  className="w-full rounded-2xl p-4 text-left transition-shadow hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2c863b] group"
                   style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.05)' }}
                   onClick={() => navigate(`/perfil/${user.id}`)}
                 >
                   <div className="flex items-center gap-3">
                     <Avatar className="h-12 w-12 border-2 border-[#E8F5E9] group-hover:border-[#2c863b] transition-colors">
-                      <AvatarImage src={user.avatar_url} />
+                      <AvatarImage src={user.avatar_url ?? undefined} />
                       <AvatarFallback className="bg-[#F2FAF3] text-[#2c863b] font-bold">
-                        {user.full_name.substring(0, 2).toUpperCase()}
+                        {(user.full_name?.trim() || 'Utilizador AgriLink').slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-[#111714] truncate group-hover:text-[#2c863b] transition-colors">
-                        {user.full_name}
+                        {user.full_name?.trim() || 'Utilizador AgriLink'}
                       </p>
-                      <p className="text-xs text-[#758A79] capitalize">{user.user_type}</p>
+                      <p className="text-xs text-[#758A79] capitalize">{user.user_type || 'Membro AgriLink'}</p>
                     </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
         )}
 
         {/* Resultados de Produtos - Grelha de 4 Colunas */}
-        {(activeTab === 'all' || activeTab === 'products') && sortedProducts.length > 0 && (
+        {!searchError && (activeTab === 'all' || activeTab === 'products') && sortedProducts.length > 0 && (
           <div className="animate-in fade-in duration-500">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -483,7 +512,7 @@ const SearchPage = () => {
         )}
 
         {/* Estado vazio sem pesquisa */}
-        {!loading && !searchTerm && sortedProducts.length === 0 && (
+        {!loading && !searchError && !searchTerm && sortedProducts.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl" style={{ background: '#fff', border: '1px dashed rgba(0,0,0,0.08)' }}>
             <div className="p-6 rounded-full mb-4" style={{ background: '#F2FAF3' }}>
               <Search className="h-12 w-12 text-[#2c863b]" />
