@@ -269,3 +269,38 @@ Assim, permanecem **63 ficheiros SQL novos** recuperados do ledger, sem duplicar
 - Os cinco pares divergentes permanecem bloqueados para revisão individual.
 - O backup lógico local continua pendente.
 - Nenhuma operação de escrita, DDL, repair ou aplicação de migrations foi executada no Supabase remoto.
+
+
+
+## H. Correcção metodológica da comparação SQL — 18/11/2026
+
+Esta secção **substitui os resultados de equivalência positiva apresentados na secção G**. Uma reavaliação identificou que a normalização usada anteriormente removia whitespace de forma demasiado agressiva. Esse procedimento não preserva necessariamente fronteiras entre tokens SQL e, por isso, não é adequado para provar equivalência. Os totais positivos anteriormente apresentados (41/41, 45/49 e 54/55) ficam retirados até serem repetidos com um comparador SQL lexical/token-aware, que preserve literais, identificadores entre aspas, operadores e fronteiras de tokens.
+
+### Cinco divergências revalidadas
+
+Foi feita uma comparação directa dos arrays `statements` do ledger remoto com os ficheiros locais correspondentes. Nos cinco casos abaixo, as diferenças observadas são diferenças de conteúdo SQL, e não apenas de timestamp ou formatação:
+
+| Versão remota | Ficheiro local | Diferença material observada |
+|---|---|---|
+| `20261009120808` | `20261009120808_secure_email_outbox_worker.sql` | O ledger começa por criar a função `is_valid_email_outbox_worker_secret`; o ficheiro local começa por um bloco `DO` que verifica/cria o segredo no Vault antes de definir a função. Os conteúdos não são equivalentes. |
+| `20261006222001` | `20261006234000_marketplace_reservation_lifecycle.sql` | O ledger começa pelas funções de libertação/consumo/expiração de reservas; o ficheiro local começa por alterações de estrutura a `products` e `pre_orders`, incluindo colunas de reserva. |
+| `20261007060202` | `20261007070000_freight_load_qr_access_and_pdf.sql` | A função remota autoriza o papel `support`; o ficheiro local usa `support_agent`. A diferença altera a condição de autorização. |
+| `20261008102346` | `20261008143000_p2p_transaction_history_and_receipts.sql` | O ledger revoga privilégios da função de autorização de `PUBLIC`; o ficheiro local revoga de `PUBLIC, anon`. A diferença altera explicitamente os privilégios. |
+| `20261014090931` | `20261014110000_driver_accept_load_pickup_and_gps_workflow.sql` | A ordem e o conteúdo inicial diferem: o ledger começa pela definição de `accept_freight_load`; o ficheiro local começa por adicionar `driver_arrived_at` antes das funções. |
+
+**Decisão:** manter estes cinco pares separados. Não renomear, substituir, combinar nem marcar como equivalentes. Preservar os SQLs do ledger e os ficheiros locais como duas fontes distintas até revisão individual.
+
+### Estado das outras correspondências
+
+- Os 41 candidatos sem nome continuam a ter identidade de blob entre as branches `main` e `restauracao`; isso confirma identidade entre refs Git, mas não prova equivalência com o SQL do ledger remoto.
+- Os resultados positivos de equivalência SQL da secção G ficam suspensos. Não usar os números 41/41, 45/49 ou 54/55 como base para reconciliação.
+- Os 63 ficheiros recuperados continuam identificados como reconstruídos a partir dos arrays `statements` do ledger. A recuperação preserva o SQL registado, mas não prova identidade byte a byte com os ficheiros originais que foram executados.
+- A comparação positiva deve ser refeita com tokenização SQL que preserve literais e fronteiras lexicais. Até lá, apenas divergências materiais observadas directamente podem ser classificadas como divergentes.
+
+### CI e segurança
+
+- O workflow CI #1170, associado ao commit `9a860d3b5502f87a2985642a4825d434e98039fc`, terminou com sucesso; o job `build` e todos os passos apresentados ficaram concluídos com sucesso.
+- A execução não produziu artefactos.
+- O backup lógico local continua pendente.
+- Esta actualização é documental. Não foi executado DDL, `db push`, `migration repair`, reset, nem qualquer escrita no Supabase remoto.
+- A reconciliação continua bloqueada até existir backup verificável e uma comparação SQL fiável de todos os pares candidatos.
