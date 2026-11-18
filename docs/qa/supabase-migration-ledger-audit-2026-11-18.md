@@ -226,3 +226,46 @@ Isto fornece uma fonte primária para recuperar os comandos SQL aplicados nas 66
 5. comparar os 41 candidatos sem nome com os respectivos ficheiros locais antes de associar formalmente as versões.
 
 Nenhuma migration foi executada, reparada ou alterada no projecto remoto. O backup lógico local continua pendente; esta descoberta não o substitui.
+
+
+## G. Validação cruzada do conteúdo SQL — 18/11/2026
+
+A comparação foi aprofundada usando os arrays `statements` do ledger e os ficheiros locais, removendo apenas diferenças de comentários, espaços e terminadores para comparar o conteúdo SQL efectivo.
+
+| Grupo | Resultado |
+|---|---:|
+| Registos sem nome com candidato temporal | 41/41 correspondem ao SQL do ledger |
+| Registos nomeados com ficheiro por nome, mas timestamp diferente | 45/49 correspondem |
+| Registos com versão exacta já representada localmente | 54/55 correspondem |
+| Divergências de conteúdo identificadas | 5 |
+
+### Cinco divergências que exigem tratamento separado
+
+| Versão remota | Ficheiro local candidato | Observação |
+|---|---|---|
+| `20261009120808` | `20261009120808_secure_email_outbox_worker.sql` | Mesmo prefixo de versão, conteúdo SQL divergente |
+| `20261006222001` | `20261006234000_marketplace_reservation_lifecycle.sql` | Nome correspondente, conteúdo divergente |
+| `20261007060202` | `20261007070000_freight_load_qr_access_and_pdf.sql` | Nome correspondente, conteúdo divergente |
+| `20261008102346` | `20261008143000_p2p_transaction_history_and_receipts.sql` | Nome correspondente, conteúdo divergente |
+| `20261014090931` | `20261014110000_driver_accept_load_pickup_and_gps_workflow.sql` | Nome correspondente, conteúdo divergente |
+
+Não associar nem renomear automaticamente estes cinco pares. O SQL remoto deve ser preservado como evidência independente e as versões locais devem ser revistas antes de qualquer reconciliação.
+
+### Duplicados detectados na recuperação inicial
+
+Três das 66 versões inicialmente reconstruídas já tinham um ficheiro local com o mesmo prefixo de versão e SQL equivalente. Os ficheiros reconstruídos duplicados foram removidos da branch; os ficheiros locais originais foram preservados:
+
+- `20261008124445`
+- `20261013083057`
+- `20261013094717`
+
+Assim, permanecem **63 ficheiros SQL novos** recuperados do ledger, sem duplicar os três ficheiros já existentes.
+
+### Estado de validação
+
+- A execução CI #1169 do PR #61 terminou com sucesso antes desta actualização documental e da remoção dos três duplicados.
+- Os 41 candidatos temporais estão confirmados por equivalência do SQL, mas ainda não foram renomeados para as versões remotas.
+- Os 45 pares nomeados equivalentes também aguardam reconciliação de timestamps.
+- Os cinco pares divergentes permanecem bloqueados para revisão individual.
+- O backup lógico local continua pendente.
+- Nenhuma operação de escrita, DDL, repair ou aplicação de migrations foi executada no Supabase remoto.
