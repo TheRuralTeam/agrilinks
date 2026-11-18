@@ -72,6 +72,7 @@ BEGIN
     OR v_load.driver_id = v_actor
     OR v_load.supplier_id = v_actor
     OR v_load.buyer_id = v_actor
+    OR public.is_agrilink_admin()
     OR public.has_role(v_actor, 'admin'::public.app_role)
     OR public.has_role(v_actor, 'support_agent'::public.app_role)
     OR EXISTS (
