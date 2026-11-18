@@ -362,3 +362,26 @@ Os 63 ficheiros reproduzem a sequência de tokens SQL guardada no ledger remoto.
 Esta validação não prova que o conteúdo do ledger corresponde ao SQL historicamente executado no momento original, não valida o efeito actual de cada migration no schema remoto e não constitui autorização para reexecutar migrations. Também não substitui revisão de dependências, ordem, segurança ou execução num ambiente isolado.
 
 **Decisão:** os 63 ficheiros ficam classificados como `LEDGER_MATCH_CONFIRMED`. Não são necessárias alterações ao seu conteúdo nesta etapa. Continuam sem autorização para merge ou execução até concluir o backup e as restantes verificações de reconciliação.
+
+
+## K. Revisão individual dos cinco pares divergentes — 18/11/2026
+
+Os cinco pares foram revistos por finalidade funcional, não apenas pela contagem de tokens. Nenhum foi alterado ou reconciliado automaticamente.
+
+| Versão do ledger | Ficheiro local comparado | Diferença e risco | Decisão |
+|---|---|---|---|
+| `20261009120808` | `20261009120808_secure_email_outbox_worker.sql` | O ficheiro local acrescenta um bloco `DO` que cria um segredo no Vault; o ledger apenas define a função de validação e os privilégios. Criar um segredo novo pode quebrar a correspondência com o segredo já configurado no worker agendado. | Manter separado. Verificar o segredo e a configuração do worker antes de qualquer alteração. Nunca gerar/substituir o segredo em produção por reconciliação. |
+| `20261006222001` | `20261006234000_marketplace_reservation_lifecycle.sql` | O ledger contém funções de libertação/consumo/expiração e trigger; o ficheiro local inclui alterações de schema, índices e lógica adicional de criação de pré-encomenda. Não são o mesmo pacote de alterações. | Manter separado. Exige inventário de colunas, índices, triggers, funções, cron e dependências para perceber quais partes já existem e a sua ordem original. |
+| `20261007060202` | `20261007070000_freight_load_qr_access_and_pdf.sql` | A função remota compara o papel `support`; o ficheiro local usa `support_agent`. O enum `public.app_role` actualmente contém `support_agent` e não contém `support`. | Não executar o SQL do ledger como está no schema actual. O ficheiro local é compatível com o enum observado, mas a diferença histórica permanece por resolver; verificar também privilégios e consumidores da função QR. |
+| `20261008102346` | `20261008143000_p2p_transaction_history_and_receipts.sql` | O ficheiro local acrescenta `anon` à lista de roles no `REVOKE`; o ledger revoga de `PUBLIC`. A revogação explícita de `anon` pode remover grants directos que uma revogação de `PUBLIC` não elimina. | Não assumir equivalência. Inspeccionar ACLs históricas/actuais e grants directos antes de decidir. O estado actual de algumas funções P2P mostra ACLs explícitas, mas não reconstitui a ACL no momento da migration. |
+| `20261014090931` | `20261014110000_driver_accept_load_pickup_and_gps_workflow.sql` | O ledger contém as funções de aceitação e avanço de estado; o ficheiro local acrescenta `driver_arrived_at` e inicia com `ALTER TABLE`. A coluna existe actualmente, mas isso não prova que a migration original a tenha criado. | Manter separado. Verificar a origem da coluna, histórico de deploy, dependências e se a definição actual das funções corresponde ao ledger ou ao ficheiro local. |
+
+### Conclusão operacional
+
+1. Nenhum dos cinco ficheiros deve ser renomeado, substituído ou executado para “alinhar” o histórico.
+2. A divergência QR contém incompatibilidade objectiva com o enum actual: `support` não existe; `support_agent` existe.
+3. A divergência P2P não pode ser descartada como cosmética: `REVOKE FROM PUBLIC` não remove necessariamente grants directos concedidos a `anon`.
+4. A migration do worker de email pode introduzir um segredo diferente do esperado pelo worker existente.
+5. As migrations de marketplace e de fluxo do motorista misturam escopos e dependências que exigem reconciliação baseada no schema e histórico de execução.
+
+Nenhuma destas cinco divergências foi enviada para produção. Esta revisão é read-only e não substitui backup lógico nem ensaios em ambiente isolado.
