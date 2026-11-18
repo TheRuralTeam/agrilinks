@@ -334,3 +334,31 @@ Foi executada uma comparação token-aware read-only entre os arrays `statements
 - O workflow #1170 relativo ao commit anterior `9a860d3` permanece registado como concluído com sucesso na secção H.
 
 A comparação foi read-only. Nenhuma migration foi aplicada, reparada ou renomeada; nenhuma alteração foi feita ao ledger remoto. O backup lógico verificável continua pendente.
+
+
+## J. Validação dos 63 ficheiros adicionados — 18/11/2026
+
+Foi feita a validação integral dos 63 ficheiros SQL adicionados pelo PR #61 contra os 63 registos correspondentes em `supabase_migrations.schema_migrations` no projecto remoto.
+
+### Método
+- A origem remota foi o array `statements` de cada versão do ledger.
+- O conteúdo dos ficheiros foi obtido do patch completo do PR.
+- Ambos os lados foram tokenizados, ignorando apenas whitespace e comentários SQL.
+- Foram preservados literais de string, identificadores quoted, operadores, pontuação e blocos dollar-quoted.
+- Identificadores SQL não quoted foram normalizados para minúsculas, conforme as regras de comparação de identificadores PostgreSQL.
+- Para o lado do ledger, os statements foram unidos respeitando a fronteira entre statements e removendo apenas terminadores finais redundantes.
+
+### Resultado
+- Ficheiros adicionados analisados: **63**.
+- Registos correspondentes no ledger: **63**.
+- Correspondências lexicais exactas: **63/63**.
+- Divergências: **0**.
+- Versões sem registo correspondente: **0**.
+- Ficheiros cujo patch não permitiu reconstrução: **0**.
+
+### Interpretação e limites
+Os 63 ficheiros reproduzem a sequência de tokens SQL guardada no ledger remoto. Isto confirma a fidelidade lexical dos ficheiros recuperados relativamente ao conteúdo actualmente armazenado em `statements`.
+
+Esta validação não prova que o conteúdo do ledger corresponde ao SQL historicamente executado no momento original, não valida o efeito actual de cada migration no schema remoto e não constitui autorização para reexecutar migrations. Também não substitui revisão de dependências, ordem, segurança ou execução num ambiente isolado.
+
+**Decisão:** os 63 ficheiros ficam classificados como `LEDGER_MATCH_CONFIRMED`. Não são necessárias alterações ao seu conteúdo nesta etapa. Continuam sem autorização para merge ou execução até concluir o backup e as restantes verificações de reconciliação.
