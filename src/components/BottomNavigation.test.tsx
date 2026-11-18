@@ -56,5 +56,13 @@ describe('BottomNavigation', () => {
 
     const homeButton = screen.getByRole('button', { name: /início/i })
     expect(homeButton).toHaveAttribute('aria-label', 'Início')
+
+    for (const label of [/Mensagens/, 'Carrinho', /Notificações|Alertas/, 'Mercado', 'Perfil']) {
+      expect(screen.getByRole('button', { name: label })).toBeVisible()
+    }
+
+    const navigation = screen.getByRole('navigation', { name: 'Navegação principal' })
+    expect(navigation).toHaveAttribute('translate', 'no')
+    expect(navigation.querySelector('.truncate')).toBeNull()
   })
 })
