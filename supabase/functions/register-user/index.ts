@@ -110,15 +110,33 @@ Deno.serve(async (req: Request): Promise<Response> => {
       referred_by_agent_code: referralCode,
     };
 
-    const { data, error } = await supabase.auth.admin.generateLink({
-      type: "signup",
-      email,
-      ...(input.password ? { password: input.password } : {}),
-      options: { data: metadata, redirectTo },
-    });
+    let createdUserId: string | null = null;
+    let creationError: Error | null = null;
 
-    if (error || !data?.user?.id || !data.properties?.hashed_token) {
-      const providerMessage = error?.message || "O serviço de autenticação não devolveu o link de confirmação.";
+    if (input.password) {
+      const { data, error } = await supabase.auth.admin.generateLink({
+        type: "signup",
+        email,
+        password: input.password,
+        options: { data: metadata, redirectTo },
+      });
+      creationError = error;
+      createdUserId = data?.user?.id ?? null;
+      if (!error && !data?.properties?.hashed_token) {
+        creationError = new Error("O serviço de autenticação não devolveu o token de confirmação.");
+      }
+    } else {
+      const { data, error } = await supabase.auth.admin.createUser({
+        email,
+        email_confirm: false,
+        user_metadata: metadata,
+      });
+      creationError = error;
+      createdUserId = data?.user?.id ?? null;
+    }
+
+    if (creationError || !createdUserId) {
+      const providerMessage = creationError?.message || "O serviço de autenticação não conseguiu criar a conta.";
       console.error("Falha ao criar conta AgriLink:", providerMessage);
       if (/already registered|already been registered|user already exists/i.test(providerMessage)) {
         return jsonResponse({ error: "Este email já está registado. Inicia sessão ou recupera a palavra-passe." }, 409);
@@ -136,7 +154,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         Prefer: "return=minimal,resolution=ignore-duplicates",
       },
       body: JSON.stringify({
-        dedupe_key: `auth:signup:${data.user.id}`,
+        dedupe_key: `auth:signup:${createdUserId}`,
         recipient: email,
         subject: "Confirme a sua conta — AgriLink",
         template: "auth-signup",
