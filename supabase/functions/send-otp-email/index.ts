@@ -165,8 +165,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     return jsonResponse({
       success: true,
+      queued: true,
       message: "Se a conta estiver registada, receberás um código de verificação por email.",
-    });
+    }, 202);
   } catch (error) {
     console.error("send-otp-email falhou:", error instanceof Error ? error.message : "erro desconhecido");
     return jsonResponse({ error: "Não foi possível enviar o código de verificação. Tenta novamente mais tarde." }, 500);
