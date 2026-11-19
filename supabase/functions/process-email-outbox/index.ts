@@ -21,22 +21,24 @@ async function buildJobEmail(job: any) {
         : String(payload.auth_type || "magiclink");
     const email = String(payload.email || job.recipient);
     let effectiveType = authType;
-    let linkResult = await supabase.auth.admin.generateLink({
-      type: effectiveType as "signup" | "recovery" | "magiclink",
-      email,
-      options: { redirectTo: String(payload.redirect_to) },
-    });
-    if (linkResult.error && authType === "signup" && /already been registered/i.test(linkResult.error.message)) {
-      effectiveType = "magiclink";
-      linkResult = await supabase.auth.admin.generateLink({
-        type: "magiclink",
+    let tokenHash = typeof payload.token_hash === "string" ? payload.token_hash : "";
+    if (!tokenHash) {
+      let linkResult = await supabase.auth.admin.generateLink({
+        type: effectiveType as "signup" | "recovery" | "magiclink",
         email,
         options: { redirectTo: String(payload.redirect_to) },
       });
+      if (linkResult.error && authType === "signup" && /already been registered|already registered|user already exists/i.test(linkResult.error.message)) {
+        effectiveType = "magiclink";
+        linkResult = await supabase.auth.admin.generateLink({
+          type: "magiclink",
+          email,
+          options: { redirectTo: String(payload.redirect_to) },
+        });
+      }
+      if (linkResult.error) throw linkResult.error;
+      tokenHash = linkResult.data.properties?.hashed_token || "";
     }
-    if (linkResult.error) throw linkResult.error;
-    const data = linkResult.data;
-    const tokenHash = data.properties?.hashed_token;
     if (!tokenHash) throw new Error("O Supabase não retornou o token de autenticação.");
     const actionUrl = new URL(String(payload.redirect_to));
     actionUrl.searchParams.set("token_hash", tokenHash);
@@ -70,6 +72,71 @@ async function buildJobEmail(job: any) {
           ? "Entrar na AgriLink"
           : "Confirmar endereço de email",
       ctaHref: actionUrl.toString(),
+    });
+  }
+
+  if (template === "auth-otp") {
+    const expiresAt = Date.parse(String(payload.expires_at || ""));
+    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+      throw new Error("OTP_EXPIRED: o código expirou antes da entrega.");
+    }
+    const code = String(payload.otp_code || "");
+    if (!/^\\d{6}$/.test(code)) throw new Error("OTP_INVALID: código ausente ou inválido.");
+    return buildBrandEmailTemplate({
+      title: job.subject,
+      preheader: "O código para confirmar o seu email na AgriLink.",
+      headline: "Confirme o seu email",
+      bodyHtml: [
+        `<p style="margin:0 0 16px;">Olá ${fullName},</p>`,
+        '<p style="margin:0 0 22px;">Introduza o código abaixo para confirmar o seu endereço de email.</p>',
+        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px;"><tr><td align="center" style="padding:20px 12px;background:#f1f7f0;border:1px solid #dce9dc;border-radius:6px;color:#176b3a;font-family:Arial,Helvetica,sans-serif;font-size:32px;line-height:40px;font-weight:700;letter-spacing:8px;">${code}</td></tr></table>`,
+        '<p style="margin:0 0 12px;font-size:13px;line-height:21px;color:#526158;">O código é válido durante 15 minutos.</p>',
+        '<p style="margin:0;font-size:13px;line-height:21px;color:#526158;">Se não pediu este código, ignore este email.</p>',
+      ].join(""),
+    });
+  }
+
+  if (template === "support-contact") {
+    const name = escapeHtml(String(payload.name || "Utilizador"));
+    const email = escapeHtml(String(payload.email || ""));
+    const phone = escapeHtml(String(payload.phone || "Não indicado"));
+    const message = escapeHtml(String(payload.message || "")).replace(/\\n/g, "<br />");
+    return buildBrandEmailTemplate({
+      title: job.subject,
+      preheader: "Nova mensagem recebida através do portal de suporte da AgriLink.",
+      headline: "Nova mensagem de suporte",
+      bodyHtml: `
+        <p style="margin:0 0 12px;"><strong>Nome:</strong> ${name}</p>
+        <p style="margin:0 0 12px;"><strong>Email:</strong> ${email}</p>
+        <p style="margin:0 0 12px;"><strong>Telefone:</strong> ${phone}</p>
+        <p style="margin:0 0 12px;"><strong>Mensagem:</strong></p>
+        <p style="margin:0 0 12px;">${message}</p>
+      `,
+      secondaryText: "Mensagem recebida através do formulário de contacto da AgriLink.",
+    });
+  }
+
+  if (template === "order-update") {
+    const orderId = escapeHtml(String(payload.order_id || ""));
+    const status = escapeHtml(String(payload.status || ""));
+    const message = escapeHtml(String(payload.message || "")).replace(/\\n/g, "<br />");
+    const redirectTo = String(payload.redirect_to || "https://agrilink.ao/app");
+    const safeUrl = new URL(redirectTo);
+    if (!["agrilink.ao", "www.agrilink.ao"].includes(safeUrl.hostname.toLowerCase())) {
+      throw new Error("Redirect de encomenda não permitido.");
+    }
+    return buildBrandEmailTemplate({
+      title: job.subject,
+      preheader: `A sua encomenda ${orderId} teve uma atualização de estado.`,
+      headline: `Encomenda ${orderId}`,
+      bodyHtml: `
+        <p style="margin:0 0 12px;">Olá ${fullName},</p>
+        <p style="margin:0 0 12px;">O estado da sua encomenda foi atualizado para: <strong>${status}</strong>.</p>
+        <p style="margin:0 0 12px;">${message}</p>
+      `,
+      ctaText: "Consultar encomenda",
+      ctaHref: safeUrl.toString(),
+      secondaryText: "Se precisar de ajuda com esta encomenda, contacte contacto@agrilink.ao.",
     });
   }
 
@@ -141,14 +208,14 @@ Deno.serve(async (req: Request) => {
   const results = await Promise.all((jobs ?? []).map(async (job) => {
     try {
       const html = await buildJobEmail(job);
-      const result = await sendResendEmail({ to: job.recipient, subject: job.subject, html });
+      const result = await sendResendEmail({\n        to: job.recipient,\n        subject: job.subject,\n        html,\n        ...(typeof job.payload?.reply_to === "string" ? { replyTo: job.payload.reply_to } : {}),\n      });
       await supabase.rpc("complete_email_outbox", { p_id: job.id, p_provider_id: result?.id ?? null });
       return true;
     } catch (sendError) {
       await supabase.rpc("fail_email_outbox", {
         p_id: job.id,
         p_error: sendError instanceof Error ? sendError.message : String(sendError),
-        p_retry: true,
+        p_retry: !/^(OTP_EXPIRED|OTP_INVALID):/.test(sendError instanceof Error ? sendError.message : String(sendError)),
       });
       return false;
     }
