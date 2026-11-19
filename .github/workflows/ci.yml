@@ -82,4 +82,4 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${GH_TOKEN}" \
             https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/dispatches \
-            -d "{\"ref\":\" ${GITHUB_HEAD_REF} \"}"
+            -d "{\"ref\":\"${GITHUB_HEAD_REF}\"}"
