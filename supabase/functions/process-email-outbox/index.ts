@@ -100,7 +100,7 @@ async function buildJobEmail(job: any) {
     const name = escapeHtml(String(payload.name || "Utilizador"));
     const email = escapeHtml(String(payload.email || ""));
     const phone = escapeHtml(String(payload.phone || "Não indicado"));
-    const message = escapeHtml(String(payload.message || "")).replace(/\\n/g, "<br />");
+    const message = escapeHtml(String(payload.message || "")).replace(/\n/g, "<br />");
     return buildBrandEmailTemplate({
       title: job.subject,
       preheader: "Nova mensagem recebida através do portal de suporte da AgriLink.",
@@ -119,7 +119,7 @@ async function buildJobEmail(job: any) {
   if (template === "order-update") {
     const orderId = escapeHtml(String(payload.order_id || ""));
     const status = escapeHtml(String(payload.status || ""));
-    const message = escapeHtml(String(payload.message || "")).replace(/\\n/g, "<br />");
+    const message = escapeHtml(String(payload.message || "")).replace(/\n/g, "<br />");
     const redirectTo = String(payload.redirect_to || "https://agrilink.ao/app");
     const safeUrl = new URL(redirectTo);
     if (!["agrilink.ao", "www.agrilink.ao"].includes(safeUrl.hostname.toLowerCase())) {
@@ -208,7 +208,12 @@ Deno.serve(async (req: Request) => {
   const results = await Promise.all((jobs ?? []).map(async (job) => {
     try {
       const html = await buildJobEmail(job);
-      const result = await sendResendEmail({\n        to: job.recipient,\n        subject: job.subject,\n        html,\n        ...(typeof job.payload?.reply_to === "string" ? { replyTo: job.payload.reply_to } : {}),\n      });
+      const result = await sendResendEmail({
+        to: job.recipient,
+        subject: job.subject,
+        html,
+        ...(typeof job.payload?.reply_to === "string" ? { replyTo: job.payload.reply_to } : {}),
+      });
       await supabase.rpc("complete_email_outbox", { p_id: job.id, p_provider_id: result?.id ?? null });
       return true;
     } catch (sendError) {
