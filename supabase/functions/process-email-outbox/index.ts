@@ -215,7 +215,13 @@ Deno.serve(async (req: Request) => {
         idempotencyKey: String(job.dedupe_key),
         ...(typeof job.payload?.reply_to === "string" ? { replyTo: job.payload.reply_to } : {}),
       });
-      await supabase.rpc("complete_email_outbox", { p_id: job.id, p_provider_id: result?.id ?? null });
+      const providerId = typeof result?.id === "string" ? result.id : "";
+      if (!providerId) throw new Error("O Resend não devolveu um identificador de envio.");
+      const { error: completeError } = await supabase.rpc("complete_email_outbox", {
+        p_id: job.id,
+        p_provider_id: providerId,
+      });
+      if (completeError) throw completeError;
       return true;
     } catch (sendError) {
       await supabase.rpc("fail_email_outbox", {
