@@ -88,7 +88,7 @@ jobs:
           SQL
           psql -h localhost -U postgres -d email_outbox_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261119120000_email_outbox_scrub_one_time_secrets.sql
           psql -h localhost -U postgres -d email_outbox_test -v ON_ERROR_STOP=1 <<'SQL'
-          DO $
+          DO $test$
           DECLARE
             job_id uuid;
             job public.email_outbox;
@@ -136,7 +136,7 @@ jobs:
               RAISE EXCEPTION 'outbox RPC grants are not restricted to service_role';
             END IF;
           END;
-          $;
+          $test$;
           SQL
 
       - name: Auditar nomes das migrations (informativo)
