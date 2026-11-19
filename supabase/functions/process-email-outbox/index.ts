@@ -15,7 +15,7 @@ async function buildJobEmail(job: any) {
 
   if (["auth-signup", "auth-recovery", "auth-magic-link"].includes(template)) {
     const authType: "signup" | "recovery" | "magiclink" = template === "auth-signup"
-      ? "signup"
+      ? payload.auth_type === "magiclink" ? "magiclink" : "signup"
       : template === "auth-recovery"
         ? "recovery"
         : payload.auth_type === "recovery"
