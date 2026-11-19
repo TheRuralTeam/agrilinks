@@ -27,6 +27,9 @@ jobs:
         with:
           deno-version: v2.x
 
+      - name: Verificar tipos das Edge Functions de email
+        run: deno check --node-modules-dir=none supabase/functions/process-email-outbox/index.ts supabase/functions/register-user/index.ts supabase/functions/send-order-update-email/index.ts supabase/functions/send-otp-email/index.ts supabase/functions/send-support-email/index.ts
+
       - name: Verificar tipos das Edge Functions multiagente
         run: deno check --node-modules-dir=none supabase/functions/agent-task-submit/index.ts supabase/functions/agent-orchestrator-worker/index.ts
 
