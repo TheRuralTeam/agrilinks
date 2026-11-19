@@ -75,6 +75,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     const name = parsed.data.name.trim();
+    const messageHash = await sha256(`support:${fromEmail}:${name}:${parsed.data.phone || ""}:${parsed.data.message.trim()}`);
     const queueResponse = await fetch(`${supabaseUrl}/rest/v1/email_outbox`, {
       method: "POST",
       headers: {
@@ -84,7 +85,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         Prefer: "return=minimal,resolution=ignore-duplicates",
       },
       body: JSON.stringify({
-        dedupe_key: `support:${emailHash}:${Math.floor(Date.now() / 60000)}`,
+        dedupe_key: `support:${messageHash}`,
         recipient: "contacto@agrilink.ao",
         subject: `Suporte AgriLink — ${name}`,
         template: "support-contact",
