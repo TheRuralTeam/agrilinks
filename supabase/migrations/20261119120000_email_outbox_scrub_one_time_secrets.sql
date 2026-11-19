@@ -83,7 +83,7 @@ RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
-AS $ 
+AS $$
 BEGIN
   UPDATE public.email_outbox
   SET status = CASE WHEN p_retry AND attempts < 8 THEN 'pending' ELSE 'failed' END,
@@ -107,7 +107,7 @@ BEGIN
   WHERE id = p_id
     AND status = 'processing';
 END;
-$;
+$$;
 
 REVOKE ALL ON FUNCTION public.claim_email_outbox(integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.claim_email_outbox(integer) TO service_role;
