@@ -1,28 +1,81 @@
--- Remove one-time credentials from the durable queue immediately after provider acceptance.
--- The queue is service-role only; this further reduces the lifetime of sensitive values.
+-- Harden the outbox worker RPCs and remove one-time credentials after provider acceptance.
+-- SECURITY DEFINER functions use an empty search_path and fully-qualified relations.
+
+CREATE OR REPLACE FUNCTION public.claim_email_outbox(p_limit integer DEFAULT 25)
+RETURNS SETOF public.email_outbox
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  RETURN QUERY
+  WITH claimed AS (
+    SELECT e.id
+    FROM public.email_outbox AS e
+    WHERE (
+      e.status = 'pending'
+      AND e.scheduled_at <= pg_catalog.now()
+      AND e.available_at <= pg_catalog.now()
+    )
+    OR (
+      e.status = 'processing'
+      AND e.locked_at < pg_catalog.now() - interval '2 minutes'
+    )
+    ORDER BY e.priority DESC, e.scheduled_at, e.created_at
+    FOR UPDATE SKIP LOCKED
+    LIMIT greatest(1, least(p_limit, 100))
+  )
+  UPDATE public.email_outbox AS e
+  SET status = 'processing',
+      locked_at = pg_catalog.now(),
+      attempts = e.attempts + 1,
+      updated_at = pg_catalog.now()
+  FROM claimed
+  WHERE e.id = claimed.id
+  RETURNING e.*;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION public.complete_email_outbox(
   p_id uuid,
   p_provider_id text
 )
 RETURNS void
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
+DECLARE
+  affected_rows integer;
+BEGIN
+  IF p_id IS NULL OR p_provider_id IS NULL OR btrim(p_provider_id) = '' THEN
+    RAISE EXCEPTION 'Invalid email outbox completion arguments';
+  END IF;
+
   UPDATE public.email_outbox
   SET status = 'sent',
       provider_id = p_provider_id,
-      sent_at = now(),
+      sent_at = pg_catalog.now(),
       locked_at = NULL,
-      payload = COALESCE(payload, '{}'::jsonb)
+      payload = coalesce(payload, '{}'::jsonb)
         - 'otp_code'
         - 'token_hash'
         - 'access_token'
         - 'refresh_token'
         - 'password',
-      updated_at = now()
-  WHERE id = p_id;
+      updated_at = pg_catalog.now()
+  WHERE id = p_id
+    AND status = 'processing';
+
+  GET DIAGNOSTICS affected_rows = ROW_COUNT;
+  IF affected_rows <> 1 THEN
+    RAISE EXCEPTION 'Email outbox job is not in processing state';
+  END IF;
+END;
 $$;
+
+REVOKE ALL ON FUNCTION public.claim_email_outbox(integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.claim_email_outbox(integer) TO service_role;
 
 REVOKE ALL ON FUNCTION public.complete_email_outbox(uuid, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.complete_email_outbox(uuid, text) TO service_role;
