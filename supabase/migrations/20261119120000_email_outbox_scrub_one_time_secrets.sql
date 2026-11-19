@@ -118,7 +118,7 @@ RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
-AS $
+AS $$
 DECLARE
   affected_rows integer;
 BEGIN
@@ -145,7 +145,7 @@ BEGIN
     RAISE EXCEPTION 'Email outbox auth job is not in processing state';
   END IF;
 END;
-$;
+$$;
 
 REVOKE ALL ON FUNCTION public.persist_email_outbox_auth_token(uuid, text, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.persist_email_outbox_auth_token(uuid, text, text) TO service_role;
