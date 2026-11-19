@@ -221,7 +221,7 @@ Deno.serve(async (req: Request) => {
       await supabase.rpc("fail_email_outbox", {
         p_id: job.id,
         p_error: sendError instanceof Error ? sendError.message : String(sendError),
-        p_retry: !/^(OTP_EXPIRED|OTP_INVALID):/.test(sendError instanceof Error ? sendError.message : String(sendError)),
+        p_retry: !/^(OTP_EXPIRED|OTP_INVALID|OTP_SUPERSEDED):/.test(sendError instanceof Error ? sendError.message : String(sendError)),
       });
       return false;
     }
