@@ -70,6 +70,13 @@ async function buildJobEmail(job: EmailOutboxJob) {
         effectiveType = generatedType;
       }
       tokenHash = linkResult.data.properties?.hashed_token || "";
+      if (!tokenHash) throw new Error("O Supabase não retornou o token de autenticação.");
+      const { error: persistTokenError } = await supabase.rpc("persist_email_outbox_auth_token", {
+        p_id: job.id,
+        p_token_hash: tokenHash,
+        p_verification_type: effectiveType,
+      });
+      if (persistTokenError) throw persistTokenError;
     }
     if (!tokenHash) throw new Error("O Supabase não retornou o token de autenticação.");
     const actionUrl = new URL(String(payload.redirect_to));
