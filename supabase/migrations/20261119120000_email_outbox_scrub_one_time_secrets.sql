@@ -125,6 +125,7 @@ BEGIN
   IF p_id IS NULL
     OR p_token_hash IS NULL
     OR btrim(p_token_hash) = ''
+    OR p_verification_type IS NULL
     OR p_verification_type NOT IN ('signup', 'invite', 'recovery', 'magiclink') THEN
     RAISE EXCEPTION 'Invalid email outbox auth token arguments';
   END IF;
