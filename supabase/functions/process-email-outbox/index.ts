@@ -81,7 +81,7 @@ async function buildJobEmail(job: any) {
       throw new Error("OTP_EXPIRED: o código expirou antes da entrega.");
     }
     const code = String(payload.otp_code || "");
-    if (!/^\\d{6}$/.test(code)) throw new Error("OTP_INVALID: código ausente ou inválido.");
+    if (!/^\d{6}$/.test(code)) throw new Error("OTP_INVALID: código ausente ou inválido.");
     return buildBrandEmailTemplate({
       title: job.subject,
       preheader: "O código para confirmar o seu email na AgriLink.",
