@@ -109,6 +109,47 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.persist_email_outbox_auth_token(
+  p_id uuid,
+  p_token_hash text,
+  p_verification_type text
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $
+DECLARE
+  affected_rows integer;
+BEGIN
+  IF p_id IS NULL
+    OR p_token_hash IS NULL
+    OR btrim(p_token_hash) = ''
+    OR p_verification_type NOT IN ('signup', 'invite', 'recovery', 'magiclink') THEN
+    RAISE EXCEPTION 'Invalid email outbox auth token arguments';
+  END IF;
+
+  UPDATE public.email_outbox
+  SET payload = coalesce(payload, '{}'::jsonb)
+        || pg_catalog.jsonb_build_object(
+          'token_hash', p_token_hash,
+          'auth_type', p_verification_type
+        ),
+      updated_at = pg_catalog.now()
+  WHERE id = p_id
+    AND status = 'processing'
+    AND template IN ('auth-signup', 'auth-recovery', 'auth-magic-link');
+
+  GET DIAGNOSTICS affected_rows = ROW_COUNT;
+  IF affected_rows <> 1 THEN
+    RAISE EXCEPTION 'Email outbox auth job is not in processing state';
+  END IF;
+END;
+$;
+
+REVOKE ALL ON FUNCTION public.persist_email_outbox_auth_token(uuid, text, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.persist_email_outbox_auth_token(uuid, text, text) TO service_role;
+
 REVOKE ALL ON FUNCTION public.claim_email_outbox(integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.claim_email_outbox(integer) TO service_role;
 
