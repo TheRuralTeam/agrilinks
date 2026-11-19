@@ -31,7 +31,7 @@ async function buildJobEmail(job: EmailOutboxJob) {
           ? "recovery"
           : "magiclink";
     const email = String(payload.email || job.recipient);
-    let effectiveType: "signup" | "invite" | "recovery" | "magiclink" = authType;
+    const effectiveType: "signup" | "invite" | "recovery" | "magiclink" = authType;
     let tokenHash = typeof payload.token_hash === "string" ? payload.token_hash : "";
     const generateAuthLink = (type: "signup" | "invite" | "recovery" | "magiclink") => {
       if (type === "signup") {
@@ -63,7 +63,7 @@ async function buildJobEmail(job: EmailOutboxJob) {
       });
     };
     if (!tokenHash) {
-      let linkResult = await generateAuthLink(effectiveType);
+      const linkResult = await generateAuthLink(effectiveType);
       if (linkResult.error) throw linkResult.error;
       tokenHash = linkResult.data.properties?.hashed_token || "";
     }
