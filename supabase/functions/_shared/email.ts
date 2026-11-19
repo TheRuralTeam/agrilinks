@@ -1,3 +1,5 @@
+import { corsHeaders } from "./http.ts";
+
 export const DEFAULT_REDIRECT = "https://agrilink.ao/auth/callback?next=/app";
 export const ALLOWED_HOSTS = [
   "agrilink.ao",
