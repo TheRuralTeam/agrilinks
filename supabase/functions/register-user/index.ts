@@ -110,30 +110,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
       referred_by_agent_code: referralCode,
     };
 
-    let createdUserId: string | null = null;
-    let creationError: Error | null = null;
-
-    if (input.password) {
-      const { data, error } = await supabase.auth.admin.generateLink({
-        type: "signup",
-        email,
-        password: input.password,
-        options: { data: metadata, redirectTo },
-      });
-      creationError = error;
-      createdUserId = data?.user?.id ?? null;
-      if (!error && !data?.properties?.hashed_token) {
-        creationError = new Error("O serviço de autenticação não devolveu o token de confirmação.");
-      }
-    } else {
-      const { data, error } = await supabase.auth.admin.createUser({
-        email,
-        email_confirm: false,
-        user_metadata: metadata,
-      });
-      creationError = error;
-      createdUserId = data?.user?.id ?? null;
-    }
+    const { data: created, error: creationError } = await supabase.auth.admin.createUser({
+      email,
+      ...(input.password ? { password: input.password } : {}),
+      email_confirm: false,
+      user_metadata: metadata,
+    });
+    const createdUserId = created?.user?.id ?? null;
 
     if (creationError || !createdUserId) {
       const providerMessage = creationError?.message || "O serviço de autenticação não conseguiu criar a conta.";
@@ -162,6 +145,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         payload: {
           email,
           full_name: fullName,
+          auth_type: "magiclink",
           redirect_to: redirectTo,
         },
       }),
