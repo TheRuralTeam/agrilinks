@@ -83,7 +83,7 @@ RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = ''
-AS $
+AS $ 
 BEGIN
   UPDATE public.email_outbox
   SET status = CASE WHEN p_retry AND attempts < 8 THEN 'pending' ELSE 'failed' END,
