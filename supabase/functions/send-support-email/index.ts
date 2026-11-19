@@ -75,7 +75,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     const name = parsed.data.name.trim();
-    const messageHash = await sha256(`support:${fromEmail}:${name}:${parsed.data.phone || ""}:${parsed.data.message.trim()}`);
+    const dedupeWindow = Math.floor(Date.now() / 60_000);
+    const messageHash = await sha256(`support:${fromEmail}:${name}:${parsed.data.phone || ""}:${parsed.data.message.trim()}:${dedupeWindow}`);
     const queueResponse = await fetch(`${supabaseUrl}/rest/v1/email_outbox`, {
       method: "POST",
       headers: {
