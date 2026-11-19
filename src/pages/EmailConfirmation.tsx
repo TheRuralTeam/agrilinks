@@ -20,7 +20,7 @@ const EmailConfirmation = () => {
   const [queued, setQueued] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
-  // Conta já libertada: não faz queuedido ficar nesta etapa
+  // Conta já libertada: não faz sentido ficar nesta etapa
   useEffect(() => {
     if (user && Boolean(user.email_confirmed_at)) {
       refreshProfile();
@@ -105,7 +105,7 @@ const EmailConfirmation = () => {
             {queued ? (
               <>
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
-                Link enviado
+                Pedido registado
               </>
             ) : (
               <>
