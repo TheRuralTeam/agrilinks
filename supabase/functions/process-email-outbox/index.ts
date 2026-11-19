@@ -8,7 +8,16 @@ const supabase = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } },
 );
 
-async function buildJobEmail(job: any) {
+type EmailOutboxJob = {
+  id: string;
+  recipient: string;
+  subject: string;
+  template: string;
+  dedupe_key: string;
+  payload: Record<string, unknown> | null;
+};
+
+async function buildJobEmail(job: EmailOutboxJob) {
   const payload = job.payload ?? {};
   const fullName = escapeHtml(String(payload.full_name || "Utilizador AgriLink"));
   const template = String(job.template || "notification");
@@ -234,14 +243,6 @@ Deno.serve(async (req: Request) => {
   const { data: jobs, error } = await supabase.rpc("claim_email_outbox", { p_limit: 10 });
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-  type EmailOutboxJob = {
-    id: string;
-    recipient: string;
-    subject: string;
-    template: string;
-    dedupe_key: string;
-    payload: Record<string, unknown> | null;
-  };
   const results = await Promise.all((jobs ?? []).map(async (job: EmailOutboxJob) => {
     try {
       const html = await buildJobEmail(job);
