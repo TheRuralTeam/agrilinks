@@ -1,10 +1,7 @@
 import { z } from "npm:zod@3.23.8";
 import { jsonResponse } from "../_shared/http.ts";
 import {
-  buildBrandEmailTemplate,
-  escapeHtml,
   normalizeEmail,
-  sendResendEmail,
 } from "../_shared/email.ts";
 
 const BodySchema = z.object({
@@ -77,37 +74,45 @@ Deno.serve(async (req: Request): Promise<Response> => {
       return jsonResponse({ success: false, error: "Atingiste o limite de mensagens. Tenta novamente mais tarde." }, 429);
     }
 
-    const phone = escapeHtml(parsed.data.phone?.trim() || "Não indicado");
-    const message = escapeHtml(parsed.data.message.trim()).replace(/\n/g, "<br />");
-    const name = escapeHtml(parsed.data.name.trim());
-
-    const html = buildBrandEmailTemplate({
-      title: "Nova mensagem de suporte — AgriLink",
-      preheader: "Recebeu uma nova mensagem do portal de suporte da AgriLink.",
-      headline: "Nova mensagem de suporte",
-      bodyHtml: `
-        <p style="margin:0 0 12px;"><strong>Nome:</strong> ${name}</p>
-        <p style="margin:0 0 12px;"><strong>Email:</strong> ${escapeHtml(fromEmail)}</p>
-        <p style="margin:0 0 12px;"><strong>Telefone:</strong> ${phone}</p>
-        <p style="margin:0 0 12px;"><strong>Mensagem:</strong></p>
-        <p style="margin:0 0 12px;">${message}</p>
-      `,
-      secondaryText: "Mensagem recebida através do formulário de contacto da AgriLink.",
+    const name = parsed.data.name.trim();
+    const dedupeWindow = Math.floor(Date.now() / 60_000);
+    const messageHash = await sha256(`support:${fromEmail}:${name}:${parsed.data.phone || ""}:${parsed.data.message.trim()}:${dedupeWindow}`);
+    const queueResponse = await fetch(`${supabaseUrl}/rest/v1/email_outbox`, {
+      method: "POST",
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal,resolution=ignore-duplicates",
+      },
+      body: JSON.stringify({
+        dedupe_key: `support:${messageHash}`,
+        recipient: "contacto@agrilink.ao",
+        subject: `Suporte AgriLink — ${name}`,
+        template: "support-contact",
+        priority: 60,
+        payload: {
+          name,
+          email: fromEmail,
+          phone: parsed.data.phone?.trim() || "Não indicado",
+          message: parsed.data.message.trim(),
+          reply_to: fromEmail,
+        },
+      }),
     });
 
-    const result = await sendResendEmail({
-      to: "contacto@agrilink.ao",
-      subject: `Suporte AgriLink — ${name}`,
-      html,
-      replyTo: fromEmail,
-    });
+    if (!queueResponse.ok) {
+      const queueError = await queueResponse.text().catch(() => "");
+      console.error("Falha ao colocar mensagem de suporte na fila:", queueError);
+      throw new Error("Não foi possível agendar a mensagem de suporte.");
+    }
 
     return jsonResponse({
       success: true,
-      message: "Mensagem enviada ao suporte com sucesso.",
+      queued: true,
+      message: "Mensagem recebida e colocada na fila de suporte.",
       email: fromEmail,
-      resend_id: result?.id ?? null,
-    }, 200);
+    }, 202);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Erro interno ao enviar suporte.";
     console.error("send-support-email failed:", message);

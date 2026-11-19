@@ -20,7 +20,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmationPending, setConfirmationPending] = useState(false);
-  const [confirmationEmailSent, setConfirmationEmailSent] = useState(true);
+  const [confirmationEmailQueued, setConfirmationEmailQueued] = useState(false);
   const [resendingConfirmation, setResendingConfirmation] = useState(false);
 
   useEffect(() => {
@@ -69,12 +69,14 @@ const Login = () => {
         return;
       }
 
-      setConfirmationEmailSent(data?.confirmation_sent === true);
+      setConfirmationEmailQueued(data?.confirmation_queued === true || data?.confirmation_sent === true);
       setConfirmationPending(true);
-      if (data?.confirmation_sent) {
+      if (data?.confirmation_queued) {
+        toast.success("Conta criada. O pedido de confirmação foi colocado na fila de envio.");
+      } else if (data?.confirmation_sent) {
         toast.success("Conta criada. Verifique o seu email para confirmar o acesso.");
       } else {
-        toast.error("A conta foi criada, mas o email não foi enviado. Pode pedir um novo link nesta página.");
+        toast.error("A conta foi criada, mas não foi possível agendar a confirmação. Pode pedir um novo link nesta página.");
       }
     } finally {
       setSubmitting(false);
@@ -87,7 +89,7 @@ const Login = () => {
     try {
       const { error } = await resendSignupConfirmation(email);
       if (error) throw error;
-      toast.success("Novo email de confirmação enviado. Verifique também a pasta de spam.");
+      toast.success("Pedido de confirmação colocado na fila. Verifique a caixa de entrada e a pasta de spam.");
     } catch (error: any) {
       toast.error(error?.message || "Não foi possível enviar o email de confirmação. Tente novamente mais tarde.");
     } finally {
@@ -151,9 +153,9 @@ const Login = () => {
               </h2>
               <p className="mt-3 text-sm leading-6 text-[#657367]">
                 {confirmationPending
-                  ? confirmationEmailSent
-                    ? "Enviámos a confirmação para o seu email. Abra a mensagem e confirme a conta antes de iniciar sessão."
-                    : "A conta foi criada, mas o email ainda não foi enviado. Use a opção abaixo para pedir um novo link."
+                  ? confirmationEmailQueued
+                    ? "O pedido de confirmação foi registado e está na fila de envio. Assim que for processado, receberá a mensagem para confirmar a conta."
+                    : "A confirmação ainda não foi agendada. Use a opção abaixo para pedir um novo link."
                   : mode === "login"
                     ? "Entre para gerir produtos, pedidos, logística e as suas operações."
                     : "Preencha os seus dados e escolha como pretende utilizar a AgriLink."}
@@ -169,9 +171,9 @@ const Login = () => {
                   <div>
                     <p className="font-bold">Confirmação pendente</p>
                     <p className="mt-1 text-sm leading-6 text-[#657367]">
-                      {confirmationEmailSent
-                        ? <>O cadastro só fica concluído depois de confirmar este endereço. Abra o link enviado para <strong>{email.trim().toLowerCase()}</strong>; depois, volte aqui para entrar. Verifique também a pasta de spam.</>
-                        : <>Ainda não enviámos o link para <strong>{email.trim().toLowerCase()}</strong>. Use o botão abaixo para tentar novamente.</>}
+                      {confirmationEmailQueued
+                        ? <>O cadastro só fica concluído depois de confirmar este endereço. O pedido de envio para <strong>{email.trim().toLowerCase()}</strong> está na fila. Aguarde a mensagem e verifique também a pasta de spam.</>
+                        : <>A confirmação ainda não foi colocada na fila para <strong>{email.trim().toLowerCase()}</strong>. Use o botão abaixo para tentar novamente.</>}
                     </p>
                   </div>
                 </div>

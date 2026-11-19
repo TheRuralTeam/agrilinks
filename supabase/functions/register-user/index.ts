@@ -1,6 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 import { z } from "npm:zod@3.23.8";
-import { buildBrandEmailTemplate, escapeHtml, sendResendEmail } from "../_shared/email.ts";
 import { corsHeaders, jsonResponse } from "../_shared/http.ts";
 
 const UserTypeSchema = z.enum(["agricultor", "agente", "comprador", "motorista"]);
@@ -111,59 +110,77 @@ Deno.serve(async (req: Request): Promise<Response> => {
       referred_by_agent_code: referralCode,
     };
 
-    const { data, error } = await supabase.auth.admin.generateLink({
-      type: "signup",
-      email,
-      ...(input.password ? { password: input.password } : {}),
-      options: { data: metadata, redirectTo },
-    });
+    const authType = input.password ? "signup" : "invite";
+    const linkResult = input.password
+      ? await supabase.auth.admin.generateLink({
+          type: "signup",
+          email,
+          password: input.password,
+          options: { data: metadata, redirectTo },
+        })
+      : await supabase.auth.admin.generateLink({
+          type: "invite",
+          email,
+          options: { data: metadata, redirectTo },
+        });
 
-    if (error || !data?.user?.id || !data.properties?.hashed_token) {
-      const providerMessage = error?.message || "O serviço de autenticação não devolveu o link de confirmação.";
-      console.error("Falha ao criar conta AgriLink:", providerMessage);
-      if (/already registered|already been registered|user already exists/i.test(providerMessage)) {
-        return jsonResponse({ error: "Este email já está registado. Inicia sessão ou recupera a palavra-passe." }, 409);
+    const createdUserId = linkResult.data?.user?.id ?? null;
+    const tokenHash = linkResult.data?.properties?.hashed_token ?? "";
+    const verificationType = linkResult.data?.properties?.verification_type ?? authType;
+
+    if (linkResult.error || !createdUserId || !tokenHash) {
+      const providerMessage = linkResult.error?.message || "O serviço de autenticação não conseguiu gerar a confirmação.";
+      console.error("Falha ao preparar conta AgriLink:", providerMessage);
+      if (/already registered|already been registered|user already exists|email_exists/i.test(providerMessage)) {
+        return jsonResponse({ error: "Este email já está registado. Inicia sessão ou solicita a confirmação da conta." }, 409);
       }
       return jsonResponse({ error: "Não foi possível criar a conta. Tenta novamente mais tarde." }, 400);
     }
 
-    const actionUrl = new URL(redirectTo);
-    actionUrl.searchParams.set("token_hash", data.properties.hashed_token);
-    actionUrl.searchParams.set("type", "signup");
-
-    const safeName = escapeHtml(input.full_name.trim());
-    const html = buildBrandEmailTemplate({
-      title: "Confirme a sua conta — AgriLink",
-      preheader: "Confirme o seu endereço de email para activar a conta AgriLink.",
-      headline: "Confirme a sua conta",
-      bodyHtml: `<p style="margin:0 0 14px;">Olá ${safeName},</p><p style="margin:0;">Confirme o seu endereço de email para activar a sua conta AgriLink e começar a utilizar a plataforma.</p>`,
-      ctaText: "Confirmar endereço de email",
-      ctaHref: actionUrl.toString(),
-      secondaryText: "Se não criou esta conta, ignore esta mensagem.",
+    const fullName = input.full_name.trim();
+    const queueResponse = await fetch(`${supabaseUrl}/rest/v1/email_outbox`, {
+      method: "POST",
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({
+        dedupe_key: `auth:signup:${createdUserId}:${crypto.randomUUID()}`,
+        recipient: email,
+        subject: "Confirme a sua conta — AgriLink",
+        template: "auth-signup",
+        priority: 100,
+        payload: {
+          email,
+          full_name: fullName,
+          auth_type: verificationType,
+          token_hash: tokenHash,
+          redirect_to: redirectTo,
+        },
+      }),
     });
 
-    let confirmationSent = true;
-    try {
-      await sendResendEmail({
-        to: email,
-        subject: "Confirme a sua conta — AgriLink",
-        html,
-        from: "AgriLink <no-reply@agrilink.ao>",
-        replyTo: "contacto@agrilink.ao",
-      });
-    } catch (sendError) {
-      confirmationSent = false;
-      console.error("Conta criada, mas o email de confirmação não foi enviado:", sendError instanceof Error ? sendError.message : "erro desconhecido");
+    if (!queueResponse.ok) {
+      const queueError = await queueResponse.text().catch(() => "");
+      console.error("Conta criada, mas não foi possível colocar a confirmação na fila:", queueError);
+      return jsonResponse({
+        success: true,
+        confirmation_sent: false,
+        confirmation_queued: false,
+        user: { id: createdUserId, email },
+        message: "A conta foi criada, mas a confirmação ficou pendente. Solicita o reenvio da confirmação.",
+      }, 202);
     }
 
     return jsonResponse({
       success: true,
-      confirmation_sent: confirmationSent,
-      user: { id: data.user.id, email },
-      message: confirmationSent
-        ? "Conta criada. Enviámos um email para confirmares o teu endereço."
-        : "A conta foi criada, mas não foi possível enviar o email. Usa a opção de reenviar confirmação.",
-    }, confirmationSent ? 200 : 202);
+      confirmation_sent: false,
+      confirmation_queued: true,
+      user: { id: createdUserId, email },
+      message: "Conta criada. A confirmação foi colocada na fila de envio.",
+    }, 202);
   } catch (error) {
     console.error("register-user falhou:", error instanceof Error ? error.message : "erro desconhecido");
     return jsonResponse({ error: "Não foi possível concluir o registo. Tenta novamente mais tarde." }, 500);

@@ -17,7 +17,7 @@ const EmailConfirmation = () => {
   const { user, logout, refreshProfile, resendSignupConfirmation } = useAuth();
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [queued, setQueued] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
   // Conta já libertada: não faz sentido ficar nesta etapa
@@ -65,13 +65,13 @@ const EmailConfirmation = () => {
       const { error } = await resendSignupConfirmation(cleanEmail);
       if (error) throw error;
 
-      setSent(true);
+      setQueued(true);
       setCountdown(RESEND_COOLDOWN);
 
       toast({
-        title: "Link enviado",
+        title: "Pedido de confirmação registado",
         description:
-          "Verifique a caixa de entrada e a pasta de spam do seu email.",
+          "O pedido foi colocado na fila de envio. Verifique a caixa de entrada e a pasta de spam.",
       });
     } catch (err: any) {
       console.error("[AgriLink] Falha ao reenviar confirmação de conta:", err);
@@ -102,10 +102,10 @@ const EmailConfirmation = () => {
         <CardHeader className="text-center space-y-4">
           <img src={agrilinkLogo} alt="AgriLink" className="h-10 mx-auto" />
           <CardTitle className="flex items-center justify-center gap-2">
-            {sent ? (
+            {queued ? (
               <>
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
-                Link enviado
+                Pedido registado
               </>
             ) : (
               <>
@@ -116,10 +116,10 @@ const EmailConfirmation = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {sent ? (
+          {queued ? (
             <p className="text-sm text-muted-foreground text-center">
-              Enviámos um link de confirmação para <strong>{email}</strong>.
-              Ele expira em 1 hora. Abra o email e confirme na página segura da AgriLink.
+              O pedido de confirmação para <strong>{email}</strong> foi colocado na fila de envio.
+              Assim que a mensagem for processada, abra o link para confirmar a conta.
             </p>
           ) : (
             <>
@@ -148,9 +148,9 @@ const EmailConfirmation = () => {
             </>
           )}
 
-          {sent && (
+          {queued && (
             <Button variant="outline" className="w-full" onClick={handleSend} disabled={sending || countdown > 0}>
-              {countdown > 0 ? `Reenviar link em ${countdown}s` : "Reenviar link de confirmação"}
+              {countdown > 0 ? `Novo pedido em ${countdown}s` : "Pedir novo email de confirmação"}
             </Button>
           )}
 

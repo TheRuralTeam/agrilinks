@@ -26,7 +26,7 @@ interface AuthContextType {
   logout: () => Promise<void>
   verifyEmail: (token: string) => Promise<{ error: any }>
   resendVerification: () => Promise<{ error: any }>
-  resendSignupConfirmation: (email: string) => Promise<{ error: any }>
+  resendSignupConfirmation: (email: string) => Promise<{ error: any; queued?: boolean }>
   resetPassword: (email: string) => Promise<{ error: any }>
   refreshProfile: () => Promise<void>
 }
@@ -272,6 +272,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           user: data.user,
           session: null,
           confirmation_sent: data.confirmation_sent === true,
+          confirmation_queued: data.confirmation_queued === true,
           message: data.message,
         },
       }
@@ -400,8 +401,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      await sendConfirmationEmail({ email: normalizedEmail, next: '/app' })
-      return { error: null }
+      const result = await sendConfirmationEmail({ email: normalizedEmail, next: '/app' })
+      return { error: null, queued: result?.queued === true }
     } catch (error: any) {
       return { error }
     }
