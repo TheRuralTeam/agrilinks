@@ -212,6 +212,7 @@ Deno.serve(async (req: Request) => {
         to: job.recipient,
         subject: job.subject,
         html,
+        idempotencyKey: String(job.dedupe_key),
         ...(typeof job.payload?.reply_to === "string" ? { replyTo: job.payload.reply_to } : {}),
       });
       await supabase.rpc("complete_email_outbox", { p_id: job.id, p_provider_id: result?.id ?? null });
