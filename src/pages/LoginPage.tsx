@@ -117,7 +117,7 @@ const LoginPage = () => {
     try {
       if (!password) {
         await sendMagicLink({ email, next: redirectTo })
-        toast({ title: 'Código enviado', description: 'Verifique o seu email e clique no botão para entrar.' })
+        toast({ title: 'Pedido de acesso registado', description: 'O link de acesso foi colocado na fila de envio. Verifique a caixa de entrada e a pasta de spam.' })
         return
       }
       const { error } = await login(email, password)
