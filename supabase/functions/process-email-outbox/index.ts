@@ -23,22 +23,29 @@ async function buildJobEmail(job: EmailOutboxJob) {
   const template = String(job.template || "notification");
 
   if (["auth-signup", "auth-recovery", "auth-magic-link"].includes(template)) {
-    const authType: "signup" | "recovery" | "magiclink" = template === "auth-signup"
-      ? payload.auth_type === "magiclink" ? "magiclink" : "signup"
+    const authType: "signup" | "invite" | "recovery" | "magiclink" = template === "auth-signup"
+      ? payload.auth_type === "invite" ? "invite" : payload.auth_type === "magiclink" ? "magiclink" : "signup"
       : template === "auth-recovery"
         ? "recovery"
         : payload.auth_type === "recovery"
           ? "recovery"
           : "magiclink";
     const email = String(payload.email || job.recipient);
-    let effectiveType: "signup" | "recovery" | "magiclink" = authType;
+    let effectiveType: "signup" | "invite" | "recovery" | "magiclink" = authType;
     let tokenHash = typeof payload.token_hash === "string" ? payload.token_hash : "";
-    const generateAuthLink = (type: "signup" | "recovery" | "magiclink") => {
+    const generateAuthLink = (type: "signup" | "invite" | "recovery" | "magiclink") => {
       if (type === "signup") {
         return supabase.auth.admin.generateLink({
           type: "signup",
           email,
           password: String(payload.password || ""),
+          options: { redirectTo: String(payload.redirect_to) },
+        });
+      }
+      if (type === "invite") {
+        return supabase.auth.admin.generateLink({
+          type: "invite",
+          email,
           options: { redirectTo: String(payload.redirect_to) },
         });
       }
@@ -57,10 +64,6 @@ async function buildJobEmail(job: EmailOutboxJob) {
     };
     if (!tokenHash) {
       let linkResult = await generateAuthLink(effectiveType);
-      if (linkResult.error && authType === "signup" && /already been registered|already registered|user already exists/i.test(linkResult.error.message)) {
-        effectiveType = "magiclink";
-        linkResult = await generateAuthLink("magiclink");
-      }
       if (linkResult.error) throw linkResult.error;
       tokenHash = linkResult.data.properties?.hashed_token || "";
     }
@@ -77,12 +80,12 @@ async function buildJobEmail(job: EmailOutboxJob) {
         : "Confirme o seu email";
     const authBody = template === "auth-recovery"
       ? `<p style="margin:0 0 12px;">Olá ${fullName},</p><p style="margin:0 0 12px;">Recebemos um pedido para redefinir a palavra-passe da sua conta AgriLink. Utilize o botão abaixo para continuar.</p><p style="margin:0;">Se não pediu esta alteração, ignore esta mensagem.</p>`
-      : template === "auth-signup" && effectiveType === "signup"
+      : template === "auth-signup" && ["signup", "invite"].includes(effectiveType)
         ? `<p style="margin:0 0 12px;">Olá ${fullName},</p><p style="margin:0;">Para activar a sua conta AgriLink, confirme o seu endereço de email através do botão abaixo.</p>`
         : `<p style="margin:0 0 12px;">Olá ${fullName},</p><p style="margin:0 0 12px;">Utilize o botão abaixo para entrar na sua conta AgriLink.</p><p style="margin:0;">Se não pediu este acesso, ignore esta mensagem.</p>`;
     const authPreheader = template === "auth-recovery"
       ? "Pedido de recuperação da palavra-passe da sua conta AgriLink."
-      : template === "auth-signup" && effectiveType === "signup"
+      : template === "auth-signup" && ["signup", "invite"].includes(effectiveType)
         ? "Confirme o seu endereço de email para activar a conta AgriLink."
         : "Aceda à sua conta AgriLink através de um link seguro.";
 
