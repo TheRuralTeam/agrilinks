@@ -31,7 +31,7 @@ async function buildJobEmail(job: EmailOutboxJob) {
           ? "recovery"
           : "magiclink";
     const email = String(payload.email || job.recipient);
-    const effectiveType: "signup" | "invite" | "recovery" | "magiclink" = authType;
+    let effectiveType: "signup" | "invite" | "recovery" | "magiclink" = authType;
     let tokenHash = typeof payload.token_hash === "string" ? payload.token_hash : "";
     const generateAuthLink = (type: "signup" | "invite" | "recovery" | "magiclink") => {
       if (type === "signup") {
@@ -65,6 +65,10 @@ async function buildJobEmail(job: EmailOutboxJob) {
     if (!tokenHash) {
       const linkResult = await generateAuthLink(effectiveType);
       if (linkResult.error) throw linkResult.error;
+      const generatedType = linkResult.data.properties?.verification_type;
+      if (generatedType === "signup" || generatedType === "invite" || generatedType === "recovery" || generatedType === "magiclink") {
+        effectiveType = generatedType;
+      }
       tokenHash = linkResult.data.properties?.hashed_token || "";
     }
     if (!tokenHash) throw new Error("O Supabase não retornou o token de autenticação.");
