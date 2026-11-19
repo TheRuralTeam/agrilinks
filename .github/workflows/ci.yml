@@ -110,6 +110,27 @@ jobs:
             END IF;
 
             INSERT INTO public.email_outbox (dedupe_key, recipient, subject, template, payload)
+            VALUES ('test-auth-token', 'test@example.com', 'Auth token', 'auth-signup', '{"email":"test@example.com"}')
+            RETURNING id INTO job_id;
+            SELECT * INTO job FROM public.claim_email_outbox(10) WHERE id = job_id;
+            PERFORM public.persist_email_outbox_auth_token(job_id, 'stable-hashed-token', 'signup');
+            SELECT * INTO job FROM public.email_outbox WHERE id = job_id;
+            IF job.payload->>'token_hash' <> 'stable-hashed-token' OR job.payload->>'auth_type' <> 'signup' THEN
+              RAISE EXCEPTION 'auth token was not persisted before provider delivery';
+            END IF;
+            PERFORM public.fail_email_outbox(job_id, 'transient provider failure', true);
+            UPDATE public.email_outbox SET available_at = now() WHERE id = job_id;
+            SELECT * INTO job FROM public.claim_email_outbox(10) WHERE id = job_id;
+            IF job.payload->>'token_hash' <> 'stable-hashed-token' OR job.payload->>'auth_type' <> 'signup' THEN
+              RAISE EXCEPTION 'auth token changed across retry';
+            END IF;
+            PERFORM public.complete_email_outbox(job_id, 'resend-auth-test-id');
+            SELECT * INTO job FROM public.email_outbox WHERE id = job_id;
+            IF job.payload ? 'token_hash' THEN
+              RAISE EXCEPTION 'auth token was not scrubbed after delivery';
+            END IF;
+
+            INSERT INTO public.email_outbox (dedupe_key, recipient, subject, template, payload)
             VALUES ('test-retry', 'test@example.com', 'Retry', 'auth-otp', '{"otp_code":"654321"}')
             RETURNING id INTO job_id;
             SELECT * INTO job FROM public.claim_email_outbox(10) WHERE id = job_id;
@@ -132,7 +153,9 @@ jobs:
 
             IF has_function_privilege('anon', 'public.claim_email_outbox(integer)', 'EXECUTE')
               OR has_function_privilege('authenticated', 'public.complete_email_outbox(uuid,text)', 'EXECUTE')
-              OR NOT has_function_privilege('service_role', 'public.fail_email_outbox(uuid,text,boolean)', 'EXECUTE') THEN
+              OR NOT has_function_privilege('service_role', 'public.fail_email_outbox(uuid,text,boolean)', 'EXECUTE')
+              OR has_function_privilege('anon', 'public.persist_email_outbox_auth_token(uuid,text,text)', 'EXECUTE')
+              OR NOT has_function_privilege('service_role', 'public.persist_email_outbox_auth_token(uuid,text,text)', 'EXECUTE') THEN
               RAISE EXCEPTION 'outbox RPC grants are not restricted to service_role';
             END IF;
           END;
