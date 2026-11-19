@@ -157,7 +157,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       return jsonResponse({
         success: true,
         confirmation_sent: false,
-        user: { id: data.user.id, email },
+        user: { id: createdUserId, email },
         message: "A conta foi criada, mas a confirmação ficou pendente. Solicita o reenvio da confirmação.",
       }, 202);
     }
@@ -166,7 +166,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       success: true,
       confirmation_sent: false,
       confirmation_queued: true,
-      user: { id: data.user.id, email },
+      user: { id: createdUserId, email },
       message: "Conta criada. A confirmação foi colocada na fila de envio.",
     }, 202);
   } catch (error) {
