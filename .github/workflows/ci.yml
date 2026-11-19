@@ -26,9 +26,11 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Corrigir vulnerabilidades npm, incluindo upgrades necessários
+      - name: Resolver dependências com versões corrigidas
         timeout-minutes: 5
-        run: npm audit fix --force --ignore-scripts --no-fund --no-progress
+        run: |
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund --no-progress
+          npm audit fix --package-lock-only --ignore-scripts --no-fund --no-progress
 
       - name: Install dependencies
         run: npm ci
