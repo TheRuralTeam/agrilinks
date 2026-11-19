@@ -1,6 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 import { z } from "npm:zod@3.23.8";
-import { escapeHtml } from "../_shared/email.ts";
 import { corsHeaders, jsonResponse } from "../_shared/http.ts";
 
 const BodySchema = z.object({
@@ -104,7 +103,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
       });
     }
 
-    const fullName = escapeHtml(userRow.full_name || parsed.data.full_name || "Utilizador AgriLink");
     const otpCode = createOtpCode();
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
@@ -141,7 +139,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         Prefer: "return=minimal,resolution=ignore-duplicates",
       },
       body: JSON.stringify({
-        dedupe_key: `auth:otp:${userRow.id}:${Math.floor(Date.now() / 60000)}`,
+        dedupe_key: `auth:otp:${userRow.id}:${crypto.randomUUID()}`,
         recipient: email,
         subject: "Código de verificação — AgriLink",
         template: "auth-otp",
