@@ -30,7 +30,7 @@ jobs:
         timeout-minutes: 5
         run: |
           npm install --package-lock-only --ignore-scripts --no-audit --no-fund --no-progress
-          npm audit fix --package-lock-only --ignore-scripts --no-fund --no-progress
+          npm audit fix --ignore-scripts --no-fund --no-progress
 
       - name: Install dependencies
         run: npm ci
