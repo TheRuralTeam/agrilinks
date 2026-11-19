@@ -273,12 +273,12 @@ const Registration = () => {
         if (data.confirmation_queued) {
           toast({
             title: "Confirmação agendada",
-            description: `O pedido para \${cleanEmail} foi colocado na fila de envio. Aguarda a mensagem para confirmares a tua conta.`,
+            description: `O pedido para ${cleanEmail} foi colocado na fila de envio. Aguarda a mensagem para confirmares a tua conta.`,
           });
         } else if (data.confirmation_sent) {
           toast({
             title: "Link de confirmação enviado",
-            description: `Enviámos um email para \${cleanEmail}. Abre a mensagem para confirmares a tua conta.`,
+            description: `Enviámos um email para ${cleanEmail}. Abre a mensagem para confirmares a tua conta.`,
           });
         } else {
           toast({
