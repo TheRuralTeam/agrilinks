@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref || github.ref }}
 
       - name: Use Node.js
         uses: actions/setup-node@v5
@@ -24,16 +26,18 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Aplicar correcções npm compatíveis
-        run: npm audit fix --package-lock-only --ignore-scripts --no-fund --no-progress
+      - name: Corrigir vulnerabilidades npm, incluindo upgrades necessários
+        timeout-minutes: 5
+        run: npm audit fix --force --ignore-scripts --no-fund --no-progress
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Diagnosticar vulnerabilidades npm
+      - name: Diagnosticar e exigir auditoria npm limpa
         run: |
           npm audit --json > /tmp/npm-audit.json || true
-          node -e 'const a=require("/tmp/npm-audit.json"); const v=a.vulnerabilities||{}; console.log(JSON.stringify({metadata:a.metadata?.vulnerabilities, packages:Object.entries(v).map(([name,x])=>({name,severity:x.severity,range:x.range,via:x.via.map(y=>typeof y==="string"?y:{name:y.name,title:y.title,url:y.url,range:y.range}),effects:x.effects,fixAvailable:x.fixAvailable,paths:x.nodes}))},null,2))'
+          node -e 'const a=require("/tmp/npm-audit.json"); const v=a.vulnerabilities||{}; console.log(JSON.stringify({metadata:a.metadata?.vulnerabilities, packages:Object.entries(v).map(([name,x])=>({name,severity:x.severity,range:x.range,fixAvailable:x.fixAvailable,paths:x.nodes}))},null,2))'
+          npm audit --audit-level=low
 
       - name: Set up Deno
         uses: denoland/setup-deno@v2
@@ -75,8 +79,8 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
-          git commit -m "fix(deps): apply compatible npm security updates"
+          git add package.json package-lock.json
+          git commit -m "fix(deps): remediate npm security advisories"
           git push origin "HEAD:${GITHUB_HEAD_REF}"
           curl --fail-with-body -sS -X POST \
             -H "Accept: application/vnd.github+json" \
