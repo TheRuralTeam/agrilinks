@@ -14,27 +14,43 @@ async function buildJobEmail(job: any) {
   const template = String(job.template || "notification");
 
   if (["auth-signup", "auth-recovery", "auth-magic-link"].includes(template)) {
-    const authType = template === "auth-signup"
+    const authType: "signup" | "recovery" | "magiclink" = template === "auth-signup"
       ? "signup"
       : template === "auth-recovery"
         ? "recovery"
-        : String(payload.auth_type || "magiclink");
+        : payload.auth_type === "recovery"
+          ? "recovery"
+          : "magiclink";
     const email = String(payload.email || job.recipient);
-    let effectiveType = authType;
+    let effectiveType: "signup" | "recovery" | "magiclink" = authType;
     let tokenHash = typeof payload.token_hash === "string" ? payload.token_hash : "";
-    if (!tokenHash) {
-      let linkResult = await supabase.auth.admin.generateLink({
-        type: effectiveType as "signup" | "recovery" | "magiclink",
-        email,
-        options: { redirectTo: String(payload.redirect_to) },
-      });
-      if (linkResult.error && authType === "signup" && /already been registered|already registered|user already exists/i.test(linkResult.error.message)) {
-        effectiveType = "magiclink";
-        linkResult = await supabase.auth.admin.generateLink({
-          type: "magiclink",
+    const generateAuthLink = (type: "signup" | "recovery" | "magiclink") => {
+      if (type === "signup") {
+        return supabase.auth.admin.generateLink({
+          type: "signup",
+          email,
+          password: String(payload.password || ""),
+          options: { redirectTo: String(payload.redirect_to) },
+        });
+      }
+      if (type === "recovery") {
+        return supabase.auth.admin.generateLink({
+          type: "recovery",
           email,
           options: { redirectTo: String(payload.redirect_to) },
         });
+      }
+      return supabase.auth.admin.generateLink({
+        type: "magiclink",
+        email,
+        options: { redirectTo: String(payload.redirect_to) },
+      });
+    };
+    if (!tokenHash) {
+      let linkResult = await generateAuthLink(effectiveType);
+      if (linkResult.error && authType === "signup" && /already been registered|already registered|user already exists/i.test(linkResult.error.message)) {
+        effectiveType = "magiclink";
+        linkResult = await generateAuthLink("magiclink");
       }
       if (linkResult.error) throw linkResult.error;
       tokenHash = linkResult.data.properties?.hashed_token || "";
@@ -218,7 +234,15 @@ Deno.serve(async (req: Request) => {
   const { data: jobs, error } = await supabase.rpc("claim_email_outbox", { p_limit: 10 });
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-  const results = await Promise.all((jobs ?? []).map(async (job) => {
+  type EmailOutboxJob = {
+    id: string;
+    recipient: string;
+    subject: string;
+    template: string;
+    dedupe_key: string;
+    payload: Record<string, unknown> | null;
+  };
+  const results = await Promise.all((jobs ?? []).map(async (job: EmailOutboxJob) => {
     try {
       const html = await buildJobEmail(job);
       const result = await sendResendEmail({
