@@ -33,3 +33,11 @@ The domains are logical queues expressed by the `template` and `dedupe_key` fiel
 - A queued response (HTTP 202) means the message is scheduled, not yet delivered.
 - Do not deploy the migration or Edge Functions to production until the PR checks and staging/test-account flow pass.
 - Do not replay old failed authentication messages blindly: tokens may have expired and recipients may already be confirmed.
+
+## Signup confirmation semantics
+
+- The registration Edge Function creates the Auth user and confirmation token through `auth.admin.generateLink` before queue insertion.
+- Password-based registrations use the `signup` verification type; passwordless registrations use `invite`.
+- The generated `hashed_token` and exact `verification_type` are stored in the restricted outbox payload. The central worker sends the message; it does not regenerate or downgrade a signup token to a magic link.
+- This distinction is required because Supabase routes `signup`/`invite` through signup confirmation, while `magiclink` is verified through the recovery flow. For an unconfirmed user, that recovery flow clears a password set before confirmation.
+- The token hash is removed from the outbox payload after provider acceptance or terminal failure. If enqueueing fails after Auth user creation, the UI directs the user to the confirmation-resend flow, which creates a fresh signup confirmation token for the existing unconfirmed account.
