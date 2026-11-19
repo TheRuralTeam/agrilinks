@@ -4,7 +4,7 @@
 
 - Auditoria inicial: **27 vulnerabilidades** — 3 críticas, 6 altas, 17 moderadas e 1 baixa.
 - Auditoria final no GitHub Actions: **0 vulnerabilidades** — 0 críticas, 0 altas, 0 moderadas e 0 baixas.
-- Execução validada: CI #1220, incluindo `npm ci`, `npm audit --audit-level=low`, Deno checks, lint, TypeScript strict, testes e build.
+- Execução validada: CI #1237, incluindo `npm ci`, `npm audit --audit-level=low`, Deno checks, lint, TypeScript strict, testes e build.
 - O `package-lock.json` gerado no mesmo job foi gravado na branch após a validação.
 
 ## Dependências directas actualizadas
@@ -42,5 +42,9 @@ O pipeline completo passou com as versões corrigidas:
 - TypeScript strict;
 - suite Vitest;
 - build Vite.
+- PostgreSQL 17 isolated execution of the outbox migration, including retry-stable auth-token persistence and RPC privilege assertions.
 
 As alterações permanecem na PR #67, ainda sem merge e sem deploy de Edge Functions ou migration na produção.
+
+
+Latest exact-head validation: [GitHub Actions run #1237](https://github.com/TheRuralTeam/agrilinks/actions/runs/44526262787), commit `aee5b6471083cee8629f26ff6f53361a9eaf7e79`.
