@@ -110,19 +110,29 @@ Deno.serve(async (req: Request): Promise<Response> => {
       referred_by_agent_code: referralCode,
     };
 
-    const { data: created, error: creationError } = await supabase.auth.admin.createUser({
-      email,
-      ...(input.password ? { password: input.password } : {}),
-      email_confirm: false,
-      user_metadata: metadata,
-    });
-    const createdUserId = created?.user?.id ?? null;
+    const authType = input.password ? "signup" : "invite";
+    const linkResult = input.password
+      ? await supabase.auth.admin.generateLink({
+          type: "signup",
+          email,
+          password: input.password,
+          options: { data: metadata, redirectTo },
+        })
+      : await supabase.auth.admin.generateLink({
+          type: "invite",
+          email,
+          options: { data: metadata, redirectTo },
+        });
 
-    if (creationError || !createdUserId) {
-      const providerMessage = creationError?.message || "O serviço de autenticação não conseguiu criar a conta.";
-      console.error("Falha ao criar conta AgriLink:", providerMessage);
-      if (/already registered|already been registered|user already exists/i.test(providerMessage)) {
-        return jsonResponse({ error: "Este email já está registado. Inicia sessão ou recupera a palavra-passe." }, 409);
+    const createdUserId = linkResult.data?.user?.id ?? null;
+    const tokenHash = linkResult.data?.properties?.hashed_token ?? "";
+    const verificationType = linkResult.data?.properties?.verification_type ?? authType;
+
+    if (linkResult.error || !createdUserId || !tokenHash) {
+      const providerMessage = linkResult.error?.message || "O serviço de autenticação não conseguiu gerar a confirmação.";
+      console.error("Falha ao preparar conta AgriLink:", providerMessage);
+      if (/already registered|already been registered|user already exists|email_exists/i.test(providerMessage)) {
+        return jsonResponse({ error: "Este email já está registado. Inicia sessão ou solicita a confirmação da conta." }, 409);
       }
       return jsonResponse({ error: "Não foi possível criar a conta. Tenta novamente mais tarde." }, 400);
     }
@@ -134,10 +144,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
         apikey: serviceKey,
         Authorization: `Bearer ${serviceKey}`,
         "Content-Type": "application/json",
-        Prefer: "return=minimal,resolution=ignore-duplicates",
+        Prefer: "return=minimal",
       },
       body: JSON.stringify({
-        dedupe_key: `auth:signup:${createdUserId}`,
+        dedupe_key: `auth:signup:${createdUserId}:${crypto.randomUUID()}`,
         recipient: email,
         subject: "Confirme a sua conta — AgriLink",
         template: "auth-signup",
@@ -145,7 +155,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
         payload: {
           email,
           full_name: fullName,
-          auth_type: "magiclink",
+          auth_type: verificationType,
+          token_hash: tokenHash,
           redirect_to: redirectTo,
         },
       }),
@@ -157,6 +168,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       return jsonResponse({
         success: true,
         confirmation_sent: false,
+        confirmation_queued: false,
         user: { id: createdUserId, email },
         message: "A conta foi criada, mas a confirmação ficou pendente. Solicita o reenvio da confirmação.",
       }, 202);
