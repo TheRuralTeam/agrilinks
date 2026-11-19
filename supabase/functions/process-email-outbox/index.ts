@@ -82,6 +82,19 @@ async function buildJobEmail(job: any) {
     }
     const code = String(payload.otp_code || "");
     if (!/^\d{6}$/.test(code)) throw new Error("OTP_INVALID: código ausente ou inválido.");
+
+    const { data: activeCode, error: codeLookupError } = await supabase
+      .from("email_verification_codes")
+      .select("id")
+      .eq("email", String(job.recipient).trim().toLowerCase())
+      .eq("code", code)
+      .eq("verified", false)
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+
+    if (codeLookupError) throw new Error("Não foi possível validar o estado do código OTP.");
+    if (!activeCode) throw new Error("OTP_SUPERSEDED: o código já não é o código activo.");
+
     return buildBrandEmailTemplate({
       title: job.subject,
       preheader: "O código para confirmar o seu email na AgriLink.",
