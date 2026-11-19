@@ -145,7 +145,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
           email,
           full_name: fullName,
           redirect_to: redirectTo,
-          token_hash: data.properties.hashed_token,
         },
       }),
     });
