@@ -49,14 +49,14 @@ describe('Fluxo de confirmação por email', () => {
     expect(resendSignupConfirmation).toHaveBeenCalledWith('teste@agrilink.ao');
   });
 
-  it('mostra a mensagem de link enviado com expiração de 1 hora', async () => {
+  it('mostra que o pedido de confirmação foi colocado na fila', async () => {
     const user = userEvent.setup();
     renderPage();
 
     await user.click(await screen.findByRole('button', { name: /enviar link de confirmação/i }));
 
-    expect(await screen.findByText(/Enviámos um link de confirmação/i)).toBeInTheDocument();
-    expect(screen.getByText(/expira em 1 hora/i)).toBeInTheDocument();
+    expect(await screen.findByText(/foi colocado na fila de envio/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Pedido registado/i })).toBeInTheDocument();
   });
 
   it('aplica debounce de 60s e bloqueia reenvios imediatos', async () => {
@@ -67,7 +67,7 @@ describe('Fluxo de confirmação por email', () => {
     await user.click(await screen.findByRole('button', { name: /enviar link de confirmação/i }));
     await waitFor(() => expect(resendSignupConfirmation).toHaveBeenCalledTimes(1));
 
-    const resend = await screen.findByRole('button', { name: /Reenviar link em 60s/i });
+    const resend = await screen.findByRole('button', { name: /Novo pedido em 60s/i });
     expect(resend).toBeDisabled();
 
     const tick = async (seconds: number) => {
@@ -79,10 +79,10 @@ describe('Fluxo de confirmação por email', () => {
     };
 
     await tick(30);
-    expect(screen.getByRole('button', { name: /Reenviar link em 30s/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Novo pedido em 30s/i })).toBeDisabled();
 
     await tick(30);
-    const ready = await screen.findByRole('button', { name: /Reenviar link de confirmação/i });
+    const ready = await screen.findByRole('button', { name: /Pedir novo email de confirmação/i });
     expect(ready).not.toBeDisabled();
 
     await user.click(ready);
@@ -101,6 +101,6 @@ describe('Fluxo de confirmação por email', () => {
         expect.objectContaining({ title: 'Erro ao enviar link', variant: 'destructive' })
       )
     );
-    expect(screen.queryByText(/Enviámos um link de confirmação/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/foi colocado na fila de envio/i)).not.toBeInTheDocument();
   });
 });
