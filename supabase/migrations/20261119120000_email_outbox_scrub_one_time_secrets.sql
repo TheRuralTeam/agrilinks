@@ -74,8 +74,46 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.fail_email_outbox(
+  p_id uuid,
+  p_error text,
+  p_retry boolean DEFAULT true
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $
+BEGIN
+  UPDATE public.email_outbox
+  SET status = CASE WHEN p_retry AND attempts < 8 THEN 'pending' ELSE 'failed' END,
+      available_at = CASE
+        WHEN p_retry AND attempts < 8
+          THEN pg_catalog.now() + pg_catalog.make_interval(mins => least(1 << greatest(attempts - 1, 0), 30))
+        ELSE available_at
+      END,
+      last_error = pg_catalog.left(p_error, 2000),
+      locked_at = NULL,
+      payload = CASE
+        WHEN p_retry AND attempts < 8 THEN payload
+        ELSE coalesce(payload, '{}'::jsonb)
+          - 'otp_code'
+          - 'token_hash'
+          - 'access_token'
+          - 'refresh_token'
+          - 'password'
+      END,
+      updated_at = pg_catalog.now()
+  WHERE id = p_id
+    AND status = 'processing';
+END;
+$;
+
 REVOKE ALL ON FUNCTION public.claim_email_outbox(integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.claim_email_outbox(integer) TO service_role;
+
+REVOKE ALL ON FUNCTION public.fail_email_outbox(uuid, text, boolean) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.fail_email_outbox(uuid, text, boolean) TO service_role;
 
 REVOKE ALL ON FUNCTION public.complete_email_outbox(uuid, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.complete_email_outbox(uuid, text) TO service_role;
