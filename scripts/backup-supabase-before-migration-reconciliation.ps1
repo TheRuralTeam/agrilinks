@@ -67,7 +67,7 @@ try {
   Invoke-SupabaseDump -Arguments @("db","dump","--remote","-f",$dataFile,"--use-copy","--data-only") -OutputFile $dataFile
 
   Write-Host "A recuperar os ficheiros SQL do histórico remoto ..."
-  $fetchOutput = & supabase migration fetch --linked 2>&1
+  $fetchOutput = & supabase migration fetch --remote 2>&1
   if ($LASTEXITCODE -ne 0) {
     $safeFetchOutput = ($fetchOutput | Out-String) -replace '(?i)(postgres(?:ql)?://)[^@\s]+@', '$1[REDACTED]@'
     throw ("Falha ao recuperar os ficheiros SQL do histórico remoto. " + $safeFetchOutput)
@@ -79,7 +79,7 @@ try {
   Compress-Archive -Path (Join-Path $remoteMigrationDir "*.sql") -DestinationPath $migrationsArchive -CompressionLevel Optimal
 
   Write-Host "A preservar o histórico remoto de migrations ..."
-  $ledgerOutput = & supabase migration list --linked 2>&1
+  $ledgerOutput = & supabase migration list --remote 2>&1
   if ($LASTEXITCODE -ne 0) {
     $safeLedgerOutput = ($ledgerOutput | Out-String) -replace '(?i)(postgres(?:ql)?://)[^@\s]+@', '$1[REDACTED]@'
     throw ("Falha ao exportar o histórico remoto de migrations. " + $safeLedgerOutput)
