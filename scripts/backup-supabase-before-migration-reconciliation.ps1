@@ -60,12 +60,24 @@ try {
   $rolesFile = Join-Path $backupDir "roles.sql"
   $schemaFile = Join-Path $backupDir "schema.sql"
   $dataFile = Join-Path $backupDir "data.sql"
+  $ledgerFile = Join-Path $backupDir "migrations-ledger.txt"
 
   Invoke-SupabaseDump -Arguments @("db","dump","--remote","-f",$rolesFile,"--role-only") -OutputFile $rolesFile
   Invoke-SupabaseDump -Arguments @("db","dump","--remote","-f",$schemaFile) -OutputFile $schemaFile
   Invoke-SupabaseDump -Arguments @("db","dump","--remote","-f",$dataFile,"--use-copy","--data-only") -OutputFile $dataFile
 
-  $files = @($rolesFile,$schemaFile,$dataFile) | ForEach-Object {
+  Write-Host "A preservar o histórico remoto de migrations ..."
+  $ledgerOutput = & supabase migration list --linked 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    $safeLedgerOutput = ($ledgerOutput | Out-String) -replace '(?i)(postgres(?:ql)?://)[^@\s]+@', '$1[REDACTED]@'
+    throw ("Falha ao exportar o histórico remoto de migrations. " + $safeLedgerOutput)
+  }
+  $ledgerOutput | Set-Content -LiteralPath $ledgerFile -Encoding UTF8
+  if (!(Test-Path -LiteralPath $ledgerFile) -or (Get-Item -LiteralPath $ledgerFile).Length -eq 0) {
+    throw "O histórico remoto de migrations não foi guardado."
+  }
+
+  $files = @($rolesFile,$schemaFile,$dataFile,$ledgerFile) | ForEach-Object {
     $item = Get-Item -LiteralPath $_
     [pscustomobject]@{ file=$item.Name; bytes=$item.Length; sha256=(Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }
   }
@@ -79,7 +91,7 @@ try {
       "Schemas geridos auth e storage são excluídos pelo dump CLI.",
       "Binários dos objectos Storage não estão incluídos.",
       "Isto é um dump lógico de schemas/dados da aplicação e roles, não um snapshot físico integral do projecto.",
-      "O ledger remoto supabase_migrations.schema_migrations deve ser preservado separadamente."
+      "O ficheiro migrations-ledger.txt preserva os timestamps remotos; os corpos SQL das migrations recuperadas permanecem na branch de auditoria."
     )
   }
   $manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $backupDir "manifest.json") -Encoding UTF8
