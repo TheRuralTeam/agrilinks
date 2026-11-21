@@ -1,7 +1,7 @@
 -- Run with: supabase test db
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT extensions.plan(16);
+SELECT extensions.plan(18);
 
 SELECT extensions.ok(
   to_regclass('private.freight_load_qr_tokens') IS NOT NULL,
@@ -108,6 +108,16 @@ SELECT extensions.ok(
       AND acl.privilege_type IN ('TRUNCATE', 'TRIGGER', 'REFERENCES', 'MAINTAIN')
   ),
   'new public tables created by postgres do not inherit dangerous privileges'
+);
+
+SELECT extensions.ok(
+  NOT has_table_privilege('authenticated', 'public.freight_pricing_settings', 'SELECT'),
+  'freight pricing settings are not directly readable by authenticated clients'
+);
+
+SELECT extensions.ok(
+  has_function_privilege('authenticated', 'public.get_freight_pricing_settings()', 'EXECUTE'),
+  'authenticated clients retain access to freight pricing through the RPC'
 );
 
 SELECT * FROM extensions.finish();
