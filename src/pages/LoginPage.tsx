@@ -10,6 +10,7 @@ import agrilinkLogo from '../assets/LogoAgriLinkOfficiallNoBackground.png'
 import autenticar from '../assets/auth1.jpg'
 import { toast } from '../hooks/use-toast'
 import Loader from '../components/ui/Loader'
+import { ensureGuestSession } from '../lib/guestSession'
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 import { T } from '../lib/brand';
@@ -79,6 +80,11 @@ const LoginPage = () => {
     && !requestedPath.startsWith('//')
     ? requestedPath
     : '/app'
+
+  const handleGuestAccess = () => {
+    ensureGuestSession()
+    navigate(redirectTo, { replace: true })
+  }
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true)
@@ -469,6 +475,27 @@ const LoginPage = () => {
             <button className="register-btn" onClick={() => { setAuthMode('login'); setSignupSuccess(false); setErrorMsg(''); }} style={{ width:'100%', height:50, borderRadius:999, border:`1px solid ${T.rule}`, background:T.white, color:T.muted, fontSize:14, fontWeight:700, cursor:'pointer', marginBottom:16 }}>
               Já tenho uma conta
             </button>
+          )}
+
+          {authMode === 'login' && (
+            <div style={{ marginTop: 4 }}>
+              <button
+                type="button"
+                className="guest-btn"
+                onClick={handleGuestAccess}
+                style={{
+                  width: '100%', minHeight: 50, borderRadius: 16,
+                  border: `1px solid ${T.gBorder}`, background: T.g50,
+                  color: T.g600, fontSize: 14, fontWeight: 800, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9,
+                }}
+              >
+                <Compass size={18} /> Entrar como visitante <ArrowRight size={16} />
+              </button>
+              <p style={{ margin: '9px 0 0', textAlign: 'center', fontSize: 11, lineHeight: 1.5, color: T.muted }}>
+                Explore a plataforma sem criar conta. A sessão de visitante expira após 2 horas.
+              </p>
+            </div>
           )}
 
           <p style={{ textAlign: 'center', marginTop: 24, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.faint }}>
