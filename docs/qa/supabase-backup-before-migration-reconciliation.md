@@ -15,12 +15,12 @@ A partir da raiz do repositório:
     Set-ExecutionPolicy -Scope Process Bypass
     .\scripts\backup-supabase-before-migration-reconciliation.ps1
 
-O script pede a senha PostgreSQL por entrada mascarada, usa SUPABASE_DB_PASSWORD apenas no ambiente do processo (não na linha de comandos), cria um contexto CLI temporário fora do repositório, confirma o project ref ligado, exporta roles, schema e dados, valida que os três ficheiros não estão vazios e calcula SHA-256. O contexto temporário e a variável de ambiente são removidos no fim.
+O script pede a senha PostgreSQL por entrada mascarada, usa SUPABASE_DB_PASSWORD apenas no ambiente do processo (não na linha de comandos), cria um contexto CLI temporário fora do repositório, confirma o project ref ligado, exporta roles, schema, dados e a lista do histórico remoto de migrations, valida que os quatro ficheiros não estão vazios e calcula SHA-256. O contexto temporário e a variável de ambiente são removidos no fim.
 
 Se o CLI ainda não estiver autenticado, executa supabase login e repete o script. Nunca coloques a senha PostgreSQL, connection string ou access token no GitHub ou neste chat.
 
 ## Limites importantes
-A CLI oficial exclui schemas geridos pelo Supabase, incluindo auth e storage, e não exporta os binários dos objectos Storage. Portanto, este backup protege a estrutura e os dados das schemas de aplicação abrangidas pelo dump, mas **não é um backup integral do projecto Supabase**. O histórico supabase_migrations.schema_migrations também deve ser preservado separadamente.
+A CLI oficial exclui schemas geridos pelo Supabase, incluindo auth e storage, e não exporta os binários dos objectos Storage. Portanto, este backup protege a estrutura e os dados das schemas de aplicação abrangidas pelo dump, mas **não é um backup integral do projecto Supabase**. O ficheiro migrations-ledger.txt preserva os timestamps remotos. Os corpos SQL recuperados estão na branch chore/p0-migration-ledger-audit; a lista não deve ser usada para reparar ou alterar o ledger.
 
 Não executar restauração automaticamente. Não carregar os ficheiros SQL para GitHub, porque podem conter dados operacionais e pessoais. Partilha apenas o manifest.json e os SHA-256 para verificarmos a integridade; não envies os dumps SQL.
 
