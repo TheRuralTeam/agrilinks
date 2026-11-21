@@ -478,24 +478,15 @@ const LoginPage = () => {
           )}
 
           {authMode === 'login' && (
-            <div style={{ marginTop: 4 }}>
-              <button
-                type="button"
-                className="guest-btn"
-                onClick={handleGuestAccess}
-                style={{
-                  width: '100%', minHeight: 50, borderRadius: 16,
-                  border: `1px solid ${T.gBorder}`, background: T.g50,
-                  color: T.g600, fontSize: 14, fontWeight: 800, cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9,
-                }}
+            <p style={{ margin: '4px 0 0', textAlign: 'center', fontSize: 13, color: T.muted }}>
+              <a
+                href={redirectTo}
+                onClick={(event) => { event.preventDefault(); handleGuestAccess() }}
+                style={{ color: T.g600, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3, cursor: 'pointer' }}
               >
-                <Compass size={18} /> Entrar como visitante <ArrowRight size={16} />
-              </button>
-              <p style={{ margin: '9px 0 0', textAlign: 'center', fontSize: 11, lineHeight: 1.5, color: T.muted }}>
-                Explore a plataforma sem criar conta. A sessão de visitante expira após 2 horas.
-              </p>
-            </div>
+                Entrar como visitante
+              </a>
+            </p>
           )}
 
           <p style={{ textAlign: 'center', marginTop: 24, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.faint }}>
