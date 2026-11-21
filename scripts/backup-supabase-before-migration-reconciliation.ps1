@@ -24,22 +24,47 @@ if (!(Get-Command docker -ErrorAction SilentlyContinue)) { throw "Docker CLI nã
 & docker info *> $null
 if ($LASTEXITCODE -ne 0) { throw "Docker Desktop não está iniciado." }
 
-$secureUri = Read-Host "Cola a connection string PostgreSQL do Supabase (Session pooler recomendado)" -AsSecureString
-$ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureUri)
-try { $dbUrl = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr) }
+# A password is read as SecureString and supplied only through the process environment.
+# It is never placed in a command-line argument or written to a file.
+$securePassword = Read-Host "Senha PostgreSQL do projecto Supabase" -AsSecureString
+$ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+try { $dbPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr) }
 finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
-if ($dbUrl -notmatch '^postgres(?:ql)?://') { $dbUrl = $null; throw "URI PostgreSQL inválida." }
+if ([string]::IsNullOrWhiteSpace($dbPassword)) { throw "A senha PostgreSQL não pode estar vazia." }
 
 $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $backupDir = Join-Path $OutputRoot "$ProjectRef-$stamp"
+$cliWorkDir = Join-Path $env:TEMP "agrilink-supabase-backup-cli-$stamp"
 New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
+New-Item -ItemType Directory -Path $cliWorkDir -Force | Out-Null
+
+$previousLocation = Get-Location
+$locationPushed = $false
 try {
+  $env:SUPABASE_DB_PASSWORD = $dbPassword
+  $dbPassword = $null
+
+  Push-Location $cliWorkDir
+  $locationPushed = $true
+  & supabase init 2>&1 | Out-Host
+  if ($LASTEXITCODE -ne 0) { throw "Não foi possível inicializar o contexto temporário do Supabase CLI." }
+
+  & supabase link --project-ref $ProjectRef 2>&1 | Out-Host
+  if ($LASTEXITCODE -ne 0) { throw "Não foi possível ligar o CLI ao projecto $ProjectRef. Confirma primeiro a sessão com 'supabase login'." }
+
+  $linkedRefFile = Join-Path $cliWorkDir "supabase\.temp\project-ref"
+  if (!(Test-Path -LiteralPath $linkedRefFile)) { throw "O CLI não confirmou o projecto ligado." }
+  $linkedRef = (Get-Content -LiteralPath $linkedRefFile -Raw).Trim()
+  if ($linkedRef -ne $ProjectRef) { throw "O projecto ligado ($linkedRef) não corresponde ao projecto esperado ($ProjectRef)." }
+
   $rolesFile = Join-Path $backupDir "roles.sql"
   $schemaFile = Join-Path $backupDir "schema.sql"
   $dataFile = Join-Path $backupDir "data.sql"
-  Invoke-SupabaseDump -Arguments @("db","dump","--db-url",$dbUrl,"-f",$rolesFile,"--role-only") -OutputFile $rolesFile
-  Invoke-SupabaseDump -Arguments @("db","dump","--db-url",$dbUrl,"-f",$schemaFile) -OutputFile $schemaFile
-  Invoke-SupabaseDump -Arguments @("db","dump","--db-url",$dbUrl,"-f",$dataFile,"--use-copy","--data-only","-x","storage.buckets_vectors","-x","storage.vector_indexes") -OutputFile $dataFile
+
+  Invoke-SupabaseDump -Arguments @("db","dump","--remote","-f",$rolesFile,"--role-only") -OutputFile $rolesFile
+  Invoke-SupabaseDump -Arguments @("db","dump","--remote","-f",$schemaFile) -OutputFile $schemaFile
+  Invoke-SupabaseDump -Arguments @("db","dump","--remote","-f",$dataFile,"--use-copy","--data-only") -OutputFile $dataFile
+
   $files = @($rolesFile,$schemaFile,$dataFile) | ForEach-Object {
     $item = Get-Item -LiteralPath $_
     [pscustomobject]@{ file=$item.Name; bytes=$item.Length; sha256=(Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }
@@ -48,19 +73,32 @@ try {
     backup_created_utc=(Get-Date).ToUniversalTime().ToString("o")
     project_ref=$ProjectRef
     postgres_version="17.6.1"
-    backup_method="Supabase CLI db dump"
+    backup_method="Supabase CLI db dump --remote"
     files=$files
     important_scope_limitations=@(
       "Schemas geridos auth e storage são excluídos pelo dump CLI.",
       "Binários dos objectos Storage não estão incluídos.",
       "Isto é um dump lógico de schemas/dados da aplicação e roles, não um snapshot físico integral do projecto.",
-      "O ledger remoto de migrations tem de ser preservado separadamente."
+      "O ledger remoto supabase_migrations.schema_migrations deve ser preservado separadamente."
     )
   }
   $manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $backupDir "manifest.json") -Encoding UTF8
+
   Write-Host ""
   Write-Host "BACKUP LOGICO CONCLUIDO" -ForegroundColor Green
   Write-Host "Pasta: $backupDir"
   $files | Format-Table -AutoSize
   Write-Host "Não publiques estes SQL no GitHub nem os envies para terceiros."
-} finally { $dbUrl=$null; $secureUri=$null }
+} finally {
+  if ($locationPushed) { Pop-Location -ErrorAction SilentlyContinue }
+  if (Get-Command supabase -ErrorAction SilentlyContinue) {
+    Push-Location $cliWorkDir -ErrorAction SilentlyContinue
+    & supabase unlink *> $null
+    Pop-Location -ErrorAction SilentlyContinue
+  }
+  Remove-Item -LiteralPath $cliWorkDir -Recurse -Force -ErrorAction SilentlyContinue
+  Remove-Item Env:\SUPABASE_DB_PASSWORD -ErrorAction SilentlyContinue
+  $dbPassword = $null
+  $securePassword = $null
+  Set-Location $previousLocation
+}
