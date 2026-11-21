@@ -46,6 +46,8 @@ interface FreightLoad {
   currency: string;
   status: string;
   driver_id: string | null;
+  supplier_id: string | null;
+  buyer_id: string | null;
   notes: string | null;
   origin_lat: number | null;
   origin_lng: number | null;
@@ -1140,6 +1142,11 @@ const ProximasCargas = () => {
           visible.map((load) => {
             const tooHeavy = !!capacity && load.weight_kg > capacity;
             const isAssignedDriver = load.driver_id === user?.id;
+            const canDownloadLoadPdf =
+              load.created_by === user?.id ||
+              load.driver_id === user?.id ||
+              load.supplier_id === user?.id ||
+              load.buyer_id === user?.id;
             const latestDriverLocation = driverLocations[load.id];
             const hasCoordinates =
               load.origin_lat != null &&
@@ -1244,28 +1251,30 @@ const ProximasCargas = () => {
                 )}
 
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-                  <button
-                    type="button"
-                    onClick={() => void downloadLoadPdf(load)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 7,
-                      minHeight: 38,
-                      padding: '0 11px',
-                      border: `1px solid ${T.rule}`,
-                      borderRadius: 6,
-                      background: T.white,
-                      color: T.green,
-                      fontFamily: FONT,
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                    }}
-                    title="Descarregar documento da carga"
-                  >
-                    <Download size={15} /> PDF
-                  </button>
+                  {canDownloadLoadPdf && (
+  <button
+                      type="button"
+                      onClick={() => void downloadLoadPdf(load)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 7,
+                        minHeight: 38,
+                        padding: '0 11px',
+                        border: `1px solid ${T.rule}`,
+                        borderRadius: 6,
+                        background: T.white,
+                        color: T.green,
+                        fontFamily: FONT,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                      }}
+                      title="Descarregar documento da carga"
+                    >
+                      <Download size={15} /> PDF
+                    </button>
+                  )}
                   {hasCoordinates && (
                     <button
                       type="button"
