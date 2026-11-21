@@ -41,6 +41,11 @@ USING (
   )
 );
 
+-- Keep only the privileges used by the application; row-level policies still control each operation.
+REVOKE ALL ON TABLE public.freight_loads FROM PUBLIC, anon;
+REVOKE UPDATE, DELETE, TRUNCATE, TRIGGER, REFERENCES ON TABLE public.freight_loads FROM authenticated;
+GRANT SELECT, INSERT ON TABLE public.freight_loads TO authenticated;
+
 -- The private schema is not exposed through PostgREST.
 CREATE SCHEMA IF NOT EXISTS private AUTHORIZATION postgres;
 REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated;
