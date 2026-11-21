@@ -5,7 +5,7 @@ Criar uma cópia lógica local antes de qualquer reconciliação do histórico d
 
 ## Pré-requisitos
 - PowerShell 7 ou Windows PowerShell 5.1
-- Supabase CLI instalada e autenticada (supabase login)
+- Supabase CLI v3 instalada e autenticada (supabase login)
 - Docker Desktop instalado e em execução
 - Senha PostgreSQL do projecto AgriLink, obtida no Supabase Dashboard em **Connect** (não é a anon key nem a service-role key)
 
