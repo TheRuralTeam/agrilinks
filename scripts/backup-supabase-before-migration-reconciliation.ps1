@@ -66,6 +66,18 @@ try {
   Invoke-SupabaseDump -Arguments @("db","dump","--remote","-f",$schemaFile) -OutputFile $schemaFile
   Invoke-SupabaseDump -Arguments @("db","dump","--remote","-f",$dataFile,"--use-copy","--data-only") -OutputFile $dataFile
 
+  Write-Host "A recuperar os ficheiros SQL do histórico remoto ..."
+  $fetchOutput = & supabase migration fetch --linked 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    $safeFetchOutput = ($fetchOutput | Out-String) -replace '(?i)(postgres(?:ql)?://)[^@\s]+@', '$1[REDACTED]@'
+    throw ("Falha ao recuperar os ficheiros SQL do histórico remoto. " + $safeFetchOutput)
+  }
+  $remoteMigrationDir = Join-Path $cliWorkDir "supabase\migrations"
+  $remoteMigrationFiles = @(Get-ChildItem -LiteralPath $remoteMigrationDir -Filter "*.sql" -File -ErrorAction SilentlyContinue)
+  if ($remoteMigrationFiles.Count -eq 0) { throw "O CLI não devolveu ficheiros SQL do histórico remoto." }
+  $migrationsArchive = Join-Path $backupDir "remote-migrations.zip"
+  Compress-Archive -Path (Join-Path $remoteMigrationDir "*.sql") -DestinationPath $migrationsArchive -CompressionLevel Optimal
+
   Write-Host "A preservar o histórico remoto de migrations ..."
   $ledgerOutput = & supabase migration list --linked 2>&1
   if ($LASTEXITCODE -ne 0) {
@@ -77,7 +89,7 @@ try {
     throw "O histórico remoto de migrations não foi guardado."
   }
 
-  $files = @($rolesFile,$schemaFile,$dataFile,$ledgerFile) | ForEach-Object {
+  $files = @($rolesFile,$schemaFile,$dataFile,$ledgerFile,$migrationsArchive) | ForEach-Object {
     $item = Get-Item -LiteralPath $_
     [pscustomobject]@{ file=$item.Name; bytes=$item.Length; sha256=(Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash }
   }
@@ -85,6 +97,7 @@ try {
     backup_created_utc=(Get-Date).ToUniversalTime().ToString("o")
     project_ref=$ProjectRef
     postgres_version="17.6.1"
+    remote_migration_file_count=$remoteMigrationFiles.Count
     backup_method="Supabase CLI db dump --remote"
     files=$files
     important_scope_limitations=@(
