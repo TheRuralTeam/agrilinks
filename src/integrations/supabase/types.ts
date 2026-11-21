@@ -962,7 +962,6 @@ export type Database = {
           pre_order_id: string | null
           product_id: string | null
           product_name: string
-          qr_token: string
           route_distance_km: number | null
           route_duration_minutes: number | null
           status: string
@@ -995,7 +994,6 @@ export type Database = {
           pre_order_id?: string | null
           product_id?: string | null
           product_name: string
-          qr_token?: string
           route_distance_km?: number | null
           route_duration_minutes?: number | null
           status?: string
@@ -1028,7 +1026,6 @@ export type Database = {
           pre_order_id?: string | null
           product_id?: string | null
           product_name?: string
-          qr_token?: string
           route_distance_km?: number | null
           route_duration_minutes?: number | null
           status?: string

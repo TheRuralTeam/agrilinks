@@ -35,7 +35,6 @@ import Loader from '../components/ui/Loader';
 
 interface FreightLoad {
   id: string;
-  qr_token: string;
   pre_order_id: string | null;
   created_by: string;
   product_name: string;
@@ -47,6 +46,8 @@ interface FreightLoad {
   currency: string;
   status: string;
   driver_id: string | null;
+  supplier_id: string | null;
+  buyer_id: string | null;
   notes: string | null;
   origin_lat: number | null;
   origin_lng: number | null;
@@ -251,7 +252,7 @@ const ProximasCargas = () => {
     try {
       const { data, error } = await supabase
         .from('freight_loads')
-        .select('*')
+        .select('id, created_by, driver_id, contract_id, order_id, product_id, product_name, weight_kg, origin_label, origin_lat, origin_lng, destination_label, destination_lat, destination_lng, pickup_date, offered_price, currency, status, notes, accepted_at, in_transit_at, delivered_at, created_at, updated_at, pre_order_id, driver_offered_price, driver_price_method, driver_quote_status, route_distance_km, route_duration_minutes, supplier_id, buyer_id, supplier_handover_confirmed_at, driver_pickup_confirmed_at, driver_delivery_confirmed_at, buyer_receipt_confirmed_at, driver_arrived_at')
         .order('pickup_date', { ascending: true, nullsFirst: false })
         .limit(80);
       if (error) throw error;
@@ -266,6 +267,26 @@ const ProximasCargas = () => {
   useEffect(() => {
     void fetchLoads();
   }, [fetchLoads, user?.id]);
+
+  const downloadLoadPdf = async (load: FreightLoad) => {
+    try {
+      const { data, error } = await supabase.rpc(
+        'get_freight_load_qr_token' as never,
+        { p_freight_load_id: load.id } as never,
+      );
+      if (error) throw error;
+      const qrToken = data as unknown as string | null;
+      if (!qrToken) throw new Error('O servidor não devolveu um QR válido para esta carga.');
+      await downloadFreightLoadPdf({ ...load, qr_token: qrToken });
+    } catch (error) {
+      console.warn('[AgriLink] Não foi possível gerar o documento QR da carga.', error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível gerar o documento desta carga.',
+      );
+    }
+  };
 
   const handlePointSelection = (coordinate: FreightCoordinate) => {
     const coordinateLabel = formatCoordinateLabel(coordinate);
@@ -1121,6 +1142,11 @@ const ProximasCargas = () => {
           visible.map((load) => {
             const tooHeavy = !!capacity && load.weight_kg > capacity;
             const isAssignedDriver = load.driver_id === user?.id;
+            const canDownloadLoadPdf =
+              load.created_by === user?.id ||
+              load.driver_id === user?.id ||
+              load.supplier_id === user?.id ||
+              load.buyer_id === user?.id;
             const latestDriverLocation = driverLocations[load.id];
             const hasCoordinates =
               load.origin_lat != null &&
@@ -1225,28 +1251,30 @@ const ProximasCargas = () => {
                 )}
 
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-                  <button
-                    type="button"
-                    onClick={() => void downloadFreightLoadPdf(load)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 7,
-                      minHeight: 38,
-                      padding: '0 11px',
-                      border: `1px solid ${T.rule}`,
-                      borderRadius: 6,
-                      background: T.white,
-                      color: T.green,
-                      fontFamily: FONT,
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                    }}
-                    title="Descarregar documento da carga"
-                  >
-                    <Download size={15} /> PDF
-                  </button>
+                  {canDownloadLoadPdf && (
+  <button
+                      type="button"
+                      onClick={() => void downloadLoadPdf(load)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 7,
+                        minHeight: 38,
+                        padding: '0 11px',
+                        border: `1px solid ${T.rule}`,
+                        borderRadius: 6,
+                        background: T.white,
+                        color: T.green,
+                        fontFamily: FONT,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                      }}
+                      title="Descarregar documento da carga"
+                    >
+                      <Download size={15} /> PDF
+                    </button>
+                  )}
                   {hasCoordinates && (
                     <button
                       type="button"
