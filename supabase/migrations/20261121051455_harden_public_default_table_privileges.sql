@@ -1,7 +1,3 @@
--- Remove privileges that application clients must never need on public tables.
--- RLS does not protect TRUNCATE, and clients should not be able to create triggers,
--- create foreign-key references, or run table maintenance operations.
-
 BEGIN;
 
 DO $$
