@@ -43,7 +43,20 @@ BEGIN
       'Dangerous table privileges remain for anon/authenticated on % public table grants',
       v_remaining;
   END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM pg_default_acl AS d
+    JOIN pg_namespace AS n ON n.oid = d.defaclnamespace
+    CROSS JOIN LATERAL aclexplode(d.defaclacl) AS acl
+    WHERE d.defaclrole = 'postgres'::regrole
+      AND n.nspname = 'public'
+      AND acl.grantee IN ('anon'::regrole, 'authenticated'::regrole)
+      AND acl.privilege_type IN ('TRUNCATE', 'TRIGGER', 'REFERENCES', 'MAINTAIN')
+  ) THEN
+    RAISE EXCEPTION 'Dangerous public table privileges remain in postgres default privileges';
+  END IF;
 END;
-$$;
+$;
 
 COMMIT;
