@@ -20,7 +20,11 @@ BEGIN
     );
   END LOOP;
 END;
-$$;
+$;
+
+-- This security-invoker view is intentionally read-only for API clients.
+REVOKE ALL ON TABLE public.users_public FROM anon, authenticated;
+GRANT SELECT ON TABLE public.users_public TO anon, authenticated;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
   REVOKE TRUNCATE, TRIGGER, REFERENCES, MAINTAIN ON TABLES FROM anon, authenticated;
