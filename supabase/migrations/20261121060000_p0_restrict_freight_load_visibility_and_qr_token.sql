@@ -1,5 +1,5 @@
--- Restrict freight-load row visibility to public marketplace listings and legitimate participants.
--- Keep the public listing limited to unassigned loads; retain private access for participants and staff.
+-- Restrict freight-load row visibility and keep QR capabilities outside the exposed API schema.
+-- QR tokens are stored in a private schema so table-level SELECT and Realtime remain compatible.
 
 BEGIN;
 
@@ -41,8 +41,53 @@ USING (
   )
 );
 
--- QR tokens are capability-like identifiers. Return one only after verifying
--- that the caller is a participant or an explicitly authorized staff member.
+-- The private schema is not exposed through PostgREST.
+CREATE SCHEMA IF NOT EXISTS private AUTHORIZATION postgres;
+REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated;
+
+CREATE TABLE private.freight_load_qr_tokens (
+  freight_load_id uuid PRIMARY KEY
+    REFERENCES public.freight_loads(id) ON DELETE CASCADE,
+  token text NOT NULL DEFAULT replace(pg_catalog.gen_random_uuid()::text, '-', ''),
+  created_at timestamptz NOT NULL DEFAULT pg_catalog.now(),
+  CONSTRAINT freight_load_qr_tokens_token_key UNIQUE (token)
+);
+
+ALTER TABLE private.freight_load_qr_tokens ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE private.freight_load_qr_tokens FROM PUBLIC, anon, authenticated, service_role;
+
+-- Preserve existing QR codes before removing the exposed column.
+INSERT INTO private.freight_load_qr_tokens (freight_load_id, token)
+SELECT id, qr_token
+FROM public.freight_loads
+WHERE qr_token IS NOT NULL
+ON CONFLICT (freight_load_id) DO NOTHING;
+
+CREATE OR REPLACE FUNCTION private.create_freight_load_qr_token()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $function$
+BEGIN
+  INSERT INTO private.freight_load_qr_tokens (freight_load_id)
+  VALUES (NEW.id)
+  ON CONFLICT (freight_load_id) DO NOTHING;
+
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION private.create_freight_load_qr_token() FROM PUBLIC, anon, authenticated, service_role;
+
+DROP TRIGGER IF EXISTS freight_loads_create_private_qr_token ON public.freight_loads;
+CREATE TRIGGER freight_loads_create_private_qr_token
+AFTER INSERT ON public.freight_loads
+FOR EACH ROW
+EXECUTE FUNCTION private.create_freight_load_qr_token();
+
+ALTER TABLE public.freight_loads DROP COLUMN qr_token;
+
 CREATE OR REPLACE FUNCTION public.get_freight_load_qr_token(p_freight_load_id uuid)
 RETURNS text
 LANGUAGE plpgsql
@@ -52,6 +97,7 @@ AS $function$
 DECLARE
   v_actor uuid := auth.uid();
   v_load public.freight_loads%ROWTYPE;
+  v_token text;
 BEGIN
   IF v_actor IS NULL THEN
     RAISE EXCEPTION 'Authentication required' USING ERRCODE = '42501';
@@ -76,32 +122,153 @@ BEGIN
     OR public.has_role(v_actor, 'admin'::public.app_role)
     OR public.has_role(v_actor, 'support_agent'::public.app_role)
     OR EXISTS (
-      SELECT 1
-      FROM public.products AS p
-      WHERE p.id = v_load.product_id
-        AND p.user_id = v_actor
+      SELECT 1 FROM public.products AS p
+      WHERE p.id = v_load.product_id AND p.user_id = v_actor
     )
     OR EXISTS (
-      SELECT 1
-      FROM public.pre_orders AS po
-      WHERE po.id = v_load.pre_order_id
-        AND po.user_id = v_actor
+      SELECT 1 FROM public.pre_orders AS po
+      WHERE po.id = v_load.pre_order_id AND po.user_id = v_actor
     )
     OR EXISTS (
-      SELECT 1
-      FROM public.orders AS o
-      WHERE o.id = v_load.order_id
-        AND o.user_id = v_actor
+      SELECT 1 FROM public.orders AS o
+      WHERE o.id = v_load.order_id AND o.user_id = v_actor
     )
   ) THEN
     RAISE EXCEPTION 'Não tem permissão para consultar o QR desta carga' USING ERRCODE = '42501';
   END IF;
 
-  RETURN v_load.qr_token;
+  SELECT token
+    INTO v_token
+  FROM private.freight_load_qr_tokens
+  WHERE freight_load_id = p_freight_load_id;
+
+  IF v_token IS NULL THEN
+    RAISE EXCEPTION 'QR desta carga indisponível' USING ERRCODE = 'P0002';
+  END IF;
+
+  RETURN v_token;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.get_freight_load_qr_details(p_qr_token text)
+RETURNS TABLE(
+  id uuid,
+  display_id text,
+  qr_token text,
+  product_name text,
+  weight_kg numeric,
+  origin_label text,
+  destination_label text,
+  pickup_date date,
+  offered_price numeric,
+  currency text,
+  status text,
+  notes text,
+  route_distance_km numeric,
+  route_duration_minutes integer,
+  pre_order_id uuid,
+  order_display_id text,
+  order_status text,
+  payment_status text,
+  buyer_name text,
+  buyer_phone text,
+  driver_name text,
+  driver_phone text
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $function$
+DECLARE
+  v_actor uuid := auth.uid();
+  v_load public.freight_loads%ROWTYPE;
+  v_load_id uuid;
+BEGIN
+  IF v_actor IS NULL THEN
+    RAISE EXCEPTION 'Authentication required' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT freight_load_id
+    INTO v_load_id
+  FROM private.freight_load_qr_tokens
+  WHERE token = p_qr_token
+  LIMIT 1;
+
+  IF v_load_id IS NULL THEN
+    RAISE EXCEPTION 'Carga não encontrada' USING ERRCODE = 'P0002';
+  END IF;
+
+  SELECT fl.*
+    INTO v_load
+  FROM public.freight_loads AS fl
+  WHERE fl.id = v_load_id
+  LIMIT 1;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Carga não encontrada' USING ERRCODE = 'P0002';
+  END IF;
+
+  IF NOT (
+    v_load.created_by = v_actor
+    OR v_load.driver_id = v_actor
+    OR v_load.supplier_id = v_actor
+    OR v_load.buyer_id = v_actor
+    OR public.has_role(v_actor, 'admin'::public.app_role)
+    OR public.has_role(v_actor, 'support_agent'::public.app_role)
+    OR EXISTS (
+      SELECT 1 FROM public.products AS p
+      WHERE p.id = v_load.product_id AND p.user_id = v_actor
+    )
+    OR EXISTS (
+      SELECT 1 FROM public.pre_orders AS po
+      WHERE po.id = v_load.pre_order_id AND po.user_id = v_actor
+    )
+    OR EXISTS (
+      SELECT 1 FROM public.orders AS o
+      WHERE o.id = v_load.order_id AND o.user_id = v_actor
+    )
+  ) THEN
+    RAISE EXCEPTION 'Não tem permissão para consultar esta carga' USING ERRCODE = '42501';
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    v_load.id,
+    left(v_load.id::text, 13),
+    p_qr_token,
+    v_load.product_name,
+    v_load.weight_kg,
+    v_load.origin_label,
+    v_load.destination_label,
+    v_load.pickup_date,
+    v_load.offered_price,
+    v_load.currency,
+    v_load.status,
+    v_load.notes,
+    v_load.route_distance_km,
+    v_load.route_duration_minutes,
+    v_load.pre_order_id,
+    CASE
+      WHEN v_load.pre_order_id IS NOT NULL THEN left(v_load.pre_order_id::text, 13)
+      WHEN v_load.order_id IS NOT NULL THEN left(v_load.order_id::text, 13)
+      ELSE NULL
+    END,
+    COALESCE(
+      (SELECT po.status FROM public.pre_orders AS po WHERE po.id = v_load.pre_order_id),
+      (SELECT o.status::text FROM public.orders AS o WHERE o.id = v_load.order_id)
+    ),
+    (SELECT po.payment_status FROM public.pre_orders AS po WHERE po.id = v_load.pre_order_id),
+    (SELECT u.full_name FROM public.pre_orders AS po JOIN public.users AS u ON u.id = po.user_id WHERE po.id = v_load.pre_order_id),
+    (SELECT u.phone FROM public.pre_orders AS po JOIN public.users AS u ON u.id = po.user_id WHERE po.id = v_load.pre_order_id),
+    (SELECT u.full_name FROM public.users AS u WHERE u.id = v_load.driver_id),
+    (SELECT u.phone FROM public.users AS u WHERE u.id = v_load.driver_id);
 END;
 $function$;
 
 REVOKE ALL ON FUNCTION public.get_freight_load_qr_token(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_freight_load_qr_token(uuid) TO authenticated;
+
+REVOKE ALL ON FUNCTION public.get_freight_load_qr_details(text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_freight_load_qr_details(text) TO authenticated;
 
 COMMIT;
