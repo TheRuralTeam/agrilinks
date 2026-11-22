@@ -28,6 +28,18 @@ BEGIN
     hardened_count := hardened_count + 1;
   END LOOP;
 
+
+  IF EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_proc AS p
+    JOIN pg_catalog.pg_namespace AS n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.prosecdef
+      AND COALESCE(p.proconfig, ARRAY[]::text[]) @> ARRAY['search_path=public']::text[]
+  ) THEN
+    RAISE EXCEPTION 'SECURITY DEFINER functions remain with unsafe search_path=public';
+  END IF;
+
   RAISE NOTICE 'Hardened % SECURITY DEFINER functions with search_path=public, pg_temp',
     hardened_count;
 END;
