@@ -1,3 +1,5 @@
+import { corsHeaders } from "./http.ts";
+
 export const DEFAULT_REDIRECT = "https://agrilink.ao/auth/callback?next=/app";
 export const ALLOWED_HOSTS = [
   "agrilink.ao",
@@ -155,12 +157,14 @@ export async function sendResendEmail({
   html,
   from = "AgriLink <no-reply@agrilink.ao>",
   replyTo = "contacto@agrilink.ao",
+  idempotencyKey,
 }: {
   to: string;
   subject: string;
   html: string;
   from?: string;
   replyTo?: string;
+  idempotencyKey?: string;
 }) {
   const apiKey = getRequiredEnv("RESEND_API_KEY");
   const configuredSender = (Deno.env.get("RESEND_FROM") || from).trim();
@@ -189,6 +193,7 @@ export async function sendResendEmail({
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
+          ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
         },
         body: payload,
         signal: controller.signal,

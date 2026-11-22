@@ -26,7 +26,7 @@ interface AuthContextType {
   logout: () => Promise<void>
   verifyEmail: (token: string) => Promise<{ error: any }>
   resendVerification: () => Promise<{ error: any }>
-  resendSignupConfirmation: (email: string) => Promise<{ error: any }>
+  resendSignupConfirmation: (email: string) => Promise<{ error: any; accepted?: boolean }>
   resetPassword: (email: string) => Promise<{ error: any }>
   refreshProfile: () => Promise<void>
 }
@@ -272,6 +272,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           user: data.user,
           session: null,
           confirmation_sent: data.confirmation_sent === true,
+          confirmation_queued: data.confirmation_queued === true,
           message: data.message,
         },
       }
@@ -400,8 +401,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      await sendConfirmationEmail({ email: normalizedEmail, next: '/app' })
-      return { error: null }
+      const result = await sendConfirmationEmail({ email: normalizedEmail, next: '/app' })
+      if (result?.accepted !== true) {
+        return { error: { message: 'O serviço de autenticação não confirmou a aceitação do pedido.' }, accepted: false }
+      }
+      return { error: null, accepted: true }
     } catch (error: any) {
       return { error }
     }

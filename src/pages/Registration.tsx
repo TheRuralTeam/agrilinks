@@ -270,7 +270,12 @@ const Registration = () => {
       }
 
       if (data?.user?.id) {
-        if (data.confirmation_sent) {
+        if (data.confirmation_queued) {
+          toast({
+            title: "Confirmação agendada",
+            description: `O pedido para ${cleanEmail} foi colocado na fila de envio. Aguarda a mensagem para confirmares a tua conta.`,
+          });
+        } else if (data.confirmation_sent) {
           toast({
             title: "Link de confirmação enviado",
             description: `Enviámos um email para ${cleanEmail}. Abre a mensagem para confirmares a tua conta.`,
@@ -278,7 +283,7 @@ const Registration = () => {
         } else {
           toast({
             title: "Conta criada",
-            description: "Não foi possível enviar o email agora. Podes pedir um novo link no ecrã seguinte.",
+            description: "Não foi possível agendar a confirmação. Podes pedir um novo link no ecrã seguinte.",
             variant: "destructive",
           });
         }
@@ -304,10 +309,12 @@ const Registration = () => {
       const { error, data } = await registerWithOtp({ full_name: fullName, email, phone: fullPhone });
       if (error) throw error;
       toast({
-        title: data?.confirmation_sent ? 'Email de confirmação enviado' : 'Conta criada',
-        description: data?.confirmation_sent
-          ? 'Abre o email da AgriLink para activar a conta.'
-          : 'Não foi possível enviar o email agora. Podes pedir um novo link no ecrã seguinte.',
+        title: data?.confirmation_queued ? 'Confirmação agendada' : data?.confirmation_sent ? 'Email de confirmação enviado' : 'Conta criada',
+        description: data?.confirmation_queued
+          ? 'O pedido de confirmação está na fila de envio. Aguarda a mensagem da AgriLink.'
+          : data?.confirmation_sent
+            ? 'Abre o email da AgriLink para activar a conta.'
+            : 'Não foi possível agendar a confirmação. Podes pedir um novo link no ecrã seguinte.',
       });
       navigate(`/confirmar-email?email=${encodeURIComponent(email.trim().toLowerCase())}`, { replace: true });
     } catch (error: any) {

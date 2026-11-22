@@ -17,10 +17,9 @@ const EmailConfirmation = () => {
   const { user, logout, refreshProfile, resendSignupConfirmation } = useAuth();
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [accepted, setAccepted] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
-  // Conta já libertada: não faz sentido ficar nesta etapa
   useEffect(() => {
     if (user && Boolean(user.email_confirmed_at)) {
       refreshProfile();
@@ -36,18 +35,14 @@ const EmailConfirmation = () => {
   }, [countdown]);
 
   useEffect(() => {
-    const loadEmail = async () => {
-      const query = new URLSearchParams(window.location.search);
-      const queryEmail = query.get("email");
-      if (queryEmail) setEmail(queryEmail);
-      else if (user?.email) setEmail(user.email);
-    };
-    loadEmail();
+    const query = new URLSearchParams(window.location.search);
+    const queryEmail = query.get("email");
+    if (queryEmail) setEmail(queryEmail);
+    else if (user?.email) setEmail(user.email);
   }, [user?.email]);
 
   const handleSend = async () => {
     const cleanEmail = email.trim().toLowerCase();
-
     if (!cleanEmail) {
       toast({
         title: "Insira o email",
@@ -56,31 +51,25 @@ const EmailConfirmation = () => {
       });
       return;
     }
-
     if (countdown > 0 || sending) return;
 
     setSending(true);
-
     try {
-      const { error } = await resendSignupConfirmation(cleanEmail);
+      const { error, accepted: requestAccepted } = await resendSignupConfirmation(cleanEmail);
       if (error) throw error;
+      if (!requestAccepted) throw new Error("O serviço de autenticação não confirmou a aceitação do pedido.");
 
-      setSent(true);
+      setAccepted(true);
       setCountdown(RESEND_COOLDOWN);
-
       toast({
-        title: "Link enviado",
-        description:
-          "Verifique a caixa de entrada e a pasta de spam do seu email.",
+        title: "Pedido aceite",
+        description: "O serviço de autenticação aceitou o pedido. A entrega da mensagem pode demorar alguns instantes.",
       });
     } catch (err: any) {
       console.error("[AgriLink] Falha ao reenviar confirmação de conta:", err);
-
       toast({
-        title: "Erro ao enviar link",
-        description:
-          err?.message ||
-          "Não foi possível enviar o link. Tente novamente dentro de instantes.",
+        title: "Erro ao solicitar link",
+        description: err?.message || "Não foi possível solicitar o link. Tente novamente dentro de instantes.",
         variant: "destructive",
       });
     } finally {
@@ -102,10 +91,10 @@ const EmailConfirmation = () => {
         <CardHeader className="text-center space-y-4">
           <img src={agrilinkLogo} alt="AgriLink" className="h-10 mx-auto" />
           <CardTitle className="flex items-center justify-center gap-2">
-            {sent ? (
+            {accepted ? (
               <>
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
-                Link enviado
+                Pedido aceite
               </>
             ) : (
               <>
@@ -116,10 +105,10 @@ const EmailConfirmation = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {sent ? (
+          {accepted ? (
             <p className="text-sm text-muted-foreground text-center">
-              Enviámos um link de confirmação para <strong>{email}</strong>.
-              Ele expira em 1 hora. Abra o email e confirme na página segura da AgriLink.
+              O serviço de autenticação aceitou o pedido de confirmação para <strong>{email}</strong>.
+              A entrega não é instantânea; verifique a caixa de entrada e a pasta de spam. Depois, abra o link para activar a conta.
             </p>
           ) : (
             <>
@@ -129,28 +118,24 @@ const EmailConfirmation = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
-              <Button
-                className="w-full"
-                onClick={handleSend}
-                disabled={sending || countdown > 0}
-              >
+              <Button className="w-full" onClick={handleSend} disabled={sending || countdown > 0}>
                 {sending ? (
                   <>
                     <Loader compact className="mr-2 [&_svg]:text-primary-foreground" />
-                    A enviar...
+                    A solicitar...
                   </>
                 ) : countdown > 0 ? (
                   `Aguarde ${countdown}s`
                 ) : (
-                    "Enviar link de confirmação"
+                  "Enviar link de confirmação"
                 )}
               </Button>
             </>
           )}
 
-          {sent && (
+          {accepted && (
             <Button variant="outline" className="w-full" onClick={handleSend} disabled={sending || countdown > 0}>
-              {countdown > 0 ? `Reenviar link em ${countdown}s` : "Reenviar link de confirmação"}
+              {countdown > 0 ? `Novo pedido em ${countdown}s` : "Pedir novo email de confirmação"}
             </Button>
           )}
 

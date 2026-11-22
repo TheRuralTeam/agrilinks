@@ -2,11 +2,8 @@ import { z } from "npm:zod@3.23.8";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 import { jsonResponse } from "../_shared/http.ts";
 import {
-  buildBrandEmailTemplate,
-  escapeHtml,
   normalizeEmail,
   safeRedirect,
-  sendResendEmail,
 } from "../_shared/email.ts";
 
 const BodySchema = z.object({
@@ -95,35 +92,46 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const email = authenticatedEmail;
     const metadataName = typeof authData.user.user_metadata?.full_name === "string" ? authData.user.user_metadata.full_name : "";
-    const customerName = escapeHtml(metadataName || parsed.data.customer_name?.trim() || "Cliente");
+    const customerName = metadataName || parsed.data.customer_name?.trim() || "Cliente";
     const redirectTo = safeRedirect(parsed.data.redirect_to, "https://agrilink.ao/app");
+    const eventKey = await sha256(`order-email:${authData.user.id}:${parsed.data.order_id}:${parsed.data.status}:${parsed.data.message}`);
 
-    const html = buildBrandEmailTemplate({
-      title: `Atualização da encomenda ${parsed.data.order_id} — AgriLink`,
-      preheader: `A sua encomenda ${parsed.data.order_id} teve uma atualização de estado.`,
-      headline: `Encomenda ${parsed.data.order_id}`,
-      bodyHtml: `
-        <p style="margin:0 0 12px;">Olá ${customerName},</p>
-        <p style="margin:0 0 12px;">O estado da sua encomenda foi atualizado para: <strong>${escapeHtml(parsed.data.status)}</strong>.</p>
-        <p style="margin:0 0 12px;">${escapeHtml(parsed.data.message).replace(/\n/g, "<br />")}</p>
-      `,
-      ctaText: "Consultar encomenda",
-      ctaHref: redirectTo,
-      secondaryText: "Se precisar de ajuda com esta encomenda, contacte contacto@agrilink.ao.",
+    const queueResponse = await fetch(`${supabaseUrl}/rest/v1/email_outbox`, {
+      method: "POST",
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal,resolution=ignore-duplicates",
+      },
+      body: JSON.stringify({
+        dedupe_key: `order-update:${eventKey}`,
+        recipient: email,
+        subject: `Atualização da encomenda ${parsed.data.order_id} — AgriLink`,
+        template: "order-update",
+        priority: 70,
+        payload: {
+          full_name: customerName,
+          order_id: parsed.data.order_id,
+          status: parsed.data.status,
+          message: parsed.data.message,
+          redirect_to: redirectTo,
+        },
+      }),
     });
 
-    const result = await sendResendEmail({
-      to: email,
-      subject: `Atualização da encomenda ${parsed.data.order_id} — AgriLink`,
-      html,
-    });
+    if (!queueResponse.ok) {
+      const queueError = await queueResponse.text().catch(() => "");
+      console.error("Falha ao colocar atualização de encomenda na fila:", queueError);
+      throw new Error("Não foi possível agendar a atualização da encomenda.");
+    }
 
     return jsonResponse({
       success: true,
-      message: "Atualização de encomenda enviada com sucesso.",
+      queued: true,
+      message: "Atualização da encomenda colocada na fila de envio.",
       email,
-      resend_id: result?.id ?? null,
-    }, 200);
+    }, 202);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Erro interno ao enviar atualização de encomenda.";
     console.error("send-order-update-email failed:", message);

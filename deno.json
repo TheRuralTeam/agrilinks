@@ -1,0 +1,9 @@
+{
+  "minimumDependencyAge": {
+    "age": "PT24H",
+    "exclude": [
+      "npm:react-router",
+      "npm:react-router-dom"
+    ]
+  }
+}

@@ -56,7 +56,7 @@ const LoginPage = () => {
   const [userType, setUserType] = useState<'agricultor' | 'agente' | 'comprador' | 'motorista'>('comprador')
   const [signupStep, setSignupStep] = useState<'profile' | 'details'>('profile')
   const [signupSuccess, setSignupSuccess] = useState(false)
-  const [confirmationEmailSent, setConfirmationEmailSent] = useState(true)
+  const [confirmationEmailQueued, setConfirmationEmailQueued] = useState(false)
   const [signupLoading, setSignupLoading] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
   const [resendLoading, setResendLoading] = useState(false)
@@ -110,7 +110,7 @@ const LoginPage = () => {
           setErrorMsg(error.message || 'Não foi possível criar a conta.')
           return
         }
-        setConfirmationEmailSent(data?.confirmation_sent === true)
+        setConfirmationEmailQueued(data?.confirmation_queued === true || data?.confirmation_sent === true)
         setSignupSuccess(true)
       } finally {
         setSignupLoading(false)
@@ -123,7 +123,7 @@ const LoginPage = () => {
     try {
       if (!password) {
         await sendMagicLink({ email, next: redirectTo })
-        toast({ title: 'Código enviado', description: 'Verifique o seu email e clique no botão para entrar.' })
+        toast({ title: 'Pedido de acesso registado', description: 'O link de acesso foi colocado na fila de envio. Verifique a caixa de entrada e a pasta de spam.' })
         return
       }
       const { error } = await login(email, password)
@@ -155,7 +155,7 @@ const LoginPage = () => {
     setResetLoading(true)
     try {
       await sendPasswordResetEmail({ email, next: '/reset-password' })
-      toast({ title: 'Email enviado', description: 'Verifique a sua caixa de entrada.' })
+      toast({ title: 'Recuperação agendada', description: 'O pedido de recuperação foi colocado na fila de envio. Verifique a caixa de entrada e a pasta de spam.' })
       setShowForgotPassword(false)
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' })
@@ -170,7 +170,7 @@ const LoginPage = () => {
     try {
       const { error } = await resendSignupConfirmation(email);
       if (error) throw error
-      toast({ title: 'Confirmação enviada', description: 'Verifique a caixa de entrada e a pasta de spam.' })
+      toast({ title: 'Confirmação agendada', description: 'O pedido foi colocado na fila. Verifique a caixa de entrada e a pasta de spam.' })
     } catch (err: any) {
       toast({ title: 'Não foi possível enviar', description: err?.message || 'Tente novamente mais tarde.', variant: 'destructive' })
     } finally {
@@ -183,7 +183,7 @@ const LoginPage = () => {
     setResendLoading(true)
     try {
       await sendMagicLink({ email, next: '/app' })
-      toast({ title: 'Link enviado', description: 'Verifique a caixa de entrada (e o spam) do seu email.' })
+      toast({ title: 'Pedido de acesso registado', description: 'O link de acesso foi colocado na fila de envio. Verifique a caixa de entrada e a pasta de spam.' })
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' })
     } finally {
@@ -301,7 +301,7 @@ const LoginPage = () => {
               </div>
               <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 800 }}>Confirma o teu email</h2>
               <p style={{ margin: 0, fontSize: 14, color: T.muted, lineHeight: 1.6 }}>
-                {confirmationEmailSent ? <>O cadastro só fica concluído depois de confirmares o email <strong>{email}</strong>. Abre o link recebido para activar a conta e, depois, inicia sessão. Verifica também a pasta de spam.</> : <>A conta foi criada, mas o email de confirmação ainda não foi enviado. Usa o botão abaixo para pedir um novo link para <strong>{email}</strong>.</>}
+                {confirmationEmailQueued ? <>O cadastro só fica concluído depois de confirmares o email <strong>{email}</strong>. O pedido de envio está na fila; aguarda a mensagem e verifica também a pasta de spam.</> : <>A confirmação ainda não foi agendada para <strong>{email}</strong>. Usa o botão abaixo para pedir um novo link.</>}
               </p>
               <button type="button" onClick={handleResendSignupConfirmation} disabled={resendLoading} style={{ marginTop: 18, width: '100%', height: 46, borderRadius: 999, border: `1px solid ${T.goldBorder}`, background: T.goldPale, color: T.ink, fontWeight: 700, opacity: resendLoading ? 0.6 : 1 }}>
                 {resendLoading ? 'A enviar confirmação...' : 'Reenviar email de confirmação'}
