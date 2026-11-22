@@ -9,6 +9,7 @@ export interface ProductFeedOptions {
   search?: string
   category?: string
   page?: number
+  signal?: AbortSignal
 }
 
 /**
@@ -25,6 +26,7 @@ export const fetchProductsFeed = async ({
   search,
   category,
   page = 0,
+  signal,
 }: ProductFeedOptions = {}) => {
   let query = supabase
     .from('products')
@@ -32,6 +34,7 @@ export const fetchProductsFeed = async ({
     .eq('status', status)
     .order('created_at', { ascending: false })
     .range(page * limit, page * limit + limit - 1)
+  if (signal) query = query.abortSignal(signal)
 
   if (ownerId) query = query.eq('user_id', ownerId)
   if (province) query = query.eq('province_id', province)
@@ -51,18 +54,26 @@ export const fetchProductsFeed = async ({
 
   const productIds = productsData.map((p) => p.id)
   const userIds = [...new Set(productsData.map((product) => product.user_id).filter(Boolean))]
+  let profilesQuery = supabase.from('public_user_profiles').select('id, verified').in('id', userIds)
+  let likesQuery = supabase.from('product_likes').select('product_id').eq('user_id', userId || '').in('product_id', productIds)
+  let commentsQuery = supabase.from('product_comments').select('product_id').in('product_id', productIds)
+  if (signal) {
+    profilesQuery = profilesQuery.abortSignal(signal)
+    likesQuery = likesQuery.abortSignal(signal)
+    commentsQuery = commentsQuery.abortSignal(signal)
+  }
   const [
     { data: publicProfiles, error: profilesError },
     { data: myLikes, error: likesError },
     { data: commentRows, error: commentsError },
   ] = await Promise.all([
     userIds.length
-      ? supabase.from('public_user_profiles').select('id, verified').in('id', userIds)
+      ? profilesQuery
       : Promise.resolve({ data: [] as { id: string; verified: boolean | null }[], error: null }),
     userId
-      ? supabase.from('product_likes').select('product_id').eq('user_id', userId).in('product_id', productIds)
+      ? likesQuery
       : Promise.resolve({ data: [], error: null }),
-    supabase.from('product_comments').select('product_id').in('product_id', productIds),
+    commentsQuery,
   ])
 
   if (profilesError) throw profilesError
@@ -88,8 +99,8 @@ export const fetchProductsFeed = async ({
   }))
 }
 
-export const fetchActiveProducts = async (userId?: string, page = 0, limit = 20) =>
-  fetchProductsFeed({ userId, status: 'active', limit, page })
+export const fetchActiveProducts = async (userId?: string, page = 0, limit = 20, signal?: AbortSignal) =>
+  fetchProductsFeed({ userId, status: 'active', limit, page, signal })
 
 export const fetchProductsByOwner = async (ownerId: string, userId?: string, limit = 20) =>
   fetchProductsFeed({ ownerId, userId, status: 'active', limit, page: 0 })

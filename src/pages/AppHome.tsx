@@ -132,7 +132,14 @@ const AppHome = () => {
     else setLoadingMore(true)
 
     try {
-      const fetchedProducts = await fetchActiveProducts(user?.id, page, 20)
+      const requestController = new AbortController()
+      const requestTimeout = window.setTimeout(() => requestController.abort(), 12_000)
+      let fetchedProducts
+      try {
+        fetchedProducts = await fetchActiveProducts(user?.id, page, 20, requestController.signal)
+      } finally {
+        window.clearTimeout(requestTimeout)
+      }
       const safeFeed = applyPublicSafety((fetchedProducts || []) as Product[])
       setProducts(prev => append ? [...prev, ...safeFeed] : safeFeed)
       setFeedPage(page)
