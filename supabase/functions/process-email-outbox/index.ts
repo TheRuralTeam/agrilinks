@@ -8,6 +8,13 @@ const supabase = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } },
 );
 
+const sha256 = async (value: string): Promise<string> => {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+};
+
 type EmailOutboxJob = {
   id: string;
   recipient: string;
@@ -122,11 +129,13 @@ async function buildJobEmail(job: EmailOutboxJob) {
     const code = String(payload.otp_code || "");
     if (!/^\d{6}$/.test(code)) throw new Error("OTP_INVALID: código ausente ou inválido.");
 
+    const otpEmail = String(job.recipient).trim().toLowerCase();
+    const otpHash = await sha256(`email-otp:${otpEmail}:${code}`);
     const { data: activeCode, error: codeLookupError } = await supabase
       .from("email_verification_codes")
       .select("id")
-      .eq("email", String(job.recipient).trim().toLowerCase())
-      .eq("code", code)
+      .eq("email", otpEmail)
+      .eq("code", otpHash)
       .eq("verified", false)
       .gt("expires_at", new Date().toISOString())
       .maybeSingle();
