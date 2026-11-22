@@ -55,4 +55,30 @@ describe('productsService', () => {
 
     await expect(fetchActiveProducts()).rejects.toThrow('Supabase unavailable')
   })
+  it('passes an AbortSignal to the catalogue request so stalled feed loads can be cancelled', async () => {
+    const controller = new AbortController()
+    let receivedSignal: AbortSignal | undefined
+    mockSupabaseFrom.mockImplementation((table: string) => {
+      if (table === 'products') {
+        const builder: any = {
+          select: () => builder,
+          eq: () => builder,
+          order: () => builder,
+          range: () => builder,
+          abortSignal: (signal: AbortSignal) => {
+            receivedSignal = signal
+            return builder
+          },
+        }
+        builder.range = async () => ({ data: [], error: null })
+        return builder
+      }
+      throw new Error(`Unexpected query to ${table} when the product feed is empty`)
+    })
+
+    await fetchActiveProducts(undefined, 0, 20, controller.signal)
+
+    expect(receivedSignal).toBe(controller.signal)
+  })
+
 })
