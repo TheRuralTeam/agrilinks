@@ -40,6 +40,9 @@ async function buildJobEmail(job: EmailOutboxJob) {
     const email = String(payload.email || job.recipient);
     let effectiveType: "signup" | "invite" | "recovery" | "magiclink" = authType;
     let tokenHash = typeof payload.token_hash === "string" ? payload.token_hash : "";
+    if (template === "auth-signup" && !tokenHash) {
+      throw new Error("AUTH_SIGNUP_TOKEN_REQUIRED: signup confirmation must be generated before enqueueing.");
+    }
     const generateAuthLink = (type: "signup" | "invite" | "recovery" | "magiclink") => {
       if (type === "signup") {
         return supabase.auth.admin.generateLink({
@@ -288,7 +291,7 @@ Deno.serve(async (req: Request) => {
       await supabase.rpc("fail_email_outbox", {
         p_id: job.id,
         p_error: sendError instanceof Error ? sendError.message : String(sendError),
-        p_retry: !/^(OTP_EXPIRED|OTP_INVALID|OTP_SUPERSEDED):/.test(sendError instanceof Error ? sendError.message : String(sendError)),
+        p_retry: !/^(OTP_EXPIRED|OTP_INVALID|OTP_SUPERSEDED|AUTH_SIGNUP_TOKEN_REQUIRED):/.test(sendError instanceof Error ? sendError.message : String(sendError)),
       });
       return false;
     }
