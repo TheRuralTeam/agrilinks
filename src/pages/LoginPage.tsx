@@ -10,6 +10,7 @@ import agrilinkLogo from '../assets/LogoAgriLinkOfficiallNoBackground.png'
 import autenticar from '../assets/auth1.jpg'
 import { toast } from '../hooks/use-toast'
 import Loader from '../components/ui/Loader'
+import { ensureGuestSession } from '../lib/guestSession'
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 import { T } from '../lib/brand';
@@ -79,6 +80,11 @@ const LoginPage = () => {
     && !requestedPath.startsWith('//')
     ? requestedPath
     : '/app'
+
+  const handleGuestAccess = () => {
+    ensureGuestSession()
+    navigate(redirectTo, { replace: true })
+  }
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true)
@@ -469,6 +475,18 @@ const LoginPage = () => {
             <button className="register-btn" onClick={() => { setAuthMode('login'); setSignupSuccess(false); setErrorMsg(''); }} style={{ width:'100%', height:50, borderRadius:999, border:`1px solid ${T.rule}`, background:T.white, color:T.muted, fontSize:14, fontWeight:700, cursor:'pointer', marginBottom:16 }}>
               Já tenho uma conta
             </button>
+          )}
+
+          {authMode === 'login' && (
+            <p style={{ margin: '4px 0 0', textAlign: 'center', fontSize: 13, color: T.muted }}>
+              <a
+                href={redirectTo}
+                onClick={(event) => { event.preventDefault(); handleGuestAccess() }}
+                style={{ color: T.g600, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3, cursor: 'pointer' }}
+              >
+                Entrar como visitante
+              </a>
+            </p>
           )}
 
           <p style={{ textAlign: 'center', marginTop: 24, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.faint }}>
