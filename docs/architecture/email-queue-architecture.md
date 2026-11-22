@@ -11,7 +11,9 @@ The domains are logical queues expressed by the `template` and `dedupe_key` fiel
 | Domain | Template(s) | Producer |
 | --- | --- | --- |
 | Account registration | `auth-signup` | `register-user` |
-| Recovery / magic link / confirmation resend | `auth-recovery`, `auth-magic-link`, `auth-signup` | Existing auth queue functions |
+| Password recovery / magic link | `auth-recovery`, `auth-magic-link` | Existing auth queue functions |
+| Initial signup confirmation | `auth-signup` | `register-user` |
+| Existing signup confirmation resend | Pending a supported Auth SMTP or OTP-based flow; must not enqueue a tokenless `auth-signup` job | `send-confirmation-email` (currently blocked by the worker's fail-closed guard) |
 | OTP verification | `auth-otp` | `send-otp-email` |
 | Support contact | `support-contact` | `send-support-email` |
 | Order status | `order-update` | `send-order-update-email` |
@@ -40,5 +42,7 @@ The domains are logical queues expressed by the `template` and `dedupe_key` fiel
 - Password-based registrations use the `signup` verification type; passwordless registrations use `invite`.
 - The generated `hashed_token` and exact `verification_type` are stored in the restricted outbox payload. The central worker sends the message; it does not regenerate or downgrade a signup token to a magic link.
 - This distinction is required because Supabase routes `signup`/`invite` through signup confirmation, while `magiclink` is verified through the recovery flow. For an unconfirmed user, that recovery flow clears a password set before confirmation.
-- For auth jobs whose producer cannot pre-generate a token (confirmation resend, recovery, or magic link), the worker persists the generated token hash and actual Supabase verification type in the claimed outbox row before calling Resend. Retries therefore reuse the same token and byte-stable message payload with the same Resend idempotency key; the token is scrubbed after success or terminal failure.
-- The token hash is removed from the outbox payload after provider acceptance or terminal failure. If enqueueing fails after Auth user creation, the UI directs the user to the confirmation-resend flow, which creates a fresh signup confirmation token for the existing unconfirmed account.
+- For recovery and magic-link jobs whose producer cannot pre-generate a token, the worker persists the generated token hash and actual Supabase verification type in the claimed outbox row before calling Resend. Retries therefore reuse the same token and byte-stable message payload with the same Resend idempotency key; the token is scrubbed after success or terminal failure.
+- Signup confirmation is different: Supabase's Admin `generateLink({ type: "signup" })` requires signup credentials and is not a supported resend mechanism for an existing unconfirmed account. The worker now fails closed on a tokenless `auth-signup` job instead of attempting an invalid signup or downgrading to a magic link.
+- The confirmation-resend path must be completed using either Supabase Auth's supported `resend({ type: "signup" })` flow with a verified custom SMTP provider, or a product-approved OTP confirmation journey. Do not mark this path ready until the provider configuration and end-to-end test pass.
+- The token hash is removed from the outbox payload after provider acceptance or terminal failure.
