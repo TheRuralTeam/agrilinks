@@ -104,6 +104,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     const otpCode = createOtpCode();
+    const otpHash = await sha256(`email-otp:${email}:${otpCode}`);
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
     const { error: invalidateError } = await supabase
@@ -120,7 +121,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const { error: insertError } = await supabase.from("email_verification_codes").insert({
       user_id: userRow.id,
       email,
-      code: otpCode,
+      code: otpHash,
       expires_at: expiresAt,
       verified: false,
     });
@@ -158,7 +159,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       await supabase.from("email_verification_codes")
         .update({ verified: true })
         .eq("email", email)
-        .eq("code", otpCode);
+        .eq("code", otpHash);
       console.error("Falha ao colocar OTP na fila:", queueError);
       throw new Error("Não foi possível agendar o código de verificação.");
     }
