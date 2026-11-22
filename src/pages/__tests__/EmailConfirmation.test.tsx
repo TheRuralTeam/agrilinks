@@ -34,11 +34,11 @@ describe('Fluxo de confirmação por email', () => {
   beforeEach(() => {
     resendSignupConfirmation.mockReset();
     toastSpy.mockReset();
-    resendSignupConfirmation.mockResolvedValue({ error: null });
+    resendSignupConfirmation.mockResolvedValue({ error: null, accepted: true });
   });
   afterEach(() => vi.useRealTimers());
 
-  it('envia o link de confirmação com o email e o redirect de callback', async () => {
+  it('solicita o link de confirmação para o email indicado', async () => {
     const user = userEvent.setup();
     renderPage();
 
@@ -49,17 +49,30 @@ describe('Fluxo de confirmação por email', () => {
     expect(resendSignupConfirmation).toHaveBeenCalledWith('teste@agrilink.ao');
   });
 
-  it('mostra que o pedido de confirmação foi colocado na fila', async () => {
+  it('só apresenta sucesso depois da aceitação explícita pelo serviço', async () => {
     const user = userEvent.setup();
     renderPage();
 
     await user.click(await screen.findByRole('button', { name: /enviar link de confirmação/i }));
 
-    expect(await screen.findByText(/foi colocado na fila de envio/i)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Pedido registado/i })).toBeInTheDocument();
+    expect(await screen.findByText(/serviço de autenticação aceitou o pedido/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Pedido aceite/i })).toBeInTheDocument();
   });
 
-  it('aplica debounce de 60s e bloqueia reenvios imediatos', async () => {
+  it('não apresenta sucesso se o serviço não confirmou a aceitação', async () => {
+    resendSignupConfirmation.mockResolvedValue({ error: null, accepted: false });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: /enviar link de confirmação/i }));
+
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Erro ao solicitar link', variant: 'destructive' })
+    ));
+    expect(screen.queryByRole('heading', { name: /Pedido aceite/i })).not.toBeInTheDocument();
+  });
+
+  it('aplica cooldown de 60s e bloqueia reenvios imediatos', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     vi.useFakeTimers({ shouldAdvanceTime: true });
     renderPage();
@@ -72,9 +85,7 @@ describe('Fluxo de confirmação por email', () => {
 
     const tick = async (seconds: number) => {
       for (let i = 0; i < seconds; i++) {
-        await act(async () => {
-          vi.advanceTimersByTime(1000);
-        });
+        await act(async () => { vi.advanceTimersByTime(1000); });
       }
     };
 
@@ -89,18 +100,16 @@ describe('Fluxo de confirmação por email', () => {
     await waitFor(() => expect(resendSignupConfirmation).toHaveBeenCalledTimes(2));
   });
 
-  it('mostra erro quando o envio do email falha', async () => {
-    resendSignupConfirmation.mockResolvedValue({ error: new Error('Erro ao enviar email') });
+  it('mostra erro quando o pedido de reenvio falha', async () => {
+    resendSignupConfirmation.mockResolvedValue({ error: new Error('Erro ao solicitar email') });
     const user = userEvent.setup();
     renderPage();
 
     await user.click(await screen.findByRole('button', { name: /enviar link de confirmação/i }));
 
-    await waitFor(() =>
-      expect(toastSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Erro ao enviar link', variant: 'destructive' })
-      )
-    );
-    expect(screen.queryByText(/foi colocado na fila de envio/i)).not.toBeInTheDocument();
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Erro ao solicitar link', variant: 'destructive' })
+    ));
+    expect(screen.queryByRole('heading', { name: /Pedido aceite/i })).not.toBeInTheDocument();
   });
 });
