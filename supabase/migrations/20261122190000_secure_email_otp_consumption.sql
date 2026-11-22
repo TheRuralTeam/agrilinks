@@ -72,7 +72,7 @@ BEGIN
     FROM pg_catalog.pg_proc AS p
     WHERE p.oid = 'public.consume_email_verification_code(text,text,text)'::regprocedure
       AND p.prosecdef
-      AND p.proconfig @> ARRAY['search_path=']::text[]
+      AND p.proconfig @> ARRAY['search_path=""']::text[]
   ) THEN
     RAISE EXCEPTION 'Email OTP consumption RPC must use an empty search_path';
   END IF;
