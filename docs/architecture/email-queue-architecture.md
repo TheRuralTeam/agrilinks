@@ -1,48 +1,35 @@
-# AgriLink email queue architecture
+# AgriLink email delivery architecture
 
 ## Delivery contract
 
-Business and authentication Edge Functions enqueue messages in `public.email_outbox`. Only `process-email-outbox` calls the Resend API. The existing scheduled worker, worker-secret validation, atomic claim RPC, retry RPC, and provider ID tracking remain in place.
+Business and transactional email functions use the central `public.email_outbox` and the `process-email-outbox` worker, which sends through Resend. Existing signup confirmation resends are deliberately handled by Supabase Auth's supported resend endpoint because Auth owns the original signup token and does not expose a supported way to regenerate that token through the email worker.
 
-## Queue domains
+## Email domains
 
-The domains are logical queues expressed by the `template` and `dedupe_key` fields. They converge on the existing central outbox:
-
-| Domain | Template(s) | Producer |
+| Domain | Producer | Delivery path |
 | --- | --- | --- |
-| Account registration | `auth-signup` | `register-user` |
-| Password recovery / magic link | `auth-recovery`, `auth-magic-link` | Existing auth queue functions |
-| Initial signup confirmation | `auth-signup` | `register-user` |
-| Existing signup confirmation resend | Pending a supported Auth SMTP or OTP-based flow; must not enqueue a tokenless `auth-signup` job | `send-confirmation-email` (currently blocked by the worker's fail-closed guard) |
-| OTP verification | `auth-otp` | `send-otp-email` |
-| Support contact | `support-contact` | `send-support-email` |
-| Order status | `order-update` | `send-order-update-email` |
-| Pre-orders, freight, notifications | Existing templates / notification fallback | Existing DB triggers and workers |
-
-## Delivery guarantees
-
-- Producers persist the event before returning a queued response.
-- The outbox unique `dedupe_key` protects against repeated enqueue attempts.
-- The worker claims jobs through `claim_email_outbox` and uses the existing retry policy.
-- A message is marked sent only after Resend returns success; the provider ID is stored.
-- OTP messages are rejected if their 15-minute validity window has elapsed before delivery.
-- OTP and other one-time credential fields are removed from the payload by `complete_email_outbox` after provider acceptance.
-- The existing RLS and service-role-only access model for the outbox is preserved.
-
-## Operational notes
-
-- Queue acceptance is not equivalent to recipient delivery. Resend acceptance, delivery, bounce, and complaint are distinct lifecycle events; provider webhooks are a separate follow-up.
-- A queued response (HTTP 202) means the message is scheduled, not yet delivered.
-- Do not deploy the migration or Edge Functions to production until the PR checks and staging/test-account flow pass.
-- Do not replay old failed authentication messages blindly: tokens may have expired and recipients may already be confirmed.
+| Initial account registration | `register-user` | Central outbox + Resend |
+| Existing signup confirmation resend | `send-confirmation-email` | Supabase Auth `resend({ type: "signup" })` + configured custom SMTP |
+| Password recovery / magic link | Existing auth queue functions | Central outbox + Resend |
+| OTP verification | `send-otp-email` | Central outbox + Resend; product flow remains pending |
+| Support contact | `send-support-email` | Central outbox + Resend |
+| Order status | `send-order-update-email` | Central outbox + Resend |
+| Pre-orders, freight, notifications | Existing DB triggers and workers | Existing templates / notification fallback |
 
 ## Signup confirmation semantics
 
-- The registration Edge Function creates the Auth user and confirmation token through `auth.admin.generateLink` before queue insertion.
-- Password-based registrations use the `signup` verification type; passwordless registrations use `invite`.
-- The generated `hashed_token` and exact `verification_type` are stored in the restricted outbox payload. The central worker sends the message; it does not regenerate or downgrade a signup token to a magic link.
-- This distinction is required because Supabase routes `signup`/`invite` through signup confirmation, while `magiclink` is verified through the recovery flow. For an unconfirmed user, that recovery flow clears a password set before confirmation.
-- For recovery and magic-link jobs whose producer cannot pre-generate a token, the worker persists the generated token hash and actual Supabase verification type in the claimed outbox row before calling Resend. Retries therefore reuse the same token and byte-stable message payload with the same Resend idempotency key; the token is scrubbed after success or terminal failure.
-- Signup confirmation is different: Supabase's Admin `generateLink({ type: "signup" })` requires signup credentials and is not a supported resend mechanism for an existing unconfirmed account. The worker now fails closed on a tokenless `auth-signup` job instead of attempting an invalid signup or downgrading to a magic link.
-- The confirmation-resend path must be completed using either Supabase Auth's supported `resend({ type: "signup" })` flow with a verified custom SMTP provider, or a product-approved OTP confirmation journey. Do not mark this path ready until the provider configuration and end-to-end test pass.
-- The token hash is removed from the outbox payload after provider acceptance or terminal failure.
+- Supabase Auth creates and owns the signup confirmation token.
+- The initial signup path may use the central outbox only when the registration function has already generated and securely persisted the exact signup token hash.
+- A resend for an existing unconfirmed user must use Supabase Auth's documented `auth.resend({ type: "signup", email, options: { emailRedirectTo } })` operation. It must not call `generateLink({ type: "signup" })` without the original signup credentials, and must not downgrade confirmation to a magic link.
+- The resend Edge Function validates the input, applies per-email and per-IP rate limits, restricts the redirect to the AgriLink callback, and returns HTTP 202 only after Supabase Auth returns without an error. A 202 means Auth accepted the request; it does not prove mailbox delivery.
+- Supabase Auth sends this message using the SMTP provider configured in Authentication settings. The production project must have a verified custom SMTP provider (for example, Resend SMTP) and the confirmation template must contain `{{ .ConfirmationURL }}`.
+- If Auth rejects the request, the Edge Function returns a non-2xx response and the frontend does not show a success state.
+- OTP code confirmation is outside this delivery path and remains pending.
+
+## Operational guarantees
+
+- Central outbox jobs are marked sent only after Resend returns success; provider IDs are stored.
+- One-time credentials are scrubbed from outbox payloads after provider acceptance or terminal failure.
+- Queue/provider acceptance is not equivalent to recipient delivery. Delivery, bounce, and complaint events require provider webhooks.
+- Never replay old failed authentication messages blindly: tokens may have expired and recipients may already be confirmed.
+- Do not deploy this resend path until Supabase Auth custom SMTP configuration and an end-to-end test account are verified.
