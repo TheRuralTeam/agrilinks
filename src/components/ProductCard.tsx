@@ -1,5 +1,4 @@
-import React, { useState, memo } from 'react'
-import Slider from 'react-slick'
+import React, { useState, useRef, memo } from 'react'
 import { toast } from 'sonner'
 import {
   Heart, MessageCircle, Calendar, MapPin, Send, ChevronLeft, ChevronRight,
@@ -12,8 +11,6 @@ import { useNavigate } from 'react-router-dom'
 import { fetchProductComments } from '../features/products/productsService'
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog'
 import SimpleLeafletMap from './SimpleLeafletMap'
-import "slick-carousel/slick/slick.css"
-import "slick-carousel/slick/slick-theme.css"
 
 /* ─── Design tokens — same source as AppHome, single accent colour ─────────── */
 import { T } from '../lib/brand'
@@ -324,33 +321,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
 }
 
-/* ─── Arrow components ─────────────────────────────────────────────────────── */
-const CustomPrevArrow = memo(({ onClick }: { onClick?: () => void }) => (
-  <button onClick={onClick} style={{
-    position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
-    background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(6px)',
-    border: 'none', borderRadius: '50%', width: 32, height: 32,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    cursor: 'pointer', zIndex: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-  }} aria-label="Imagem anterior">
-    <ChevronLeft size={17} color={T.ink} />
-  </button>
-))
-
-const CustomNextArrow = memo(({ onClick }: { onClick?: () => void }) => (
-  <button onClick={onClick} style={{
-    position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-    background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(6px)',
-    border: 'none', borderRadius: '50%', width: 32, height: 32,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    cursor: 'pointer', zIndex: 10, boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-  }} aria-label="Próxima imagem">
-    <ChevronRight size={17} color={T.ink} />
-  </button>
-))
-CustomPrevArrow.displayName = 'CustomPrevArrow'
-CustomNextArrow.displayName = 'CustomNextArrow'
-
 /* ─── Types ────────────────────────────────────────────────────────────────── */
 interface CommentReply {
   id: string; user_id: string; reply_text: string; created_at: string
@@ -392,6 +362,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   const { user } = useAuth()
   const { requireAct } = useCanAct()
   const navigate = useNavigate()
+  const photoGalleryRef = useRef<HTMLDivElement>(null)
   const [commentVisible, setCommentVisible] = useState(false)
   const [comment, setComment] = useState('')
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
@@ -554,20 +525,6 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
     }
   }
 
-  const sliderSettings = {
-    dots: true,
-    infinite: product.photos && product.photos.length > 1,
-    fade: true,
-    speed: 600,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    autoplay: false,
-    arrows: product.photos && product.photos.length > 1,
-    nextArrow: <CustomNextArrow />,
-    prevArrow: <CustomPrevArrow />,
-    lazyLoad: 'progressive' as const,
-  }
-
   return (
     <>
       <div
@@ -597,13 +554,28 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
         {/* ── Photo carousel ── */}
         <div style={styles.imageWrap}>
           {product.photos && product.photos.length > 0 ? (
-            <Slider {...sliderSettings}>
+            <div
+              ref={photoGalleryRef}
+              aria-label="Fotografias do produto"
+              style={{
+                display: 'flex',
+                width: '100%',
+                height: '100%',
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                scrollSnapType: 'x mandatory',
+                overscrollBehaviorX: 'contain',
+                scrollbarWidth: 'thin',
+              }}
+            >
               {product.photos.map((photo, i) => (
-                <div key={i}>
+                <div key={i} style={{ flex: '0 0 100%', minWidth: 0, scrollSnapAlign: 'start' }}>
                   <img
                     src={photo}
                     style={{
+                      display: 'block',
                       width: '100%',
+                      height: '100%',
                       aspectRatio: '4/3',
                       objectFit: 'cover',
                       transition: 'transform 0.7s ease',
@@ -615,7 +587,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                   />
                 </div>
               ))}
-            </Slider>
+            </div>
           ) : (
             <div style={styles.noPhoto}>
               <Leaf size={36} color={T.g400} />
