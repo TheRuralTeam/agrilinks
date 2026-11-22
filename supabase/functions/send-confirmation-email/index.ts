@@ -1,3 +1,4 @@
+import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 import { z } from "npm:zod@3.23.8";
 import { jsonResponse } from "../_shared/http.ts";
 import { normalizeEmail, safeRedirect } from "../_shared/email.ts";
@@ -21,9 +22,9 @@ const sha256 = async (value: string) => {
 };
 
 const getClientIp = (req: Request) => {
+  const cloudflareIp = req.headers.get("cf-connecting-ip")?.trim();
   const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   const realIp = req.headers.get("x-real-ip")?.trim();
-  const cloudflareIp = req.headers.get("cf-connecting-ip")?.trim();
   return cloudflareIp || forwarded || realIp || "unknown";
 };
 
@@ -35,26 +36,22 @@ const consumeRateLimit = async (bucketKey: string, maxRequests: number) => {
     throw new Error("Configuração interna de rate limit indisponível.");
   }
 
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/rpc/consume_api_rate_limit`,
-    {
-      method: "POST",
-      headers: {
-        apikey: serviceKey,
-        Authorization: `Bearer ${serviceKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        p_bucket_key: bucketKey,
-        p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
-        p_max_requests: maxRequests,
-      }),
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/consume_api_rate_limit`, {
+    method: "POST",
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      "Content-Type": "application/json",
     },
-  );
+    body: JSON.stringify({
+      p_bucket_key: bucketKey,
+      p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
+      p_max_requests: maxRequests,
+    }),
+  });
 
   if (!response.ok) {
-    const details = await response.text().catch(() => "");
-    console.error("consume_api_rate_limit failed:", details);
+    console.error("consume_api_rate_limit failed with status:", response.status);
     throw new Error("Não foi possível validar o limite de envio.");
   }
 
@@ -62,20 +59,21 @@ const consumeRateLimit = async (bucketKey: string, maxRequests: number) => {
 };
 
 Deno.serve(async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") {
-    return jsonResponse({ ok: true }, 200);
-  }
-
-  if (req.method !== "POST") {
-    return jsonResponse({ error: "Método não permitido." }, 405);
-  }
+  if (req.method === "OPTIONS") return jsonResponse({ ok: true }, 200);
+  if (req.method !== "POST") return jsonResponse({ error: "Método não permitido." }, 405);
 
   try {
     const raw = await req.json().catch(() => null);
     const parsed = BodySchema.safeParse(raw);
-
     if (!parsed.success) {
-      return jsonResponse({ error: "Dados inválidos para confirmação de conta." }, 400);
+      return jsonResponse({ success: false, error: "Dados inválidos para confirmação de conta." }, 400);
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    if (!supabaseUrl || !anonKey || !Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) {
+      console.error("Configuração necessária para reenvio de confirmação indisponível.");
+      return jsonResponse({ success: false, error: "Serviço de confirmação temporariamente indisponível." }, 503);
     }
 
     const email = normalizeEmail(parsed.data.email);
@@ -86,7 +84,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
       `auth:confirmation:email:${emailHash}`,
       EMAIL_MAX_REQUESTS,
     );
-
     if (!emailAllowed) {
       return jsonResponse({
         success: false,
@@ -98,7 +95,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
       `auth:confirmation:ip:${ipHash}`,
       IP_MAX_REQUESTS,
     );
-
     if (!ipAllowed) {
       return jsonResponse({
         success: false,
@@ -106,44 +102,50 @@ Deno.serve(async (req: Request): Promise<Response> => {
       }, 429);
     }
 
-    const fullName = parsed.data.full_name?.trim() || "Agricultor";
-    const redirectTo = safeRedirect(parsed.data.redirect_to, "https://agrilink.ao/auth/callback?next=%2Fapp");
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const redirectTo = safeRedirect(
+      parsed.data.redirect_to,
+      "https://agrilink.ao/auth/callback?next=%2Fapp",
+    );
 
-    const [queued, queueOk] = await fetch(
-      `${Deno.env.get("SUPABASE_URL")}/rest/v1/email_outbox`,
-      {
-        method: "POST",
-        headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
-          "Content-Type": "application/json",
-          Prefer: "return=representation,resolution=ignore-duplicates",
-        },
-        body: JSON.stringify({
-          dedupe_key: `auth:signup:${email}:${Math.floor(Date.now() / 60000)}`,
-          recipient: email,
-          subject: "Confirme a sua conta — AgriLink",
-          template: "auth-signup",
-          priority: 100,
-          payload: { full_name: fullName, redirect_to: redirectTo, email },
-        }),
-      },
-    ).then(async (response) => [await response.json().catch(() => null), response.ok] as const);
+    // Supabase Auth owns signup confirmation tokens. Its supported resend endpoint
+    // is the only safe way to re-issue a confirmation for an existing unconfirmed user.
+    // Delivery requires a configured custom SMTP provider in the Supabase Auth settings.
+    const authClient = createClient(supabaseUrl, anonKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
 
-    if (!queueOk) {
-      throw new Error(queued?.message || "Não foi possível agendar a confirmação.");
+    const { error } = await authClient.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: redirectTo },
+    });
+
+    if (error) {
+      const status = error.status === 429 ? 429 : 502;
+      console.warn("Supabase Auth rejected confirmation resend:", {
+        status: error.status,
+        code: "code" in error ? error.code : undefined,
+      });
+      return jsonResponse({
+        success: false,
+        error: status === 429
+          ? "O limite de reenvio do serviço de autenticação foi atingido. Aguarde antes de tentar novamente."
+          : "O serviço de autenticação não aceitou o pedido de confirmação. Tente novamente mais tarde.",
+      }, status);
     }
 
     return jsonResponse({
       success: true,
-      queued: true,
-      message: "Confirmação agendada para envio.",
-      email,
-    }, 200);
+      accepted: true,
+      provider: "supabase-auth",
+      message: "O serviço de autenticação aceitou o pedido de confirmação.",
+    }, 202);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erro interno ao enviar confirmação.";
+    const message = error instanceof Error ? error.message : "Erro interno ao solicitar confirmação.";
     console.error("send-confirmation-email failed:", message);
-    return jsonResponse({ success: false, error: message }, 500);
+    return jsonResponse({
+      success: false,
+      error: "Não foi possível solicitar a confirmação neste momento.",
+    }, 500);
   }
 });
