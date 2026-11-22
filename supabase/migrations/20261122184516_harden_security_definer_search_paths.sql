@@ -28,7 +28,6 @@ BEGIN
     hardened_count := hardened_count + 1;
   END LOOP;
 
-
   IF EXISTS (
     SELECT 1
     FROM pg_catalog.pg_proc AS p
