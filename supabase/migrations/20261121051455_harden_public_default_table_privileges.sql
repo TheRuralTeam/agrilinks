@@ -1,0 +1,62 @@
+BEGIN;
+
+DO $$
+DECLARE
+  v_table record;
+BEGIN
+  FOR v_table IN
+    SELECT schemaname, tablename
+    FROM pg_tables
+    WHERE schemaname = 'public'
+  LOOP
+    EXECUTE format(
+      'REVOKE TRUNCATE, TRIGGER, REFERENCES, MAINTAIN ON TABLE %I.%I FROM anon, authenticated',
+      v_table.schemaname,
+      v_table.tablename
+    );
+  END LOOP;
+END;
+$;
+
+-- This security-invoker view is intentionally read-only for API clients.
+REVOKE ALL ON TABLE public.users_public FROM anon, authenticated;
+GRANT SELECT ON TABLE public.users_public TO anon, authenticated;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  REVOKE TRUNCATE, TRIGGER, REFERENCES, MAINTAIN ON TABLES FROM anon, authenticated;
+
+-- Application tables are owned by postgres; platform-managed supabase_admin defaults are left untouched.
+
+DO $$
+DECLARE
+  v_remaining integer;
+BEGIN
+  SELECT count(*)::integer
+    INTO v_remaining
+  FROM information_schema.role_table_grants
+  WHERE table_schema = 'public'
+    AND grantee IN ('anon', 'authenticated')
+    AND privilege_type IN ('TRUNCATE', 'TRIGGER', 'REFERENCES', 'MAINTAIN');
+
+  IF v_remaining <> 0 THEN
+    RAISE EXCEPTION
+      'Dangerous table privileges remain for anon/authenticated on % public table grants',
+      v_remaining;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM pg_default_acl AS d
+    JOIN pg_namespace AS n ON n.oid = d.defaclnamespace
+    CROSS JOIN LATERAL aclexplode(d.defaclacl) AS acl
+    WHERE d.defaclrole = 'postgres'::regrole
+      AND n.nspname = 'public'
+      AND acl.grantee IN ('anon'::regrole, 'authenticated'::regrole)
+      AND acl.privilege_type IN ('TRUNCATE', 'TRIGGER', 'REFERENCES', 'MAINTAIN')
+  ) THEN
+    RAISE EXCEPTION 'Dangerous public table privileges remain in postgres default privileges';
+  END IF;
+END;
+$;
+
+COMMIT;
