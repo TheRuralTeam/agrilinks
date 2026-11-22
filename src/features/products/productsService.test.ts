@@ -69,8 +69,9 @@ describe('productsService', () => {
             receivedSignal = signal
             return builder
           },
+          then: (resolve: (value: { data: never[]; error: null }) => unknown, reject?: (reason: unknown) => unknown) =>
+            Promise.resolve({ data: [], error: null }).then(resolve, reject),
         }
-        builder.range = async () => ({ data: [], error: null })
         return builder
       }
       throw new Error(`Unexpected query to ${table} when the product feed is empty`)
