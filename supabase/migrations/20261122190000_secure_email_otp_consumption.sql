@@ -48,3 +48,33 @@ REVOKE ALL ON FUNCTION public.consume_email_verification_code(text, text, text)
   FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.consume_email_verification_code(text, text, text)
   TO service_role;
+
+DO $verification$
+BEGIN
+  IF pg_catalog.has_function_privilege(
+    'anon',
+    'public.consume_email_verification_code(text,text,text)',
+    'EXECUTE'
+  ) OR pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.consume_email_verification_code(text,text,text)',
+    'EXECUTE'
+  ) OR NOT pg_catalog.has_function_privilege(
+    'service_role',
+    'public.consume_email_verification_code(text,text,text)',
+    'EXECUTE'
+  ) THEN
+    RAISE EXCEPTION 'Email OTP consumption RPC grants are not service_role-only';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_proc AS p
+    WHERE p.oid = 'public.consume_email_verification_code(text,text,text)'::regprocedure
+      AND p.prosecdef
+      AND p.proconfig @> ARRAY['search_path=']::text[]
+  ) THEN
+    RAISE EXCEPTION 'Email OTP consumption RPC must use an empty search_path';
+  END IF;
+END;
+$verification$;
