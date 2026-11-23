@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { toast } from 'sonner'
 import {
-  Search, ShoppingCart, Bell,
+  Search, ShoppingCart, Bell, CalendarClock,
   CheckCircle2, Package, MapPin, WifiOff, AlertCircle
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../components/ui/dialog'
@@ -16,6 +16,8 @@ import LocationAutocomplete from '../components/LocationAutocomplete'
 import { savePreferredDeliveryLocation } from '../features/products/deliveryLocationPreference'
 import agrilinkLogo from '../assets/agrilink-logo.png'
 import { fetchActiveProducts } from '../features/products/productsService'
+import { isAvailableForImmediatePurchase } from '../features/products/purchaseTiming'
+import DailyProductPriceTicker from '../components/DailyProductPriceTicker'
 import { addBuyerCartItem } from '../features/marketplace/buyerCart'
 import { isNeutralPublicView, sanitizePublicProduct } from '../lib/publicData'
 import Loader from '../components/ui/Loader'
@@ -43,15 +45,15 @@ const CATEGORIES = [
 ]
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
-import { T } from '../lib/brand';
+import { R, T } from '../lib/brand';
 
 /* ─── Skeleton ──────────────────────────────────────────────────────────────── */
 const ProductSkeleton = () => (
-  <div className="overflow-hidden rounded-[20px] border" style={{ borderColor: 'rgba(0,0,0,0.05)', background: T.white }}>
+  <div className="overflow-hidden rounded-[12px] border" style={{ borderColor: 'rgba(0,0,0,0.05)', background: T.white }}>
     <div style={{ aspectRatio:'4/3', background: `linear-gradient(135deg, ${T.g50}, ${T.g100})`, animation:'shimmer 1.8s ease-in-out infinite' }}/>
     <div className="p-4 flex flex-col gap-2.5">
-      <div style={{ height: 13, background: T.g50, borderRadius: 6, width:'65%', animation:'shimmer 1.8s ease-in-out infinite' }}/>
-      <div style={{ height: 10, background: '#f0f4f0', borderRadius: 6, width:'40%', animation:'shimmer 1.8s ease-in-out infinite' }}/>
+      <div style={{ height: 13, background: T.g50, borderRadius: 12, width:'65%', animation:'shimmer 1.8s ease-in-out infinite' }}/>
+      <div style={{ height: 10, background: '#f0f4f0', borderRadius: 12, width:'40%', animation:'shimmer 1.8s ease-in-out infinite' }}/>
       <div style={{ height: 40, background: T.g50, borderRadius: 12, animation:'shimmer 1.8s ease-in-out infinite' }}/>
     </div>
   </div>
@@ -74,6 +76,7 @@ const AppHome = () => {
   const [deliveryCoordinates, setDeliveryCoordinates] = useState<{ latitude: number; longitude: number } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string>('all')
+  const [purchaseTab, setPurchaseTab] = useState<'future' | 'now'>('future')
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [feedPage, setFeedPage] = useState(0)
   const [hasMoreProducts, setHasMoreProducts] = useState(true)
@@ -81,8 +84,13 @@ const AppHome = () => {
   const [identityDialogOpen, setIdentityDialogOpen] = useState(false)
 
   const filteredProducts = useMemo(() => {
-    if (activeCategory === 'all') return products
-    return products.filter(p => {
+    const purchaseProducts = products.filter(product =>
+      purchaseTab === 'now'
+        ? isAvailableForImmediatePurchase(product.harvest_date)
+        : !isAvailableForImmediatePurchase(product.harvest_date),
+    )
+    if (activeCategory === 'all') return purchaseProducts
+    return purchaseProducts.filter(p => {
       if ((p as any).category) return (p as any).category === activeCategory
       const t = (p.product_type || '').toLowerCase()
       const map: Record<string, string[]> = {
@@ -101,7 +109,7 @@ const AppHome = () => {
       }
       return (map[activeCategory] || []).some(k => t.includes(k))
     })
-  }, [products, activeCategory])
+  }, [products, activeCategory, purchaseTab])
 
   /* Network status */
   useEffect(() => {
@@ -330,7 +338,7 @@ const AppHome = () => {
         WebkitBackdropFilter:'saturate(180%) blur(20px)',
         borderBottom:`1px solid rgba(0,0,0,0.06)`,
       }}>
-        <div style={{ maxWidth:1320, margin:'0 auto', padding:'0 16px', height:56, display:'flex', alignItems:'center', gap:10 }}>
+        <div className="market-header-inner" style={{ maxWidth:1320, margin:'0 auto', padding:'0 16px', minHeight:56, display:'flex', alignItems:'center', gap:10 }}>
 
           {/* Logo */}
           <button
@@ -346,15 +354,17 @@ const AppHome = () => {
             />
           </button>
 
+          <div className="market-search-ticket">
           {/* Pesquisa — pílula leve, sempre visível, encolhe em mobile sem sair da navbar */}
           <button
+            className="market-search"
             type="button"
             aria-label="Pesquisar produtos"
             onClick={() => navigate('/search')}
             style={{
               flex:'1 1 auto', minWidth:0, maxWidth:480,
               display:'flex', alignItems:'center', gap:8,
-              padding:'8px 14px', borderRadius:980,
+              padding:'8px 14px', borderRadius:R.md,
               background:'rgba(118,118,128,0.08)', border:0, textAlign:'left',
               fontFamily:'inherit', cursor:'pointer', transition:'background 0.15s',
             }}
@@ -370,6 +380,8 @@ const AppHome = () => {
             </span>
           </button>
 
+          <DailyProductPriceTicker />
+          </div>
         </div>
       </header>
 
@@ -379,6 +391,47 @@ const AppHome = () => {
         borderBottom: `1px solid rgba(0,0,0,0.05)`,
         padding: '12px 0',
       }}>
+        <div
+          role="tablist"
+          aria-label="Tipo de compra"
+          style={{
+            maxWidth: 1320, margin: '0 auto 12px', padding: '0 20px',
+            display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10,
+          }}
+        >
+          {([
+            { id: 'future', title: 'Compras de futuro', description: 'Colheitas previstas para mais de 5 dias', Icon: CalendarClock },
+            { id: 'now', title: 'Comprar agora', description: 'Pronto ou disponível em menos de 5 dias', Icon: ShoppingCart },
+          ] as const).map(tab => {
+            const selected = purchaseTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => setPurchaseTab(tab.id)}
+                style={{
+                  minHeight: 68, padding: '10px 14px', textAlign: 'left',
+                  borderRadius: R.md, border: `1px solid ${selected ? T.g600 : T.rule}`,
+                  background: selected ? T.g600 : T.white, color: selected ? T.white : T.ink,
+                  boxShadow: selected ? '0 5px 16px rgba(44,134,59,0.2)' : 'none',
+                  transition: 'background .15s, color .15s, border-color .15s',
+                }}
+              >
+                <span className="market-tab-copy">
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 800 }}>
+                    <tab.Icon size={17} aria-hidden="true" />
+                    {tab.title}
+                  </span>
+                  <span style={{ display: 'block', marginTop: 4, fontSize: 11, opacity: selected ? 0.88 : 0.68 }}>
+                    {tab.description}
+                  </span>
+                </span>
+              </button>
+            )
+          })}
+        </div>
         <div style={{
           maxWidth: 1320, margin: '0 auto', padding: '0 20px',
           display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none',
@@ -394,7 +447,7 @@ const AppHome = () => {
                   flexShrink: 0,
                   display: 'flex', alignItems: 'center',
                   gap: 7, padding: '8px 14px 8px 10px',
-                  borderRadius: 980,
+                  borderRadius: 12,
                   border: 'none',
                   background: active ? cat.color : 'rgba(118,118,128,0.08)',
                   cursor: 'pointer', transition: 'background 0.15s',
@@ -493,7 +546,7 @@ const AppHome = () => {
             <p style={{ fontSize:13, color:T.faint, maxWidth:340, lineHeight:1.65, marginBottom:16 }}>
               O catálogo não respondeu. Verifique a ligação e tente novamente.
             </p>
-            <button type="button" onClick={() => void fetchProducts(0, false)} style={{ minHeight:40, padding:'0 18px', borderRadius:10, border:0, background:T.g600, color:T.white, fontSize:13, fontWeight:700, cursor:'pointer' }}>
+            <button type="button" onClick={() => void fetchProducts(0, false)} style={{ minHeight:40, padding:'0 18px', borderRadius:12, border:0, background:T.g600, color:T.white, fontSize:13, fontWeight:700, cursor:'pointer' }}>
               Tentar novamente
             </button>
           </div>
@@ -502,7 +555,7 @@ const AppHome = () => {
         {/* Empty / offline state */}
         {!loading && !feedError && filteredProducts.length === 0 && (
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'100px 20px', textAlign:'center' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 10, border: `1px solid ${T.rule}`, background: T.g50, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><Package size={18} color={T.g500} /></div>
+            <div style={{ width: 44, height: 44, borderRadius: 12, border: `1px solid ${T.rule}`, background: T.g50, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><Package size={18} color={T.g500} /></div>
             <h3 style={{ fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif", fontSize:22, color: T.ink, margin:'0 0 10px', fontWeight:700 }}>
               {isOnline ? 'Sem produtos disponíveis' : 'Sem ligação à internet'}
             </h3>
@@ -514,7 +567,7 @@ const AppHome = () => {
                 : 'Verifique a sua ligação e tente novamente. Os últimos produtos guardados serão apresentados quando disponíveis.'}
             </p>
             {!isOnline && (
-              <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:14, padding:'6px 12px', borderRadius:980, background: T.g50, color: T.g600, fontSize:12, fontWeight:700 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:14, padding:'6px 12px', borderRadius:999, background: T.g50, color: T.g600, fontSize:12, fontWeight:700 }}>
                 <WifiOff size={13}/> Offline
               </div>
             )}
@@ -534,13 +587,13 @@ const AppHome = () => {
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent style={{
-          maxWidth:500, padding:0, overflow:'hidden', borderRadius:20,
+          maxWidth:500, padding:0, overflow:'hidden', borderRadius:12,
           border:`1px solid ${T.rule}`, boxShadow:`0 24px 80px rgba(13,43,18,0.22)`,
         }}>
           {/* Header */}
           <div style={{ padding:'20px 24px 16px', background: T.white, borderBottom:`1px solid ${T.rule}` }}>
             <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-              <div style={{ width:40, height:40, borderRadius:11, background: T.g50, border:`1px solid ${T.gBorder}`, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <div style={{ width:40, height:40, borderRadius:12, background: T.g50, border:`1px solid ${T.gBorder}`, display:'flex', alignItems:'center', justifyContent:'center' }}>
                 <ShoppingCart size={17} color={T.g600}/>
               </div>
               <div>
@@ -568,7 +621,7 @@ const AppHome = () => {
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               <label style={{ fontSize:12, fontWeight:700, color: T.ink, display:'flex', alignItems:'center', gap:8 }}>
                 Quantidade ({selectedProduct?.sale_unit || 'kg'})
-                <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:5, background: T.g50, color: T.g600, border:`1px solid ${T.gBorder}` }}>Obrigatório</span>
+                <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:12, background: T.g50, color: T.g600, border:`1px solid ${T.gBorder}` }}>Obrigatório</span>
               </label>
               <input
                 type="number"
@@ -577,7 +630,7 @@ const AppHome = () => {
                 min={selectedProduct?.min_order_quantity ?? 1} max={selectedProduct?.quantity} step={1}
                 placeholder="Ex: 500"
                 style={{
-                  height:42, borderRadius:10, border:`1px solid ${T.rule}`, padding:'0 14px',
+                  height:42, borderRadius:12, border:`1px solid ${T.rule}`, padding:'0 14px',
                   fontSize:14, outline:'none', background: T.white, color: T.ink,
                   transition:'border-color 0.18s, box-shadow 0.18s', width:'100%', boxSizing:'border-box',
                 }}
@@ -595,7 +648,7 @@ const AppHome = () => {
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               <label style={{ fontSize:12, fontWeight:700, color: T.ink, display:'flex', alignItems:'center', gap:8 }}>
                 Local de Entrega
-                <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:5, background: T.g50, color: T.g600, border:`1px solid ${T.gBorder}` }}>Obrigatório</span>
+                <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:12, background: T.g50, color: T.g600, border:`1px solid ${T.gBorder}` }}>Obrigatório</span>
               </label>
               <LocationAutocomplete
                 value={orderData.location}
@@ -603,7 +656,7 @@ const AppHome = () => {
                 onSelectLocation={location => setDeliveryCoordinates(location ? { latitude: location.latitude, longitude: location.longitude } : null)}
                 placeholder="Ex.: Viana, Luanda ou Bairro/Zona"
                 inputStyle={{
-                  height:42, borderRadius:10, border:`1px solid ${T.rule}`, padding:'0 12px 0 38px',
+                  height:42, borderRadius:12, border:`1px solid ${T.rule}`, padding:'0 12px 0 38px',
                   fontSize:14, outline:'none', background: T.white, color: T.ink,
                   transition:'border-color 0.18s, box-shadow 0.18s', width:'100%', boxSizing:'border-box',
                 }}
@@ -633,7 +686,7 @@ const AppHome = () => {
           <div style={{ padding:'14px 24px', display:'flex', gap:10, background: T.white, borderTop:`1px solid ${T.rule}` }}>
             <button
               onClick={() => setModalOpen(false)}
-              style={{ flex:1, height:42, borderRadius:10, border:`1px solid ${T.rule}`, background:'transparent', cursor:'pointer', fontSize:13, fontWeight:700, color: T.mid, transition:'all 0.18s' }}
+              style={{ flex:1, height:42, borderRadius:12, border:`1px solid ${T.rule}`, background:'transparent', cursor:'pointer', fontSize:13, fontWeight:700, color: T.mid, transition:'all 0.18s' }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = T.canvas }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
             >
@@ -643,7 +696,7 @@ const AppHome = () => {
               onClick={handlePreOrderSubmit}
               disabled={isSubmitting || !orderData.location.trim() || orderData.quantity < 1}
               style={{
-                flex:2, height:42, borderRadius:10, border:'none',
+                flex:2, height:42, borderRadius:12, border:'none',
                 background:`linear-gradient(135deg, ${T.g500}, ${T.g700})`,
                 cursor:'pointer', fontSize:13, fontWeight:800, color: T.white,
                 display:'flex', alignItems:'center', justifyContent:'center', gap:8,
@@ -670,7 +723,7 @@ const AppHome = () => {
       {/* Processing overlay */}
       {isSubmitting && (
         <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(13,43,18,0.75)', backdropFilter:'blur(10px)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <div style={{ background: T.white, padding:'36px 44px', borderRadius:20, display:'flex', flexDirection:'column', alignItems:'center', gap:18, border:`1px solid ${T.rule}`, boxShadow:`0 24px 80px rgba(0,0,0,0.2)` }}>
+          <div style={{ background: T.white, padding:'36px 44px', borderRadius:12, display:'flex', flexDirection:'column', alignItems:'center', gap:18, border:`1px solid ${T.rule}`, boxShadow:`0 24px 80px rgba(0,0,0,0.2)` }}>
             <Loader compact />
           </div>
         </div>
@@ -678,9 +731,9 @@ const AppHome = () => {
 
       {/* Map modal */}
       <Dialog open={mapModalOpen} onOpenChange={setMapModalOpen}>
-        <DialogContent style={{ maxWidth:780, padding:0, overflow:'hidden', borderRadius:20, border:`1px solid ${T.rule}`, boxShadow:`0 24px 80px rgba(13,43,18,0.2)` }}>
+        <DialogContent style={{ maxWidth:780, padding:0, overflow:'hidden', borderRadius:12, border:`1px solid ${T.rule}`, boxShadow:`0 24px 80px rgba(13,43,18,0.2)` }}>
           <div style={{ padding:'16px 22px', background: T.white, borderBottom:`1px solid ${T.rule}`, display:'flex', alignItems:'center', gap:12 }}>
-            <div style={{ width:34, height:34, borderRadius:9, background: T.g50, border:`1px solid ${T.gBorder}`, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <div style={{ width:34, height:34, borderRadius:12, background: T.g50, border:`1px solid ${T.gBorder}`, display:'flex', alignItems:'center', justifyContent:'center' }}>
               <MapPin size={15} color={T.g600}/>
             </div>
             <div>
@@ -706,12 +759,21 @@ const AppHome = () => {
 
         @keyframes shimmer     { 0%,100% { opacity:1 } 50% { opacity:0.4 } }
         @keyframes breathe     { 0%,100% { opacity:1; transform:scale(1) } 50% { opacity:0.4; transform:scale(0.7) } }
-        @keyframes tickerScroll { 0% { transform:translateX(0) } 100% { transform:translateX(-50%) } } 50% { transform: translateY(-22px) scale(1.05) } }
+        @keyframes tickerScroll { 0% { transform:translateX(0) } 100% { transform:translateX(-50%) } }
+        @keyframes marketTabText2d { 0%,100% { transform:translate3d(-1px,1px,0) rotate(-0.2deg) scale(0.995) } 50% { transform:translate3d(1px,-1px,0) rotate(0.2deg) scale(1.005) } }
+        .market-tab-copy { display:block; transform-origin:left center; animation:marketTabText2d 3.2s ease-in-out infinite; }
 
         * { box-sizing: border-box; }
 
+        .market-search-ticket { display:flex; flex:1 1 auto; min-width:0; align-items:center; gap:12px; }
+        .market-search { flex:1 1 auto; min-width:0; max-width:480px; }
+        @media (prefers-reduced-motion: reduce) { .market-tab-copy { animation:none; } }
+
         @media (max-width: 640px) {
           #products-grid { padding-left: 14px !important; padding-right: 14px !important; }
+          .market-header-inner { display:grid !important; grid-template-columns:1fr; gap:8px !important; padding-top:8px !important; padding-bottom:10px !important; }
+          .market-search-ticket { display:flex; flex-direction:column-reverse; align-items:stretch; gap:8px; }
+          .market-search { width:100%; max-width:none; }
         }
       `}</style>
     </div>

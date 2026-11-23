@@ -43,7 +43,7 @@ const GuestCTABar = () => {
         position: 'fixed', left: 10, right: 10, bottom: 12, zIndex: 60,
         maxWidth: 660, margin: '0 auto',
         background: T.white, border: `1px solid ${T.gBorder}`,
-        borderRadius: 18, padding: '12px 14px',
+        borderRadius: 12, padding: '12px 14px',
         boxShadow: '0 12px 34px rgba(13,43,18,0.16)',
         display: 'flex', alignItems: 'center', gap: 12,
         fontFamily: FONT,

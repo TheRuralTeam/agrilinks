@@ -137,7 +137,7 @@ const AuthCallback = () => {
           maxWidth: 420,
           background: T.white,
           border: `1px solid ${T.rule}`,
-          borderRadius: 20,
+          borderRadius: 12,
           padding: 32,
           textAlign: 'center',
           boxShadow: T.shadowLg,

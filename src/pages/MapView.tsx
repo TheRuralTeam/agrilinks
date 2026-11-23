@@ -323,7 +323,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       <div
         style={{
           background: T.white,
-          borderRadius: 22,
+          borderRadius: 12,
           boxShadow: `0 20px 48px ${T.shadowMd}`,
           overflow: 'hidden',
         }}
@@ -396,7 +396,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </div>
 
         <div style={{ padding: '12px 16px 16px' }}>
-          <div style={{ padding: '12px 14px', borderRadius: 14, background: T.g50, marginBottom: 10 }}>
+          <div style={{ padding: '12px 14px', borderRadius: 12, background: T.g50, marginBottom: 10 }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
               <div>
                 <Label>Preço Total</Label>
@@ -519,7 +519,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   style={{
                     flex: 1,
                     padding: '8px 11px',
-                    borderRadius: 10,
+                    borderRadius: 12,
                     background: T.blueBg,
                     display: 'flex',
                     alignItems: 'center',
@@ -538,7 +538,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   style={{
                     height: 34,
                     padding: '0 14px',
-                    borderRadius: 980,
+                    borderRadius: 999,
                     border: 'none',
                     background: T.soft,
                     color: T.g700,
@@ -563,7 +563,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               style={{
                 flex: 1,
                 height: 42,
-                borderRadius: 980,
+                borderRadius: 999,
                 border: 'none',
                 background: T.g700,
                 color: T.white,
@@ -1025,7 +1025,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
         <div
           style={{
             background: T.white,
-            borderRadius: 20,
+            borderRadius: 12,
             padding: '40px 36px',
             maxWidth: 380,
             width: '90%',
@@ -1056,7 +1056,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
             style={{
               width: '100%',
               height: 44,
-              borderRadius: 980,
+              borderRadius: 999,
               border: 'none',
               background: T.g700,
               color: T.white,
@@ -1291,7 +1291,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
 
       {/* ══ SEARCH BAR ═══════════════════════════════════════════════════════ */}
       <div className="al-search absolute left-1/2 transform -translate-x-1/2 z-30 w-[92%] max-w-[560px] top-16">
-        <div className="bg-white rounded-[20px] shadow-md overflow-hidden" style={{ boxShadow: `0 10px 32px ${T.shadowMd}` }}>
+        <div className="bg-white rounded-[12px] shadow-md overflow-hidden" style={{ boxShadow: `0 10px 32px ${T.shadowMd}` }}>
           <div className="flex items-center gap-2.5 px-3 py-1.5">
             <Search size={15} color={T.faint} className="flex-shrink-0" />
             <input
@@ -1359,7 +1359,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
               right: 0,
               marginTop: 8,
               background: T.white,
-              borderRadius: 18,
+              borderRadius: 12,
               boxShadow: `0 16px 48px ${T.shadowLg}`,
               overflow: 'hidden',
               zIndex: 50,
@@ -1454,7 +1454,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
             top: 68,
             left: 16,
             background: T.white,
-            borderRadius: 22,
+            borderRadius: 12,
             boxShadow: `0 20px 48px ${T.shadowLg}`,
             width: 320,
             overflow: 'hidden',
@@ -1503,7 +1503,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
                 <Navigation size={12} color={T.g600} />
                 <Label>Raio de busca</Label>
               </div>
-              <div style={{ padding: '12px 14px', borderRadius: 14, background: T.canvas }}>
+              <div style={{ padding: '12px 14px', borderRadius: 12, background: T.canvas }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <span style={{ fontSize: 11, color: T.faint, fontFamily: FONT, fontWeight: 600 }}>5 km</span>
                   <span style={{ fontSize: 14, fontWeight: 700, color: T.g700, fontFamily: FONT }}>
@@ -1531,7 +1531,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
               style={{
                 width: '100%',
                 height: 44,
-                borderRadius: 980,
+                borderRadius: 999,
                 border: 'none',
                 background: T.g700,
                 color: T.white,
@@ -1557,7 +1557,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
           className="al-products-list absolute bottom-4 left-4 z-30 w-[320px] max-h-[400px]"
           style={{ animation: 'slideInBottom 0.25s cubic-bezier(0.22,1,0.36,1)' }}
         >
-          <div className="bg-white rounded-[22px] overflow-hidden" style={{ boxShadow: `0 20px 48px ${T.shadowLg}` }}>
+          <div className="bg-white rounded-[12px] overflow-hidden" style={{ boxShadow: `0 20px 48px ${T.shadowLg}` }}>
             <div style={{ padding: '14px 18px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                 <Package size={15} color={T.g600} />
@@ -1702,7 +1702,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
             maxHeight: 'calc(100vh - 100px)',
             overflowY: 'auto',
             background: T.white,
-            borderRadius: 22,
+            borderRadius: 12,
             boxShadow: `0 20px 48px ${T.shadowLg}`,
             animation: 'slideInRight 0.25s cubic-bezier(0.22,1,0.36,1)',
           }}
@@ -1797,7 +1797,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
               const hasLiveLocation = Boolean(location);
               const isDelivered = freight.status === 'delivered' || Boolean(freight.delivered_at);
               return (
-                <div style={{ marginTop: 14, padding: 12, borderRadius: 14, background: T.g50 }}>
+                <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: T.g50 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                     <span style={{ fontSize: 12, fontWeight: 700, color: T.g700, fontFamily: FONT }}>Estado da rota</span>
                     <span style={{ fontSize: 11, fontWeight: 700, color: T.g700, fontFamily: FONT }}>
@@ -1818,7 +1818,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
       {/* ══ FOOTER STATS ═════════════════════════════════════════════════════ */}
       <div className="al-footer-stats absolute left-1/2 transform -translate-x-1/2 bottom-4 z-25 w-[92%] max-w-[620px]">
         <div
-          className="rounded-[20px] p-3 grid grid-cols-4 gap-2.5"
+          className="rounded-[12px] p-3 grid grid-cols-4 gap-2.5"
           style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(16px)', boxShadow: `0 10px 32px ${T.shadowMd}` }}
         >
           {[
@@ -1896,13 +1896,13 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
         html, body, #root { height: 100%; margin: 0; padding: 0; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: ${T.rule}; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb { background: ${T.rule}; border-radius: 12px; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .leaflet-top, .leaflet-bottom { z-index: 20 !important; }
         .leaflet-control-zoom { margin-top: 60px !important; border: none !important; box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important; }
-        .leaflet-control-zoom a { border-radius: 10px !important; }
+        .leaflet-control-zoom a { border-radius: 12px !important; }
         .leaflet-container { font-family: ${FONT} !important; }
-        .al-route-tip { background:${T.ink} !important; color:#fff !important; border:none !important; font-weight:700 !important; font-size:11px !important; padding:5px 9px !important; border-radius:8px !important; box-shadow:0 4px 12px rgba(0,0,0,0.2) !important; }
+        .al-route-tip { background:${T.ink} !important; color:#fff !important; border:none !important; font-weight:700 !important; font-size:11px !important; padding:5px 9px !important; border-radius:12px !important; box-shadow:0 4px 12px rgba(0,0,0,0.2) !important; }
         .al-route-tip::before { border-top-color:${T.ink} !important; }
 
         @media (max-width: 680px) {
