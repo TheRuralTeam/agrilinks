@@ -74,3 +74,6 @@ Uma refatoração só será considerada concluída quando cada alteração tiver
 
 ### 7. Route guards e tipagem em App.tsx
 Na branch, foi removida a declaração lazy não utilizada de `Registration` (a página foi mantida para decisão funcional posterior), `isProfileComplete` deixou de aceitar `any` e passou a receber apenas os campos de perfil necessários, e `RoleRoute.allowedRole` passou a usar o tipo de papel de utilizador definido no modelo. São alterações de tipagem/limpeza sem mudança intencional de fluxo. A validação depende do CI da PR.
+
+### 8. Reexportação de toast sem consumidores
+A pesquisa por `components/ui/use-toast` e variantes de import não encontrou consumidores. Como o ficheiro apenas reexportava `useToast` e `toast` de `src/hooks/use-toast.ts`, foi removido da branch. A implementação central e o toaster visual permanecem intactos.
