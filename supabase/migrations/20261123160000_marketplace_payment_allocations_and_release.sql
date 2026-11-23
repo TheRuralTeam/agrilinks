@@ -5,6 +5,23 @@
 
 begin;
 
+-- Platform fees belong to AgriLink, not to a fictitious user beneficiary.
+alter table public.payment_allocations
+  alter column recipient_user_id drop not null;
+
+alter table public.payment_allocations
+  drop constraint if exists payment_allocations_recipient_type_check;
+alter table public.payment_allocations
+  add constraint payment_allocations_recipient_type_check
+  check (
+    (allocation_type = 'platform_fee' and recipient_user_id is null)
+    or (allocation_type <> 'platform_fee' and recipient_user_id is not null)
+  );
+
+create unique index if not exists ux_payment_allocations_platform_fee
+  on public.payment_allocations(payment_intent_id, allocation_type)
+  where allocation_type = 'platform_fee';
+
 create or replace function public.create_marketplace_payment_allocations()
 returns trigger
 language plpgsql
@@ -121,7 +138,7 @@ begin
       )
     ),
     (
-      new.id, v_order_id, v_supplier_id, 'platform_fee',
+      new.id, v_order_id, null, 'platform_fee',
       v_platform_fee, 'AOA', 'blocked',
       jsonb_build_object(
         'pre_order_id', v_order.id,
@@ -208,9 +225,9 @@ begin
 
   get diagnostics v_released_count = row_count;
 
-  if v_released_count > 0 then
-    perform public.create_freight_settlement_if_ready(new.id);
-  end if;
+  -- Preserve the existing driver settlement record even for legacy paid orders
+  -- that predate allocation creation. The function is idempotent by freight_load_id.
+  perform public.create_freight_settlement_if_ready(new.id);
 
   return new;
 end;
