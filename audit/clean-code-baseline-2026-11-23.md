@@ -21,15 +21,15 @@ Prioridade: baixa. Ação proposta: normalizar o ficheiro sem alterar o comporta
 
 Prioridade: baixa. Risco: baixo se for feita migração compatível e verificada.
 
-### 3. Dois ecrãs de autenticação
-`src/App.tsx` carrega `src/pages/LoginPage.tsx`. Existe também `src/pages/Login.tsx`, com implementação própria. Os dois contêm fluxos de login/registo, mas não são equivalentes: LoginPage inclui acesso de visitante, redirecionamento de retorno, magic link/reset e outros estados; Login contém implementação diferente de autenticação e confirmação. Não remover nenhum até verificar todas as rotas, imports dinâmicos, links externos e histórico de produto. A rota de produção observada aponta para LoginPage.
+### 3. Ecrã de autenticação duplicado
+`src/App.tsx` carrega `src/pages/LoginPage.tsx`. A pesquisa completa por referências no código não encontrou consumidores de `src/pages/Login.tsx`; a rota `/login` usa LoginPage. O ficheiro `Login.tsx` foi removido da branch de refatoração. `Registration.tsx` continua a ser uma questão separada: existe uma importação lazy em App, mas a rota `/cadastro` redireciona para `/login?mode=signup`; a sua função de registo completo (documento, localização e código de agente) não deve ser descartada sem decisão funcional.
 
-Prioridade: alta. Ação proposta: comparar os fluxos e decidir uma única implementação canónica, preservando todas as capacidades necessárias.
+Prioridade: alta. Ação proposta: avaliar a unificação de LoginPage e Registration preservando acesso de visitante, redirecionamento, confirmação, recuperação de senha e registo completo.
 
-### 4. Formulários Farmer
-`src/pages/FarmerForm.tsx` e `src/pages/FarmerFormWithAuth.tsx` partilham estrutura visual e campos, mas o primeiro aparenta ser um formulário legado/demonstrativo: o submit mostra sucesso local e redireciona, sem persistência no Supabase. O segundo valida autenticação, carrega fotografias e insere registo na tabela `products`. Não são intercambiáveis. Verificar rotas e referências antes de arquivar/remover o formulário legado; não substituir a implementação autenticada.
+### 4. Formulários Farmer sem consumidores
+A pesquisa de referências não encontrou imports, rotas ou consumidores de `src/pages/FarmerForm.tsx` nem de `src/pages/FarmerFormWithAuth.tsx`. São implementações distintas: a primeira apenas simula sucesso no cliente; a segunda faz upload de fotografias e grava em `products`. Como nenhuma está ligada ao router atual, ambas foram removidas apenas da branch de refatoração. A funcionalidade ativa de publicação não foi alterada: `/publicar-produto` continua a apontar para `PublishProduct`.
 
-Prioridade: alta. Ação proposta: rastrear consumidores e, se confirmado sem uso, remover o legado em commit isolado após testes.
+Prioridade: concluída nesta etapa. A remoção será considerada validada após CI.
 
 ### 5. Dependências react-slick / slick-carousel
 As dependências aparecem no `package.json`, nos lockfiles, na configuração de chunks do Vite e em CSS dedicado (`.slick-slider`). A pesquisa inicial não encontrou import JavaScript direto, mas a pesquisa textual não é prova suficiente de ausência de uso (pode existir import indireto, CSS ou referência dinâmica). Não remover ainda. Fazer análise de AST/import graph e build após confirmar.
@@ -64,3 +64,10 @@ Esta etapa foi estática e parcial, baseada em ficheiros e pesquisas GitHub. Nã
 ## Critério de conclusão
 
 Uma refatoração só será considerada concluída quando cada alteração tiver: motivo, mapa de consumidores, diff revisto, testes relevantes executados, resultado documentado e confirmação de que os fluxos funcionais foram preservados.
+
+
+## Alterações realizadas na branch nesta etapa
+- `.gitignore`: regras repetidas consolidadas e agrupadas por categoria; mantida a exceção explícita para `.vscode/extensions.json`.
+- Removidos `src/pages/Login.tsx`, `src/pages/FarmerForm.tsx` e `src/pages/FarmerFormWithAuth.tsx` após pesquisa sem referências no código.
+- Criada PR draft #74 para executar CI sem integrar alterações na `main`.
+- Estado de CI observado após o último commit: checks `build`, `Analyze (actions)` e `Analyze (javascript-typescript)` em fila; ainda sem conclusão. Vercel Preview Comments passou; Supabase Preview foi ignorado por não existir branch Supabase associada. Isso não é validação do build.
