@@ -74,6 +74,12 @@ begin
     raise exception 'Payment allocations must be readable only by participants and admins';
   end if;
 
+  if has_table_privilege('authenticated', 'public.payment_allocations', 'INSERT')
+     or has_table_privilege('authenticated', 'public.payment_allocations', 'UPDATE')
+     or has_table_privilege('authenticated', 'public.payment_allocations', 'DELETE') then
+    raise exception 'Clients must not be able to mutate financial allocations directly';
+  end if;
+
   raise notice 'PASS: centralized allocations, unique platform fee, and buyer-confirmed release gates';
 end;
 $test$;
