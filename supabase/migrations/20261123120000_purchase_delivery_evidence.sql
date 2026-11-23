@@ -338,6 +338,14 @@ begin
   insert into public.freight_load_events (freight_load_id, actor_id, event_type)
   values (v_load.id, v_actor, 'supplier_handover');
 
+  insert into public.order_transaction_events (
+    pre_order_id, order_id, freight_load_id, event_type, from_status, to_status, actor_id, metadata
+  ) values (
+    v_load.pre_order_id, v_load.order_id, v_load.id, 'supplier_handover_confirmed',
+    'at_pickup', 'at_pickup', v_actor,
+    jsonb_build_object('source', 'supplier_confirmation', 'confirmed_at', now())
+  );
+
   return (select fl.supplier_handover_confirmed_at from public.freight_loads fl where fl.id = v_load.id);
 end;
 $$;
