@@ -152,7 +152,7 @@ export default function FreightDeliveryEvidenceForm({
         p_signature_path: signaturePath,
         p_latitude: position.coords.latitude,
         p_longitude: position.coords.longitude,
-        p_accuracy_m: Number.isFinite(position.coords.accuracy) ? position.coords.accuracy : null,
+        ...(Number.isFinite(position.coords.accuracy) ? { p_accuracy_m: position.coords.accuracy } : {}),
       });
       if (submitError) throw submitError;
 
