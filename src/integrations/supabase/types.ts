@@ -3031,6 +3031,7 @@ export type Database = {
           currency: string
           failure_reason: string | null
           id: string
+          beneficiary_id: string | null
           paid_at: string | null
           paid_by: string | null
           payout_reference: string | null
@@ -3048,6 +3049,7 @@ export type Database = {
           currency?: string
           failure_reason?: string | null
           id?: string
+          beneficiary_id?: string | null
           paid_at?: string | null
           paid_by?: string | null
           payout_reference?: string | null
@@ -3065,6 +3067,7 @@ export type Database = {
           currency?: string
           failure_reason?: string | null
           id?: string
+          beneficiary_id?: string | null
           paid_at?: string | null
           paid_by?: string | null
           payout_reference?: string | null
