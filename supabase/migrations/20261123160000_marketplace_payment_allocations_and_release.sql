@@ -395,7 +395,6 @@ comment on function public.create_marketplace_payment_allocations() is
 comment on function public.release_marketplace_allocations_after_buyer_receipt() is
   'Makes blocked marketplace allocations available only after evidence-backed delivery and buyer receipt confirmation.';
 
-commit;
 
 -- Verified payout destinations are provider/vault references only. Raw bank
 -- account numbers and IBANs must never be stored in this application table.
@@ -725,3 +724,4 @@ grant execute on function public.admin_register_marketplace_payout_beneficiary(u
 grant execute on function public.admin_review_marketplace_payout_beneficiary(uuid,text,text) to authenticated;
 grant execute on function public.admin_transition_marketplace_payout(uuid,text,text,text,text) to authenticated;
 
+commit;
