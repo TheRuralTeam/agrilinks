@@ -181,7 +181,6 @@ set search_path = ''
 as $$
 declare
   v_order_payment_status text;
-  v_released_count integer;
 begin
   if old.buyer_receipt_confirmed_at is not null
      or new.buyer_receipt_confirmed_at is null then
@@ -222,8 +221,6 @@ begin
       )
   where pa.status = 'blocked'
     and pa.metadata->>'freight_load_id' = new.id::text;
-
-  get diagnostics v_released_count = row_count;
 
   -- Preserve the existing driver settlement record even for legacy paid orders
   -- that predate allocation creation. The function is idempotent by freight_load_id.
