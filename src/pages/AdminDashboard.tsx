@@ -374,6 +374,7 @@ const AdminDashboard = () => {
       if (!user) return;
       
       setCurrentUserId(user.id);
+      const { data: adminRole } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
 
       // Check if root admin or super root
       const { data: userData } = await supabase
