@@ -303,7 +303,7 @@ const MarketplacePayouts = () => {
                       <td className="p-3 font-semibold tabular-nums">{formatMoney(payout.amount, payout.currency)}</td>
                       <td className="p-3"><Badge variant={statusVariant[payout.status] || "outline"}>{statusLabels[payout.status] || payout.status}</Badge></td>
                       <td className="p-3 text-xs text-muted-foreground">{formatDate(payout.created_at)}</td>
-                      <td className="p-3"><Button size="sm" variant="outline" onClick={() => setSelected(payout)}>Gerir</Button></td>
+                      <td className="p-3"><Button size="sm" variant="outline" onClick={() => { setSelected(payout); setPayoutReference(""); setFailureReason(""); setProofFile(null); }}>Gerir</Button></td>
                     </tr>;
                   })}
                 </tbody>
