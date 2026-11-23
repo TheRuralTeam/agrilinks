@@ -33,6 +33,7 @@ import { toast } from 'sonner';
 import { downloadFreightLoadPdf } from '../lib/freightPdf';
 import Loader from '../components/ui/Loader';
 import FreightDeliveryEvidenceForm from '../components/FreightDeliveryEvidenceForm';
+import FreightDeliveryEvidenceViewer from '../components/FreightDeliveryEvidenceViewer';
 
 interface FreightLoad {
   id: string;
@@ -121,6 +122,7 @@ const ProximasCargas = () => {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [deliveryEvidenceLoad, setDeliveryEvidenceLoad] = useState<FreightLoad | null>(null);
+  const [deliveryEvidenceViewLoad, setDeliveryEvidenceViewLoad] = useState<FreightLoad | null>(null);
   const [tab, setTab] = useState<'disponiveis' | 'minhas'>('disponiveis');
   const [createOpen, setCreateOpen] = useState(false);
   const [productName, setProductName] = useState('');
@@ -1648,7 +1650,10 @@ const ProximasCargas = () => {
                       <p style={{ margin: 0, color: T.green, fontSize: 12, fontWeight: 700 }}>Recepção confirmada em {new Date(load.buyer_receipt_confirmed_at).toLocaleString('pt-AO')}.</p>
                     ) : (
                       <>
-                        <p style={{ margin: 0, color: T.mid, fontSize: 12 }}>O motorista registou a fotografia, a assinatura do destinatário e a localização GPS. Confirme depois de verificar os produtos recebidos.</p>
+                        <p style={{ margin: 0, color: T.mid, fontSize: 12 }}>Consulte a fotografia, a assinatura e a localização registadas pelo motorista antes de confirmar a recepção.</p>
+                        <button type="button" onClick={() => setDeliveryEvidenceViewLoad(load)} style={{ width: '100%', padding: 11, border: `1px solid ${T.rule}`, borderRadius: 10, background: T.white, color: T.green, fontFamily: FONT, fontWeight: 800 }}>
+                          Consultar comprovativos da entrega
+                        </button>
                         <button type="button" disabled={busyId === load.id} onClick={() => void confirmBuyerReceipt(load)} style={{ width: '100%', padding: 12, border: 'none', borderRadius: 10, background: T.green, color: T.white, fontFamily: FONT, fontWeight: 800 }}>
                           {busyId === load.id ? 'A confirmar…' : 'Confirmar que recebi a encomenda'}
                         </button>
@@ -1671,6 +1676,12 @@ const ProximasCargas = () => {
             toast.success('Prova de entrega registada. A encomenda aguarda a confirmação do comprador.');
             void fetchLoads();
           }}
+        />
+      )}
+      {deliveryEvidenceViewLoad && (
+        <FreightDeliveryEvidenceViewer
+          freightLoadId={deliveryEvidenceViewLoad.id}
+          onClose={() => setDeliveryEvidenceViewLoad(null)}
         />
       )}
     </div>
