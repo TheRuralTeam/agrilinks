@@ -123,3 +123,27 @@ create table public.freight_settlements (
     check (status in ('awaiting_manual_payout','paid','cancelled')),
   confirmed_at timestamptz not null default now()
 );
+
+create table public.marketplace_payouts (
+  id uuid primary key default gen_random_uuid(),
+  payment_allocation_id uuid not null unique references public.payment_allocations(id) on delete restrict,
+  recipient_user_id uuid not null references public.users(id) on delete restrict,
+  payout_type text not null check (payout_type in ('seller','driver')),
+  amount numeric(15,2) not null check (amount > 0),
+  currency char(3) not null default 'AOA',
+  status text not null default 'awaiting_beneficiary_verification'
+    check (status in (
+      'awaiting_beneficiary_verification','awaiting_manual_payout',
+      'processing','paid','failed','blocked','cancelled'
+    )),
+  provider_reference text,
+  payout_reference text,
+  proof_url text,
+  failure_reason text,
+  paid_at timestamptz,
+  paid_by uuid references public.users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint marketplace_payouts_paid_reference_check
+    check (status <> 'paid' or (paid_at is not null and payout_reference is not null))
+);
