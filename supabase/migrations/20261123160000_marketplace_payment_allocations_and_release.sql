@@ -148,7 +148,7 @@ begin
         'allocation_version', 1
       )
     )
-  on conflict (payment_intent_id, recipient_user_id, allocation_type) do nothing;
+  on conflict do nothing;
 
   if (
     select round(coalesce(sum(pa.amount), 0), 2)
@@ -170,6 +170,89 @@ when (new.status = 'succeeded' and old.status is distinct from new.status)
 execute function public.create_marketplace_payment_allocations();
 
 revoke all on function public.create_marketplace_payment_allocations() from public, anon, authenticated;
+
+-- Separate payout instructions for supplier and driver. These are internal
+-- payout intents only; no bank transfer is simulated or marked successful.
+create table if not exists public.marketplace_payouts (
+  id uuid primary key default gen_random_uuid(),
+  payment_allocation_id uuid not null unique references public.payment_allocations(id) on delete restrict,
+  recipient_user_id uuid not null references public.users(id) on delete restrict,
+  payout_type text not null check (payout_type in ('seller','driver')),
+  amount numeric(15,2) not null check (amount > 0),
+  currency char(3) not null default 'AOA',
+  status text not null default 'awaiting_beneficiary_verification'
+    check (status in (
+      'awaiting_beneficiary_verification',
+      'awaiting_manual_payout',
+      'processing',
+      'paid',
+      'failed',
+      'blocked',
+      'cancelled'
+    )),
+  provider_reference text,
+  payout_reference text,
+  proof_url text,
+  failure_reason text,
+  paid_at timestamptz,
+  paid_by uuid references public.users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint marketplace_payouts_paid_reference_check
+    check (status <> 'paid' or (paid_at is not null and payout_reference is not null))
+);
+
+create index if not exists idx_marketplace_payouts_recipient_status
+  on public.marketplace_payouts(recipient_user_id, status, created_at desc);
+
+create or replace function public.create_marketplace_payout_intent()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+begin
+  if new.status <> 'available'
+     or old.status = 'available'
+     or new.allocation_type not in ('seller','driver')
+     or new.recipient_user_id is null then
+    return new;
+  end if;
+
+  insert into public.marketplace_payouts (
+    payment_allocation_id, recipient_user_id, payout_type, amount, currency
+  )
+  values (
+    new.id, new.recipient_user_id, new.allocation_type, new.amount, new.currency
+  )
+  on conflict (payment_allocation_id) do nothing;
+
+  return new;
+end;
+$;
+
+drop trigger if exists trg_create_marketplace_payout_intent on public.payment_allocations;
+create trigger trg_create_marketplace_payout_intent
+after update of status on public.payment_allocations
+for each row
+when (new.status = 'available' and old.status is distinct from new.status)
+execute function public.create_marketplace_payout_intent();
+
+alter table public.marketplace_payouts enable row level security;
+revoke all on public.marketplace_payouts from anon, authenticated;
+grant select on public.marketplace_payouts to authenticated;
+
+drop policy if exists "Payout participants can read their payout status" on public.marketplace_payouts;
+create policy "Payout participants can read their payout status"
+on public.marketplace_payouts
+for select
+to authenticated
+using (
+  recipient_user_id = auth.uid()
+  or public.has_role(auth.uid(), 'admin'::public.app_role)
+);
+
+revoke all on function public.create_marketplace_payout_intent() from public, anon, authenticated;
 
 -- Keep the legacy driver settlement record aligned with the same approved
 -- freight amount used by checkout, including the driver's quoted-price fallback.
