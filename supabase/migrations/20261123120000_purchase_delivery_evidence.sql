@@ -464,7 +464,7 @@ begin
 
   select user_type::text, email_verified
   into v_user_type, v_email_verified
-  from public.users where id=v_actor_id;
+  from public.users where public.users.id=v_actor_id;
 
   if v_user_type is distinct from 'motorista'
     and not public.has_role(v_actor_id,'admin'::public.app_role) then
