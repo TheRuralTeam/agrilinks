@@ -279,4 +279,78 @@ $$;
 revoke all on function public.confirm_freight_receipt(uuid) from public, anon;
 grant execute on function public.confirm_freight_receipt(uuid) to authenticated;
 
+
+-- Supplier handover is a distinct, auditable gate before the driver starts the loaded trip.
+create or replace function public.confirm_supplier_handover(p_freight_load_id uuid)
+returns timestamptz
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  v_actor uuid := auth.uid();
+  v_load public.freight_loads%rowtype;
+begin
+  if v_actor is null then
+    raise exception 'Authentication required' using errcode = '42501';
+  end if;
+
+  select fl.* into v_load
+  from public.freight_loads fl
+  where fl.id = p_freight_load_id
+  for update;
+  if not found then
+    raise exception 'Freight load not found' using errcode = 'P0002';
+  end if;
+  if v_load.supplier_id is distinct from v_actor then
+    raise exception 'Only the supplier assigned to this order can confirm handover' using errcode = '42501';
+  end if;
+  if v_load.driver_id is null or v_load.status <> 'at_pickup' then
+    raise exception 'The assigned driver must be at the pickup point before handover' using errcode = '22023';
+  end if;
+  if v_load.supplier_handover_confirmed_at is not null then
+    return v_load.supplier_handover_confirmed_at;
+  end if;
+
+  update public.freight_loads
+  set supplier_handover_confirmed_at = now(), updated_at = now()
+  where id = v_load.id and status = 'at_pickup'
+    and supplier_handover_confirmed_at is null;
+
+  if not found then
+    raise exception 'Supplier handover state changed concurrently' using errcode = '40001';
+  end if;
+
+  insert into public.freight_load_events (freight_load_id, actor_id, event_type)
+  values (v_load.id, v_actor, 'supplier_handover');
+
+  return (select fl.supplier_handover_confirmed_at from public.freight_loads fl where fl.id = v_load.id);
+end;
+$;
+
+revoke all on function public.confirm_supplier_handover(uuid) from public, anon;
+grant execute on function public.confirm_supplier_handover(uuid) to authenticated;
+
+create or replace function public.guard_freight_handover_before_transit()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+begin
+  if new.status = 'in_transit' and old.status is distinct from new.status
+     and new.supplier_handover_confirmed_at is null then
+    raise exception 'Supplier handover confirmation is required before the loaded trip starts'
+      using errcode = '42501';
+  end if;
+  return new;
+end;
+$;
+
+drop trigger if exists trg_guard_freight_handover_before_transit on public.freight_loads;
+create trigger trg_guard_freight_handover_before_transit
+before update of status on public.freight_loads
+for each row execute function public.guard_freight_handover_before_transit();
+revoke all on function public.guard_freight_handover_before_transit() from public, anon, authenticated;
+
 commit;
