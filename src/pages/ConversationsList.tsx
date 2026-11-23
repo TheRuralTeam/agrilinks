@@ -597,7 +597,7 @@ const ConversationsList = () => {
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
           background: ${T.rule};
-          border-radius: 10px;
+          border-radius: 12px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: ${T.faint};

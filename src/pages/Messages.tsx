@@ -469,7 +469,7 @@ const Messages = () => {
       <style dangerouslySetInnerHTML={{ __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: ${T.rule}; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: ${T.rule}; border-radius: 12px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: ${T.faint}; }
       `}} />
     </div>

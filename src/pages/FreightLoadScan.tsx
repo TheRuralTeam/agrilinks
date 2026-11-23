@@ -100,11 +100,11 @@ const FreightLoadScan = () => {
   if (message || !data) {
     return (
       <div style={{ minHeight: '100vh', background: T.canvas, padding: 18, fontFamily: FONT }}>
-        <div style={{ maxWidth: 560, margin: '60px auto', background: T.white, border: `1px solid ${T.rule}`, borderRadius: 20, padding: 28, textAlign: 'center' }}>
+        <div style={{ maxWidth: 560, margin: '60px auto', background: T.white, border: `1px solid ${T.rule}`, borderRadius: 12, padding: 28, textAlign: 'center' }}>
           <AlertTriangle size={34} color={T.gold} />
           <h1 style={{ color: T.ink, fontSize: 20, margin: '14px 0 8px' }}>Acesso não autorizado</h1>
           <p style={{ color: T.mid, lineHeight: 1.6, fontSize: 13 }}>{message || 'Carga não encontrada.'}</p>
-          <button onClick={() => navigate(-1)} style={{ marginTop: 14, minHeight: 42, padding: '0 16px', border: 'none', borderRadius: 10, background: T.green, color: T.white, fontFamily: FONT, fontWeight: 800 }}>
+          <button onClick={() => navigate(-1)} style={{ marginTop: 14, minHeight: 42, padding: '0 16px', border: 'none', borderRadius: 12, background: T.green, color: T.white, fontFamily: FONT, fontWeight: 800 }}>
             Voltar
           </button>
         </div>
@@ -119,7 +119,7 @@ const FreightLoadScan = () => {
           <ArrowLeft size={16} /> Voltar
         </button>
 
-        <article style={{ background: T.white, border: `1px solid ${T.rule}`, borderRadius: 22, overflow: 'hidden', boxShadow: `0 10px 30px ${T.shadow}` }}>
+        <article style={{ background: T.white, border: `1px solid ${T.rule}`, borderRadius: 12, overflow: 'hidden', boxShadow: `0 10px 30px ${T.shadow}` }}>
           <header style={{ padding: 22, borderBottom: `1px solid ${T.rule}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
               <div>

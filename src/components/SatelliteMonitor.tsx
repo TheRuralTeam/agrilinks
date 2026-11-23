@@ -212,7 +212,7 @@ export const SatelliteMonitor: React.FC = () => {
         title="Monitor Satelital"
         style={{
           position: 'fixed', right: 16, bottom: 120, zIndex: 50,
-          width: 52, height: 52, borderRadius: 14, border: 'none', cursor: 'pointer',
+          width: 52, height: 52, borderRadius: 12, border: 'none', cursor: 'pointer',
           background: GREEN, color: CARD, boxShadow: '0 6px 24px rgba(10,35,16,0.35)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
@@ -249,14 +249,14 @@ export const SatelliteMonitor: React.FC = () => {
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 6,
                       background: refreshing ? 'rgba(255,255,255,0.05)' : GOLD, border: 'none', color: CARD,
-                      borderRadius: 8, padding: '6px 10px', cursor: refreshing ? 'wait' : 'pointer',
+                      borderRadius: 12, padding: '6px 10px', cursor: refreshing ? 'wait' : 'pointer',
                       fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
                     }}
                   >
                     <RefreshCw size={13} style={{ animation: refreshing ? 'spin 1s linear infinite' : undefined }} />
                     Atualizar
                   </button>
-                  <button onClick={() => setOpen(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: CARD, borderRadius: 8, padding: 6, cursor: 'pointer' }}>
+                  <button onClick={() => setOpen(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: CARD, borderRadius: 12, padding: 6, cursor: 'pointer' }}>
                     <X size={16} />
                   </button>
                 </div>
@@ -306,7 +306,7 @@ export const SatelliteMonitor: React.FC = () => {
                   {err && <p style={{ fontSize: 12, color: '#DC2626' }}>Erro: {err}</p>}
                   {alerts.map((a, i) => (
                     <div key={i} style={{
-                      display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10, marginBottom: 8,
+                      display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 12, marginBottom: 8,
                       background: a.type === 'drought' ? '#FEF2F2' : '#FFF7ED',
                       color: a.type === 'drought' ? '#B91C1C' : '#C2410C',
                       border: `1px solid ${a.type === 'drought' ? '#FECACA' : '#FED7AA'}`,
@@ -320,7 +320,7 @@ export const SatelliteMonitor: React.FC = () => {
                   {!!clima.length && (
                     <>
                       <h4 style={{ margin: '8px 0', fontSize: 12, color: GREEN_DARK, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Precipitação diária (mm)</h4>
-                      <div style={{ width: '100%', height: 180, background: CARD, borderRadius: 10, padding: 8, border: '1px solid #DDE8DF' }}>
+                      <div style={{ width: '100%', height: 180, background: CARD, borderRadius: 12, padding: 8, border: '1px solid #DDE8DF' }}>
                         <ResponsiveContainer>
                           <LineChart data={clima}>
                             <CartesianGrid stroke="#EEF2EF" />
@@ -333,7 +333,7 @@ export const SatelliteMonitor: React.FC = () => {
                       </div>
 
                       <h4 style={{ margin: '16px 0 8px', fontSize: 12, color: GREEN_DARK, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Temperatura (°C)</h4>
-                      <div style={{ width: '100%', height: 180, background: CARD, borderRadius: 10, padding: 8, border: '1px solid #DDE8DF' }}>
+                      <div style={{ width: '100%', height: 180, background: CARD, borderRadius: 12, padding: 8, border: '1px solid #DDE8DF' }}>
                         <ResponsiveContainer>
                           <LineChart data={clima}>
                             <CartesianGrid stroke="#EEF2EF" />
@@ -368,7 +368,7 @@ export const SatelliteMonitor: React.FC = () => {
                         }}
                       />
                     )}
-                    <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(43,72,24,0.9)', color: CARD, fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 6, letterSpacing: '0.05em' }}>
+                    <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(43,72,24,0.9)', color: CARD, fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 12, letterSpacing: '0.05em' }}>
                       MODIS · {ndviDate || '—'}
                     </div>
                     <button
@@ -379,7 +379,7 @@ export const SatelliteMonitor: React.FC = () => {
                         position: 'absolute', top: 8, right: 8,
                         display: 'inline-flex', alignItems: 'center', gap: 6,
                         background: GOLD, border: 'none', color: CARD,
-                        borderRadius: 6, padding: '4px 8px', cursor: ndviProbing ? 'wait' : 'pointer',
+                        borderRadius: 12, padding: '4px 8px', cursor: ndviProbing ? 'wait' : 'pointer',
                         fontSize: 10, fontWeight: 700, letterSpacing: '0.04em',
                       }}
                     >
@@ -388,13 +388,13 @@ export const SatelliteMonitor: React.FC = () => {
                     </button>
                   </div>
 
-                  <div style={{ marginTop: 8, padding: '8px 10px', background: CARD, border: '1px solid #DDE8DF', borderRadius: 8, fontSize: 11, color: INK, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ marginTop: 8, padding: '8px 10px', background: CARD, border: '1px solid #DDE8DF', borderRadius: 12, fontSize: 11, color: INK, display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <div><strong style={{ color: GREEN_DARK }}>Data da camada:</strong> {ndviDate ? new Date(ndviDate + 'T00:00:00Z').toLocaleDateString('pt-AO', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'} (UTC)</div>
                     <div><strong style={{ color: GREEN_DARK }}>Última verificação:</strong> {ndviFetchedAt ? `${ndviFetchedAt.toLocaleDateString('pt-AO')} · ${ndviFetchedAt.toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : '—'}</div>
                     <div style={{ color: MUTED }}>Fonte: NASA GIBS · MODIS Terra NDVI 8-Day (composto de 8 dias)</div>
                   </div>
 
-                  <div style={{ marginTop: 12, background: CARD, borderRadius: 10, padding: 12, border: '1px solid #DDE8DF' }}>
+                  <div style={{ marginTop: 12, background: CARD, borderRadius: 12, padding: 12, border: '1px solid #DDE8DF' }}>
                     <p style={{ fontSize: 11, fontWeight: 800, color: GREEN_DARK, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Legenda NDVI</p>
                     {[
                       { c: '#DC2626', l: '0.0 – 0.2 · Solo nu / Sem vegetação' },
@@ -403,7 +403,7 @@ export const SatelliteMonitor: React.FC = () => {
                       { c: '#7CB342', l: '0.6 – 1.0 · Vegetação saudável' },
                     ].map((x, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0', fontSize: 12, color: INK }}>
-                        <span style={{ width: 18, height: 12, borderRadius: 3, background: x.c }} /> {x.l}
+                        <span style={{ width: 18, height: 12, borderRadius: 12, background: x.c }} /> {x.l}
                       </div>
                     ))}
                   </div>
@@ -411,7 +411,7 @@ export const SatelliteMonitor: React.FC = () => {
               )}
 
               {tab === 'fazendas' && (
-                <div style={{ background: CARD, borderRadius: 10, overflow: 'hidden', border: '1px solid #DDE8DF' }}>
+                <div style={{ background: CARD, borderRadius: 12, overflow: 'hidden', border: '1px solid #DDE8DF' }}>
                   {loading && !fazendas.length && <div aria-hidden="true" style={{ padding: 12 }} />}
                   {!loading && !fazendas.length && (
                     <p style={{ padding: 14, fontSize: 12, color: MUTED }}>

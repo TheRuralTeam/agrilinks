@@ -110,7 +110,7 @@ const ContratosFuturos = () => {
         </div>
         {isBuyer && (
           <button onClick={() => navigate('/contratos-futuros/novo')} style={{
-            height: 38, padding: '0 14px', borderRadius: 10, border: 'none',
+            height: 38, padding: '0 14px', borderRadius: 12, border: 'none',
             background: T.green, color: T.white, fontWeight: 700, fontSize: 12,
             fontFamily: FONT, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
           }}>
@@ -125,7 +125,7 @@ const ContratosFuturos = () => {
             <Loader compact />
           </div>
         ) : contracts.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 48, color: T.muted, background: T.white, borderRadius: 16, border: `1px solid ${T.rule}` }}>
+          <div style={{ textAlign: 'center', padding: 48, color: T.muted, background: T.white, borderRadius: 12, border: `1px solid ${T.rule}` }}>
             <FileSignature size={30} style={{ margin: '0 auto 10px', opacity: 0.5 }} />
             <p style={{ fontSize: 13, margin: 0 }}>Ainda não existem contratos de futuros.</p>
           </div>
@@ -133,7 +133,7 @@ const ContratosFuturos = () => {
           const st = STATUS[c.status] || STATUS.pending_match
           const amIBuyer = c.buyer_id === user?.id
           return (
-            <div key={c.id} style={{ background: T.white, border: `1px solid ${T.rule}`, borderRadius: 16, padding: 16 }}>
+            <div key={c.id} style={{ background: T.white, border: `1px solid ${T.rule}`, borderRadius: 12, padding: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
                 <div>
                   <h3 style={{ fontSize: 15, fontWeight: 800, color: T.ink, margin: '0 0 4px' }}>{c.product_name}</h3>
@@ -165,7 +165,7 @@ const ContratosFuturos = () => {
               </div>
 
               {c.match_notes && (
-                <p style={{ fontSize: 12, color: T.mid, marginTop: 10, background: T.g50, padding: 10, borderRadius: 10 }}>
+                <p style={{ fontSize: 12, color: T.mid, marginTop: 10, background: T.g50, padding: 10, borderRadius: 12 }}>
                   {c.match_notes}
                 </p>
               )}
@@ -228,7 +228,7 @@ const ContratosFuturos = () => {
               <p style={{ fontWeight: 700, color: T.ink }}>f) Papel da AgriLink</p>
               <p>A AgriLink actua como intermediária e garante do contrato: valida as partes, retém o pagamento em custódia, regista o contrato digital e acompanha o cumprimento, podendo mediar litígios.</p>
 
-              <p style={{ fontSize: 11, color: T.muted, background: T.canvas, padding: 10, borderRadius: 8 }}>
+              <p style={{ fontSize: 11, color: T.muted, background: T.canvas, padding: 10, borderRadius: 12 }}>
                 Nota: este texto contratual deve ser revisto por assessoria jurídica antes de utilização em produção,
                 por envolver compromissos financeiros reais entre as partes.
               </p>
@@ -243,7 +243,7 @@ const ContratosFuturos = () => {
               <div style={{ marginTop: 12 }}>
                 <label style={{ fontSize: 12, fontWeight: 700, color: T.mid, display: 'block', marginBottom: 6 }}>Assinatura digital (nome completo)</label>
                 <input value={signature} onChange={e => setSignature(e.target.value)} style={{
-                  width: '100%', height: 42, borderRadius: 10, border: `1px solid ${T.rule}`,
+                  width: '100%', height: 42, borderRadius: 12, border: `1px solid ${T.rule}`,
                   padding: '0 12px', fontFamily: FONT, fontSize: 14, color: T.ink, outline: 'none',
                 }} />
               </div>
@@ -252,11 +252,11 @@ const ContratosFuturos = () => {
 
           <DialogFooter>
             <button onClick={() => setActive(null)} style={{
-              height: 42, padding: '0 16px', borderRadius: 10, background: T.white,
+              height: 42, padding: '0 16px', borderRadius: 12, background: T.white,
               border: `1px solid ${T.rule}`, color: T.mid, fontWeight: 700, fontFamily: FONT, cursor: 'pointer',
             }}>Cancelar</button>
             <button onClick={acceptContract} disabled={saving || !accepted} style={{
-              height: 42, padding: '0 18px', borderRadius: 10, border: 'none',
+              height: 42, padding: '0 18px', borderRadius: 12, border: 'none',
               background: T.green, color: T.white, fontWeight: 800, fontFamily: FONT,
               cursor: accepted && !saving ? 'pointer' : 'default', opacity: accepted && !saving ? 1 : 0.6,
             }}>

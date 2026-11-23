@@ -14,7 +14,7 @@ const label: React.CSSProperties = {
   fontFamily: FONT, letterSpacing: '0.02em',
 }
 const field: React.CSSProperties = {
-  width: '100%', height: 44, borderRadius: 10, border: `1px solid ${T.rule}`,
+  width: '100%', height: 44, borderRadius: 12, border: `1px solid ${T.rule}`,
   padding: '0 12px', fontSize: 14, color: T.ink, background: T.white,
   outline: 'none', fontFamily: FONT,
 }
@@ -96,7 +96,7 @@ const CriarContratoFuturos = () => {
       </header>
 
       <form onSubmit={submit} style={{ maxWidth: 680, margin: '0 auto', padding: 16, display: 'grid', gap: 16 }}>
-        <section style={{ background: T.white, border: `1px solid ${T.rule}`, borderRadius: 16, padding: 16, display: 'grid', gap: 14 }}>
+        <section style={{ background: T.white, border: `1px solid ${T.rule}`, borderRadius: 12, padding: 16, display: 'grid', gap: 14 }}>
           <div>
             <label style={label}>Produto *</label>
             <select style={field} value={form.product_name} onChange={e => set('product_name', e.target.value)}>
@@ -139,7 +139,7 @@ const CriarContratoFuturos = () => {
           </div>
         </section>
 
-        <section style={{ background: T.white, border: `1px solid ${T.rule}`, borderRadius: 16, padding: 16, display: 'grid', gap: 14 }}>
+        <section style={{ background: T.white, border: `1px solid ${T.rule}`, borderRadius: 12, padding: 16, display: 'grid', gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={label}>Prazo de entrega *</label>

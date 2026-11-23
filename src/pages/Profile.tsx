@@ -27,25 +27,8 @@ import { downloadMarketplaceTransactionReceipt } from '../features/orders/transa
 import { angolaProvinces } from '../data/angola-locations'
 import { SOURCING_AGRICULTURAL_PRODUCTS, SOURCING_UNITS } from '../features/sourcing/sourcingCatalog'
 
-/* ─── Design tokens ──────────────────────────────────────────────────────────
-   Mesma fonte de verdade da landing (../lib/brand). Os campos abaixo com
-   fallback (??) são tokens que este ficheiro usa mas que não confirmei
-   existirem em lib/brand.ts — se não existirem lá, o React estava a receber
-   `undefined` nesses estilos e a cair no default do browser, o que é a causa
-   mais provável do visual "apagado". Ideal: migrar estes fallbacks para
-   lib/brand.ts para ficarem partilhados por toda a app. */
-import { T as Brand } from '../lib/brand';
-const T: any = {
-  ...Brand,
-  mid: (Brand as any).mid ?? Brand.ink,
-  faint: (Brand as any).faint ?? Brand.muted,
-  g50: (Brand as any).g50 ?? 'rgba(45,125,58,0.06)',
-  g100: (Brand as any).g100 ?? 'rgba(45,125,58,0.12)',
-  gBorder: (Brand as any).gBorder ?? Brand.rule,
-  shadow: (Brand as any).shadow ?? 'rgba(17,23,20,0.05)',
-};
-
-const FONT = "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+/* ─── Shared AgriLink design tokens ───────────────────────────────────────── */
+import { FONT, R, T } from '../lib/brand';
 const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)'
 
 /* ─── Interfaces ─────────────────────────────────────────────────────────────── */
@@ -148,7 +131,7 @@ function agentStatusLabel(task?: SourcingAgentTaskStatus) {
    em vez de três caixas idênticas com sombra igual (o "kit SaaS" genérico). */
 const StatsStrip = ({ items }: { items: { value: number | string; label: string; color: string }[] }) => (
   <div style={{
-    background: T.white, borderRadius: 20, border: `1px solid ${T.rule}`,
+    background: T.white, borderRadius: R.md, border: `1px solid ${T.rule}`,
     display: 'flex', overflow: 'hidden',
   }}>
     {items.map((it, i) => (
@@ -176,17 +159,17 @@ const InfoRow = ({ icon, value }: { icon: React.ReactNode; value: string }) => (
 const TabBtn = ({ active, onClick, icon, label, badge, accent }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; badge?: number; accent: string }) => (
   <button onClick={onClick} className="ag-tab" style={{
     display: 'flex', alignItems: 'center', gap: 7, padding: '11px 3px',
-    border: 'none', borderBottom: `2px solid ${active ? accent : 'transparent'}`,
-    background: 'transparent', cursor: 'pointer',
-    color: active ? T.ink : T.muted,
+    border: `1px solid ${active ? `${accent}35` : 'transparent'}`,
+    borderRadius: R.md, background: active ? T.g50 : 'transparent', cursor: 'pointer',
+    color: active ? T.g700 : T.muted,
     fontWeight: active ? 700 : 600,
-    fontSize: 13.5, fontFamily: FONT, transition: `all 0.25s ${EASE}`,
+    fontSize: 13, fontFamily: FONT, transition: `all 0.25s ${EASE}`,
     position: 'relative', flexShrink: 0, whiteSpace: 'nowrap',
   }}>
     {icon}
     <span>{label}</span>
     {badge !== undefined && badge > 0 && (
-      <span style={{ minWidth: 16, height: 16, padding: '0 4px', borderRadius: 20, background: '#EF4444', color: T.white, fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{badge}</span>
+      <span style={{ minWidth: 16, height: 16, padding: '0 4px', borderRadius: R.pill, background: '#EF4444', color: T.white, fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{badge}</span>
     )}
   </button>
 )
@@ -194,7 +177,7 @@ const TabBtn = ({ active, onClick, icon, label, badge, accent }: { active: boole
 const Btn = ({ children, onClick, variant = 'primary', disabled = false, size = 'md', type = 'button', style: extraStyle = {} }: any) => {
   const base: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-    borderRadius: 12, cursor: disabled ? 'not-allowed' : 'pointer',
+    borderRadius: R.md, cursor: disabled ? 'not-allowed' : 'pointer',
     fontWeight: 700, transition: `all 0.25s ${EASE}`, border: 'none', fontFamily: FONT,
     opacity: disabled ? 0.5 : 1,
     padding: size === 'sm' ? '8px 14px' : size === 'lg' ? '13px 26px' : '10px 18px',
@@ -202,7 +185,7 @@ const Btn = ({ children, onClick, variant = 'primary', disabled = false, size = 
     ...extraStyle,
   }
   const variants: Record<string, React.CSSProperties> = {
-    primary:   { background: `linear-gradient(135deg, ${T.g500 ?? T.g600}, ${T.g700 ?? T.g900})`, color: T.white, boxShadow: `0 1px 4px rgba(45,125,58,0.18)` },
+    primary:   { background: T.g600, color: T.white, boxShadow: 'none' },
     secondary: { background: T.g50, color: T.g600 },
     outline:   { background: T.white, color: T.mid, border: `1px solid ${T.rule}` },
     danger:    { background: '#FEF2F2', color: '#DC2626' },
@@ -221,8 +204,8 @@ const Input = ({ label, value, onChange, type = 'text', placeholder = '', requir
       </label>
     )}
     <input type={type} value={value} onChange={onChange} placeholder={placeholder} className="ag-input" style={{
-      height: 44, borderRadius: 12, border: `1px solid ${T.rule}`, padding: '0 14px',
-      fontSize: 13.5, outline: 'none', background: T.canvas, color: T.ink,
+      height: 44, borderRadius: R.md, border: `1px solid ${T.rule}`, padding: '0 14px',
+      fontSize: 13.5, outline: 'none', background: T.subtle, color: T.ink,
       transition: `border-color 0.2s ${EASE}, box-shadow 0.2s ${EASE}, background 0.2s ${EASE}`, width: '100%', boxSizing: 'border-box',
       fontFamily: FONT,
     }} />
@@ -233,8 +216,8 @@ const Textarea = ({ label, value, onChange, placeholder = '', rows = 4 }: any) =
   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
     {label && <label style={{ fontSize: 12, fontWeight: 700, color: T.ink, fontFamily: FONT }}>{label}</label>}
     <textarea value={value} onChange={onChange} placeholder={placeholder} rows={rows} className="ag-input" style={{
-      borderRadius: 12, border: `1px solid ${T.rule}`, padding: '11px 14px',
-      fontSize: 13.5, outline: 'none', background: T.canvas, color: T.ink,
+      borderRadius: R.md, border: `1px solid ${T.rule}`, padding: '11px 14px',
+      fontSize: 13.5, outline: 'none', background: T.subtle, color: T.ink,
       transition: `border-color 0.2s ${EASE}, box-shadow 0.2s ${EASE}`, width: '100%', boxSizing: 'border-box',
       resize: 'vertical', fontFamily: FONT, lineHeight: 1.6,
     }} />
@@ -256,7 +239,7 @@ const StatusPill = ({ status }: { status: string }) => {
   }
   const s = map[status] || { bg: T.canvas, color: T.muted, label: status }
   return (
-    <span style={{ padding: '3px 10px', borderRadius: 20, background: s.bg, color: s.color, fontSize: 11, fontWeight: 700, fontFamily: FONT, whiteSpace: 'nowrap' }}>
+    <span style={{ padding: '3px 10px', borderRadius: R.pill, background: s.bg, color: s.color, fontSize: 11, fontWeight: 700, fontFamily: FONT, whiteSpace: 'nowrap' }}>
       {s.label}
     </span>
   )
@@ -264,15 +247,15 @@ const StatusPill = ({ status }: { status: string }) => {
 
 const IconBtn = ({ icon, title, danger = false, onClick }: { icon: React.ReactNode; title: string; danger?: boolean; onClick?: () => void }) => (
   <button type="button" title={title} onClick={(event) => { event.stopPropagation(); onClick?.() }} className="ag-icon-btn" style={{
-    width: 30, height: 30, borderRadius: 9, border: 'none',
+    width: 30, height: 30, borderRadius: R.md, border: 'none',
     background: danger ? '#FEF2F2' : T.g50, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
     color: danger ? '#DC2626' : T.muted, transition: `all 0.2s ${EASE}`,
   }}>{icon}</button>
 )
 
 const EmptyState = ({ icon, message, sub }: { icon: React.ReactNode; message: string; sub?: string }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '56px 20px', textAlign: 'center', background: T.white, borderRadius: 20, border: `1px dashed ${T.rule}` }}>
-    <div style={{ width: 56, height: 56, borderRadius: 16, background: T.g50, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>{icon}</div>
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '56px 20px', textAlign: 'center', background: T.white, borderRadius: R.md, border: `1px dashed ${T.rule}` }}>
+    <div style={{ width: 56, height: 56, borderRadius: R.md, background: T.g50, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>{icon}</div>
     <p style={{ fontFamily: FONT, fontSize: 15.5, fontWeight: 700, color: T.ink, margin: 0 }}>{message}</p>
     {sub && <p style={{ fontSize: 12, color: T.faint, marginTop: 6, maxWidth: 260, lineHeight: 1.6 }}>{sub}</p>}
   </div>
@@ -286,7 +269,7 @@ function RTable<T>({ columns, rows, keyField, actions, empty, accent }: {
 }) {
   if (!rows.length) return <>{empty}</>
   return (
-    <div className="ag-table-wrap" style={{ background: T.white, borderRadius: 20, border: `1px solid ${T.rule}`, overflow: 'hidden' }}>
+    <div className="ag-table-wrap" style={{ background: T.white, borderRadius: R.md, border: `1px solid ${T.rule}`, overflow: 'hidden' }}>
       <table className="ag-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
@@ -1021,7 +1004,7 @@ const Profile = () => {
   const totalLikes = userProducts.reduce((s, p) => s + (productStats[p.id]?.likes || 0), 0)
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: T.canvas, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ minHeight: '100vh', background: T.subtle, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
         <div style={{ width: 40, height: 40, borderRadius: '50%', border: `2.5px solid ${T.gBorder}`, borderTopColor: T.g500 ?? T.g600, animation: 'ag-spin 0.8s linear infinite' }}/>
         <p style={{ fontSize: 13, color: T.faint, fontWeight: 500, fontFamily: FONT }}>{t('profile.loadingProfile')}</p>
@@ -1062,7 +1045,7 @@ const Profile = () => {
       ]
 
   return (
-    <div style={{ minHeight: '100vh', background: T.canvas, fontFamily: FONT, paddingBottom: 80, WebkitFontSmoothing: 'antialiased' }}>
+    <div className="ag-profile-page" style={{ minHeight: '100vh', background: T.subtle, fontFamily: FONT, paddingBottom: 80, WebkitFontSmoothing: 'antialiased' }}>
 
       {/* ═══ HEADER ═══════════════════════════════════════════════════════════ */}
       <header style={{
@@ -1126,12 +1109,12 @@ const Profile = () => {
                rodapé, como um crachá real da rede AgriLink. Substitui o
                banner fino + avatar flutuante genérico. ── */}
           <div style={{
-            display: 'flex', background: T.white, borderRadius: 22, border: `1px solid ${T.rule}`,
-            overflow: 'hidden', animation: `ag-fade-up 0.5s ${EASE} both`,
+            display: 'flex', background: T.white, borderRadius: R.md, border: `1px solid ${T.rule}`,
+            overflow: 'hidden', boxShadow: '0 4px 16px rgba(17,24,20,.04)', animation: `ag-fade-up 0.5s ${EASE} both`,
           }}>
             <div style={{ width: 6, background: roleAccent, flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ padding: '22px 22px 18px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+              <div style={{ padding: '22px 22px 18px', display: 'flex', gap: 14, alignItems: 'flex-start', background: `linear-gradient(135deg, ${T.g50}, ${T.white} 72%)` }}>
                 <div style={{ position: 'relative', flexShrink: 0 }}>
                   <div style={{
                     width: 64, height: 64, borderRadius: '50%',
@@ -1224,7 +1207,7 @@ const Profile = () => {
           </div>
 
           {isAgente && (userProfile as any)?.agent_code && (
-            <div style={{ padding: '14px 16px', borderRadius: 16, background: `${roleAccent}14`, animation: `ag-fade-up 0.5s ${EASE} 0.1s both` }}>
+            <div style={{ padding: '14px 16px', borderRadius: R.md, background: T.g50, border: `1px solid ${T.gBorder}`, animation: `ag-fade-up 0.5s ${EASE} 0.1s both` }}>
               <p style={{ fontSize: 11.5, color: T.muted, fontWeight: 600, margin: 0 }}>{t('profile.agentCode')}</p>
               <p style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 20, fontWeight: 800, color: roleAccent, letterSpacing: '0.05em', margin: '2px 0 0' }}>{(userProfile as any).agent_code}</p>
             </div>
@@ -1234,8 +1217,8 @@ const Profile = () => {
         {/* ══ RIGHT COLUMN ═════════════════════════════════════════════════════ */}
         <div style={{ animation: `ag-fade-up 0.5s ${EASE} 0.1s both`, minWidth: 0 }}>
 
-          {/* Tabs por sublinhado */}
-          <div style={{ display: 'flex', gap: 22, borderBottom: `1px solid ${T.rule}`, marginBottom: 20, overflowX: 'auto' }}>
+          {/* Tabs com os controlos arredondados partilhados da AgriLink */}
+          <div style={{ display: 'flex', gap: 8, padding: 5, border: `1px solid ${T.rule}`, borderRadius: R.md, marginBottom: 20, overflowX: 'auto', background: T.white }}>
             {tabs.map(tab => (
               <TabBtn
                 key={tab.id}
@@ -1321,11 +1304,11 @@ const Profile = () => {
               </div>
 
               {showSourcingForm && (
-                <div style={{ background: T.white, borderRadius: 20, border: `1px solid ${T.rule}`, padding: 20, display: 'flex', flexDirection: 'column', gap: 14, animation: `ag-fade-up 0.3s ${EASE} both` }}>
+                <div style={{ background: T.white, borderRadius: R.md, border: `1px solid ${T.rule}`, padding: 20, display: 'flex', flexDirection: 'column', gap: 14, animation: `ag-fade-up 0.3s ${EASE} both` }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 14 }} className="sm:grid-cols-2">
                     <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, fontWeight: 700, color: T.mid }}>
                       Produto agrícola *
-                      <select value={sourcingForm.product_name} onChange={(e) => setSourcingForm(p => ({ ...p, product_name: e.target.value }))} required style={{ width: '100%', minHeight: 42, padding: '10px 12px', borderRadius: 10, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, font: 'inherit' }}>
+                      <select value={sourcingForm.product_name} onChange={(e) => setSourcingForm(p => ({ ...p, product_name: e.target.value }))} required style={{ width: '100%', minHeight: 42, padding: '10px 12px', borderRadius: R.md, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, font: 'inherit' }}>
                         <option value="">Seleccionar produto</option>
                         {SOURCING_AGRICULTURAL_PRODUCTS.map(product => <option key={product} value={product}>{product}</option>)}
                       </select>
@@ -1335,7 +1318,7 @@ const Profile = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 14 }} className="sm:grid-cols-2">
                     <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, fontWeight: 700, color: T.mid }}>
                       Unidade de medida *
-                      <select value={sourcingForm.unit} onChange={(e) => setSourcingForm(p => ({ ...p, unit: e.target.value }))} required style={{ width: '100%', minHeight: 42, padding: '10px 12px', borderRadius: 10, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, font: 'inherit' }}>
+                      <select value={sourcingForm.unit} onChange={(e) => setSourcingForm(p => ({ ...p, unit: e.target.value }))} required style={{ width: '100%', minHeight: 42, padding: '10px 12px', borderRadius: R.md, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, font: 'inherit' }}>
                         {SOURCING_UNITS.map(unit => <option key={unit.value} value={unit.value}>{unit.label}</option>)}
                       </select>
                     </label>
@@ -1344,14 +1327,14 @@ const Profile = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 14 }} className="sm:grid-cols-2">
                     <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, fontWeight: 700, color: T.mid }}>
                       Província de entrega *
-                      <select value={sourcingForm.delivery_province_id} onChange={(e) => setSourcingForm(p => ({ ...p, delivery_province_id: e.target.value, delivery_municipality_id: '' }))} required style={{ width: '100%', minHeight: 42, padding: '10px 12px', borderRadius: 10, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, font: 'inherit' }}>
+                      <select value={sourcingForm.delivery_province_id} onChange={(e) => setSourcingForm(p => ({ ...p, delivery_province_id: e.target.value, delivery_municipality_id: '' }))} required style={{ width: '100%', minHeight: 42, padding: '10px 12px', borderRadius: R.md, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, font: 'inherit' }}>
                         <option value="">Seleccionar província</option>
                         {angolaProvinces.map(province => <option key={province.id} value={province.id}>{province.name}</option>)}
                       </select>
                     </label>
                     <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, fontWeight: 700, color: T.mid }}>
                       Município de entrega *
-                      <select value={sourcingForm.delivery_municipality_id} onChange={(e) => setSourcingForm(p => ({ ...p, delivery_municipality_id: e.target.value }))} required disabled={!sourcingForm.delivery_province_id} style={{ width: '100%', minHeight: 42, padding: '10px 12px', borderRadius: 10, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, font: 'inherit', opacity: sourcingForm.delivery_province_id ? 1 : 0.55 }}>
+                      <select value={sourcingForm.delivery_municipality_id} onChange={(e) => setSourcingForm(p => ({ ...p, delivery_municipality_id: e.target.value }))} required disabled={!sourcingForm.delivery_province_id} style={{ width: '100%', minHeight: 42, padding: '10px 12px', borderRadius: R.md, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, font: 'inherit', opacity: sourcingForm.delivery_province_id ? 1 : 0.55 }}>
                         <option value="">Seleccionar município</option>
                         {angolaProvinces.find(province => province.id === sourcingForm.delivery_province_id)?.municipalities.map(municipality => <option key={municipality.id} value={municipality.id}>{municipality.name}</option>)}
                       </select>
@@ -1383,7 +1366,7 @@ const Profile = () => {
                 empty={<EmptyState icon={<Search size={26} color={T.faint}/>} message={t('sourcing.noRequests')} />}
               />
 
-              <div style={{ background: T.white, borderRadius: 18, border: `1px solid ${T.rule}`, padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ background: T.white, borderRadius: R.md, border: `1px solid ${T.rule}`, padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
                   <h4 style={{ fontFamily: FONT, fontSize: 15, fontWeight: 750, color: T.ink, margin: 0 }}>Cotações confirmadas pela AgriLink</h4>
                   <p style={{ fontSize: 11, color: T.faint, marginTop: 4 }}>Só aparecem aqui disponibilidades verificadas pela equipa. Contactos directos do fornecedor permanecem protegidos durante a fase de pesquisa.</p>
@@ -1395,7 +1378,7 @@ const Profile = () => {
                 ) : sourcingQuotes.map((quote) => {
                   const request = sourcingRequests.find((item) => item.id === quote.sourcing_request_id)
                   return (
-                    <div key={quote.id} style={{ border: `1px solid ${T.rule}`, borderRadius: 13, padding: 13, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                    <div key={quote.id} style={{ border: `1px solid ${T.rule}`, borderRadius: R.md, padding: 13, display: 'flex', flexDirection: 'column', gap: 7 }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                         <strong style={{ fontSize: 13, color: T.ink }}>{request?.product_name || 'Produto agrícola'}</strong>
                         <StatusPill status="confirmed" />
@@ -1417,7 +1400,7 @@ const Profile = () => {
           {/* ── Buyer Pre-orders ── */}
           {activeTab === 'orders' && isComprador && (
             <>
-            <section style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', padding: 16, marginBottom: 14, background: T.white, border: `1px solid ${T.rule}`, borderRadius: 16 }}>
+            <section style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', padding: 16, marginBottom: 14, background: T.white, border: `1px solid ${T.rule}`, borderRadius: R.md }}>
               <div style={{ minWidth: 220, flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: T.ink, fontSize: 14 }}>
                   <ShoppingCart size={16} color={T.g600} /> As minhas compras
@@ -1454,7 +1437,7 @@ const Profile = () => {
           {activeTab === 'orders' && isComprador && buyerFreightQuotes.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
               {buyerFreightQuotes.map((quote) => (
-                <section key={quote.id} style={{ background: T.white, border: `1px solid ${T.rule}`, borderRadius: 14, padding: 16 }}>
+                <section key={quote.id} style={{ background: T.white, border: `1px solid ${T.rule}`, borderRadius: R.md, padding: 16 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 800, color: T.ink }}>{quote.product_name}</div>
@@ -1551,7 +1534,7 @@ const Profile = () => {
 
           {/* ── Statistics ── */}
           {activeTab === 'statistics' && (
-            <div style={{ background: T.white, borderRadius: 22, border: `1px solid ${T.rule}`, padding: 24 }}>
+            <div style={{ background: T.white, borderRadius: R.md, border: `1px solid ${T.rule}`, padding: 24 }}>
               <h3 style={{ fontFamily: FONT, fontSize: 18, fontWeight: 700, color: T.ink, margin: '0 0 18px', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <TrendingUp size={17} color={roleAccent} strokeWidth={1.75}/> {t('profile.performanceSummary')}
               </h3>
@@ -1576,7 +1559,7 @@ const Profile = () => {
                 ))}
               </div>
               {isAgente && (
-                <p style={{ fontSize: 11, color: T.faint, marginTop: 16, padding: '12px 14px', borderRadius: 14, background: T.g50 }}>
+                <p style={{ fontSize: 11, color: T.faint, marginTop: 16, padding: '12px 14px', borderRadius: R.md, background: T.g50 }}>
                   {t('profile.eachUserWorth')}
                 </p>
               )}
@@ -1587,7 +1570,7 @@ const Profile = () => {
       </div>
 
       <Dialog open={!!editingProduct} onOpenChange={(open) => { if (!open && !savingProductEdit) setEditingProduct(null) }}>
-        <DialogContent style={{ maxWidth: 680, maxHeight: '90vh', overflowY: 'auto', borderRadius: 22, border: `1px solid ${T.rule}` }}>
+        <DialogContent style={{ maxWidth: 680, maxHeight: '90vh', overflowY: 'auto', borderRadius: R.md, border: `1px solid ${T.rule}` }}>
           <DialogHeader>
             <DialogTitle style={{ fontFamily: FONT, fontSize: 19, fontWeight: 750, color: T.ink }}>Editar produto agrícola</DialogTitle>
           </DialogHeader>
@@ -1598,7 +1581,7 @@ const Profile = () => {
               <Input label="Quantidade disponível *" type="number" value={productEditForm.quantity} onChange={(e: any) => setProductEditForm(p => ({ ...p, quantity: e.target.value }))} required />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <label style={{ fontSize: 12, fontWeight: 700, color: T.ink }}>Unidade de venda *</label>
-                <select value={productEditForm.sale_unit} onChange={e => setProductEditForm(p => ({ ...p, sale_unit: e.target.value }))} style={{ height: 44, borderRadius: 12, border: `1px solid ${T.rule}`, padding: '0 12px', background: T.canvas, color: T.ink, font: 'inherit' }}>
+                <select value={productEditForm.sale_unit} onChange={e => setProductEditForm(p => ({ ...p, sale_unit: e.target.value }))} style={{ height: 44, borderRadius: R.md, border: `1px solid ${T.rule}`, padding: '0 12px', background: T.subtle, color: T.ink, font: 'inherit' }}>
                   <option value="kg">Quilograma (kg)</option><option value="ton">Tonelada (t)</option><option value="unidade">Unidade</option><option value="caixa">Caixa</option><option value="saco">Saco</option><option value="litro">Litro</option>
                 </select>
               </div>
@@ -1607,14 +1590,14 @@ const Profile = () => {
               <Input label="Data de colheita" type="date" value={productEditForm.harvest_date} onChange={(e: any) => setProductEditForm(p => ({ ...p, harvest_date: e.target.value }))} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <label style={{ fontSize: 12, fontWeight: 700, color: T.ink }}>Província</label>
-                <select value={productEditForm.province_id} onChange={e => setProductEditForm(p => ({ ...p, province_id: e.target.value, municipality_id: '' }))} style={{ height: 44, borderRadius: 12, border: `1px solid ${T.rule}`, padding: '0 12px', background: T.canvas, color: T.ink, font: 'inherit' }}>
+                <select value={productEditForm.province_id} onChange={e => setProductEditForm(p => ({ ...p, province_id: e.target.value, municipality_id: '' }))} style={{ height: 44, borderRadius: R.md, border: `1px solid ${T.rule}`, padding: '0 12px', background: T.subtle, color: T.ink, font: 'inherit' }}>
                   <option value="">Seleccionar província</option>
                   {angolaProvinces.map(province => <option key={province.id} value={province.id}>{province.name}</option>)}
                 </select>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <label style={{ fontSize: 12, fontWeight: 700, color: T.ink }}>Município</label>
-                <select value={productEditForm.municipality_id} onChange={e => setProductEditForm(p => ({ ...p, municipality_id: e.target.value }))} disabled={!productEditForm.province_id} style={{ height: 44, borderRadius: 12, border: `1px solid ${T.rule}`, padding: '0 12px', background: T.canvas, color: T.ink, font: 'inherit', opacity: productEditForm.province_id ? 1 : .55 }}>
+                <select value={productEditForm.municipality_id} onChange={e => setProductEditForm(p => ({ ...p, municipality_id: e.target.value }))} disabled={!productEditForm.province_id} style={{ height: 44, borderRadius: R.md, border: `1px solid ${T.rule}`, padding: '0 12px', background: T.subtle, color: T.ink, font: 'inherit', opacity: productEditForm.province_id ? 1 : .55 }}>
                   <option value="">Seleccionar município</option>
                   {angolaProvinces.find(province => province.id === productEditForm.province_id)?.municipalities.map(municipality => <option key={municipality.id} value={municipality.id}>{municipality.name}</option>)}
                 </select>
@@ -1633,10 +1616,10 @@ const Profile = () => {
       </Dialog>
 
       <Dialog open={!!confirmAction} onOpenChange={(open) => { if (!open && !confirmBusy) setConfirmAction(null) }}>
-        <DialogContent style={{ maxWidth: 430, borderRadius: 22, border: `1px solid ${T.rule}` }}>
+        <DialogContent style={{ maxWidth: 430, borderRadius: R.md, border: `1px solid ${T.rule}` }}>
           <DialogHeader>
             <DialogTitle style={{ fontFamily: FONT, fontSize: 19, fontWeight: 700, color: T.ink, display: 'flex', alignItems: 'center', gap: 9 }}>
-              <span style={{ width: 36, height: 36, borderRadius: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: T.g50, border: `1px solid ${T.gBorder}`, padding: 7 }}>
+              <span style={{ width: 36, height: 36, borderRadius: R.md, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: T.g50, border: `1px solid ${T.gBorder}`, padding: 7 }}>
                 <img src={agrilinkLogo} alt="AgriLink" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               </span>
               {confirmAction?.title || 'Confirmar ação'}
@@ -1683,7 +1666,7 @@ const Profile = () => {
 
       {/* ═══ SETTINGS MODAL ═══════════════════════════════════════════════════ */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent style={{ maxWidth: 420, borderRadius: 22, border: `1px solid ${T.rule}` }}>
+        <DialogContent style={{ maxWidth: 420, borderRadius: R.md, border: `1px solid ${T.rule}` }}>
           <DialogHeader>
             <DialogTitle style={{ fontFamily: FONT, fontSize: 19, fontWeight: 700, color: T.ink, display: 'flex', alignItems: 'center', gap: 8 }}>
               <Settings size={17} color={T.g600}/> {t('profile.settings')}
@@ -1699,10 +1682,10 @@ const Profile = () => {
                 localStorage.setItem('agrilink_language', value)
                 toast({ title: t('common.success'), description: t('common.languageChanged') || 'Idioma alterado.' })
               }}>
-                <SelectTrigger style={{ borderRadius: 12, border: `1px solid ${T.rule}`, height: 42, fontSize: 13, fontFamily: 'inherit' }}>
+                <SelectTrigger style={{ borderRadius: R.md, border: `1px solid ${T.rule}`, height: 42, fontSize: 13, fontFamily: 'inherit' }}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent style={{ borderRadius: 16, border: `1px solid ${T.rule}` }}>
+                <SelectContent style={{ borderRadius: R.md, border: `1px solid ${T.rule}` }}>
                   {supportedLanguageOptions.map((language) => (
                     <SelectItem key={language.val} value={language.val} style={{ fontSize: 13 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1729,10 +1712,15 @@ const Profile = () => {
         .ag-layout { display: grid; grid-template-columns: 1fr; gap: 22px; }
 
         .ag-btn:active { transform: scale(0.97); }
+        .ag-btn { min-height: 40px; }
         .ag-icon-btn:hover { background: ${T.g100}; color: ${T.g600}; }
         .ag-avatar-edit:hover { transform: scale(1.08); }
         .ag-input:focus { border-color: ${T.g500 ?? T.g600} !important; background: ${T.white} !important; box-shadow: 0 0 0 4px rgba(61,154,72,0.1); }
         .ag-tab:hover { color: ${T.ink}; }
+        .ag-profile-page { color: ${T.ink}; }
+        .ag-profile-page .ag-table-wrap {
+          box-shadow: 0 4px 16px rgba(17,24,20,.04);
+        }
 
         /* ── Table ───────────────────────────────────────────────────────── */
         .ag-table { border-collapse: collapse; }
