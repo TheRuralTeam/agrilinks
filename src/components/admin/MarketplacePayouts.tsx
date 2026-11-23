@@ -217,7 +217,7 @@ const MarketplacePayouts = () => {
         if (!allowed.includes(safeExtension) || proofFile.size > 8 * 1024 * 1024) {
           throw new Error("Comprovativo inválido. Use PDF/JPG/PNG/WEBP até 8 MB.");
         }
-        proofPath = `${payout.id}/${crypto.randomUUID()}. ${safeExtension}`.replace(" ", "");
+        proofPath = `${payout.id}/${crypto.randomUUID()}.${safeExtension}`;
         const { error: uploadError } = await supabase.storage.from("marketplace-payout-proofs").upload(proofPath, proofFile, {
           contentType: proofFile.type,
           upsert: false,
@@ -252,7 +252,7 @@ const MarketplacePayouts = () => {
       toast.error("Não foi possível abrir o comprovativo.");
       return;
     }
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    window.location.assign(data.signedUrl);
   };
 
   if (loading) return <div className="flex min-h-64 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
@@ -362,14 +362,15 @@ const MarketplacePayouts = () => {
             <div className="space-y-3">
               <div className="rounded-xl bg-muted/50 p-3 text-sm"><div className="font-semibold">{recipients[selected.recipient_user_id]?.full_name || selected.recipient_user_id}</div><div>{selected.payout_type === "seller" ? "Fornecedor" : "Motorista"} · {formatMoney(selected.amount, selected.currency)}</div><div className="mt-1 text-muted-foreground">{statusLabels[selected.status]}</div></div>
               {selected.status === "awaiting_beneficiary_verification" && <p className="text-sm text-muted-foreground">Registe e verifique primeiro o beneficiário associado a este destinatário.</p>}
-              {selected.status === "awaiting_manual_payout" && <Button className="w-full" onClick={() => void transition(selected, "processing")} disabled={busyId === selected.id}><Clock3 className="mr-2 h-4 w-4" /> Iniciar processamento manual</Button>}
+              {selected.status === "awaiting_manual_payout" && <div className="space-y-2"><Button className="w-full" onClick={() => void transition(selected, "processing")} disabled={busyId === selected.id}><Clock3 className="mr-2 h-4 w-4" /> Iniciar processamento manual</Button><Button className="w-full" variant="destructive" onClick={() => void transition(selected, "blocked")} disabled={busyId === selected.id}>Bloquear liquidação</Button></div>}
               {selected.status === "processing" && <>
                 <div><Label>Referência bancária da transferência</Label><Input value={payoutReference} onChange={(e) => setPayoutReference(e.target.value)} /></div>
                 <div><Label>Comprovativo bancário (PDF/JPG/PNG/WEBP, máximo 8 MB)</Label><Input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" onChange={(e) => setProofFile(e.target.files?.[0] || null)} /></div>
                 <Button className="w-full" onClick={() => void transition(selected, "paid")} disabled={busyId === selected.id || !proofFile || !payoutReference.trim()}><FileCheck2 className="mr-2 h-4 w-4" /> Confirmar transferência efectuada</Button>
+                <Button className="w-full" variant="destructive" onClick={() => void transition(selected, "blocked")} disabled={busyId === selected.id}>Bloquear liquidação</Button>
                 <div className="border-t pt-3"><Label>Motivo de falha (se aplicável)</Label><Textarea value={failureReason} onChange={(e) => setFailureReason(e.target.value)} placeholder="Descreva a falha confirmada pelo banco/PSP." /><Button className="mt-2" variant="destructive" onClick={() => void transition(selected, "failed")} disabled={busyId === selected.id || !failureReason.trim()}>Registar falha</Button></div>
               </>}
-              {selected.status === "failed" && <Button className="w-full" onClick={() => void transition(selected, "retry")} disabled={busyId === selected.id}>Recolocar na fila manual</Button>}
+              {selected.status === "failed" && <div className="space-y-2"><Button className="w-full" onClick={() => void transition(selected, "retry")} disabled={busyId === selected.id}>Recolocar na fila manual</Button><Button className="w-full" variant="destructive" onClick={() => void transition(selected, "blocked")} disabled={busyId === selected.id}>Bloquear liquidação</Button></div>}
               {selected.status === "blocked" && <Button className="w-full" onClick={() => void transition(selected, "unblock")} disabled={busyId === selected.id}>Desbloquear (beneficiário válido)</Button>}
               {selected.status === "paid" && <>
                 <div className="rounded-lg border p-3 text-sm"><p><strong>Referência:</strong> {selected.payout_reference || "—"}</p><p><strong>Pago em:</strong> {formatDate(selected.paid_at)}</p></div>
