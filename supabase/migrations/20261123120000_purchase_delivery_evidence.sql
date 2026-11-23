@@ -353,4 +353,56 @@ before update of status on public.freight_loads
 for each row execute function public.guard_freight_handover_before_transit();
 revoke all on function public.guard_freight_handover_before_transit() from public, anon, authenticated;
 
+
+create or replace function public.get_freight_delivery_evidence(p_freight_load_id uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $
+declare
+  v_actor uuid := auth.uid();
+  v_load public.freight_loads%rowtype;
+  v_evidence public.freight_delivery_evidence%rowtype;
+begin
+  if v_actor is null then
+    raise exception 'Authentication required' using errcode = '42501';
+  end if;
+  select fl.* into v_load
+  from public.freight_loads fl
+  where fl.id = p_freight_load_id;
+  if not found then
+    raise exception 'Freight load not found' using errcode = 'P0002';
+  end if;
+  if not (
+    v_actor in (v_load.buyer_id, v_load.supplier_id, v_load.driver_id, v_load.created_by)
+    or public.has_role(v_actor, 'admin'::public.app_role)
+  ) then
+    raise exception 'Delivery evidence access denied' using errcode = '42501';
+  end if;
+  select de.* into v_evidence
+  from public.freight_delivery_evidence de
+  where de.freight_load_id = v_load.id;
+  if not found then
+    return null;
+  end if;
+  return jsonb_build_object(
+    'id', v_evidence.id,
+    'freight_load_id', v_evidence.freight_load_id,
+    'driver_id', v_evidence.driver_id,
+    'recipient_name', v_evidence.recipient_name,
+    'photo_path', v_evidence.photo_path,
+    'signature_path', v_evidence.signature_path,
+    'latitude', v_evidence.latitude,
+    'longitude', v_evidence.longitude,
+    'accuracy_m', v_evidence.accuracy_m,
+    'delivered_at', v_evidence.delivered_at
+  );
+end;
+$;
+
+revoke all on function public.get_freight_delivery_evidence(uuid) from public, anon;
+grant execute on function public.get_freight_delivery_evidence(uuid) to authenticated;
+
 commit;
