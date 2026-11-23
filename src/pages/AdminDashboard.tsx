@@ -349,6 +349,7 @@ const AdminDashboard = () => {
   const [analyzingMarket, setAnalyzingMarket] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isRootAdmin, setIsRootAdmin] = useState(false);
+  const [canManagePayouts, setCanManagePayouts] = useState(false);
   const [isSuperRoot, setIsSuperRoot] = useState(false);
   const [isSupportAgent, setIsSupportAgent] = useState(false);
   const [userPermissions, setUserPermissions] = useState<AdminPermission[]>([]);
@@ -381,6 +382,7 @@ const AdminDashboard = () => {
         .eq("id", user.id)
         .single();
       
+      setCanManagePayouts(adminRole === true || userData?.is_root_admin === true);
       if (userData?.is_root_admin) {
         setIsRootAdmin(true);
         setUserPermissions(["manage_users", "manage_products", "manage_orders", "manage_support", "manage_sourcing", "view_analytics", "manage_admins"]);
@@ -438,11 +440,11 @@ const AdminDashboard = () => {
       case "orders":
       case "freight":
       case "payouts":
-        return hasPermission("manage_orders");
+        return canManagePayouts;
       default:
         return true;
     }
-  }, [hasPermission, isRootAdmin, isSupportAgent]);
+  }, [hasPermission, isRootAdmin, isSupportAgent, canManagePayouts]);
 
   useEffect(() => {
     if (!currentUserId || !adminPermissionsLoaded) return;
@@ -1177,7 +1179,7 @@ const AdminDashboard = () => {
               Entregas
             </SidebarItem>
           )}
-          {hasPermission("manage_orders") && (
+          {canManagePayouts && (
             <SidebarItem active={activeTab === "payouts"} onClick={() => { setActiveTab("payouts"); setMenuOpen(false); }} icon={<Wallet className="h-4 w-4" />}>
               Pagamentos do marketplace
             </SidebarItem>
@@ -2474,7 +2476,7 @@ const AdminDashboard = () => {
         {/* ADMIN MANAGEMENT */}
         {activeTab === "prices" && <MarketPricesManager />}
         {activeTab === "freight" && hasPermission("manage_orders") && <FreightPricingSettings />}
-        {activeTab === "payouts" && hasPermission("manage_orders") && <MarketplacePayouts />}
+        {activeTab === "payouts" && canManagePayouts && <MarketplacePayouts />}
 
         {activeTab === "admins" && currentUserId && (
 
