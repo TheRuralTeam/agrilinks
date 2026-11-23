@@ -510,9 +510,9 @@ begin
   update public.freight_loads
   set status=p_status,
       driver_arrived_at=case when p_status='at_pickup' then now() else driver_arrived_at end,
-      driver_pickup_confirmed_at=case when p_status='in_transit' then now() else driver_pickup_confirmed_at end,
-      in_transit_at=case when p_status='in_transit' then now() else in_transit_at end,
-      delivered_at=case when p_status='delivered' then now() else delivered_at end,
+      driver_pickup_confirmed_at=case when p_status='in_transit' then now() else public.freight_loads.driver_pickup_confirmed_at end,
+      in_transit_at=case when p_status='in_transit' then now() else public.freight_loads.in_transit_at end,
+      delivered_at=case when p_status='delivered' then now() else public.freight_loads.delivered_at end,
       updated_at=now()
   where public.freight_loads.id=p_freight_load_id
     and public.freight_loads.driver_id=v_load.driver_id
