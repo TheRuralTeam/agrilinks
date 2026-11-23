@@ -240,6 +240,7 @@ as $$
 declare
   v_actor uuid := auth.uid();
   v_load public.freight_loads%rowtype;
+  v_order public.pre_orders%rowtype;
 begin
   if v_actor is null then
     raise exception 'Authentication required' using errcode = '42501';
@@ -265,6 +266,20 @@ begin
   end if;
   if v_load.buyer_receipt_confirmed_at is not null then
     return;
+  end if;
+
+  if v_load.pre_order_id is not null then
+    select po.* into v_order
+    from public.pre_orders po
+    where po.id = v_load.pre_order_id
+    for update;
+    if not found then
+      raise exception 'Linked pre-order not found' using errcode = 'P0002';
+    end if;
+    if v_order.status not in ('accepted', 'completed')
+       or v_order.payment_status is distinct from 'paid' then
+      raise exception 'Only a paid and accepted pre-order can be completed' using errcode = '42501';
+    end if;
   end if;
 
   update public.freight_loads
