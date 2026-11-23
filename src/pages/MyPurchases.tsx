@@ -303,13 +303,18 @@ export default function MyPurchases() {
             const state = checkout[purchase.id]
             const draft = paymentDrafts[purchase.id]
             const freightLoad = freightLoads[purchase.id]
+            const displayedStatus = freightLoad?.buyer_receipt_confirmed_at
+              ? 'Recepção confirmada'
+              : freightLoad?.status === 'delivered'
+                ? 'Entregue pelo motorista'
+                : purchaseStatus(purchase.status)
             const canStartPayment = purchase.status === 'accepted' && (purchase.payment_status === 'unpaid' || !purchase.payment_status)
             return (
               <Card key={purchase.id}>
                 <CardHeader className="pb-3">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div><CardTitle className="text-base">{purchase.product_name}</CardTitle><p className="mt-1 text-xs text-muted-foreground">Compra #{purchase.id.slice(0, 8)} · {new Date(purchase.created_at).toLocaleDateString('pt-AO')}</p>{purchase.cart_order_id && <p className="mt-1 text-xs font-medium text-primary">Encomenda agrupada #{purchase.cart_order_id.slice(0, 8)}</p>}{purchase.requested_delivery_date && <p className="mt-1 text-xs text-muted-foreground">Entrega solicitada: {new Date(`${purchase.requested_delivery_date}T12:00:00`).toLocaleDateString('pt-AO')}</p>}</div>
-                    <div className="flex flex-wrap gap-2"><Badge variant={purchase.status === 'accepted' ? 'default' : 'outline'}>{purchaseStatus(purchase.status)}</Badge><Badge variant={purchase.payment_status === 'paid' ? 'default' : 'secondary'}>{paymentStatus(purchase.payment_status)}</Badge></div>
+                    <div className="flex flex-wrap gap-2"><Badge variant={freightLoad?.buyer_receipt_confirmed_at || freightLoad?.status === 'delivered' || purchase.status === 'accepted' ? 'default' : 'outline'}>{displayedStatus}</Badge><Badge variant={purchase.payment_status === 'paid' ? 'default' : 'secondary'}>{paymentStatus(purchase.payment_status)}</Badge></div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
