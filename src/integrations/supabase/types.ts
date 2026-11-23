@@ -938,11 +938,15 @@ export type Database = {
       freight_loads: {
         Row: {
           accepted_at: string | null
+          buyer_id: string | null
+          buyer_receipt_confirmed_at: string | null
           contract_id: string | null
           created_at: string
           created_by: string
           currency: string
           delivered_at: string | null
+          driver_arrived_at: string | null
+          driver_delivery_confirmed_at: string | null
           destination_label: string
           destination_lat: number | null
           destination_lng: number | null
@@ -966,16 +970,22 @@ export type Database = {
           route_distance_km: number | null
           route_duration_minutes: number | null
           status: string
+          supplier_handover_confirmed_at: string | null
+          supplier_id: string | null
           updated_at: string
           weight_kg: number
         }
         Insert: {
           accepted_at?: string | null
+          buyer_id?: string | null
+          buyer_receipt_confirmed_at?: string | null
           contract_id?: string | null
           created_at?: string
           created_by: string
           currency?: string
           delivered_at?: string | null
+          driver_arrived_at?: string | null
+          driver_delivery_confirmed_at?: string | null
           destination_label: string
           destination_lat?: number | null
           destination_lng?: number | null
@@ -999,16 +1009,22 @@ export type Database = {
           route_distance_km?: number | null
           route_duration_minutes?: number | null
           status?: string
+          supplier_handover_confirmed_at?: string | null
+          supplier_id?: string | null
           updated_at?: string
           weight_kg?: number
         }
         Update: {
           accepted_at?: string | null
+          buyer_id?: string | null
+          buyer_receipt_confirmed_at?: string | null
           contract_id?: string | null
           created_at?: string
           created_by?: string
           currency?: string
           delivered_at?: string | null
+          driver_arrived_at?: string | null
+          driver_delivery_confirmed_at?: string | null
           destination_label?: string
           destination_lat?: number | null
           destination_lng?: number | null
@@ -1032,6 +1048,8 @@ export type Database = {
           route_distance_km?: number | null
           route_duration_minutes?: number | null
           status?: string
+          supplier_handover_confirmed_at?: string | null
+          supplier_id?: string | null
           updated_at?: string
           weight_kg?: number
         }
@@ -4570,6 +4588,26 @@ export type Database = {
           p_user_type: Database["public"]["Enums"]["user_type_enum"]
         }
         Returns: boolean
+      }
+      confirm_freight_receipt: {
+        Args: { p_freight_load_id: string }
+        Returns: undefined
+      }
+      confirm_supplier_handover: {
+        Args: { p_freight_load_id: string }
+        Returns: string
+      }
+      submit_freight_delivery_evidence: {
+        Args: {
+          p_accuracy_m?: number
+          p_freight_load_id: string
+          p_latitude: number
+          p_longitude: number
+          p_photo_path: string
+          p_recipient_name: string
+          p_signature_path: string
+        }
+        Returns: string
       }
       confirm_p2p_payment_received: {
         Args: { p_note?: string; p_p2p_order_id: string }
