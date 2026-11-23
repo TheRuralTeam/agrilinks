@@ -81,8 +81,8 @@ begin
   perform public.confirm_freight_receipt(v_load);
   perform public.confirm_freight_receipt(v_load); -- idempotency
 
-  if (select status from public.pre_orders where id = v_pre_order) <> 'completed' then
-    raise exception 'Buyer confirmation did not complete the pre-order';
+  if (select status from public.pre_orders where id = v_pre_order) <> 'accepted' then
+    raise exception 'Buyer receipt confirmation must not overwrite the pre-order acceptance state';
   end if;
 
   if (select buyer_receipt_confirmed_at from public.freight_loads where id = v_load) is null then
