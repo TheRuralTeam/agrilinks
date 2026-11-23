@@ -123,6 +123,8 @@ export default function FreightDeliveryEvidenceForm({
     setSubmitting(true);
     let photoPath: string | null = null;
     let signaturePath: string | null = null;
+    let submissionRequestStarted = false;
+    let submissionResponseReceived = false;
 
     try {
       const position = await getCurrentPosition();
@@ -145,6 +147,7 @@ export default function FreightDeliveryEvidenceForm({
       });
       if (signatureUpload.error) throw signatureUpload.error;
 
+      submissionRequestStarted = true;
       const { error: submitError } = await supabase.rpc('submit_freight_delivery_evidence', {
         p_freight_load_id: freightLoadId,
         p_recipient_name: recipientName.trim(),
@@ -154,6 +157,7 @@ export default function FreightDeliveryEvidenceForm({
         p_longitude: position.coords.longitude,
         ...(Number.isFinite(position.coords.accuracy) ? { p_accuracy_m: position.coords.accuracy } : {}),
       });
+      submissionResponseReceived = true;
       if (submitError) throw submitError;
 
       onSubmitted();
@@ -171,7 +175,10 @@ export default function FreightDeliveryEvidenceForm({
         // Keep the original failure visible when the reconciliation request also fails.
       }
 
-      if (photoPath || signaturePath) {
+      // Never delete evidence files when the RPC outcome is ambiguous: the database may
+      // have committed while the response and reconciliation request were lost.
+      // Clean up only when the request never started or the server returned a definitive error.
+      if ((!submissionRequestStarted || submissionResponseReceived) && (photoPath || signaturePath)) {
         await supabase.storage.from('freight-delivery-evidence').remove(
           [photoPath, signaturePath].filter((path): path is string => Boolean(path)),
         ).catch(() => undefined);
