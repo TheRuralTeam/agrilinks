@@ -1,5 +1,28 @@
 import type { Config } from "tailwindcss";
 import animate from "tailwindcss-animate";
+import tokens from "./design-system/tokens.json";
+
+const colorToHsl = (hex: string) => {
+	const [r, g, b] = hex.slice(1).match(/.{2}/g)!.map((channel) => parseInt(channel, 16) / 255);
+	const max = Math.max(r, g, b);
+	const min = Math.min(r, g, b);
+	const delta = max - min;
+	const lightness = (max + min) / 2;
+	let hue = 0;
+	let saturation = 0;
+
+	if (delta !== 0) {
+		saturation = delta / (1 - Math.abs(2 * lightness - 1));
+		if (max === r) hue = ((g - b) / delta) % 6;
+		else if (max === g) hue = (b - r) / delta + 2;
+		else hue = (r - g) / delta + 4;
+		hue = (hue * 60 + 360) % 360;
+	}
+
+	return `${Math.round(hue)} ${Math.round(saturation * 100)}% ${Math.round(lightness * 100)}%`;
+};
+
+const semanticColor = (hex: string) => `hsl(${colorToHsl(hex)} / <alpha-value>)`;
 
 export default {
 	darkMode: ["class"],
@@ -19,6 +42,27 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				sans: [tokens.typography.family, ...tokens.typography.fallback]
+			},
+			screens: {
+				compact: `${tokens.breakpoint.compact}px`,
+				medium: `${tokens.breakpoint.medium}px`,
+				expanded: `${tokens.breakpoint.expanded}px`,
+				wide: `${tokens.breakpoint.wide}px`
+			},
+			borderRadius: {
+				DEFAULT: `${tokens.radius.card}px`,
+				control: `${tokens.radius.control}px`,
+				card: `${tokens.radius.card}px`,
+				panel: `${tokens.radius.panel}px`,
+				pill: `${tokens.radius.pill}px`,
+				lg: `${tokens.radius.card}px`,
+				md: `${tokens.radius.card}px`,
+				sm: `${tokens.radius.card}px`,
+				xl: `${tokens.radius.card}px`,
+				'2xl': `${tokens.radius.card}px`
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				'border-strong': 'hsl(var(--border-strong))',
@@ -30,13 +74,13 @@ export default {
 				},
 				foreground: 'hsl(var(--foreground))',
 				primary: {
-					DEFAULT: 'hsl(var(--primary))',
+					DEFAULT: semanticColor(tokens.color.brand.primary),
 					light: 'hsl(var(--primary-light))',
 					hover: 'hsl(var(--primary-hover))',
-					foreground: 'hsl(var(--primary-foreground))'
+					foreground: semanticColor(tokens.color.brand.onPrimary)
 				},
 				secondary: {
-					DEFAULT: 'hsl(var(--secondary))',
+					DEFAULT: semanticColor(tokens.color.surface.subtle),
 					light: 'hsl(var(--secondary-light))',
 					foreground: 'hsl(var(--secondary-foreground))'
 				},
@@ -52,16 +96,32 @@ export default {
 					foreground: 'hsl(var(--accent-foreground))'
 				},
 				success: {
-					DEFAULT: 'hsl(var(--success))',
-					foreground: 'hsl(var(--success-foreground))'
+					DEFAULT: semanticColor(tokens.color.status.success.color),
+					foreground: semanticColor(tokens.color.status.success.onColor),
+					surface: semanticColor(tokens.color.status.success.surface)
 				},
 				warning: {
-					DEFAULT: 'hsl(var(--warning))',
-					foreground: 'hsl(var(--warning-foreground))'
+					DEFAULT: semanticColor(tokens.color.status.warning.color),
+					foreground: semanticColor(tokens.color.status.warning.onColor),
+					surface: semanticColor(tokens.color.status.warning.surface)
 				},
 				destructive: {
-					DEFAULT: 'hsl(var(--destructive))',
-					foreground: 'hsl(var(--destructive-foreground))'
+					DEFAULT: semanticColor(tokens.color.status.danger.color),
+					foreground: semanticColor(tokens.color.status.danger.onColor),
+					surface: semanticColor(tokens.color.status.danger.surface)
+				},
+				info: {
+					DEFAULT: semanticColor(tokens.color.status.info.color),
+					foreground: semanticColor(tokens.color.status.info.onColor),
+					surface: semanticColor(tokens.color.status.info.surface)
+				},
+				muted: {
+					DEFAULT: semanticColor(tokens.color.surface.subtle),
+					foreground: semanticColor(tokens.color.text.secondary)
+				},
+				border: {
+					DEFAULT: semanticColor(tokens.color.border.default),
+					strong: semanticColor(tokens.color.border.strong)
 				},
 				muted: {
 					DEFAULT: 'hsl(var(--muted))',
@@ -110,11 +170,6 @@ export default {
 				'fast': '150ms',
 				'normal': '250ms',
 				'slow': '400ms'
-			},
-			borderRadius: {
-				lg: 'var(--radius)',
-				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)'
 			},
 			keyframes: {
 				'accordion-down': {

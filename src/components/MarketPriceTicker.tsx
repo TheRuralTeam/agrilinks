@@ -72,6 +72,10 @@ const MarketPriceTicker = () => {
         <div>
           <h3 className="market-ticker-title">
             <FontAwesomeIcon icon={faChartLine} /> Preços do Mercado Agroalimentar — Hoje
+            <span className="market-live-indicator" aria-label="Indicador visual do ticker de preços publicados">
+              <i aria-hidden="true" />
+              Mercado
+            </span>
           </h3>
           <p className="market-ticker-sub">
             Últimos preços publicados na AgriLink, com data e tipo de mercado de cada registo.
@@ -134,6 +138,9 @@ const MarketPriceTicker = () => {
         .market-ticker-head { display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; margin-bottom:14px; }
         .market-ticker-title { margin:0; font-size:15px; font-weight:800; letter-spacing:-0.2px; color:#111714; display:flex; align-items:center; gap:8px; }
         .market-ticker-title svg { color:#7CB342; }
+        .market-live-indicator { display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; background:#E8F5EC; color:#176B31; font-size:9px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+        .market-live-indicator i { position:relative; width:7px; height:7px; border-radius:50%; background:#176B31; }
+        .market-live-indicator i::after { position:absolute; inset:-3px; border:1px solid #176B31; border-radius:50%; content:''; animation:market-live-pulse 1.8s ease-out infinite; }
         .market-ticker-sub { margin:6px 0 0; font-size:12.5px; color:#6B8070; max-width:520px; line-height:1.5; }
         .market-ticker-stamp { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px; color:#93A79A; text-transform:uppercase; letter-spacing:0.08em; }
         .market-grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
@@ -142,6 +149,8 @@ const MarketPriceTicker = () => {
         .market-card:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(124,179,66,0.14); }
         .market-card-skeleton { height:104px; background:linear-gradient(90deg,#F3F7F1,#FAFCFA,#F3F7F1); animation:mkpulse 1.4s infinite; }
         @keyframes mkpulse { 0%,100%{opacity:.7} 50%{opacity:1} }
+        @keyframes market-live-pulse { 0% { transform:scale(.7); opacity:.8; } 100% { transform:scale(1.8); opacity:0; } }
+        @media (prefers-reduced-motion: reduce) { .market-live-indicator i::after { animation:none; } }
         .market-card-top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
         .market-product { font-size:13.5px; font-weight:800; color:#111714; }
         .market-tag { font-size:9.5px; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; padding:3px 7px; border-radius:999px; }
@@ -155,7 +164,7 @@ const MarketPriceTicker = () => {
         .market-change.down { color:#B03A2E; }
         .market-change.flat { color:#93A79A; }
         .market-location { font-size:11px; color:#6B8070; border-top:1px dashed #E7EFE8; padding-top:6px; }
-        .market-empty { border:1px dashed #D8E6DA; border-radius:14px; padding:26px; text-align:center; color:#7D9384; font-size:13px; display:flex; flex-direction:column; align-items:center; gap:8px; background:#FBFDFB; }
+        .market-empty { border:1px dashed #D8E6DA; border-radius:12px; padding:26px; text-align:center; color:#7D9384; font-size:13px; display:flex; flex-direction:column; align-items:center; gap:8px; background:#FBFDFB; }
         .market-empty svg { color:#B8CDBB; font-size:20px; }
       `}</style>
     </section>

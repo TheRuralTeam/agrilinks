@@ -4228,6 +4228,60 @@ export type Database = {
       }
     }
     Views: {
+      products_public: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          farmer_name: string | null
+          harvest_date: string | null
+          id: string | null
+          municipality_id: string | null
+          photos: string[] | null
+          price: number | null
+          product_type: string | null
+          province_id: string | null
+          quantity: number | null
+          sale_unit: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          farmer_name?: string | null
+          harvest_date?: string | null
+          id?: string | null
+          municipality_id?: string | null
+          photos?: string[] | null
+          price?: number | null
+          product_type?: string | null
+          province_id?: string | null
+          quantity?: number | null
+          sale_unit?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          farmer_name?: string | null
+          harvest_date?: string | null
+          id?: string | null
+          municipality_id?: string | null
+          photos?: string[] | null
+          price?: number | null
+          product_type?: string | null
+          province_id?: string | null
+          quantity?: number | null
+          sale_unit?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       users_public: {
         Row: {
           agent_code: string | null

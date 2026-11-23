@@ -20,13 +20,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../integrations/supabase/client';
 import { getNotificationTargetPath } from '../lib/notificationNavigation';
 import Loader from '../components/ui/Loader';
-
-const T = {
-  g900: '#2c863b', g600: '#2c863b', g50: '#F2FAF3', gBorder: '#C8E6CA',
-  e700: '#5C3317', ink: '#111714', mid: '#3D4D40', muted: '#758A79',
-  faint: '#A8BAA9', canvas: '#F7F9F7', white: '#FFFFFF', rule: '#E5EDE6',
-  gold: '#B07D0A', shadow: 'rgba(13,43,18,0.10)',
-};
+import { R, T } from '../lib/brand';
 
 interface Notification {
   id: string;
@@ -173,7 +167,7 @@ const Notifications = () => {
 
   return (
     <div className="min-h-screen pb-24" style={{ background: T.canvas }}>
-      <header className="sticky top-0 z-50" style={{ background: T.white, borderBottom: `1px solid ${T.rule}`, boxShadow: `0 2px 8px ${T.shadow}` }}>
+      <header className="sticky top-0 z-50" style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'saturate(180%) blur(20px)', borderBottom: `1px solid ${T.rule}`, boxShadow: `0 2px 8px ${T.shadow}` }}>
         <div className="px-4 py-4 flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)} style={{ color: T.mid }}><ArrowLeft className="h-5 w-5" /></Button>
@@ -186,7 +180,7 @@ const Notifications = () => {
 
       {!pushNotifications.isSupported && pushNotifications.supportMessage && (
         <div className="max-w-3xl mx-auto px-4 pt-4">
-          <Card style={{ background: T.white, border: `1px solid ${T.rule}`, borderRadius: 16 }}>
+          <Card style={{ background: T.white, border: `1px solid ${T.rule}`, borderRadius: R.md }}>
             <CardContent className="p-4 flex items-start gap-3">
               <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" style={{ color: T.gold }} />
               <div className="min-w-0">
@@ -200,14 +194,14 @@ const Notifications = () => {
 
       {pushNotifications.isSupported && !pushNotifications.isSubscribed && (
         <div className="max-w-3xl mx-auto px-4 pt-4">
-          <Card style={{ background: `linear-gradient(135deg, ${T.g900}, ${T.g600})`, border: 'none', borderRadius: 16 }}>
+          <Card style={{ background: `linear-gradient(135deg, ${T.g900}, ${T.g600})`, border: 'none', borderRadius: R.md }}>
             <CardContent className="p-4 flex items-center gap-4">
               <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,0.15)' }}><Bell className="h-5 w-5 text-white" /></div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-sm text-white">Activar notificações push</h3>
                 <p className="text-xs mt-0.5 text-white/75">Receba alertas mesmo quando a aplicação não estiver aberta.</p>
               </div>
-              <Button size="sm" onClick={() => void pushNotifications.subscribe()} disabled={pushNotifications.isLoading} style={{ background: T.white, color: T.g900, fontWeight: 700, fontSize: 12, borderRadius: 10 }}>
+              <Button size="sm" onClick={() => void pushNotifications.subscribe()} disabled={pushNotifications.isLoading} style={{ background: T.white, color: T.g900, fontWeight: 700, fontSize: 12, borderRadius: R.sm }}>
                 {pushNotifications.isLoading ? 'A activar…' : 'Activar'}
               </Button>
             </CardContent>
@@ -217,7 +211,7 @@ const Notifications = () => {
 
       {pushNotifications.isSupported && pushNotifications.isSubscribed && (
         <div className="max-w-3xl mx-auto px-4 pt-4">
-          <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: T.g50, border: `1px solid ${T.gBorder}` }}>
+          <div className="flex items-center gap-2 p-3" style={{ background: T.g50, border: `1px solid ${T.gBorder}`, borderRadius: R.md }}>
             <CheckCircle className="h-4 w-4" style={{ color: T.g900 }} />
             <span className="text-xs font-semibold" style={{ color: T.g900 }}>Notificações push activas</span>
             <button onClick={() => void pushNotifications.unsubscribe()} className="ml-auto text-xs underline" style={{ color: T.muted }}>Desactivar</button>
@@ -227,18 +221,18 @@ const Notifications = () => {
 
       {pushNotifications.error && (
         <div className="max-w-3xl mx-auto px-4 pt-2">
-          <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
-            <AlertCircle className="h-4 w-4" style={{ color: '#DC2626' }} />
-            <span className="text-xs" style={{ color: '#DC2626' }}>{pushNotifications.error}</span>
+          <div className="flex items-center gap-2 p-3" style={{ background: T.dangerBg, border: `1px solid ${T.danger}`, borderRadius: R.md }}>
+            <AlertCircle className="h-4 w-4" style={{ color: T.danger }} />
+            <span className="text-xs" style={{ color: T.danger }}>{pushNotifications.error}</span>
           </div>
         </div>
       )}
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
         {loadError && (
-          <Card role="alert" style={{ background: T.white, border: '1px solid #FECACA' }}>
+          <Card role="alert" style={{ background: T.white, border: `1px solid ${T.danger}`, borderRadius: R.md }}>
             <CardContent className="flex flex-col items-center gap-3 p-6 text-center">
-              <AlertCircle className="h-8 w-8" style={{ color: '#DC2626' }} />
+              <AlertCircle className="h-8 w-8" style={{ color: T.danger }} />
               <div>
                 <p className="font-semibold" style={{ color: T.ink }}>Não foi possível carregar as notificações</p>
                 <p className="mt-1 break-words text-sm" style={{ color: T.muted }}>{loadError}</p>
@@ -250,7 +244,7 @@ const Notifications = () => {
         {!loadError && notifications.map((notification) => (
           <Card
             key={notification.id}
-            style={{ background: notification.read ? T.white : T.g50, border: `1px solid ${notification.read ? T.rule : T.gBorder}` }}
+            style={{ background: notification.read ? T.white : T.g50, border: `1px solid ${notification.read ? T.rule : T.gBorder}`, borderRadius: R.md }}
             className="cursor-pointer transition-all hover:shadow-md overflow-hidden"
             onClick={() => void openNotification(notification)}
           >

@@ -52,7 +52,7 @@ const NativeSelect = ({
       style={{
         height: '50px',
         width: '100%',
-        borderRadius: '14px',
+        borderRadius: '12px',
         border: `1px solid ${T.rule}`,
         backgroundColor: disabled ? '#FAFAF8' : T.white,
         color: value ? T.ink : T.muted,
@@ -92,7 +92,7 @@ const NativeSelect = ({
 // ─── Shared input style ───────────────────────────────────────────────────────
 const inputStyle: React.CSSProperties = {
   height: '50px',
-  borderRadius: '14px',
+  borderRadius: '12px',
   border: `1px solid ${T.rule}`,
   backgroundColor: T.white,
   color: T.ink,
@@ -330,7 +330,7 @@ const Registration = () => {
   if (currentStep === -1) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: T.canvas, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
-        <div style={{ width: '100%', maxWidth: 480, background: T.white, border: `1px solid ${T.rule}`, borderRadius: 24, padding: 32, boxShadow: T.shadowLg }}>
+        <div style={{ width: '100%', maxWidth: 480, background: T.white, border: `1px solid ${T.rule}`, borderRadius: 12, padding: 32, boxShadow: T.shadowLg }}>
           <img src={agrilinkLogo} alt="AgriLink" style={{ height: 48, margin: '0 auto 24px', display: 'block' }} />
           <h1 style={{ margin: 0, textAlign: 'center', color: T.ink, fontSize: 25, fontWeight: 800 }}>Criar conta AgriLink</h1>
           <p style={{ margin: '10px 0 24px', textAlign: 'center', color: T.muted, fontSize: 14 }}>Use o botão no email para confirmar a sua conta.</p>
@@ -438,7 +438,7 @@ const Registration = () => {
             {errorMessage && (
               <div style={{
                 padding: '12px 16px',
-                borderRadius: 14,
+                borderRadius: 12,
                 backgroundColor: '#FEF2F2',
                 border: '1px solid #FECACA',
                 color: '#B91C1C',
@@ -459,7 +459,7 @@ const Registration = () => {
                 </span>
                 <span style={{
                   fontSize: 10, fontWeight: 800, color: T.gold, background: T.goldBg,
-                  border: `1px solid ${GOLD_BORDER}`, padding: '2px 9px', borderRadius: 20,
+                  border: `1px solid ${GOLD_BORDER}`, padding: '2px 9px', borderRadius: 12,
                   letterSpacing: '0.04em',
                 }}>
                   Passo {currentStep + 1} de {steps.length}
@@ -490,7 +490,7 @@ const Registration = () => {
                             alignItems: 'center',
                             gap: 14,
                             padding: '14px 16px',
-                            borderRadius: 16,
+                            borderRadius: 12,
                             border: `1.5px solid ${selected ? opt.color : T.rule}`,
                             backgroundColor: selected ? `${opt.color}12` : T.white,
                             textAlign: 'left',

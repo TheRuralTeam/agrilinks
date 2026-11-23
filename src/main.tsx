@@ -22,7 +22,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
           <section style={{ width: 'min(100%, 520px)', padding: '32px', border: '1px solid #d6e2d3', borderRadius: '12px', background: '#fff', textAlign: 'center', boxShadow: '0 12px 32px rgba(24, 50, 31, 0.08)' }}>
             <h1 style={{ margin: '0 0 12px', fontSize: '24px' }}>O AgriLink encontrou um problema</h1>
             <p style={{ margin: '0 0 24px', lineHeight: 1.5, color: '#526257' }}>A tela não pôde ser carregada. Recarregue a página para tentar novamente.</p>
-            <button type="button" onClick={() => window.location.reload()} style={{ border: 0, borderRadius: '8px', padding: '12px 20px', background: '#1f7a3a', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>
+            <button type="button" onClick={() => window.location.reload()} style={{ border: 0, borderRadius: '12px', padding: '12px 20px', background: '#1f7a3a', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>
               Recarregar página
             </button>
           </section>

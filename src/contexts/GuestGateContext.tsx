@@ -60,10 +60,10 @@ export const GuestGateProvider = ({ children }: { children: React.ReactNode }) =
     <GuestGateContext.Provider value={value}>
       {children}
       <Dialog open={!!reason} onOpenChange={(o) => !o && setReason(null)}>
-        <DialogContent className="sm:max-w-[420px] p-0 overflow-hidden" style={{ fontFamily: FONT, borderRadius: 20 }}>
+        <DialogContent className="sm:max-w-[420px] p-0 overflow-hidden" style={{ fontFamily: FONT, borderRadius: 12 }}>
           <div style={{ padding: '28px 24px 24px', background: T.white }}>
             <div style={{
-              width: 52, height: 52, borderRadius: 16, background: T.g50,
+              width: 52, height: 52, borderRadius: 12, background: T.g50,
               display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16,
             }}>
               <ShieldCheck size={26} color={T.green} />
@@ -81,7 +81,7 @@ export const GuestGateProvider = ({ children }: { children: React.ReactNode }) =
             <button
               onClick={() => { setReason(null); navigate('/cadastro') }}
               style={{
-                marginTop: 22, width: '100%', padding: '13px 16px', borderRadius: 14, border: 'none',
+                marginTop: 22, width: '100%', padding: '13px 16px', borderRadius: 12, border: 'none',
                 background: T.green, color: T.white, fontFamily: FONT, fontSize: 15, fontWeight: 700,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}
@@ -91,7 +91,7 @@ export const GuestGateProvider = ({ children }: { children: React.ReactNode }) =
             <button
               onClick={() => { setReason(null); navigate('/login') }}
               style={{
-                marginTop: 10, width: '100%', padding: '11px 16px', borderRadius: 14,
+                marginTop: 10, width: '100%', padding: '11px 16px', borderRadius: 12,
                 border: `1px solid ${T.rule}`, background: T.white, color: T.mid,
                 fontFamily: FONT, fontSize: 14, fontWeight: 600, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,

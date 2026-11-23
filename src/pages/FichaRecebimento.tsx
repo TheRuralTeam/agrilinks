@@ -662,7 +662,7 @@ const FichaRecebimento = () => {
         <Card
           style={{
             border: `1px solid ${T.border}`,
-            borderRadius: 20,
+            borderRadius: 12,
             overflow: "hidden",
             boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
           }}

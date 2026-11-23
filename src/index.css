@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+@import "../design-system/tokens.css";
 
 @tailwind base;
 @tailwind components;
@@ -12,13 +13,13 @@
   :root {
     /* Brand palette: white and AgriLink green (#2c863b). */
     --background: 0 0% 100%;
-    --background-secondary: 0 0% 100%;
+    --background-secondary: 100 16% 96%;
     --foreground: 0 0% 0%;
 
     /* Surfaces */
     --card: 0 0% 100%;
     --card-foreground: 0 0% 0%;
-    --card-border: 130 51% 35% / 0.24;
+    --card-border: 120 13% 86%;
 
     /* Popovers */
     --popover: 0 0% 100%;
@@ -32,7 +33,7 @@
     --primary-glow: 130 51% 35%;
 
     /* Secondary surfaces use white; emphasis comes from green. */
-    --secondary: 0 0% 100%;
+    --secondary: 100 16% 96%;
     --secondary-light: 0 0% 100%;
     --secondary-foreground: 0 0% 0%;
 
@@ -48,21 +49,23 @@
     --accent-hover: 130 51% 35%;
 
     /* Muted */
-    --muted: 0 0% 100%;
-    --muted-foreground: 0 0% 0%;
+    --muted: 100 16% 96%;
+    --muted-foreground: 133 5% 34%;
 
-    /* Status aliases retain textual and icon cues, not extra palette colors. */
-    --success: 130 51% 35%;
+    /* Status colors are distinct from the brand and pass text contrast. */
+    --success: 139 65% 25%;
     --success-foreground: 0 0% 100%;
-    --warning: 130 51% 35%;
+    --warning: 35 100% 24%;
     --warning-foreground: 0 0% 100%;
-    --destructive: 130 51% 35%;
+    --destructive: 4 71% 37%;
     --destructive-foreground: 0 0% 100%;
+    --info: 210 69% 29%;
+    --info-foreground: 0 0% 100%;
 
     /* Borders */
-    --border: 130 51% 35% / 0.24;
-    --border-strong: 130 51% 35% / 0.48;
-    --input: 130 51% 35% / 0.32;
+    --border: 120 13% 86%;
+    --border-strong: 120 6% 49%;
+    --input: 120 13% 86%;
     --ring: 130 51% 35%;
 
     /* Legacy gradient utilities resolve to solid brand colors. */
@@ -86,7 +89,7 @@
     --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 
-    --radius: 0.75rem;
+    --radius: 12px;
 
     /* Sidebar */
     --sidebar-background: 0 0% 100%;
@@ -145,12 +148,12 @@
 
   .dark {
     --background: 0 0% 100%;
-    --background-secondary: 0 0% 100%;
+    --background-secondary: 100 16% 96%;
     --foreground: 0 0% 0%;
 
     --card: 0 0% 100%;
     --card-foreground: 0 0% 0%;
-    --card-border: 130 51% 35% / 0.24;
+    --card-border: 120 13% 86%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 0%;
@@ -160,30 +163,32 @@
     --primary-foreground: 0 0% 100%;
     --primary-hover: 130 51% 35%;
 
-    --secondary: 0 0% 100%;
+    --secondary: 100 16% 96%;
     --secondary-light: 0 0% 100%;
     --secondary-foreground: 0 0% 0%;
     --business: 130 51% 35%;
     --business-light: 130 51% 35%;
     --business-foreground: 0 0% 100%;
 
-    --muted: 0 0% 100%;
-    --muted-foreground: 0 0% 0%;
-    --success: 130 51% 35%;
+    --muted: 100 16% 96%;
+    --muted-foreground: 133 5% 34%;
+    --success: 139 65% 25%;
     --success-foreground: 0 0% 100%;
-    --warning: 130 51% 35%;
+    --warning: 35 100% 24%;
     --warning-foreground: 0 0% 100%;
+    --info: 210 69% 29%;
+    --info-foreground: 0 0% 100%;
 
     --accent: 130 51% 35%;
     --accent-light: 130 51% 35%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 130 51% 35%;
+    --destructive: 4 71% 37%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 130 51% 35% / 0.24;
-    --border-strong: 130 51% 35% / 0.48;
-    --input: 130 51% 35% / 0.32;
+    --border: 120 13% 86%;
+    --border-strong: 120 6% 49%;
+    --input: 120 13% 86%;
     --ring: 130 51% 35%;
 
     --sidebar-background: 0 0% 100%;
@@ -335,7 +340,7 @@
 }
 ::-webkit-scrollbar-thumb {
   background: hsl(var(--muted-foreground) / 0.3);
-  border-radius: 3px;
+  border-radius: 12px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
@@ -378,7 +383,7 @@
 .slick-dots button {
   width: 6px;
   height: 6px;
-  border-radius: 9999px;
+  border-radius: 999px;
   background: hsl(0 0% 100% / 0.5);
   border: none;
   transition: all 0.2s ease;
@@ -401,7 +406,7 @@
   align-items: center;
   justify-content: center;
   background: hsl(0 0% 100% / 0.9);
-  border-radius: 9999px;
+  border-radius: 999px;
   border: none;
   box-shadow: 0 2px 8px hsl(0 0% 0% / 0.1);
   transition: all 0.15s ease;

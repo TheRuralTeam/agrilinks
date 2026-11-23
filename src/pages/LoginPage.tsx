@@ -19,7 +19,7 @@ import { T } from '../lib/brand';
 const inputStyle: React.CSSProperties = {
   height: '50px',
   width: '100%',
-  borderRadius: '14px',
+  borderRadius: '12px',
   border: `1px solid ${T.rule}`,
   backgroundColor: T.white,
   color: T.ink,
@@ -280,7 +280,7 @@ const LoginPage = () => {
           {errorMsg && (
             <div style={{
               padding: '12px 16px',
-              borderRadius: 14,
+              borderRadius: 12,
               backgroundColor: '#FEF2F2',
               border: '1px solid #FECACA',
               color: '#B91C1C',
@@ -295,7 +295,7 @@ const LoginPage = () => {
           )}
 
           {signupSuccess ? (
-            <div style={{ padding: 22, borderRadius: 18, background: T.g50, border: `1px solid ${T.gBorder}`, color: T.ink }}>
+            <div style={{ padding: 22, borderRadius: 12, background: T.g50, border: `1px solid ${T.gBorder}`, color: T.ink }}>
               <div style={{ width: 48, height: 48, borderRadius: 999, background: T.g600, color: T.white, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
                 <Mail size={22} />
               </div>
@@ -325,8 +325,8 @@ const LoginPage = () => {
                   { id: 'motorista', title: 'Motorista', detail: 'Prestar serviços de transporte', Icon: Truck },
                 ] as const).map(({ id, title, detail, Icon }) => {
                   const selected = userType === id;
-                  return <button key={id} type="button" aria-pressed={selected} onClick={() => setUserType(id)} style={{ minHeight: 132, padding: 14, borderRadius: 15, border: `1px solid ${selected ? T.g600 : T.rule}`, background: selected ? T.g50 : T.white, textAlign: 'left', cursor: 'pointer', boxShadow: selected ? '0 0 0 2px rgba(48,111,58,0.10)' : 'none', transition: 'border-color 160ms ease, background 160ms ease' }}>
-                    <span style={{ width: 36, height: 36, position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 11, background: selected ? T.g600 : '#F0F4F0', color: selected ? T.white : T.g600 }}><Icon size={18} strokeWidth={1.8} />{id === 'agente' && <PencilLine size={10} strokeWidth={2.2} style={{ position: 'absolute', right: -3, bottom: -3, padding: 1, borderRadius: 3, background: T.white, color: T.g600 }} aria-hidden="true" />}</span>
+                  return <button key={id} type="button" aria-pressed={selected} onClick={() => setUserType(id)} style={{ minHeight: 132, padding: 14, borderRadius: 12, border: `1px solid ${selected ? T.g600 : T.rule}`, background: selected ? T.g50 : T.white, textAlign: 'left', cursor: 'pointer', boxShadow: selected ? '0 0 0 2px rgba(48,111,58,0.10)' : 'none', transition: 'border-color 160ms ease, background 160ms ease' }}>
+                    <span style={{ width: 36, height: 36, position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: selected ? T.g600 : '#F0F4F0', color: selected ? T.white : T.g600 }}><Icon size={18} strokeWidth={1.8} />{id === 'agente' && <PencilLine size={10} strokeWidth={2.2} style={{ position: 'absolute', right: -3, bottom: -3, padding: 1, borderRadius: 12, background: T.white, color: T.g600 }} aria-hidden="true" />}</span>
                     <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginTop: 12 }}><strong style={{ fontSize: 12, lineHeight: 1.4, color: T.ink }}>{title}</strong>{selected && <CheckCircle2 size={15} color={T.g600} style={{ flexShrink: 0 }} />}</span>
                     <span style={{ display: 'block', marginTop: 5, fontSize: 11, lineHeight: 1.5, color: T.muted }}>{detail}</span>
                   </button>
@@ -347,7 +347,7 @@ const LoginPage = () => {
             </div>
             {authMode === 'signup' ? (
               <>
-                <div style={{ padding: '12px 14px', borderRadius: 13, border: `1px solid ${T.gBorder}`, background: T.g50, marginBottom: 2 }}>
+                <div style={{ padding: '12px 14px', borderRadius: 12, border: `1px solid ${T.gBorder}`, background: T.g50, marginBottom: 2 }}>
                   <p style={{ margin: 0, fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.muted }}>Etapa 2 de 2 · Dados da conta</p>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 5 }}>
                     <strong style={{ fontSize: 13, color: T.g600 }}>{userType === 'agricultor' ? 'Agricultor / Fornecedor' : userType === 'comprador' ? 'Comprador' : userType === 'agente' ? 'Agente AgriLink' : 'Motorista'}</strong>
@@ -392,7 +392,7 @@ const LoginPage = () => {
                     </button>
                   </div>
                 </div>
-                <button type="submit" disabled={loading} className="login-btn" style={{ width: '100%', height: 52, borderRadius: 16, border: 'none', background: loading ? T.muted : T.g600, color: T.white, fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <button type="submit" disabled={loading} className="login-btn" style={{ width: '100%', height: 52, borderRadius: 12, border: 'none', background: loading ? T.muted : T.g600, color: T.white, fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   {loading ? 'A entrar...' : 'Entrar na Plataforma'}
                 </button>
               </>
@@ -441,7 +441,7 @@ const LoginPage = () => {
                 aria-label={googleLoading ? 'A conectar com Google' : 'Entrar com Google'}
                 title="Entrar com Google"
                 style={{
-                  width: '100%', minWidth: 0, height: 50, borderRadius: 16,
+                  width: '100%', minWidth: 0, height: 50, borderRadius: 12,
                   border: `1px solid ${T.rule}`, backgroundColor: T.white,
                   cursor: googleLoading ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -460,7 +460,7 @@ const LoginPage = () => {
                 className="register-btn"
                 onClick={() => { setAuthMode('signup'); setSignupStep('profile'); setErrorMsg(''); setPassword(''); }}
                 style={{
-                  width: '100%', minWidth: 0, height: 50, borderRadius: 16,
+                  width: '100%', minWidth: 0, height: 50, borderRadius: 12,
                   border: `1px solid ${T.goldBorder}`, background: T.goldPale,
                   color: T.ink, fontSize: 13, fontWeight: 700, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -515,7 +515,7 @@ const LoginPage = () => {
             animation: 'fadeUp 0.25s ease both',
           }}>
             {/* Handle bar */}
-            <div style={{ width: 40, height: 4, borderRadius: 4, backgroundColor: T.goldBorder, margin: '0 auto 20px' }} />
+            <div style={{ width: 40, height: 4, borderRadius: 12, backgroundColor: T.goldBorder, margin: '0 auto 20px' }} />
             <h3 style={{ fontSize: 19, fontWeight: 800, color: T.ink, margin: '0 0 20px' }}>Recuperar senha</h3>
             <form onSubmit={handleForgotPassword} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
