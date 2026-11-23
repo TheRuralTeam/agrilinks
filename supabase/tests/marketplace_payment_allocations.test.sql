@@ -156,7 +156,7 @@ begin
       v_total,v_seller_amount,v_driver_amount,v_fee_amount,v_blocked_count;
   end if;
 
-  -- Persisted driver evidence plus buyer confirmation releases the allocations.
+  -- The driver POD must exist before the delivered transition is accepted.
   insert into public.freight_delivery_evidence(id,freight_load_id,driver_id)
   values ('47000000-0000-0000-0000-000000000001',v_load,v_driver);
 
