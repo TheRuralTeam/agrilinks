@@ -70,10 +70,9 @@ const LoginPage = () => {
   useEffect(() => {
     const mode = new URLSearchParams(location.search).get('mode')
     if (mode === 'signup') {
-      setAuthMode('signup')
-      setErrorMsg('')
+      navigate('/cadastro', { replace: true })
     }
-  }, [location.search])
+  }, [location.search, navigate])
 
   const redirectTo = typeof requestedPath === 'string'
     && requestedPath.startsWith('/')
@@ -458,7 +457,7 @@ const LoginPage = () => {
               <button
                 type="button"
                 className="register-btn"
-                onClick={() => { setAuthMode('signup'); setSignupStep('profile'); setErrorMsg(''); setPassword(''); }}
+                onClick={() => navigate('/cadastro')}
                 style={{
                   width: '100%', minWidth: 0, height: 50, borderRadius: 16,
                   border: `1px solid ${T.goldBorder}`, background: T.goldPale,
