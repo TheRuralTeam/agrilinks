@@ -162,6 +162,15 @@ jobs:
           $test$;
           SQL
 
+      - name: Validar ciclo de entrega em PostgreSQL isolado
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres purchase_delivery_test
+          psql -h localhost -U postgres -d purchase_delivery_test -v ON_ERROR_STOP=1 -f supabase/tests/purchase_delivery_evidence_fixture.sql
+          psql -h localhost -U postgres -d purchase_delivery_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261123120000_purchase_delivery_evidence.sql
+          psql -h localhost -U postgres -d purchase_delivery_test -v ON_ERROR_STOP=1 -f supabase/tests/purchase_delivery_evidence.test.sql
+
       - name: Auditar nomes das migrations (informativo)
         run: npm run audit:migrations
 
