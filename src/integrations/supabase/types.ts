@@ -2656,7 +2656,7 @@ export type Database = {
           metadata: Json
           order_id: string | null
           payment_intent_id: string
-          recipient_user_id: string
+          recipient_user_id: string | null
           released_at: string | null
           status: string
           wallet_transaction_id: string | null
@@ -2670,7 +2670,7 @@ export type Database = {
           metadata?: Json
           order_id?: string | null
           payment_intent_id: string
-          recipient_user_id: string
+          recipient_user_id: string | null
           released_at?: string | null
           status?: string
           wallet_transaction_id?: string | null
