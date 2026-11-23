@@ -178,7 +178,7 @@ returns void
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_load record;
   v_gross_amount numeric(15,2);
@@ -214,7 +214,7 @@ begin
   )
   on conflict (freight_load_id) do nothing;
 end;
-$;
+$$;
 
 revoke all on function public.create_freight_settlement_if_ready(uuid) from public, anon, authenticated;
 grant execute on function public.create_freight_settlement_if_ready(uuid) to service_role;
