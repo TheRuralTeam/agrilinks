@@ -2684,7 +2684,7 @@ export type Database = {
           metadata?: Json
           order_id?: string | null
           payment_intent_id?: string
-          recipient_user_id?: string
+          recipient_user_id?: string | null
           released_at?: string | null
           status?: string
           wallet_transaction_id?: string | null
@@ -3020,6 +3020,82 @@ export type Database = {
             columns: ["wallet_id"]
             isOneToOne: false
             referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_payouts: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          failure_reason: string | null
+          id: string
+          paid_at: string | null
+          paid_by: string | null
+          payout_reference: string | null
+          payout_type: string
+          payment_allocation_id: string
+          proof_url: string | null
+          provider_reference: string | null
+          recipient_user_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          failure_reason?: string | null
+          id?: string
+          paid_at?: string | null
+          paid_by?: string | null
+          payout_reference?: string | null
+          payout_type: string
+          payment_allocation_id: string
+          proof_url?: string | null
+          provider_reference?: string | null
+          recipient_user_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          failure_reason?: string | null
+          id?: string
+          paid_at?: string | null
+          paid_by?: string | null
+          payout_reference?: string | null
+          payout_type?: string
+          payment_allocation_id?: string
+          proof_url?: string | null
+          provider_reference?: string | null
+          recipient_user_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_payouts_paid_by_fkey"
+            columns: ["paid_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_payouts_payment_allocation_id_fkey"
+            columns: ["payment_allocation_id"]
+            isOneToOne: true
+            referencedRelation: "payment_allocations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_payouts_recipient_user_id_fkey"
+            columns: ["recipient_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
