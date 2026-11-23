@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import type { FormEvent, PointerEvent } from 'react';
 import { supabase } from '../integrations/supabase/client';
 
 type Props = {
@@ -49,7 +50,7 @@ export default function FreightDeliveryEvidenceForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const point = (event: React.PointerEvent<HTMLCanvasElement>) => {
+  const point = (event: PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
@@ -98,7 +99,7 @@ export default function FreightDeliveryEvidenceForm({
     setHasSignature(false);
   };
 
-  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
 
