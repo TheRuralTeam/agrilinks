@@ -171,6 +171,54 @@ execute function public.create_marketplace_payment_allocations();
 
 revoke all on function public.create_marketplace_payment_allocations() from public, anon, authenticated;
 
+-- Keep the legacy driver settlement record aligned with the same approved
+-- freight amount used by checkout, including the driver's quoted-price fallback.
+create or replace function public.create_freight_settlement_if_ready(p_freight_load_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  v_load record;
+  v_gross_amount numeric(15,2);
+  v_commission numeric(15,2);
+begin
+  select l.id, l.driver_id, l.currency,
+         coalesce(l.offered_price, l.driver_offered_price, 0) as freight_amount
+  into v_load
+  from public.freight_loads l
+  where l.id = p_freight_load_id
+    and l.status = 'delivered'
+    and l.supplier_handover_confirmed_at is not null
+    and l.driver_pickup_confirmed_at is not null
+    and l.driver_delivery_confirmed_at is not null
+    and l.buyer_receipt_confirmed_at is not null;
+
+  if not found or v_load.driver_id is null or v_load.freight_amount <= 0 then
+    return;
+  end if;
+
+  v_gross_amount := round(v_load.freight_amount, 2);
+  v_commission := round(v_gross_amount * 0.08, 2);
+
+  insert into public.freight_settlements (
+    freight_load_id, driver_id, currency, gross_amount,
+    agrilink_commission, driver_amount
+  )
+  values (
+    v_load.id, v_load.driver_id,
+    coalesce(nullif(v_load.currency, ''), 'Kz'),
+    v_gross_amount, v_commission,
+    round(v_gross_amount - v_commission, 2)
+  )
+  on conflict (freight_load_id) do nothing;
+end;
+$;
+
+revoke all on function public.create_freight_settlement_if_ready(uuid) from public, anon, authenticated;
+grant execute on function public.create_freight_settlement_if_ready(uuid) to service_role;
+
 -- A delivery declaration alone is not enough. The allocations are released only
 -- when the buyer confirms receipt after the evidence-backed delivery transition.
 create or replace function public.release_marketplace_allocations_after_buyer_receipt()
