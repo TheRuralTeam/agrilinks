@@ -21,8 +21,13 @@ const GuestGateContext = createContext<GuestGateValue | undefined>(undefined)
 
 export const useGuestGate = () => {
   const ctx = useContext(GuestGateContext)
-  if (!ctx) throw new Error('useGuestGate must be used within GuestGateProvider')
-  return ctx
+  if (ctx) return ctx
+
+  return {
+    isGuest: false,
+    minutesLeft: 0,
+    requireAuth: () => false,
+  } satisfies GuestGateValue
 }
 
 export const GuestGateProvider = ({ children }: { children: React.ReactNode }) => {
