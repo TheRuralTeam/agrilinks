@@ -8,7 +8,7 @@ import type { User as UserProfile } from "../types/database";
 type ProfileCompletenessFields = Pick<UserProfile, "user_type" | "identity_document" | "province_id" | "municipality_id">;
 type UserRole = NonNullable<UserProfile["user_type"]>;
 
-const isProfileComplete = (profile: ProfileCompletenessFields | null | undefined): boolean =>
+export const isProfileComplete = (profile: ProfileCompletenessFields | null | undefined): boolean =>
   Boolean(profile?.user_type && profile.identity_document && profile.province_id && profile.municipality_id);
 
 // Protected Route component
