@@ -71,3 +71,6 @@ Uma refatoração só será considerada concluída quando cada alteração tiver
 - Removidos `src/pages/Login.tsx`, `src/pages/FarmerForm.tsx` e `src/pages/FarmerFormWithAuth.tsx` após pesquisa sem referências no código.
 - Criada PR draft #74 para executar CI sem integrar alterações na `main`.
 - Estado de CI observado após o último commit: checks `build`, `Analyze (actions)` e `Analyze (javascript-typescript)` em fila; ainda sem conclusão. Vercel Preview Comments passou; Supabase Preview foi ignorado por não existir branch Supabase associada. Isso não é validação do build.
+
+### 7. Route guards e tipagem em App.tsx
+Na branch, foi removida a declaração lazy não utilizada de `Registration` (a página foi mantida para decisão funcional posterior), `isProfileComplete` deixou de aceitar `any` e passou a receber apenas os campos de perfil necessários, e `RoleRoute.allowedRole` passou a usar o tipo de papel de utilizador definido no modelo. São alterações de tipagem/limpeza sem mudança intencional de fluxo. A validação depende do CI da PR.
