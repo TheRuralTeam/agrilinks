@@ -460,6 +460,48 @@ on public.marketplace_payout_audit
 for select to authenticated
 using (public.has_role(auth.uid(), 'admin'::public.app_role));
 
+create or replace function public.admin_register_marketplace_payout_beneficiary(
+  p_user_id uuid,
+  p_channel text,
+  p_provider_beneficiary_ref text,
+  p_account_holder text,
+  p_masked_account_label text
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  v_id uuid;
+begin
+  if auth.uid() is null or not public.has_role(auth.uid(), 'admin'::public.app_role) then
+    raise exception 'ADMIN_REQUIRED' using errcode = '42501';
+  end if;
+  if p_user_id is null
+     or p_channel not in ('bank_transfer','multicaixa_express','unitel_money','afrimoney','paypay')
+     or nullif(btrim(p_provider_beneficiary_ref), '') is null
+     or nullif(btrim(p_account_holder), '') is null
+     or nullif(btrim(p_masked_account_label), '') is null then
+    raise exception 'VALIDATED_PROVIDER_BENEFICIARY_DATA_REQUIRED' using errcode = '22023';
+  end if;
+
+  insert into public.marketplace_payout_beneficiaries(
+    user_id, channel, provider_beneficiary_ref, account_holder, masked_account_label
+  )
+  values(
+    p_user_id, p_channel, btrim(p_provider_beneficiary_ref),
+    btrim(p_account_holder), btrim(p_masked_account_label)
+  )
+  returning id into v_id;
+
+  insert into public.marketplace_payout_audit(beneficiary_id, actor_id, action, metadata)
+  values(v_id, auth.uid(), 'beneficiary.registered', jsonb_build_object('channel', p_channel));
+
+  return v_id;
+end;
+$;
+
 create or replace function public.admin_review_marketplace_payout_beneficiary(
   p_beneficiary_id uuid,
   p_decision text,
@@ -476,7 +518,7 @@ begin
   if auth.uid() is null or not public.has_role(auth.uid(), 'admin'::public.app_role) then
     raise exception 'ADMIN_REQUIRED' using errcode = '42501';
   end if;
-  if p_decision not in ('verified','rejected','disabled') then
+  if p_decision is null or p_decision not in ('verified','rejected','disabled') then
     raise exception 'INVALID_BENEFICIARY_DECISION' using errcode = '22023';
   end if;
 
@@ -557,7 +599,9 @@ begin
     raise exception 'PAYOUT_NOT_FOUND' using errcode = 'P0002';
   end if;
 
-  if p_action = 'processing' then
+  if p_action is null then
+    raise exception 'INVALID_PAYOUT_ACTION' using errcode = '22023';
+  elsif p_action = 'processing' then
     if v_payout.status <> 'awaiting_manual_payout' or v_payout.beneficiary_id is null then
       raise exception 'VERIFIED_BENEFICIARY_REQUIRED_BEFORE_PROCESSING' using errcode = '23514';
     end if;
@@ -569,6 +613,9 @@ begin
     if nullif(btrim(p_payout_reference), '') is null
        or nullif(btrim(p_proof_url), '') is null then
       raise exception 'TRANSFER_REFERENCE_AND_PROOF_REQUIRED' using errcode = '23514';
+    end if;
+    if btrim(p_proof_url) not like p_payout_id::text || '/%' then
+      raise exception 'PAYOUT_PROOF_MUST_USE_PRIVATE_PAYOUT_FOLDER' using errcode = '23514';
     end if;
     v_next_status := 'paid';
   elsif p_action = 'failed' then
@@ -626,8 +673,10 @@ begin
 end;
 $$;
 
+revoke all on function public.admin_register_marketplace_payout_beneficiary(uuid,text,text,text,text) from public, anon, authenticated;
 revoke all on function public.admin_review_marketplace_payout_beneficiary(uuid,text,text) from public, anon, authenticated;
 revoke all on function public.admin_transition_marketplace_payout(uuid,text,text,text,text) from public, anon, authenticated;
+grant execute on function public.admin_register_marketplace_payout_beneficiary(uuid,text,text,text,text) to authenticated;
 grant execute on function public.admin_review_marketplace_payout_beneficiary(uuid,text,text) to authenticated;
 grant execute on function public.admin_transition_marketplace_payout(uuid,text,text,text,text) to authenticated;
 
