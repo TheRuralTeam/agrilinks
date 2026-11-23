@@ -71,7 +71,7 @@ const AppRoutes = () => {
         <Route path="/home" element={user ? <Navigate to="/app" replace /> : <Index />} />
         <Route path="/site" element={<Index />} />
         <Route path="/login" element={user ? <Navigate to="/app" replace /> : <LoginPage />} />
-        <Route path="/cadastro" element={<Registration />} />
+        <Route path="/cadastro" element={user ? <Navigate to="/app" replace /> : <Registration />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/confirmar-email" element={<EmailConfirmation />} />
         <Route path="/reset-password" element={<ResetPassword />} />
