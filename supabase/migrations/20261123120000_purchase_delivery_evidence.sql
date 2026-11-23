@@ -316,6 +316,7 @@ as $$
 declare
   v_actor uuid := auth.uid();
   v_load public.freight_loads%rowtype;
+  v_order public.pre_orders%rowtype;
 begin
   if v_actor is null then
     raise exception 'Authentication required' using errcode = '42501';
@@ -333,6 +334,21 @@ begin
   end if;
   if v_load.driver_id is null or v_load.status <> 'at_pickup' then
     raise exception 'The assigned driver must be at the pickup point before handover' using errcode = '22023';
+  end if;
+  if v_load.driver_quote_status is distinct from 'approved' then
+    raise exception 'The buyer must approve the driver freight quote before supplier handover' using errcode = '42501';
+  end if;
+  if v_load.pre_order_id is not null then
+    select po.* into v_order
+    from public.pre_orders po
+    where po.id = v_load.pre_order_id
+    for update;
+    if not found then
+      raise exception 'Linked pre-order not found' using errcode = 'P0002';
+    end if;
+    if v_order.payment_status is distinct from 'paid' then
+      raise exception 'The order must be paid before the supplier releases the goods' using errcode = '42501';
+    end if;
   end if;
   if v_load.supplier_handover_confirmed_at is not null then
     return v_load.supplier_handover_confirmed_at;
