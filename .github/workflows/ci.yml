@@ -171,6 +171,15 @@ jobs:
           psql -h localhost -U postgres -d purchase_delivery_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261123120000_purchase_delivery_evidence.sql
           psql -h localhost -U postgres -d purchase_delivery_test -v ON_ERROR_STOP=1 -f supabase/tests/purchase_delivery_evidence.test.sql
 
+      - name: Validar alocações financeiras do marketplace em PostgreSQL isolado
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres marketplace_payments_test
+          psql -h localhost -U postgres -d marketplace_payments_test -v ON_ERROR_STOP=1 -f supabase/tests/marketplace_payment_allocations_fixture.sql
+          psql -h localhost -U postgres -d marketplace_payments_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261123160000_marketplace_payment_allocations_and_release.sql
+          psql -h localhost -U postgres -d marketplace_payments_test -v ON_ERROR_STOP=1 -f supabase/tests/marketplace_payment_allocations.test.sql
+
       - name: Auditar nomes das migrations (informativo)
         run: npm run audit:migrations
 
