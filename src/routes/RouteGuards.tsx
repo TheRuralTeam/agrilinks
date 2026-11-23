@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Loader from "../components/ui/Loader";
-import { AdminPermission } from "../features/auth/authorization";
+import type { AdminPermission } from "../features/auth/authorization";
 import type { User as UserProfile } from "../types/database";
 
 type ProfileCompletenessFields = Pick<UserProfile, "user_type" | "identity_document" | "province_id" | "municipality_id">;
@@ -12,7 +12,7 @@ const isProfileComplete = (profile: ProfileCompletenessFields | null | undefined
   Boolean(profile?.user_type && profile.identity_document && profile.province_id && profile.municipality_id);
 
 // Protected Route component
-const ProtectedRoute = ({ children, allowIncomplete = true, allowUnverified = false }: { children: React.ReactNode; allowIncomplete?: boolean; allowUnverified?: boolean }) => {
+export const ProtectedRoute = ({ children, allowIncomplete = true, allowUnverified = false }: { children: React.ReactNode; allowIncomplete?: boolean; allowUnverified?: boolean }) => {
   const { user, userProfile, loading } = useAuth();
   const location = useLocation();
 
@@ -41,7 +41,7 @@ const ProtectedRoute = ({ children, allowIncomplete = true, allowUnverified = fa
 const MAP_PREVIEW_STORAGE_KEY = 'agrilink-map-preview-expires-at';
 const MAP_PREVIEW_DURATION_MS = 60_000;
 
-const MapPreviewRoute = ({ render }: { render: (readOnly: boolean) => React.ReactNode }) => {
+export const MapPreviewRoute = ({ render }: { render: (readOnly: boolean) => React.ReactNode }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -84,7 +84,7 @@ const MapPreviewRoute = ({ render }: { render: (readOnly: boolean) => React.Reac
  * Rota aberta: utilizadores autenticados passam pelas mesmas validações do
  * ProtectedRoute; visitantes entram em Modo Convidado (dados locais, 2h).
  */
-const OpenRoute = ({ children, allowIncomplete = true }: { children: React.ReactNode; allowIncomplete?: boolean }) => {
+export const OpenRoute = ({ children, allowIncomplete = true }: { children: React.ReactNode; allowIncomplete?: boolean }) => {
   const { user, userProfile, loading } = useAuth();
 
   if (loading) {
@@ -100,7 +100,7 @@ const OpenRoute = ({ children, allowIncomplete = true }: { children: React.React
   return <>{children}</>;
 };
 
-const PermissionRoute = ({ children, permissions, requireAll = false, allowSupportAgent = false, allowRootAdmins = false }: { children: React.ReactNode; permissions: AdminPermission[]; requireAll?: boolean; allowSupportAgent?: boolean; allowRootAdmins?: boolean }) => {
+export const PermissionRoute = ({ children, permissions, requireAll = false, allowSupportAgent = false, allowRootAdmins = false }: { children: React.ReactNode; permissions: AdminPermission[]; requireAll?: boolean; allowSupportAgent?: boolean; allowRootAdmins?: boolean }) => {
   const { user, loading, isAdmin, isRootAdmin, isSuperRoot, isSupportAgent, hasAnyPermission, hasAllPermissions } = useAuth();
   if (loading) return <Loader />;
   if (!user) return <Navigate to="/login" replace />;
@@ -112,7 +112,7 @@ const PermissionRoute = ({ children, permissions, requireAll = false, allowSuppo
 };
 
 
-const RoleRoute = ({ children, allowedRole }: { children: React.ReactNode; allowedRole: UserRole }) => {
+export const RoleRoute = ({ children, allowedRole }: { children: React.ReactNode; allowedRole: UserRole }) => {
   const { user, userProfile, loading } = useAuth();
   if (loading) return <Loader />;
   if (!user) return <Navigate to="/login" replace />;
