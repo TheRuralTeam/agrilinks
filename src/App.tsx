@@ -12,10 +12,10 @@ import { GuestGateProvider } from "./contexts/GuestGateContext";
 import { purgeExpiredGuestSession } from "./lib/guestSession";
 import { AdminPermission } from "./features/auth/authorization";
 import NotificationRuntime from "./components/NotificationRuntime";
+import type { User as UserProfile } from "./types/database";
 
 const Index = lazy(() => import("./pages/Index"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
-const Registration = lazy(() => import("./pages/Registration"));
 const ProformaInvoices = lazy(() => import("./pages/ProformaInvoices"));
 const TechnicalSheet = lazy(() => import("./pages/TechnicalSheet"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
@@ -54,8 +54,11 @@ const BuyerCart = lazy(() => import("./pages/BuyerCart"));
 
 const queryClient = new QueryClient();
 
-const isProfileComplete = (p: any) =>
-  !!(p && p.user_type && p.identity_document && p.province_id && p.municipality_id);
+type ProfileCompletenessFields = Pick<UserProfile, "user_type" | "identity_document" | "province_id" | "municipality_id">;
+type UserRole = NonNullable<UserProfile["user_type"]>;
+
+const isProfileComplete = (profile: ProfileCompletenessFields | null | undefined): boolean =>
+  Boolean(profile?.user_type && profile.identity_document && profile.province_id && profile.municipality_id);
 
 // Protected Route component
 const ProtectedRoute = ({ children, allowIncomplete = true, allowUnverified = false }: { children: React.ReactNode; allowIncomplete?: boolean; allowUnverified?: boolean }) => {
@@ -158,7 +161,7 @@ const PermissionRoute = ({ children, permissions, requireAll = false, allowSuppo
 };
 
 
-const RoleRoute = ({ children, allowedRole }: { children: React.ReactNode; allowedRole: string }) => {
+const RoleRoute = ({ children, allowedRole }: { children: React.ReactNode; allowedRole: UserRole }) => {
   const { user, userProfile, loading } = useAuth();
   if (loading) return <Loader />;
   if (!user) return <Navigate to="/login" replace />;
