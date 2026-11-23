@@ -2,6 +2,13 @@
 -- Additive and isolated: delivery proof is stored separately from the commercial receipt.
 begin;
 
+-- Keep the freight event ledger semantically accurate for the new handover gate.
+alter table public.freight_load_events
+  drop constraint if exists freight_load_events_event_type_check;
+alter table public.freight_load_events
+  add constraint freight_load_events_event_type_check
+  check (event_type in ('accepted', 'supplier_handover', 'driver_pickup', 'driver_departure', 'driver_delivery', 'buyer_received'));
+
 alter table public.freight_loads
   add column if not exists driver_arrived_at timestamptz,
   add column if not exists supplier_handover_confirmed_at timestamptz,
@@ -78,11 +85,14 @@ create policy "Freight participants read delivery evidence files"
 on storage.objects for select to authenticated
 using (
   bucket_id = 'freight-delivery-evidence'
-  and exists (
-    select 1
-    from public.freight_loads fl
-    where fl.id::text = (storage.foldername(name))[1]
-      and auth.uid() in (fl.buyer_id, fl.supplier_id, fl.driver_id, fl.created_by)
+  and (
+    exists (
+      select 1
+      from public.freight_loads fl
+      where fl.id::text = (storage.foldername(name))[1]
+        and auth.uid() in (fl.buyer_id, fl.supplier_id, fl.driver_id, fl.created_by)
+    )
+    or public.has_role(auth.uid(), 'admin'::public.app_role)
   )
 );
 
@@ -274,6 +284,9 @@ begin
     'delivered', 'completed', v_actor,
     jsonb_build_object('source', 'buyer_confirmation', 'confirmed_at', now())
   );
+
+  insert into public.freight_load_events (freight_load_id, actor_id, event_type)
+  values (v_load.id, v_actor, 'buyer_received');
 end;
 $$;
 
@@ -405,5 +418,97 @@ $$;
 
 revoke all on function public.get_freight_delivery_evidence(uuid) from public, anon;
 grant execute on function public.get_freight_delivery_evidence(uuid) to authenticated;
+
+-- Distinguish supplier handover from the driver's departure in the freight event ledger.
+create or replace function public.advance_freight_load_status(p_freight_load_id uuid, p_status text)
+returns table(id uuid, status text, driver_id uuid, in_transit_at timestamptz, delivered_at timestamptz)
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_actor_id uuid := auth.uid();
+  v_user_type text;
+  v_email_verified boolean;
+  v_load public.freight_loads%rowtype;
+  v_order public.pre_orders%rowtype;
+  v_event_type text;
+begin
+  if v_actor_id is null then raise exception 'Authentication required' using errcode='42501'; end if;
+  if p_status not in ('at_pickup','in_transit','delivered') then
+    raise exception 'Invalid freight load status' using errcode='22023';
+  end if;
+
+  select user_type::text, email_verified
+  into v_user_type, v_email_verified
+  from public.users where id=v_actor_id;
+
+  if v_user_type is distinct from 'motorista'
+    and not public.has_role(v_actor_id,'admin'::public.app_role) then
+    raise exception 'Only an eligible driver can update a freight load' using errcode='42501';
+  end if;
+  if v_email_verified is distinct from true then
+    raise exception 'A verified email is required to update a freight load' using errcode='42501';
+  end if;
+
+  select * into v_load
+  from public.freight_loads
+  where public.freight_loads.id=p_freight_load_id
+  for update;
+  if not found then raise exception 'Freight load not found' using errcode='P0002'; end if;
+
+  if v_load.driver_id is distinct from v_actor_id
+    and not public.has_role(v_actor_id,'admin'::public.app_role) then
+    raise exception 'Only the assigned driver can update this freight load' using errcode='42501';
+  end if;
+
+  if v_load.pre_order_id is not null and p_status in ('in_transit','delivered') then
+    select * into v_order
+    from public.pre_orders
+    where public.pre_orders.id=v_load.pre_order_id
+    for update;
+    if not found then raise exception 'Linked order not found' using errcode='P0002'; end if;
+    if v_order.payment_status is distinct from 'paid' then
+      raise exception 'The order must be paid before transport status can advance' using errcode='42501';
+    end if;
+    if p_status='in_transit' and v_load.driver_quote_status is distinct from 'approved' then
+      raise exception 'The buyer must approve the driver delivery price before transport starts' using errcode='42501';
+    end if;
+  end if;
+
+  if not (
+       (v_load.status='accepted' and p_status='at_pickup')
+    or (v_load.status='at_pickup' and p_status='in_transit')
+    or (v_load.status='in_transit' and p_status='delivered')
+  ) then
+    raise exception 'Invalid freight load status transition' using errcode='22023';
+  end if;
+
+  update public.freight_loads
+  set status=p_status,
+      driver_arrived_at=case when p_status='at_pickup' then now() else driver_arrived_at end,
+      driver_pickup_confirmed_at=case when p_status='in_transit' then now() else driver_pickup_confirmed_at end,
+      in_transit_at=case when p_status='in_transit' then now() else in_transit_at end,
+      delivered_at=case when p_status='delivered' then now() else delivered_at end,
+      updated_at=now()
+  where public.freight_loads.id=p_freight_load_id
+    and public.freight_loads.driver_id=v_load.driver_id
+    and public.freight_loads.status=v_load.status
+  returning * into v_load;
+
+  if not found then raise exception 'Freight load status changed concurrently' using errcode='40001'; end if;
+
+  v_event_type := case p_status
+    when 'at_pickup' then 'driver_pickup'
+    when 'in_transit' then 'driver_departure'
+    when 'delivered' then 'driver_delivery'
+  end;
+
+  insert into public.freight_load_events (freight_load_id, actor_id, event_type)
+  values (v_load.id, v_actor_id, v_event_type);
+
+  return query select v_load.id, v_load.status::text, v_load.driver_id, v_load.in_transit_at, v_load.delivered_at;
+end;
+$function$;
 
 commit;
