@@ -399,6 +399,36 @@ commit;
 
 -- Verified payout destinations are provider/vault references only. Raw bank
 -- account numbers and IBANs must never be stored in this application table.
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'marketplace-payout-proofs',
+  'marketplace-payout-proofs',
+  false,
+  8388608,
+  array['application/pdf','image/jpeg','image/png','image/webp']::text[]
+)
+on conflict (id) do update
+set public = false,
+    file_size_limit = 8388608,
+    allowed_mime_types = array['application/pdf','image/jpeg','image/png','image/webp']::text[];
+
+drop policy if exists "Admins upload marketplace payout proofs" on storage.objects;
+create policy "Admins upload marketplace payout proofs"
+on storage.objects for insert to authenticated
+with check (
+  bucket_id = 'marketplace-payout-proofs'
+  and public.is_root_admin(auth.uid()) or public.has_role(auth.uid(), 'admin'::public.app_role)
+);
+
+drop policy if exists "Admins read marketplace payout proofs" on storage.objects;
+create policy "Admins read marketplace payout proofs"
+on storage.objects for select to authenticated
+using (
+  bucket_id = 'marketplace-payout-proofs'
+  and (public.is_root_admin(auth.uid()) or public.has_role(auth.uid(), 'admin'::public.app_role))
+);
+
 create table if not exists public.marketplace_payout_beneficiaries (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users(id) on delete restrict,
@@ -622,6 +652,13 @@ begin
     end if;
     if btrim(p_proof_url) not like p_payout_id::text || '/%' then
       raise exception 'PAYOUT_PROOF_MUST_USE_PRIVATE_PAYOUT_FOLDER' using errcode = '23514';
+    end if;
+    if not exists (
+      select 1 from storage.objects o
+      where o.bucket_id = 'marketplace-payout-proofs'
+        and o.name = btrim(p_proof_url)
+    ) then
+      raise exception 'PAYOUT_PROOF_FILE_NOT_FOUND_IN_PRIVATE_STORAGE' using errcode = '23514';
     end if;
     v_next_status := 'paid';
   elsif p_action = 'failed' then
