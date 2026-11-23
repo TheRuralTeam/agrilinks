@@ -46,6 +46,25 @@ Allocations / Settlement / Ledger
 - `wallets`: saldo interno; não deve ser requisito para comprar no marketplace.
 - `payment_providers`: catálogo/configuração operacional do PSP.
 
+## Repartição e libertação de fundos
+
+A cobrança do comprador é única e corresponde ao valor do produto mais o frete aprovado. O beneficiário de entrada é a conta oficial da AgriLink; não há pagamentos directos do comprador ao fornecedor ou ao motorista.
+
+Após a confirmação do pagamento por webhook validado ou verificação administrativa do beneficiário oficial, o backend cria alocações bloqueadas em `payment_allocations`:
+- `seller`: valor integral do produto para o fornecedor;
+- `driver`: valor do frete líquido da comissão de frete já definida no sistema;
+- `platform_fee`: comissão de frete atribuída à AgriLink, sem inventar um utilizador beneficiário.
+
+A política de frete actualmente existente calcula uma comissão AgriLink de 8% e atribui os 92% restantes ao motorista. Esta taxa é preservada nesta implementação para não alterar silenciosamente a regra comercial existente.
+
+As alocações só passam de `blocked` para `available` depois de:
+1. prova de entrega do motorista persistida;
+2. carga marcada como entregue;
+3. confirmação independente de recepção pelo comprador;
+4. pré-compra marcada como paga.
+
+`available` significa elegível para liquidação, não transferência bancária concluída. A alocação só deve ser marcada como paga depois de existir referência e confirmação verificável da transferência real. Sem PSP de saída configurado, a liquidação permanece operacional/manual e não é simulada.
+
 ## Idempotência
 Todo pedido de criação de pagamento e reembolso recebe uma chave única. Webhooks usam `provider_id + provider_event_id` como identidade externa e verificam hash do payload.
 
