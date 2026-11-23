@@ -10,6 +10,7 @@ declare
   v_release_trigger boolean;
   v_function_security_definer boolean;
   v_policy_exists boolean;
+  v_payout_trigger boolean;
 begin
   select not a.attnotnull
   into v_recipient_nullable
@@ -74,6 +75,21 @@ begin
     raise exception 'Payment allocations must be readable only by participants and admins';
   end if;
 
+  select exists (
+    select 1 from pg_trigger
+    where tgrelid = 'public.payment_allocations'::regclass
+      and tgname = 'trg_create_marketplace_payout_intent'
+      and not tgisinternal
+  ) into v_payout_trigger;
+
+  if not v_payout_trigger then
+    raise exception 'Available seller and driver allocations must create payout intents';
+  end if;
+
+  if to_regclass('public.marketplace_payouts') is null then
+    raise exception 'Separate marketplace payout intent table must exist';
+  end if;
+
   if has_table_privilege('authenticated', 'public.payment_allocations', 'INSERT')
      or has_table_privilege('authenticated', 'public.payment_allocations', 'UPDATE')
      or has_table_privilege('authenticated', 'public.payment_allocations', 'DELETE') then
@@ -102,6 +118,7 @@ declare
   v_fee_amount numeric(15,2);
   v_blocked_count integer;
   v_available_count integer;
+  v_payout_count integer;
 begin
   insert into public.users(id) values (v_buyer),(v_supplier),(v_driver);
   insert into public.products(id,user_id) values (v_product,v_supplier);
@@ -150,8 +167,8 @@ begin
   if exists (
     select 1 from public.payment_allocations
     where payment_intent_id=v_intent and status <> 'blocked'
-  ) then
-    raise exception 'Driver delivery declaration released funds before buyer confirmation';
+  ) or exists (select 1 from public.marketplace_payouts) then
+    raise exception 'Driver delivery declaration released funds or created payout intents before buyer confirmation';
   end if;
 
   -- Persisted driver evidence plus buyer confirmation releases the allocations.
@@ -168,6 +185,24 @@ begin
 
   if v_available_count <> 3 then
     raise exception 'Buyer confirmation did not release all three reconciled allocations';
+  end if;
+
+  select count(*) into v_payout_count
+  from public.marketplace_payouts mp
+  where mp.status = 'awaiting_beneficiary_verification'
+    and mp.amount in (1000,92)
+    and mp.recipient_user_id in (v_supplier,v_driver);
+
+  if v_payout_count <> 2 then
+    raise exception 'Buyer confirmation must create separate supplier and driver payout intents awaiting beneficiary verification';
+  end if;
+
+  if exists (
+    select 1 from public.marketplace_payouts
+    where status = 'paid'
+      and (paid_at is null or payout_reference is null)
+  ) then
+    raise exception 'Payouts cannot be marked paid without timestamp and transfer reference';
   end if;
 
   if not exists (
