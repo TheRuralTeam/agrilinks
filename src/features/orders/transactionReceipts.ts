@@ -52,7 +52,7 @@ export async function fetchMarketplaceTransactionReceipt(preOrderId: string) {
 const statusLabels: Record<string, string> = {
   pending: 'Pendente', accepted: 'Aceite', rejected: 'Rejeitado', completed: 'Concluído',
   paid: 'Pago', unpaid: 'Não pago', created: 'Criado', processing: 'A processar',
-  in_transit: 'Em trânsito', delivered: 'Entregue', cancelled: 'Cancelado',
+  in_transit: 'Em trânsito', delivered: 'Entregue pelo motorista', buyer_received: 'Recepção confirmada', cancelled: 'Cancelado',
   offered: 'Proposto', awaiting_driver: 'A aguardar motorista', expired: 'Expirado',
 }
 
