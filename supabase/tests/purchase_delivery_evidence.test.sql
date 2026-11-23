@@ -50,6 +50,17 @@ begin
     ('freight-delivery-evidence', v_photo_path),
     ('freight-delivery-evidence', v_signature_path);
 
+  -- Direct status advancement cannot bypass the persisted delivery evidence.
+  begin
+    perform * from public.advance_freight_load_status(v_load, 'delivered');
+    raise exception 'Driver marked load delivered without evidence';
+  exception when insufficient_privilege then
+    null;
+  end;
+  if (select status from public.freight_loads where id = v_load) <> 'in_transit' then
+    raise exception 'Load changed to delivered without evidence';
+  end if;
+
   -- Driver submits recipient, photo, signature and GPS; the load becomes delivered atomically.
   select public.submit_freight_delivery_evidence(
     v_load,
