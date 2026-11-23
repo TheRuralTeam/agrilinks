@@ -15,6 +15,7 @@ import NotificationRuntime from "./components/NotificationRuntime";
 
 const Index = lazy(() => import("./pages/Index"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
+const Registration = lazy(() => import("./pages/Registration"));
 const ProformaInvoices = lazy(() => import("./pages/ProformaInvoices"));
 const TechnicalSheet = lazy(() => import("./pages/TechnicalSheet"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
@@ -70,7 +71,7 @@ const AppRoutes = () => {
         <Route path="/home" element={user ? <Navigate to="/app" replace /> : <Index />} />
         <Route path="/site" element={<Index />} />
         <Route path="/login" element={user ? <Navigate to="/app" replace /> : <LoginPage />} />
-        <Route path="/cadastro" element={<Navigate to="/login?mode=signup" replace />} />
+        <Route path="/cadastro" element={<Registration />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/confirmar-email" element={<EmailConfirmation />} />
         <Route path="/reset-password" element={<ResetPassword />} />
