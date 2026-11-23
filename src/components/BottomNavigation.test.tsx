@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import BottomNavigation from './BottomNavigation'
-import { GuestGateProvider } from '../contexts/GuestGateContext'
 
 const mockNavigate = vi.fn()
 const mockLocation = { pathname: '/app' }
@@ -32,6 +31,14 @@ vi.mock('../contexts/AuthContext', () => ({
   }),
 }))
 
+vi.mock('../contexts/GuestGateContext', () => ({
+  useGuestGate: () => ({
+    isGuest: false,
+    minutesLeft: 0,
+    requireAuth: vi.fn(),
+  }),
+}))
+
 vi.mock('../integrations/supabase/client', () => ({
   supabase: {
     from: () => ({
@@ -53,7 +60,7 @@ vi.mock('../integrations/supabase/client', () => ({
 
 describe('BottomNavigation', () => {
   it('exposes a stable label for each navigation button so the UI does not mix labels', () => {
-    render(<GuestGateProvider><BottomNavigation /></GuestGateProvider>)
+    render(<BottomNavigation />)
 
     const homeButton = screen.getByRole('button', { name: /início/i })
     expect(homeButton).toHaveAttribute('aria-label', 'Início')
