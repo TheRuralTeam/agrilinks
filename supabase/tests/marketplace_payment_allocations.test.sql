@@ -11,6 +11,8 @@ declare
   v_function_security_definer boolean;
   v_policy_exists boolean;
   v_payout_trigger boolean;
+  v_payout_policy boolean;
+  v_payout_rls boolean;
 begin
   select not a.attnotnull
   into v_recipient_nullable
@@ -88,6 +90,32 @@ begin
 
   if to_regclass('public.marketplace_payouts') is null then
     raise exception 'Separate marketplace payout intent table must exist';
+  end if;
+
+  select c.relrowsecurity
+  into v_payout_rls
+  from pg_class c
+  where c.oid = 'public.marketplace_payouts'::regclass;
+
+  if v_payout_rls is distinct from true then
+    raise exception 'Marketplace payout intents must enforce row-level security';
+  end if;
+
+  select exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'marketplace_payouts'
+      and policyname = 'Payout participants can read their payout status'
+  ) into v_payout_policy;
+
+  if not v_payout_policy then
+    raise exception 'Only payout recipients and admins may read payout statuses';
+  end if;
+
+  if has_table_privilege('authenticated', 'public.marketplace_payouts', 'INSERT')
+     or has_table_privilege('authenticated', 'public.marketplace_payouts', 'UPDATE')
+     or has_table_privilege('authenticated', 'public.marketplace_payouts', 'DELETE') then
+    raise exception 'Clients must not mutate payout intents directly';
   end if;
 
   if has_table_privilege('authenticated', 'public.payment_allocations', 'INSERT')
