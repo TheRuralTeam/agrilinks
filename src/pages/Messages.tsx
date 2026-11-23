@@ -17,7 +17,7 @@ import Loader from "../components/ui/Loader";
 import { decryptChatMessage, encryptChatMessage, ensureChatEncryptionKey } from "../lib/chatEncryption";
 
 // --- Branding Tokens ---
-import { T } from '../lib/brand';
+import { R, T } from '../lib/brand';
 
 // --- Tipos ---
 
@@ -100,8 +100,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           <div
             className={`px-4 py-2.5 shadow-sm transition-all ${
               isOwn
-                ? "rounded-2xl rounded-tr-none"
-                : "rounded-2xl rounded-tl-none"
+                ? "rounded-[12px] rounded-tr-none"
+                : "rounded-[12px] rounded-tl-none"
             }`}
             style={{ 
               backgroundColor: isOwn ? T.g600 : T.white,
@@ -431,7 +431,7 @@ const Messages = () => {
       {/* Input Footer */}
       <footer className="p-4 md:p-6" style={{ backgroundColor: T.canvas }}>
         <div className="max-w-4xl mx-auto flex flex-col gap-3">
-          <div className="flex items-end gap-2 bg-white rounded-2xl p-2 shadow-lg border transition-all focus-within:ring-2" style={{ borderColor: T.rule, '--tw-ring-color': T.gBorder } as any}>
+          <div className="flex items-end gap-2 bg-white p-2 shadow-lg border transition-all focus-within:ring-2" style={{ borderColor: T.rule, borderRadius: R.md, '--tw-ring-color': T.gBorder } as any}>
             <textarea
               placeholder="Escreva a sua mensagem..."
               value={newMessage}
@@ -448,7 +448,7 @@ const Messages = () => {
                   <Smile className="h-5 w-5" style={{ color: T.muted }} />
                 </Button>
                 {showEmojiPicker && (
-                  <div className="absolute bottom-14 right-0 bg-white rounded-2xl shadow-2xl border p-4 w-72 z-50 animate-in zoom-in-95" style={{ borderColor: T.rule }}>
+                  <div className="absolute bottom-14 right-0 bg-white shadow-2xl border p-4 w-72 z-50 animate-in zoom-in-95" style={{ borderColor: T.rule, borderRadius: R.md }}>
                     <p className="text-[10px] font-black uppercase tracking-widest mb-3" style={{ color: T.muted }}>Emojis Agrícolas 🌾</p>
                     <div className="grid grid-cols-7 gap-1">
                       {AGRO_EMOJIS.map((emoji, idx) => (

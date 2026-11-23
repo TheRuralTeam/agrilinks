@@ -26,6 +26,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { toast } from 'sonner'
 import Loader from '../components/ui/Loader'
 import { R, T } from '../lib/brand'
+import { useCanAct } from '../hooks/useCanAct'
 
 interface Product extends ProductCardType {}
 
@@ -50,6 +51,7 @@ const productCategories = [
 const SearchPage = () => {
   const navigate = useNavigate()
   const { user, userProfile, refreshProfile } = useAuth()
+  const { requireAct } = useCanAct()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedProvince, setSelectedProvince] = useState<string>('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
@@ -155,6 +157,7 @@ const SearchPage = () => {
   }
 
   const handleOpenPreOrder = (product: Product) => {
+    if (!requireAct('fazer uma pré-compra')) return
     setSelectedProduct(product)
     setOrderData({ quantity: 1, location: '' })
     setDeliveryCoordinates(null)

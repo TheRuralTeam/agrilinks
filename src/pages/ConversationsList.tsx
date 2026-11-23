@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/
 import { useToast } from "../hooks/use-toast";
 
 // --- Branding Tokens ---
-import { T } from '../lib/brand';
+import { R, T } from '../lib/brand';
 
 // --- Tipos ---
 
@@ -337,10 +337,11 @@ const ConversationsList = () => {
             placeholder={t('messages.searchConversations')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-11 h-12 bg-white border-none rounded-xl shadow-sm focus-visible:ring-2"
+            className="pl-11 h-12 bg-white border-none shadow-sm focus-visible:ring-2"
             style={{ 
               '--tw-ring-color': T.gBorder,
-              color: T.ink
+              color: T.ink,
+              borderRadius: R.sm
             } as React.CSSProperties}
           />
         </div>
@@ -499,8 +500,8 @@ const ConversationsList = () => {
       {/* Modal Nova Conversa (Modal Mail) */}
       <Dialog open={newConversationOpen} onOpenChange={setNewConversationOpen}>
         <DialogContent 
-          className="sm:max-w-md border-none p-0 overflow-hidden rounded-3xl shadow-2xl"
-          style={{ backgroundColor: T.canvas }}
+          className="sm:max-w-md border-none p-0 overflow-hidden shadow-2xl"
+          style={{ backgroundColor: T.canvas, borderRadius: R.md }}
         >
           <div className="p-8">
             <DialogHeader className="mb-6">
@@ -519,8 +520,8 @@ const ConversationsList = () => {
                 aria-label={t('messages.searchUser')}
                 value={newConvSearchTerm}
                 onChange={(e) => setNewConvSearchTerm(e.target.value)}
-                className="pl-11 h-12 bg-white border-none rounded-2xl shadow-sm focus-visible:ring-2"
-                style={{ '--tw-ring-color': T.gBorder } as React.CSSProperties}
+                className="pl-11 h-12 bg-white border-none shadow-sm focus-visible:ring-2"
+                style={{ '--tw-ring-color': T.gBorder, borderRadius: R.sm } as React.CSSProperties}
               />
             </div>
 
@@ -548,8 +549,8 @@ const ConversationsList = () => {
                       startConversation(usr.id);
                       setNewConversationOpen(false);
                     }}
-                    className="flex w-full items-center gap-4 rounded-2xl p-3 text-left transition-all hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 group"
-                    style={{ '--tw-ring-color': T.gBorder } as React.CSSProperties}
+                    className="flex w-full items-center gap-4 p-3 text-left transition-all hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 group"
+                    style={{ '--tw-ring-color': T.gBorder, borderRadius: R.sm } as React.CSSProperties}
                   >
                     <Avatar className="h-12 w-12 border-2 border-transparent group-hover:border-g100 transition-all">
                       <AvatarImage src={usr.avatar_url || "/default-avatar.png"} />
