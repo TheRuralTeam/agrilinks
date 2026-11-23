@@ -158,6 +158,19 @@ export default function FreightDeliveryEvidenceForm({
 
       onSubmitted();
     } catch (cause) {
+      // Reconcile an ambiguous network response before deleting uploads or inviting a duplicate retry.
+      try {
+        const { data: persistedEvidence } = await supabase.rpc('get_freight_delivery_evidence', {
+          p_freight_load_id: freightLoadId,
+        });
+        if (persistedEvidence && typeof persistedEvidence === 'object' && !Array.isArray(persistedEvidence)) {
+          onSubmitted();
+          return;
+        }
+      } catch {
+        // Keep the original failure visible when the reconciliation request also fails.
+      }
+
       if (photoPath || signaturePath) {
         await supabase.storage.from('freight-delivery-evidence').remove(
           [photoPath, signaturePath].filter((path): path is string => Boolean(path)),
