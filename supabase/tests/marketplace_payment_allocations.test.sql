@@ -303,6 +303,9 @@ begin
     null;
   end;
 
+  insert into storage.objects(bucket_id,name)
+  values('marketplace-payout-proofs',v_supplier_payout::text || '/proof/bank-confirmation.pdf');
+
   perform public.admin_transition_marketplace_payout(v_supplier_payout,'processing',null,null,null);
   perform public.admin_transition_marketplace_payout(
     v_supplier_payout,'paid','BANK-TRANSFER-TEST-001',
