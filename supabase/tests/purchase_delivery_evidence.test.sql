@@ -6,8 +6,10 @@ declare
   v_supplier constant uuid := '10000000-0000-0000-0000-000000000003';
   v_other constant uuid := '10000000-0000-0000-0000-000000000004';
   v_pre_order constant uuid := '20000000-0000-0000-0000-000000000001';
+  v_unpaid_pre_order constant uuid := '20000000-0000-0000-0000-000000000002';
   v_load constant uuid := '30000000-0000-0000-0000-000000000001';
   v_blocked_load constant uuid := '30000000-0000-0000-0000-000000000002';
+  v_unpaid_load constant uuid := '30000000-0000-0000-0000-000000000003';
   v_photo_path text;
   v_signature_path text;
   v_evidence_id uuid;
@@ -21,7 +23,9 @@ begin
     (v_other, 'comprador', true);
 
   insert into public.pre_orders (id, status, payment_status)
-  values (v_pre_order, 'accepted', 'paid');
+  values
+    (v_pre_order, 'accepted', 'paid'),
+    (v_unpaid_pre_order, 'accepted', 'unpaid');
 
   insert into public.freight_loads (
     id, created_by, driver_id, buyer_id, supplier_id, pre_order_id,
@@ -129,6 +133,27 @@ begin
   where freight_load_id = v_load and event_type = 'supplier_handover_confirmed';
   if v_event_count <> 1 then
     raise exception 'Supplier handover was not written to the transaction history';
+  end if;
+
+  -- Supplier handover is blocked until the marketplace payment is confirmed.
+  insert into public.freight_loads (
+    id, created_by, driver_id, buyer_id, supplier_id, pre_order_id,
+    status, driver_quote_status
+  ) values (
+    v_unpaid_load, v_supplier, v_driver, v_buyer, v_supplier, v_unpaid_pre_order,
+    'at_pickup', 'approved'
+  );
+
+  perform set_config('request.jwt.claim.sub', v_supplier::text, true);
+  begin
+    perform public.confirm_supplier_handover(v_unpaid_load);
+    raise exception 'Supplier released goods before payment';
+  exception when insufficient_privilege then
+    null;
+  end;
+
+  if (select supplier_handover_confirmed_at from public.freight_loads where id = v_unpaid_load) is not null then
+    raise exception 'Unpaid order unexpectedly passed supplier handover';
   end if;
 
   -- An unrelated account cannot read the private delivery evidence.
