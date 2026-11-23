@@ -58,7 +58,8 @@ create table public.users (
 create table public.pre_orders (
   id uuid primary key,
   status text not null,
-  payment_status text not null
+  payment_status text not null,
+  updated_at timestamptz not null default now()
 );
 
 create table public.freight_loads (
