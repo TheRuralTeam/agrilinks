@@ -72,7 +72,7 @@ const LoginPage = () => {
     if (mode === 'signup') {
       navigate('/cadastro', { replace: true })
     }
-  }, [location.search])
+  }, [location.search, navigate])
 
   const redirectTo = typeof requestedPath === 'string'
     && requestedPath.startsWith('/')
