@@ -471,7 +471,7 @@ returns uuid
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $register$
 declare
   v_id uuid;
 begin
@@ -500,7 +500,7 @@ begin
 
   return v_id;
 end;
-$;
+$register$;
 
 create or replace function public.admin_review_marketplace_payout_beneficiary(
   p_beneficiary_id uuid,
