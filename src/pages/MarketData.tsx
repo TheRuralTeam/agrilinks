@@ -7,44 +7,9 @@ import { Button } from "../components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../integrations/supabase/client";
 import { toast } from "sonner";
+import { R, T } from "../lib/brand";
 
 /* ─── AgriLink Design System (Branding T) ─────────────────────── */
-const T = {
-  /* Greens */
-  g900:   '#2c863b',
-  g700:   '#1A5C24',
-  g600:   '#2D7D3A',
-  g500:   '#3D9A48',
-  g400:   '#4CAF50',
-  g100:   '#E8F5E9',
-  g50:    '#F2FAF3',
-  gBorder:'#C8E6CA',
-
-  /* Earth */
-  e700:   '#5C3317',
-  e500:   '#7B4F2E',
-  e300:   '#A0522D',
-  ePale:  '#FDF5EE',
-  eBorder:'#EDD9C6',
-
-  /* Neutrals */
-  ink:    '#111714',
-  mid:    '#3D4D40',
-  muted:  '#758A79',
-  faint:  '#A8BAA9',
-  canvas: '#F7F9F7',
-  white:  '#FFFFFF',
-  rule:   '#E5EDE6',
-
-  /* Accents */
-  gold:   '#B07D0A',
-  goldL:  '#E5A020',
-
-  /* Shadow */
-  shadow: 'rgba(13,43,18,0.10)',
-  shadowMd:'rgba(13,43,18,0.15)',
-}
-
 interface ProductStats {
   product: string;
   count: number;
@@ -289,8 +254,8 @@ const MarketData = () => {
                     {marketData.stats.slice(0, 5).map((product, index) => (
                       <div 
                         key={product.product} 
-                        className="flex items-center justify-between p-4 rounded-xl transition-all hover:shadow-sm"
-                        style={{ background: T.g50, border: `1px solid ${T.gBorder}` }}
+                        className="flex items-center justify-between p-4 transition-all hover:shadow-sm"
+                        style={{ background: T.g50, border: `1px solid ${T.gBorder}`, borderRadius: R.md }}
                       >
                         <div className="flex items-center gap-4 min-w-0">
                           <div className="flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm shrink-0" style={{ background: T.g900, color: T.white }}>
@@ -331,7 +296,7 @@ const MarketData = () => {
                             {item.count} ofertas ativas
                           </CardDescription>
                         </div>
-                        <div className="p-2 rounded-lg" style={{ background: T.g50 }}>
+                        <div className="p-2" style={{ background: T.g50, borderRadius: R.sm }}>
                           {getTrendIcon(item.avgPrice, item.minPrice, item.maxPrice)}
                         </div>
                       </div>

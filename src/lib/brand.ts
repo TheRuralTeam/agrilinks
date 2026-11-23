@@ -7,10 +7,29 @@
  * - Typography: Plus Jakarta Sans across the whole platform.
  */
 
-export const FONT = "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif";
+import designTokens from "../../design-system/tokens.json";
 
-/** The one and only AgriLink green */
-export const PRIMARY_GREEN = '#2c863b';
+export const FONT = `'${designTokens.typography.family}', ${designTokens.typography.fallback.join(", ")}`;
+
+export const PRIMARY_GREEN = designTokens.color.brand.primary;
+
+const { color, radius, elevation } = designTokens;
+const status = color.status;
+
+export const SEMANTIC_COLORS = {
+  success: status.success.color,
+  successText: status.success.text,
+  successSurface: status.success.surface,
+  warning: status.warning.color,
+  warningText: status.warning.text,
+  warningSurface: status.warning.surface,
+  danger: status.danger.color,
+  dangerText: status.danger.text,
+  dangerSurface: status.danger.surface,
+  info: status.info.color,
+  infoText: status.info.text,
+  infoSurface: status.info.surface,
+} as const;
 
 export const T = {
   /* Compatibility aliases retained while screens migrate to shared tokens. */
@@ -20,51 +39,60 @@ export const T = {
   g500: PRIMARY_GREEN,
   g400: PRIMARY_GREEN,
   green: PRIMARY_GREEN,
-  /* Green tints use transparency so the palette remains white and green. */
-  g100: 'rgba(44, 134, 59, 0.08)',
-  g50: 'rgba(44, 134, 59, 0.04)',
-  gBorder: 'rgba(44, 134, 59, 0.24)',
+  g100: status.success.surface,
+  g50: status.success.surface,
+  gBorder: color.border.default,
 
   /* Legacy earth-tone aliases now resolve to the brand palette. */
   e700: PRIMARY_GREEN,
   e500: PRIMARY_GREEN,
   e300: PRIMARY_GREEN,
-  ePale: '#FFFFFF',
-  eBorder: 'rgba(44, 134, 59, 0.24)',
+  ePale: color.surface.subtle,
+  eBorder: color.border.default,
 
   /* Text hierarchy stays neutral; green is reserved for brand emphasis. */
   ink: '#000000',
-  mid: '#000000',
-  muted: '#000000',
-  faint: '#000000',
-  canvas: '#FFFFFF',
-  white: '#FFFFFF',
-  rule: 'rgba(44, 134, 59, 0.24)',
+  mid: color.text.secondary,
+  muted: color.text.secondary,
+  faint: color.text.disabled,
+  canvas: color.surface.canvas,
+  subtle: color.surface.subtle,
+  white: color.surface.card,
+  rule: color.border.default,
 
   /* Legacy gold aliases now resolve to the brand palette. */
-  gold: PRIMARY_GREEN,
-  goldL: PRIMARY_GREEN,
-  goldMid: PRIMARY_GREEN,
-  goldDark: PRIMARY_GREEN,
-  goldDeep: PRIMARY_GREEN,
-  goldLight: PRIMARY_GREEN,
-  goldBg: '#FFFFFF',
-  goldPale: '#FFFFFF',
-  goldBorder: 'rgba(44, 134, 59, 0.24)',
+  gold: status.warning.text,
+  goldL: status.warning.text,
+  goldMid: status.warning.text,
+  goldDark: status.warning.text,
+  goldDeep: status.warning.text,
+  goldLight: status.warning.text,
+  goldBg: status.warning.surface,
+  goldPale: status.warning.surface,
+  goldBorder: color.border.default,
+  blue: status.info.text,
+  blueBg: status.info.surface,
+  danger: status.danger.text,
+  dangerBg: status.danger.surface,
+  charcoal: color.text.primary,
+  cream: color.surface.subtle,
+  soft: color.surface.subtle,
+  greenLight: PRIMARY_GREEN,
+  greenPale: status.success.surface,
 
   /* Shadows */
-  shadow: 'rgba(44,134,59,0.10)',
-  shadowMd: 'rgba(44,134,59,0.15)',
-  shadowLg: '0 8px 32px rgba(44,134,59,0.12)',
+  shadow: 'rgba(0,0,0,0.08)',
+  shadowMd: 'rgba(0,0,0,0.12)',
+  shadowLg: elevation.floating.web,
 } as const;
 
 /** Shared radii / spacing scale */
 export const R = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  pill: 999,
+  sm: radius.control,
+  md: radius.card,
+  lg: radius.panel,
+  xl: radius.panel,
+  pill: radius.pill,
 } as const;
 
 export type BrandTokens = typeof T;

@@ -28,6 +28,33 @@ export const fetchProductsFeed = async ({
   page = 0,
   signal,
 }: ProductFeedOptions = {}) => {
+  if (!userId) {
+    let publicQuery = supabase
+      .from('products')
+      .select('id,product_type,quantity,harvest_date,price,province_id,municipality_id,farmer_name,photos,status,created_at,updated_at,description,category,sale_unit,min_order_quantity,package_weight_kg')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .range(page * limit, page * limit + limit - 1)
+    if (province) publicQuery = publicQuery.eq('province_id', province)
+    if (search?.trim()) {
+      const term = search.trim().replace(/[%(),]/g, ' ')
+      publicQuery = publicQuery.or(`product_type.ilike.%${term}%,description.ilike.%${term}%,farmer_name.ilike.%${term}%`)
+    }
+    if (category && category !== 'all') publicQuery = publicQuery.ilike('category', `%${category}%`)
+    if (signal) publicQuery = publicQuery.abortSignal(signal)
+    const { data: publicProducts, error: publicError } = await publicQuery
+    if (publicError) throw publicError
+    return (publicProducts || []).map((rawProduct) => ({
+      ...(rawProduct as unknown as Record<string, unknown>),
+      user_id: null,
+      likes_count: 0,
+      is_liked: false,
+      user_verified: false,
+      comments_count: 0,
+      comments: [],
+    }))
+  }
+
   let query = supabase
     .from('products')
     .select('id,user_id,product_type,quantity,harvest_date,price,province_id,municipality_id,logistics_access,farmer_name,photos,status,created_at,updated_at,description,location_lat,location_lng,category,likes_count,sale_unit,min_order_quantity,package_weight_kg,product_variety,product_condition,packaging_type')

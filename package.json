@@ -12,6 +12,7 @@
     "lint:fix": "eslint . --fix",
     "test": "vitest",
     "type-check:strict": "tsc -p tsconfig.strict.json --noEmit",
+    "design:check": "node scripts/check-design-tokens.mjs",
     "format": "prettier --write .",
     "prepare": "husky install",
     "preview": "vite preview"

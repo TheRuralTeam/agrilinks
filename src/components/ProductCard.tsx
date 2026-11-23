@@ -1,8 +1,8 @@
 import React, { useState, useRef, memo } from 'react'
 import { toast } from 'sonner'
 import {
-  Heart, MessageCircle, Calendar, MapPin, Send, ChevronLeft, ChevronRight,
-  ShoppingCart, Reply, ThumbsUp, BadgeCheck, TrendingUp, Clock, Share2, Leaf
+  Heart, MessageCircle, MapPin, Send, ChevronLeft, ChevronRight,
+  ShoppingCart, Reply, ThumbsUp, BadgeCheck, TrendingUp, Clock, Leaf
 } from 'lucide-react'
 import { supabase } from '../integrations/supabase/client'
 import { useAuth } from '../contexts/AuthContext'
@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogTitle } from './ui/dialog'
 import SimpleLeafletMap from './SimpleLeafletMap'
 
 /* ─── Design tokens — same source as AppHome, single accent colour ─────────── */
-import { T } from '../lib/brand'
+import { R, T } from '../lib/brand'
 
 /* ─── Inline styles ──────────────────────────────────────────────────────────
    Apple-style rules borrowed from AppHome:
@@ -26,7 +26,7 @@ const styles: Record<string, React.CSSProperties> = {
   card: {
     background: T.white,
     border: `1px solid rgba(0,0,0,0.05)`,
-    borderRadius: 20,
+    borderRadius: R.md,
     overflow: 'hidden',
     boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
     transition: 'box-shadow 0.3s ease, transform 0.3s ease',
@@ -54,34 +54,16 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 11,
     fontWeight: 700,
     padding: '4px 10px',
-    borderRadius: 980,
+    borderRadius: 999,
     letterSpacing: '0.04em',
     display: 'inline-flex',
     alignItems: 'center',
     gap: 4,
   },
-  shareBtn: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    zIndex: 20,
-    background: 'rgba(255,255,255,0.9)',
-    backdropFilter: 'blur(8px)',
-    WebkitBackdropFilter: 'blur(8px)',
-    border: 'none',
-    borderRadius: '50%',
-    width: 34,
-    height: 34,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    transition: 'transform 0.2s',
-  },
   imageWrap: {
     position: 'relative',
     background: `linear-gradient(135deg, ${T.g50}, ${T.g100})`,
-    aspectRatio: '4/3',
+    height: 190,
     overflow: 'hidden',
   },
   imageOverlay: {
@@ -95,18 +77,18 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 5,
   },
   content: {
-    padding: '18px 20px 16px',
+    padding: '12px 16px 14px',
     background: T.white,
   },
   farmerRow: {
     display: 'flex',
     alignItems: 'flex-start',
     gap: 12,
-    marginBottom: 16,
+    marginBottom: 10,
   },
   avatarWrap: {
-    width: 44,
-    height: 44,
+    width: 36,
+    height: 36,
     borderRadius: '50%',
     overflow: 'hidden',
     cursor: 'pointer',
@@ -117,7 +99,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: `linear-gradient(135deg, ${T.g500}, ${T.g700})`,
     color: T.white,
     fontWeight: 700,
-    fontSize: 17,
+    fontSize: 14,
     transition: 'transform 0.2s',
   },
   farmerName: {
@@ -142,7 +124,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginLeft: 'auto',
     background: 'rgba(118,118,128,0.08)',
     color: T.mid,
-    borderRadius: 980,
+    borderRadius: 999,
     fontSize: 11,
     fontWeight: 600,
     padding: '4px 10px',
@@ -150,11 +132,22 @@ const styles: Record<string, React.CSSProperties> = {
   },
   productTitle: {
     fontWeight: 700,
-    fontSize: 20,
+    fontSize: 17,
     color: T.ink,
     letterSpacing: '-0.02em',
     lineHeight: 1.2,
-    marginBottom: 10,
+    marginBottom: 6,
+  },
+  detailsBtn: {
+    border: `1px solid ${T.rule}`,
+    borderRadius: R.md,
+    background: T.white,
+    color: T.g600,
+    padding: '7px 10px',
+    fontSize: 11,
+    fontWeight: 700,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
   },
   priceRow: {
     display: 'flex',
@@ -183,7 +176,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: `linear-gradient(135deg, ${T.g500}, ${T.g700})`,
     color: T.white,
     border: 'none',
-    borderRadius: 980,
+    borderRadius: R.md,
     height: 46,
     fontSize: 14,
     fontWeight: 700,
@@ -246,7 +239,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'none',
     border: 'none',
     cursor: 'pointer',
-    borderRadius: 980,
+    borderRadius: R.md,
     padding: '6px 12px',
     fontSize: 13,
     fontWeight: 600,
@@ -265,7 +258,7 @@ const styles: Record<string, React.CSSProperties> = {
   commentInput: {
     flex: 1,
     height: 42,
-    borderRadius: 980,
+    borderRadius: R.md,
     border: `1px solid ${T.rule}`,
     padding: '0 16px',
     fontSize: 13,
@@ -289,14 +282,14 @@ const styles: Record<string, React.CSSProperties> = {
   },
   commentItem: {
     background: T.canvas,
-    borderRadius: 16,
+    borderRadius: R.md,
     padding: '12px 14px',
     border: `1px solid ${T.rule}`,
     marginBottom: 10,
   },
   replyItem: {
     background: 'rgba(118,118,128,0.06)',
-    borderRadius: 10,
+    borderRadius: R.md,
     padding: '8px 12px',
     fontSize: 12,
     marginBottom: 6,
@@ -368,6 +361,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
   const [mapModalOpen, setMapModalOpen] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [commentsLoaded, setCommentsLoaded] = useState(false)
   const commentsCount = commentsLoaded
@@ -502,29 +496,6 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
     } catch { toast.error('Erro ao adicionar resposta') }
   }
 
-  const handleShare = async () => {
-    const shareUrl = new URL(`/produto/${product.id}`, window.location.origin).toString()
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: product.product_type,
-          text: `Confira ${product.product_type} por ${formatPrice(product.price)}!`,
-          url: shareUrl,
-        })
-        return
-      }
-      if (!navigator.clipboard?.writeText) {
-        toast.error('A partilha não está disponível neste dispositivo.')
-        return
-      }
-      await navigator.clipboard.writeText(shareUrl)
-      toast.success('Link copiado!')
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') return
-      toast.error('Não foi possível partilhar o produto. Tente novamente.')
-    }
-  }
-
   return (
     <>
       <div
@@ -539,17 +510,6 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
             </span>
           )}
         </div>
-
-        {/* ── Share ── */}
-        <button
-          onClick={handleShare}
-          style={styles.shareBtn}
-          aria-label="Compartilhar"
-          onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.1)')}
-          onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
-        >
-          <Share2 size={15} color={T.mid} />
-        </button>
 
         {/* ── Photo carousel ── */}
         <div style={styles.imageWrap}>
@@ -629,11 +589,15 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
               </div>
             </div>
 
-            <span style={styles.typeBadge}>{product.product_type}</span>
           </div>
 
           {/* Product title */}
-          <div style={styles.productTitle}>{product.product_type}</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+            <div style={{ ...styles.productTitle, marginBottom: 0 }}>{product.product_type}</div>
+            <button type="button" style={styles.detailsBtn} onClick={() => setDetailsOpen(true)}>
+              Ver detalhes
+            </button>
+          </div>
 
           {/* Price + stock */}
           <div style={styles.priceRow}>
@@ -644,16 +608,6 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
             <TrendingUp size={13} color={T.g500} />
             {product.quantity.toLocaleString()} {product.sale_unit || 'kg'} disponíveis
           </div>
-
-          {(product.min_order_quantity != null || product.package_weight_kg != null || product.product_variety || product.product_condition || product.packaging_type) && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px 12px', margin: '0 0 14px', fontSize: 11, color: T.muted }}>
-              {product.min_order_quantity != null && <span>Mínimo: {product.min_order_quantity} {product.sale_unit || 'kg'}</span>}
-              {product.package_weight_kg != null && <span>Peso/embalagem: {product.package_weight_kg} kg</span>}
-              {product.product_variety && <span>Variedade: {product.product_variety}</span>}
-              {product.product_condition && <span>Estado: {product.product_condition}</span>}
-              {product.packaging_type && <span>Acondicionamento: {product.packaging_type}</span>}
-            </div>
-          )}
 
           {/* Buyer cart action: add the listing without starting a separate pre-order. */}
           {onAddToCart && (
@@ -686,30 +640,6 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
               Comprar agora
             </button>
           )}
-
-          {/* Description */}
-          {product.description && (
-            <p style={styles.description}>{product.description}</p>
-          )}
-
-          {/* Meta row */}
-          <div style={styles.metaRow}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Calendar size={13} color={T.faint} />
-              Colheita: {formatDate(product.harvest_date)}
-            </span>
-            {product.location_lat != null && product.location_lng != null && (
-              <button
-                style={styles.locationBtn}
-                onClick={() => setMapModalOpen(true)}
-                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.opacity = '0.7')}
-                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.opacity = '1')}
-              >
-                <MapPin size={13} />
-                Ver zona de origem
-              </button>
-            )}
-          </div>
 
           {/* Social actions */}
           <div style={styles.actionsRow}>
@@ -803,7 +733,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
                             <span style={{ fontWeight: 700, fontSize: 13, color: T.ink }}>{c.user_name}</span>
-                            <span style={{ fontSize: 10, color: T.faint, background: T.white, border: `1px solid ${T.rule}`, borderRadius: 980, padding: '2px 8px' }}>{c.user_type}</span>
+                            <span style={{ fontSize: 10, color: T.faint, background: T.white, border: `1px solid ${T.rule}`, borderRadius: 999, padding: '2px 8px' }}>{c.user_type}</span>
                             <span style={{ fontSize: 11, color: T.faint }}>{formatDate(c.created_at)}</span>
                           </div>
                           <p style={{ fontSize: 13, color: T.ink, lineHeight: 1.55, margin: 0 }}>{c.comment_text}</p>
@@ -877,14 +807,128 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
         </div>
       </div>
 
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent
+          style={{
+            width: 'min(720px, calc(100vw - 32px))',
+            maxWidth: 720,
+            height: 'min(760px, calc(100dvh - 32px))',
+            padding: 0,
+            gap: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            borderRadius: R.md,
+            border: `1px solid ${T.rule}`,
+            fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+          }}
+        >
+          <div style={{ flex: '0 0 220px', background: T.canvas, overflow: 'hidden' }}>
+            {product.photos?.[0] ? (
+              <img src={product.photos[0]} alt={product.product_type} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <div style={styles.noPhoto}><Leaf size={36} color={T.g400} /><span>Sem imagem</span></div>
+            )}
+          </div>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '22px 24px 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, paddingRight: 28 }}>
+              <div>
+                <DialogTitle style={{ margin: 0, color: T.ink, fontSize: 22, fontWeight: 800 }}>
+                  {product.product_type}
+                </DialogTitle>
+                <button
+                  type="button"
+                  style={{ ...styles.farmerName, border: 0, background: 'none', padding: 0, marginTop: 6 }}
+                  onClick={() => navigate(`/perfil/${product.user_id}`)}
+                >
+                  {product.farmer_name}
+                  {product.user_verified && <BadgeCheck size={14} color={T.g500} />}
+                </button>
+              </div>
+              <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                <div style={{ ...styles.price, color: T.g600, fontSize: 20 }}>{formatPrice(product.price)}</div>
+                <div style={{ color: T.faint, fontSize: 12 }}>por {product.sale_unit || 'kg'}</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, margin: '20px 0' }}>
+              <div style={{ padding: 12, borderRadius: R.md, background: T.canvas }}>
+                <div style={{ color: T.faint, fontSize: 11 }}>Disponibilidade</div>
+                <div style={{ marginTop: 4, color: T.ink, fontSize: 13, fontWeight: 700 }}>
+                  {product.quantity.toLocaleString()} {product.sale_unit || 'kg'}
+                </div>
+              </div>
+              <div style={{ padding: 12, borderRadius: R.md, background: T.canvas }}>
+                <div style={{ color: T.faint, fontSize: 11 }}>Colheita</div>
+                <div style={{ marginTop: 4, color: T.ink, fontSize: 13, fontWeight: 700 }}>
+                  {formatDate(product.harvest_date)}
+                </div>
+              </div>
+              <div style={{ padding: 12, borderRadius: R.md, background: T.canvas }}>
+                <div style={{ color: T.faint, fontSize: 11 }}>Origem</div>
+                <div style={{ marginTop: 4, color: T.ink, fontSize: 13, fontWeight: 700 }}>
+                  {product.municipality_id}, {product.province_id}
+                </div>
+              </div>
+            </div>
+
+            {product.description && (
+              <section style={{ marginBottom: 18 }}>
+                <h3 style={{ margin: '0 0 6px', color: T.ink, fontSize: 14 }}>Sobre o produto</h3>
+                <p style={{ margin: 0, color: T.muted, fontSize: 13, lineHeight: 1.6 }}>{product.description}</p>
+              </section>
+            )}
+
+            {(product.min_order_quantity != null || product.package_weight_kg != null || product.product_variety || product.product_condition || product.packaging_type) && (
+              <section style={{ marginBottom: 18 }}>
+                <h3 style={{ margin: '0 0 8px', color: T.ink, fontSize: 14 }}>Especificações</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, color: T.muted, fontSize: 12 }}>
+                  {product.min_order_quantity != null && <span>Mínimo: {product.min_order_quantity} {product.sale_unit || 'kg'}</span>}
+                  {product.package_weight_kg != null && <span>Peso por embalagem: {product.package_weight_kg} kg</span>}
+                  {product.product_variety && <span>Variedade: {product.product_variety}</span>}
+                  {product.product_condition && <span>Estado: {product.product_condition}</span>}
+                  {product.packaging_type && <span>Acondicionamento: {product.packaging_type}</span>}
+                </div>
+              </section>
+            )}
+
+            {product.location_lat != null && product.location_lng != null && (
+              <button
+                type="button"
+                style={{ ...styles.locationBtn, marginBottom: 18 }}
+                onClick={() => { setDetailsOpen(false); setMapModalOpen(true) }}
+              >
+                <MapPin size={14} />
+                Ver zona de origem
+              </button>
+            )}
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              {onAddToCart && (
+                <button type="button" style={{ ...styles.buyBtn, flex: 1, minWidth: 180 }} onClick={() => { setDetailsOpen(false); onAddToCart(product) }}>
+                  <ShoppingCart size={17} />
+                  Adicionar ao carrinho
+                </button>
+              )}
+              {onOpenPreOrder && (
+                <button type="button" style={{ ...styles.buyBtn, flex: 1, minWidth: 180 }} onClick={() => { setDetailsOpen(false); onOpenPreOrder(product) }}>
+                  <ShoppingCart size={17} />
+                  Comprar agora
+                </button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* ── Map modal ── */}
       <Dialog open={mapModalOpen} onOpenChange={setMapModalOpen}>
         <DialogContent style={{
-          maxWidth: 760, padding: 0, overflow: 'hidden', borderRadius: 20,
+          maxWidth: 760, padding: 0, overflow: 'hidden', borderRadius: R.md,
           border: `1px solid ${T.rule}`, boxShadow: `0 24px 80px rgba(0,0,0,0.18)`,
         }}>
           <div style={{ padding: '16px 22px', background: T.white, borderBottom: `1px solid ${T.rule}`, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 9, background: T.g50, border: `1px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 34, height: 34, borderRadius: R.md, background: T.g50, border: `1px solid ${T.gBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <MapPin size={15} color={T.g600} />
             </div>
             <div>
@@ -927,7 +971,7 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
             <button
               onClick={() => setMapModalOpen(false)}
               style={{
-                border: `1px solid ${T.rule}`, borderRadius: 980, background: T.white,
+                border: `1px solid ${T.rule}`, borderRadius: 999, background: T.white,
                 padding: '8px 18px', cursor: 'pointer', fontWeight: 600,
                 color: T.ink, fontSize: 13, transition: 'all 0.2s',
               }}

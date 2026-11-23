@@ -14,22 +14,23 @@ const STORAGE_KEY = 'agrilink-theme';
 
 const applyTheme = (t: Theme) => {
   const root = document.documentElement;
-  if (t === 'dark') root.classList.add('dark');
-  else root.classList.remove('dark');
-  root.style.colorScheme = t;
+  root.classList.remove('dark');
+  root.style.colorScheme = 'light';
+  root.style.background = '#f7f9f7';
+  document.body.style.background = '#f7f9f7';
 };
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window === 'undefined') return 'light';
-    const saved = window.localStorage.getItem(STORAGE_KEY) as Theme | null;
-    if (saved === 'light' || saved === 'dark') return saved;
-    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (saved === 'light') return 'light';
+    return 'light';
   });
 
   useEffect(() => {
     applyTheme(theme);
-    try { window.localStorage.setItem(STORAGE_KEY, theme); } catch {}
+    try { window.localStorage.setItem(STORAGE_KEY, 'light'); } catch {}
   }, [theme]);
 
   const setTheme = useCallback((t: Theme) => setThemeState(t), []);

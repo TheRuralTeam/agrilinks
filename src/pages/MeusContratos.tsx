@@ -117,7 +117,7 @@ const MeusContratos = () => {
               const st = STATUS[c.status] || STATUS.pending_admin
               return (
                 <div key={c.id} style={{
-                  background: T.white, border: `1px solid ${T.rule}`, borderRadius: 16,
+                  background: T.white, border: `1px solid ${T.rule}`, borderRadius: 12,
                   padding: 16, boxShadow: `0 1px 4px ${T.shadow}`,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
@@ -176,7 +176,7 @@ const MeusContratos = () => {
 
 const EmptyState = ({ title, text }: { title: string; text: string }) => (
   <div style={{
-    background: T.white, border: `1px dashed ${T.gBorder}`, borderRadius: 18,
+    background: T.white, border: `1px dashed ${T.gBorder}`, borderRadius: 12,
     padding: '38px 22px', textAlign: 'center',
   }}>
     <FileSignature size={26} color={T.green} />

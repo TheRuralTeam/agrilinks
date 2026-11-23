@@ -1,785 +1,604 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  ArrowRight, Check, ChevronDown, Clock3, FileCheck2, Globe2, Handshake, Home, Menu,
-  Route, ShieldCheck, Sprout, Truck as TruckIcon, Users, Wallet, Warehouse, X,
-} from "lucide-react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTractor, faUserTie, faCartShopping, faTruck } from "@fortawesome/free-solid-svg-icons";
-import { MapContainer, TileLayer, Marker, Polyline, Tooltip } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { ArrowRight, MapPin, Menu, Navigation, Play, ShieldCheck, Smartphone, Sprout, X } from "lucide-react";
 
-// Mesma fonte de verdade de cor usada no ecrã de Cadastro — garante que
-// a Landing e o Cadastro nunca desalinham de branding.
-import { T } from "../lib/brand";
+import { FONT, R, T } from "../lib/brand";
+import DailyProductPriceTicker from "../components/DailyProductPriceTicker";
 
 import agrilinkLogo from "../assets/agrilink-logo.png";
 import casaLettoLogo from "../assets/parceiros/Grupo_CasaLetto-no-bg.png";
 import totalEnergiesLogo from "../assets/Parceiros Institucionais/total energies.png";
 import totalEntrepreneursLogo from "../assets/Parceiros Institucionais/Total Energies 100 anos 100 empreendedores.png";
-import theTeamLogo from "../assets/parceiros/Parceiro Tecnologico/THE TEAM.png";
-import ttgiLogo from "../assets/ttgi.jpg";
-import fotoFeliciano from "../assets/FELICIANO.jpeg";
-import fotoMoises from "../assets/MOISES.jpeg";
-import fotoLizeth from "../assets/LIZETH.jpeg";
-import fotoClaudio from "../assets/CLAUDIO.jpeg";
-import heroImage from "../assets/hero-agriculture.jpg";
+import liveTrackingImage from "../assets/agrilink-live-tracking.jpg";
+import appPreviewImage from "../assets/agrilink-app-preview.jpg";
+import { supabase } from "../integrations/supabase/client";
+import { ProductCard, type Product as ProductCardProduct } from "../components/ProductCard";
 
-// ─── Equipa ───────────────────────────────────────────────────────────────
-const team = [
-  { name: "Feliciano Cassoma", role: "Diretor-geral e fundador", image: fotoFeliciano },
-  { name: "Moises Lucamba", role: "Diretor financeiro e fundador", image: fotoMoises },
-  { name: "Claudio Henriques", role: "Diretor operacional e fundador", image: fotoClaudio },
-  { name: "Lizeth Caieie", role: "Gestora da Comunidade AgriLink", image: fotoLizeth },
+// Preencha com os links reais das lojas. Enquanto estiverem vazios,
+// os botões aparecem como "Brevemente" (sem links mortos).
+const PLAY_STORE_URL = "";
+const APP_STORE_URL = "";
+
+const FEED_CACHE_KEY = "agrilink:marketplace:feed";
+
+const NAV_LINKS = [
+  { href: "#mercado", label: "Mercado" },
+  { href: "#como-funciona", label: "Como funciona" },
+  { href: "#rastreio", label: "Rastreio" },
+  { href: "#parceiros", label: "Parceiros" },
+  { href: "#app", label: "App" },
+  { href: "#faq", label: "Perguntas" },
 ];
 
-// ─── Papéis na plataforma — mesmas cores do ecrã de Cadastro ───────────────
-const ROLES = [
-  { id: "agricultor", label: "Fornecedor", desc: "Regista a colheita e vende directamente na rede, sem intermediários a mais.", icon: faTractor, color: "#2c863b" },
-  { id: "agente", label: "Agente", desc: "Liga fornecedores a compradores e acompanha cada negociação até à entrega.", icon: faUserTie, color: "#2c863b" },
-  { id: "comprador", label: "Comprador", desc: "Compra directo da fonte — em grande volume ou num ponto de agregação.", icon: faCartShopping, color: "#2c863b" },
-  { id: "motorista", label: "Motorista", desc: "Transporta cargas entre o campo, os pontos de agregação e o destino final.", icon: faTruck, color: "#2c863b" },
+const HERO_POINTS = [
+  { icon: Sprout, label: "Compra imediata ou colheita futura" },
+  { icon: ShieldCheck, label: "Pagamento em garantia" },
+  { icon: Navigation, label: "Entrega acompanhada no mapa" },
 ];
 
-// ─── Pontos de agregação ────────────────────────────────────────────────────
-// NOTA: coordenadas aproximadas em Luanda, a confirmar com a equipa antes
-// de publicar — os nomes ditados para "Estalagem/Golfe" e "Mangueirinhas"
-// ficam marcados para revisão; "Congolenses" (Rangel) está confirmado.
-type AggregationPoint = {
-  id: string;
-  name: string;
-  area: string;
-  lat: number;
-  lng: number;
-  note: string;
-};
-
-const AGGREGATION_POINTS: AggregationPoint[] = [
+const STEPS = [
   {
-    id: "congolenses",
-    name: "Mercado dos Congolenses",
-    area: "Rangel",
-    lat: -8.8241,
-    lng: 13.2645,
-    note: "Um dos maiores mercados populares de Luanda, no coração do Rangel.",
+    title: "Encontre ou publique",
+    text: "Explore produtos disponíveis e colheitas futuras. Os fornecedores publicam com preço, quantidade e origem.",
   },
   {
-    id: "golfe",
-    name: "Estalagem — Golfe",
-    area: "Kilamba Kiaxi",
-    lat: -8.8967,
-    lng: 13.2456,
-    note: "Ponto de recolha junto à zona do Golfe, no Kilamba Kiaxi.",
+    title: "Pague em garantia",
+    text: "O valor fica retido até a entrega ser confirmada. Só então o fornecedor recebe o pagamento.",
   },
   {
-    id: "mangueirinhas",
-    name: "Mangueirinhas",
-    area: "Kilamba Kiaxi",
-    lat: -8.8814,
-    lng: 13.2308,
-    note: "Ponto de recolha para compradores da zona das Mangueirinhas.",
+    title: "Acompanhe a entrega",
+    text: "Veja a localização da carga e a previsão de chegada no mapa, do envio à recepção.",
   },
 ];
 
-const mapCenter: [number, number] = [
-  AGGREGATION_POINTS.reduce((s, p) => s + p.lat, 0) / AGGREGATION_POINTS.length,
-  AGGREGATION_POINTS.reduce((s, p) => s + p.lng, 0) / AGGREGATION_POINTS.length,
+const FAQ_ITEMS = [
+  { question: "Como posso criar uma conta na AgriLink?", answer: "Selecione “Começar” ou “Criar conta grátis”, escolha o seu perfil e complete o cadastro com os dados solicitados." },
+  { question: "Posso usar a plataforma como visitante?", answer: "Sim. Visitantes podem explorar publicações, pesquisar produtos e consultar perfis públicos. Compras, mensagens e publicação exigem uma conta." },
+  { question: "Como funciona o pagamento em garantia?", answer: "O valor é retido até que a entrega seja confirmada. Só depois a plataforma libera o pagamento ao fornecedor." },
+  { question: "Como acompanho uma entrega?", answer: "Pode consultar localização, estado da rota e previsão da entrega na área de rastreio." },
+  { question: "Posso comprar produtos para entrega imediata?", answer: "Quando um produto está disponível e qualifica para compra imediata, pode iniciar o pedido após criar uma conta." },
+  { question: "Como funciona uma compra futura?", answer: "Permite reservar uma colheita prevista. Quantidade, data e condições são confirmadas com o fornecedor." },
+  { question: "Quem pode publicar produtos?", answer: "Contas de fornecedor podem publicar produtos com preço, quantidade, unidade, origem e data de colheita." },
+  { question: "Como é calculado o frete?", answer: "O frete considera origem, destino, peso ou quantidade e a rota disponível. O valor é confirmado pela equipa logística." },
+  { question: "A minha informação está protegida?", answer: "Dados públicos são separados dos dados privados da conta, pagamentos e contactos administrativos." },
 ];
 
-const networkLines: [number, number][][] = [
-  [[AGGREGATION_POINTS[0].lat, AGGREGATION_POINTS[0].lng], [AGGREGATION_POINTS[1].lat, AGGREGATION_POINTS[1].lng]],
-  [[AGGREGATION_POINTS[1].lat, AGGREGATION_POINTS[1].lng], [AGGREGATION_POINTS[2].lat, AGGREGATION_POINTS[2].lng]],
-  [[AGGREGATION_POINTS[2].lat, AGGREGATION_POINTS[2].lng], [AGGREGATION_POINTS[0].lat, AGGREGATION_POINTS[0].lng]],
-];
+function StoreButton({ href, icon, small, name }: { href: string; icon: React.ReactNode; small: string; name: string }) {
+  const inner = (
+    <>
+      <span className="store-ico" aria-hidden="true">{icon}</span>
+      <span className="store-txt">
+        <small>{href ? small : "Brevemente na"}</small>
+        <strong>{name}</strong>
+      </span>
+    </>
+  );
+  return href ? (
+    <a className="store" href={href} target="_blank" rel="noreferrer">{inner}</a>
+  ) : (
+    <span className="store off" aria-disabled="true">{inner}</span>
+  );
+}
 
-const pinIcon = (color: string) =>
-  L.divIcon({
-    className: "agrilink-pin-wrap",
-    html: `<span class="agrilink-pin" style="--pin-color:${color}"></span>`,
-    iconSize: [30, 30],
-    iconAnchor: [15, 30],
-  });
-
-const productFeatures = [
-  {
-    icon: FileCheck2,
-    title: "Contratos digitais",
-    description: "Formalize compras, vendas e produção num único fluxo simples e rastreável.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Mais confiança",
-    description: "Reduza incerteza com informação clara, documentação organizada e acordos registados.",
-  },
-  {
-    icon: Globe2,
-    title: "Mercado B2B",
-    description: "Conecte produtores, agentes, compradores e transportadores num só sítio.",
-  },
-];
-
-const steps = [
-  "Regista a tua oferta ou a tua necessidade na rede.",
-  "A AgriLink liga-te ao parceiro certo — fornecedor, agente ou comprador.",
-  "Escolhe como recebes: entrega directa ou levantamento num ponto de agregação.",
-];
-
-// ─── O motor do produto — mecânica real da plataforma ──────────────────────
-const engineFeatures = [
-  {
-    icon: Route,
-    tag: "Frete",
-    title: "Preço de transporte calculado pela rota real",
-    description: "Cada frete é orçamentado a partir da distância e das estradas efectivas entre origem e destino, não de uma estimativa em linha recta — o motorista e o comprador sabem o custo antes de aceitar.",
-  },
-  {
-    icon: Users,
-    tag: "Match",
-    title: "Ligação automática entre oferta e procura",
-    description: "Compradores definem o que precisam de forma recorrente — produto, quantidade, zona — e a AgriLink liga essa necessidade a novos lotes assim que eles entram na rede.",
-  },
-  {
-    icon: Wallet,
-    tag: "Pagamento",
-    title: "Dinheiro retido em garantia até à entrega",
-    description: "O comprador deposita na plataforma, o valor fica retido, e só é libertado ao fornecedor e ao motorista quando a entrega é confirmada por ambas as partes.",
-  },
-  {
-    icon: TruckIcon,
-    tag: "Logística",
-    title: "O motorista escolhe a carga que transporta",
-    description: "Cada motorista vê as cargas disponíveis na sua zona e aceita as que lhe convêm — sem despacho central a impor rotas.",
-  },
-];
-
-const faqs = [
-  {
-    q: "Como é que o pagamento fica protegido?",
-    a: "O valor do comprador fica retido em garantia dentro da plataforma assim que o contrato é aceite, e só é libertado ao fornecedor e ao motorista depois da entrega confirmada por ambas as partes.",
-  },
-  {
-    q: "Preciso de camião próprio para vender na AgriLink?",
-    a: "Não. Podes registar a colheita e escolher entre entrega por um motorista da rede ou levantamento por um comprador num ponto de agregação.",
-  },
-  {
-    q: "Como é calculado o preço do transporte?",
-    a: "O frete é calculado com base na rota real entre a origem e o destino, para que o custo apresentado reflicta a distância e as estradas que o motorista vai percorrer.",
-  },
-  {
-    q: "O que acontece se eu comprar um volume pequeno?",
-    a: "És ligado ao ponto de agregação mais próximo, onde levantas o produto ao preço de produtor, sem precisares de receber uma entrega directa em grande escala.",
-  },
-];
+function readCachedFeed(): ProductCardProduct[] {
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(FEED_CACHE_KEY) || "null");
+    return cached?.expiresAt > Date.now() && Array.isArray(cached.products)
+      ? (cached.products as ProductCardProduct[]).slice(0, 3)
+      : [];
+  } catch {
+    return [];
+  }
+}
 
 export default function AgriLinkLanding() {
   const navigate = useNavigate();
+  const rootRef = React.useRef<HTMLElement>(null);
+  const [ready, setReady] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
-  const [openFaq, setOpenFaq] = React.useState<number | null>(0);
-
+  const [featuredProducts, setFeaturedProducts] = React.useState<ProductCardProduct[]>(readCachedFeed);
+  const [feedLoaded, setFeedLoaded] = React.useState(() => readCachedFeed().length > 0);
   const goToRegister = () => navigate("/cadastro");
+
+  React.useEffect(() => {
+    let active = true;
+    void supabase
+      .from("products_public")
+      .select("id, user_id, product_type, price, quantity, harvest_date, sale_unit, province_id, municipality_id, farmer_name, photos, status, created_at, description")
+      .gt("quantity", 0)
+      .order("created_at", { ascending: false })
+      .limit(3)
+      .then(({ data, error }) => {
+        if (!active) return;
+        setFeedLoaded(true);
+        if (error || !data) return;
+        const realProducts = (data as unknown as Array<Record<string, unknown>>).map((row) => ({
+          id: String(row.id),
+          user_id: String(row.user_id || ""),
+          product_type: String(row.product_type || "Produto"),
+          description: row.description == null ? null : String(row.description),
+          quantity: Number(row.quantity || 0),
+          harvest_date: String(row.harvest_date || ""),
+          price: Number(row.price || 0),
+          province_id: String(row.province_id || ""),
+          municipality_id: String(row.municipality_id || ""),
+          farmer_name: String(row.farmer_name || "Fornecedor"),
+          photos: Array.isArray(row.photos) ? (row.photos as string[]) : null,
+          status: String(row.status || "active"),
+          created_at: row.created_at == null ? null : String(row.created_at),
+          sale_unit: row.sale_unit == null ? "kg" : String(row.sale_unit),
+          min_order_quantity: 1,
+          comments_count: 0,
+          is_liked: false,
+          likes_count: 0,
+        }));
+        setFeaturedProducts(realProducts);
+        try {
+          sessionStorage.setItem(FEED_CACHE_KEY, JSON.stringify({
+            expiresAt: Date.now() + 5 * 60_000,
+            products: realProducts,
+          }));
+        } catch {}
+      });
+    return () => { active = false; };
+  }, []);
+
+  // Revelação suave ao fazer scroll (desativada com prefers-reduced-motion via CSS).
+  React.useEffect(() => {
+    setReady(true);
+    const els = Array.from(rootRef.current?.querySelectorAll(".rv") ?? []);
+    if (!("IntersectionObserver" in window)) {
+      els.forEach((e) => e.classList.add("in"));
+      return undefined;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((en) => {
+          if (en.isIntersecting) {
+            en.target.classList.add("in");
+            io.unobserve(en.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -6% 0px" }
+    );
+    els.forEach((e) => io.observe(e));
+    return () => io.disconnect();
+  }, []);
+
+  // Menu móvel: fecha com a tecla Esc.
+  React.useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   return (
     <main
-      className="agrilink-page"
+      ref={rootRef}
+      className={`al ${ready ? "js" : ""}`}
       style={
         {
           "--ink": T.ink,
-          "--muted": T.muted,
+          "--muted": T.mid,
           "--line": T.rule,
-          "--soft": T.canvas,
+          "--canvas": T.canvas,
           "--white": T.white,
           "--green": T.g600,
           "--green-dark": T.g900,
           "--green-light": T.g400,
-          "--gold": T.gold,
-          "--gold-light": T.goldL,
-          "--gold-bg": T.goldBg,
+          "--green-50": T.g50,
+          "--green-700": T.g700,
+          "--radius-card": `${R.md}px`,
         } as React.CSSProperties
       }
     >
       <style>{`
-        * { box-sizing: border-box; }
-        html { scroll-behavior: smooth; }
-        .agrilink-page { margin: 0; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; color: var(--ink); background: var(--white); overflow: hidden; }
-        .agrilink-page button, .agrilink-page a { font: inherit; }
-        .agrilink-page button { cursor: pointer; }
-        .agrilink-page a { color: inherit; text-decoration: none; }
+        .al, .al *, .al *::before, .al *::after { box-sizing: border-box; }
+        @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+        :where(.al) a { color: inherit; text-decoration: none; }
+        :where(.al) button { font: inherit; cursor: pointer; }
+        .al { margin: 0; font-family: ${FONT}; color: var(--ink); background: var(--canvas); overflow-x: clip; }
+        .al :focus-visible { outline: 3px solid var(--green); outline-offset: 3px; }
+        .app-panel :focus-visible, .final-cta :focus-visible, footer :focus-visible { outline-color: #fff; }
+        .al section[id] { scroll-margin-top: 128px; }
 
-        .container { width: min(1160px, calc(100% - 48px)); margin: 0 auto; }
+        .wrap { width: min(1160px, calc(100% - 48px)); margin: 0 auto; }
+        .disp { font-weight: 800; letter-spacing: -.035em; }
+        .kick { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--green-700); }
 
-        .nav { position: absolute; z-index: 20; inset: 0 0 auto; border-bottom: 1px solid rgba(255,255,255,.16); color: white; }
-        .nav-inner { height: 78px; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
-        .brand img { width: 142px; display: block; filter: brightness(0) invert(1); }
-        .nav-links { display: flex; align-items: center; gap: 28px; font-size: 13px; color: rgba(255,255,255,.8); }
-        .nav-links a:hover { color: white; }
-        .nav-actions { display: flex; align-items: center; gap: 10px; }
-        .login-btn { color: white; border: 1px solid rgba(255,255,255,.35); background: transparent; border-radius: 6px; padding: 10px 18px; font-size: 13px; font-weight: 600; }
-        .register-btn { color: var(--green-dark); border: 0; background: var(--white); border-radius: 6px; padding: 11px 19px; font-weight: 800; font-size: 13px; transition: background .18s ease, transform .18s ease; }
-        .register-btn:hover { background: #f3f6f3; transform: translateY(-2px); }
-        .menu-button { display: none; border: 0; background: transparent; color: white; }
+        /* Botões */
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 0 22px; border: 1px solid transparent; border-radius: var(--radius-card); font-size: 15px; font-weight: 700; white-space: nowrap; transition: background .18s ease, border-color .18s ease, color .18s ease; }
+        .btn-primary { background: var(--green); color: #fff; }
+        .btn-primary:hover { background: var(--green-dark); }
+        .btn-ghost { background: var(--white); color: var(--ink); border-color: var(--line); }
+        .btn-ghost:hover { border-color: var(--green); color: var(--green-700); }
+        .btn-sm { min-height: 42px; padding: 0 18px; font-size: 14px; }
 
-        .hero { min-height: 660px; position: relative; display: flex; align-items: center; color: white; background: linear-gradient(100deg, ${T.g900} 0%, rgba(16,35,26,.86) 45%, rgba(16,35,26,.24) 100%), url(${heroImage}) center/cover; }
-        .hero-content { position: relative; z-index: 1; padding: 132px 0 92px; max-width: 700px; }
-        .eyebrow { display: inline-flex; align-items: center; gap: 9px; color: var(--gold-light); font-size: 13px; font-weight: 700; }
-        .eyebrow::before { content: ''; width: 26px; height: 2px; background: var(--gold-light); }
-        .hero h1 { margin: 20px 0 22px; font-weight: 800; font-size: 56px; line-height: 1.08; }
-        .hero-copy { max-width: 540px; color: rgba(255,255,255,.8); font-size: 17px; line-height: 1.75; font-weight: 500; }
-        .hero-actions { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 12px; }
-        .btn-primary, .btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 9px; border-radius: 6px; padding: 15px 23px; font-size: 14px; font-weight: 700; transition: transform .18s ease, background .18s ease, box-shadow .18s ease; }
-        .btn-primary { border: 0; background: var(--white); color: var(--green-dark); }
-        .btn-ghost { border: 1px solid rgba(255,255,255,.35); color: white; background: rgba(255,255,255,.05); }
-        .btn-primary:hover, .btn-ghost:hover { transform: translateY(-2px); }
-        .btn-primary:hover { background: #f3f6f3; }
-        .btn-ghost:hover { background: rgba(255,255,255,.12); }
+        /* Topo: ticker e menu num único bloco fixo */
+        .chrome { position: sticky; top: 0; z-index: 30; }
+        .live-ticker-bar { height: 52px; background: var(--green-700); color: #fff; }
+        .live-ticker-bar .wrap { display: flex; align-items: center; height: 52px; }
+        .live-ticker-bar .daily-price-ticker { color: #fff; }
+        .live-ticker-bar .daily-price-heading { color: #fff; }
+        .live-ticker-bar .daily-price-heading > svg,
+        .live-ticker-bar .daily-price-item strong,
+        .live-ticker-bar .daily-price-item b { color: #fff; }
+        .live-ticker-bar .daily-price-item { color: rgba(255,255,255,.85); }
+        .live-ticker-bar .daily-price-refresh { color: rgba(255,255,255,.75); }
+        .live-ticker-bar .daily-price-live { background: rgba(255,255,255,.16); color: #fff; }
+        .live-ticker-bar .daily-price-live i { background: #fff; }
+        .live-ticker-bar .daily-price-fallback { background: rgba(255,255,255,.16); color: #fff; }
 
-        .partnership-announcement { padding: 24px 0; background: #f7f8f4; border-bottom: 1px solid #e3e8df; }
-        .partnership-card { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 24px; padding: 26px 30px; background: #fff; border: 1px solid #e2e7de; border-left: 4px solid ${T.gold}; border-radius: 10px; box-shadow: 0 8px 28px rgba(21,40,27,.045); }
-        .partnership-brand { width: 170px; min-height: 74px; display: flex; align-items: center; justify-content: center; padding-right: 24px; border-right: 1px solid #e5e9e2; }
-        .partnership-brand img { display: block; max-width: 100%; max-height: 66px; object-fit: contain; }
-        .partnership-copy { min-width: 0; }
-        .partnership-kicker { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 7px; color: ${T.g600}; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-        .partnership-copy h2 { margin: 0 0 7px; color: ${T.ink}; font-size: 21px; line-height: 1.3; font-weight: 800; }
-        .partnership-copy p { max-width: 690px; margin: 0; color: ${T.muted}; font-size: 13.5px; line-height: 1.7; }
-        .partnership-cta { display: inline-flex; align-items: center; justify-content: center; gap: 9px; white-space: nowrap; padding: 12px 16px; border: 1px solid #d8e0d5; border-radius: 6px; background: #f8faf7; color: ${T.g900}; font-size: 12px; font-weight: 800; transition: background .18s ease, transform .18s ease; }
-        .partnership-cta:hover { background: #edf3eb; transform: translateY(-1px); }
-        .partnership-cta:focus-visible { outline: 2px solid ${T.g600}; outline-offset: 3px; }
-        .partners { padding: 34px 0; border-bottom: 1px solid var(--line); }
-        .partners-inner { display: grid; grid-template-columns: .65fr 1.35fr; align-items: center; gap: 18px; }
-        .partners-intro { max-width: 290px; }
-        .partners-intro p { margin: 0 0 7px; color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
-        .partners-intro h2 { margin: 0; font-size: 20px; line-height: 1.35; font-weight: 800; }
-        .partner-list { display: grid; grid-template-columns: minmax(148px, .8fr) minmax(377px, 1.8fr) minmax(148px, 1fr); }
-        .partner-item { min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 4px 18px; border-left: 1px solid var(--line); text-align: center; }
-        .partner-item:first-child { border-left: 0; padding-left: 0; }
-        .partner-role { color: var(--muted); font-size: 10px; line-height: 1.4; font-weight: 700; text-transform: uppercase; }
-        .partner-item img { display: block; width: auto; max-width: 100%; height: 44px; object-fit: contain; object-position: center; }
-        .partner-link { display: inline-flex; align-items: center; justify-content: center; width: 100%; max-width: 220px; height: 100px; }
-        .partner-link:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; }
-        .partner-logos { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 14px; max-width: 100%; }
-        .partner-logos .total-logo { width: 136px; height: 44px; }
-        .partner-logos .program-logo { width: 190px; height: 100px; object-fit: contain; object-position: center; }
-        .partner-item .the-team-logo { width: 148px; height: 100px; object-fit: contain; object-position: center; }
-        .partner-item .casaletto-logo { width: 100%; height: auto; max-height: 64px; }
+        .top { position: relative; background: var(--white); border-bottom: 1px solid var(--line); }
+        .top-in { height: 68px; display: flex; align-items: center; gap: 28px; }
+        .top-logo { display: flex; align-items: center; }
+        .top-logo img { display: block; width: 128px; height: auto; }
+        .top-links { margin-left: auto; display: flex; gap: 2px; }
+        .top-links a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border-radius: var(--radius-card); font-size: 14px; font-weight: 600; color: var(--muted); transition: color .15s ease, background .15s ease; }
+        .top-links a:hover { color: var(--green-700); background: var(--green-50); }
+        .top-actions { display: flex; align-items: center; gap: 8px; }
+        .burger { display: none; width: 42px; height: 42px; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--white); color: var(--ink); }
 
-        @media (max-width: 1130px) {
-          .partnership-card { grid-template-columns: auto minmax(0,1fr); gap: 18px; }
-          .partnership-cta { grid-column: 2; justify-self: start; }
-          .partners-inner { grid-template-columns: 1fr; gap: 12px; }
-          .partners-intro { max-width: none; }
+        /* Secções */
+        .sec { padding: 96px 0; }
+        .sec-white { background: var(--white); border-block: 1px solid var(--line); }
+        .sec-head { max-width: 620px; margin-bottom: 44px; }
+        .h2 { margin: 12px 0 0; font-size: clamp(30px, 3.6vw, 42px); line-height: 1.12; letter-spacing: -.035em; color: var(--ink); }
+        .lead { margin: 16px 0 0; font-size: 17px; line-height: 1.65; font-weight: 500; color: var(--muted); }
+
+        /* Hero */
+        .hero { padding: 72px 0 96px; }
+        .hero-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 64px; align-items: center; }
+        .hero h1 { margin: 16px 0 0; font-size: clamp(40px, 5vw, 64px); line-height: 1.06; letter-spacing: -.045em; color: var(--ink); }
+        .hero h1 .accent { color: var(--green); }
+        .hero-copy { max-width: 520px; margin: 22px 0 0; font-size: 17px; line-height: 1.7; font-weight: 500; color: var(--muted); }
+        .hero-actions { margin-top: 32px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .hero-points { margin: 40px 0 0; padding: 24px 0 0; list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; border-top: 1px solid var(--line); }
+        .hero-points li { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 1.4; font-weight: 600; color: var(--ink); }
+        .hero-points svg { color: var(--green); }
+
+        .phone-frame { margin: 0 auto; width: min(100%, 300px); padding: 10px; background: var(--white); border: 1px solid var(--line); border-radius: 32px; box-shadow: 0 20px 48px rgba(17,24,20,.10); }
+        .phone-frame img { display: block; width: 100%; height: auto; border-radius: 22px; }
+        .hero-visual { display: flex; justify-content: center; }
+
+        /* Mercado */
+        .featured-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 32px; }
+        .featured-heading .sec-head { margin-bottom: 0; }
+        .featured-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+        .featured-product-card { min-width: 0; }
+        .featured-empty { padding: 40px 24px; text-align: center; border: 1px dashed var(--line); border-radius: var(--radius-card); background: var(--white); color: var(--muted); font-size: 15px; font-weight: 500; }
+
+        /* Como funciona */
+        .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 0; padding: 0; list-style: none; counter-reset: step; }
+        .step { counter-increment: step; padding: 28px; background: var(--canvas); border: 1px solid var(--line); border-radius: var(--radius-card); }
+        .step::before { content: counter(step, decimal-leading-zero); display: block; margin-bottom: 20px; font-size: 14px; font-weight: 800; letter-spacing: .04em; color: var(--green); font-variant-numeric: tabular-nums; }
+        .step h3 { margin: 0 0 8px; font-size: 20px; line-height: 1.25; letter-spacing: -.02em; }
+        .step p { margin: 0; font-size: 15px; line-height: 1.65; font-weight: 500; color: var(--muted); }
+
+        /* Rastreio */
+        .track { display: grid; grid-template-columns: 1.1fr .9fr; gap: 64px; align-items: center; }
+        .track-points { margin: 32px 0 0; padding: 0; max-width: 480px; list-style: none; border-top: 1px solid var(--line); }
+        .track-points li { display: flex; align-items: center; gap: 14px; min-height: 56px; border-bottom: 1px solid var(--line); font-size: 15px; font-weight: 600; }
+        .track-points svg { color: var(--green); flex-shrink: 0; }
+
+        /* Parceiros */
+        .partners { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 24px 72px; padding: 40px 32px; background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-card); }
+        .partners img { display: block; height: 52px; width: auto; max-width: 220px; object-fit: contain; }
+        .partners img.tall { height: 72px; }
+
+        /* App */
+        .app-panel { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; padding: 56px; background: var(--green-700); color: #fff; border-radius: var(--radius-card); }
+        .app-panel .kick { color: #fff; opacity: .9; }
+        .app-panel h2 { margin: 12px 0 0; font-size: clamp(30px, 3.6vw, 42px); line-height: 1.1; }
+        .app-panel p { margin: 16px 0 0; max-width: 460px; font-size: 17px; line-height: 1.65; font-weight: 500; color: rgba(255,255,255,.92); }
+        .stores { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; justify-self: end; width: min(100%, 300px); }
+        .store { display: inline-flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; padding: 8px 22px 8px 14px; background: #fff; color: var(--ink); border-radius: var(--radius-card); transition: transform .15s ease; }
+        a.store:hover { transform: translateY(-2px); }
+        .store-ico { width: 40px; height: 40px; display: grid; place-items: center; flex-shrink: 0; border-radius: var(--radius-card); background: var(--green-50); color: var(--green-700); }
+        .store-txt { display: flex; flex-direction: column; line-height: 1.15; }
+        .store-txt small { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+        .store-txt strong { font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
+        .store.off { cursor: default; background: transparent; color: #fff; border: 1px dashed rgba(255,255,255,.55); }
+        .store.off .store-ico { background: #fff; color: var(--ink); }
+        .store.off .store-txt small { color: rgba(255,255,255,.85); }
+
+        /* FAQ */
+        .faq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+        .faq-item { background: var(--canvas); border: 1px solid var(--line); border-radius: var(--radius-card); overflow: hidden; }
+        .faq-item summary { position: relative; min-height: 64px; display: flex; align-items: center; padding: 18px 56px 18px 20px; color: var(--ink); font-size: 15px; font-weight: 700; cursor: pointer; list-style: none; }
+        .faq-item summary::-webkit-details-marker { display: none; }
+        .faq-item summary::after { content: '+'; position: absolute; right: 18px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--radius-card); background: var(--green-50); color: var(--green-700); font-size: 18px; }
+        .faq-item[open] summary::after { content: '−'; background: var(--green); color: #fff; }
+        .faq-item p { margin: 0; padding: 0 20px 20px; color: var(--muted); font-size: 15px; line-height: 1.7; font-weight: 500; }
+
+        /* CTA final */
+        .final-cta { padding: 88px 0; background: var(--green-50); border-top: 1px solid var(--line); }
+        .final-cta-in { display: flex; align-items: center; justify-content: space-between; gap: 40px; }
+        .final-cta h2 { margin: 0; max-width: 640px; font-size: clamp(32px, 4.4vw, 52px); line-height: 1.08; }
+        .final-cta p { margin: 16px 0 0; max-width: 460px; font-size: 17px; line-height: 1.6; font-weight: 500; color: var(--muted); }
+
+        /* Rodapé */
+        footer { padding: 56px 0 28px; background: #17231b; color: #fff; }
+        .foot { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 36px; font-size: 14px; line-height: 1.7; font-weight: 500; }
+        .foot img { display: block; width: 124px; margin-bottom: 16px; }
+        .foot strong { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.78); }
+        .foot address { font-style: normal; }
+        .foot p { margin: 0; }
+        .foot .foot-name { font-size: 15px; font-weight: 700; }
+        .foot a { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+        .foot-legal { grid-column: 1 / -1; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.16); font-size: 13px; color: rgba(255,255,255,.78); }
+
+        /* Revelação ao scroll */
+        @media (prefers-reduced-motion: no-preference) {
+          @keyframes rv { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+          .js .rv { opacity: 0; }
+          .js .rv.in { opacity: 1; animation: rv .5s cubic-bezier(.2,.7,.2,1) var(--d, 0s) backwards; }
         }
 
-        .intro { padding: 108px 0 96px; }
-        .intro-grid { display: grid; grid-template-columns: .82fr 1.18fr; gap: 80px; align-items: start; }
-        .section-title { margin: 14px 0 16px; font-weight: 800; font-size: 40px; line-height: 1.12; }
-        .section-copy { color: var(--muted); font-size: 15.5px; line-height: 1.8; max-width: 520px; font-weight: 500; }
-        .feature-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-        .feature { border-top: 1px solid var(--line); padding-top: 20px; }
-        .feature-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: var(--gold-bg); color: var(--green); margin-bottom: 24px; }
-        .feature h3 { margin: 0 0 9px; font-size: 15.5px; font-weight: 800; }
-        .feature p { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.65; font-weight: 500; }
+        @media (max-width: 920px) {
+          .live-ticker-bar, .live-ticker-bar .wrap { height: 48px; }
+          .top-in { gap: 12px; height: 64px; }
+          .top-actions { margin-left: auto; }
+          .burger { display: inline-flex; }
+          .top-links { display: none; position: absolute; top: 100%; left: 0; right: 0; margin: 0; padding: 8px 24px 16px; flex-direction: column; gap: 0; background: var(--white); border-bottom: 1px solid var(--line); box-shadow: 0 16px 24px rgba(17,24,20,.08); }
+          .top-links.open { display: flex; }
+          .top-links a { min-height: 48px; font-size: 16px; }
+          .al section[id] { scroll-margin-top: 116px; }
 
-        /* ── Papéis (mesmo vocabulário visual do Cadastro) ───────────────── */
-        .roles { background: var(--soft); padding: 100px 0; }
-        .roles-head { max-width: 600px; margin-bottom: 44px; }
-        .roles-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-        .role-card { background: var(--white); border: 1.5px solid var(--line); border-radius: 8px; padding: 26px 22px; transition: transform .18s ease, border-color .18s ease; }
-        .role-card:hover { transform: translateY(-3px); }
-        .role-icon { width: 46px; height: 46px; border-radius: 13px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
-        .role-card h3 { margin: 0 0 8px; font-size: 16px; font-weight: 800; }
-        .role-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; font-weight: 500; }
-
-        /* ── O motor do produto ───────────────────────────────────────────── */
-        .engine { padding: 108px 0; }
-        .engine-head { max-width: 600px; margin-bottom: 44px; }
-        .engine-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
-        .engine-card { border: 1.5px solid var(--line); border-radius: 8px; padding: 26px 26px 24px; }
-        .engine-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
-        .engine-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: var(--gold-bg); color: var(--green); }
-        .engine-tag { font-size: 11.5px; font-weight: 800; color: var(--gold); background: var(--gold-bg); border-radius: 999px; padding: 5px 12px; }
-        .engine-card h3 { margin: 0 0 10px; font-size: 16.5px; font-weight: 800; line-height: 1.35; }
-        .engine-card p { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.65; font-weight: 500; }
-
-        /* ── FAQ ──────────────────────────────────────────────────────────── */
-        .faq { padding: 108px 0; }
-        .faq-inner { display: grid; grid-template-columns: .8fr 1.2fr; gap: 64px; align-items: start; }
-        .faq-head { max-width: 380px; }
-        .faq-list { display: flex; flex-direction: column; }
-        .faq-item { border-top: 1px solid var(--line); }
-        .faq-item:last-child { border-bottom: 1px solid var(--line); }
-        .faq-question { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: transparent; border: 0; padding: 22px 2px; text-align: left; font-size: 15px; font-weight: 700; color: var(--ink); }
-        .faq-chevron { flex-shrink: 0; color: var(--green); transition: transform .2s ease; }
-        .faq-item.open .faq-chevron { transform: rotate(180deg); }
-        .faq-answer { margin: -6px 2px 22px; color: var(--muted); font-size: 13.5px; line-height: 1.7; font-weight: 500; max-width: 56ch; }
-
-        /* ── Pontos de agregação ──────────────────────────────────────────── */
-        .aggregation { padding: 112px 0 100px; position: relative; }
-        .aggregation-head { max-width: 640px; margin: 0 auto 20px; text-align: center; }
-        .aggregation-head .eyebrow { color: var(--gold); }
-        .aggregation-head .eyebrow::before { background: var(--gold); }
-        .aggregation-explainer { max-width: 760px; margin: 0 auto 56px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-        .explain-card { border: 1.5px solid var(--line); border-radius: 8px; padding: 22px 24px; background: var(--white); }
-        .explain-card .row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-        .explain-card .row-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .explain-card h4 { margin: 0; font-size: 14.5px; font-weight: 800; }
-        .explain-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; font-weight: 500; }
-
-        .map-block { position: relative; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-        .map-inner { overflow: hidden; background: var(--white); display: grid; grid-template-columns: 1.5fr 1fr; min-height: 460px; }
-        .map-canvas { position: relative; }
-        .map-canvas .leaflet-container { height: 100%; width: 100%; min-height: 460px; background: #eef3ea; }
-        .map-legend { padding: 30px 26px; display: flex; flex-direction: column; gap: 0; border-left: 1px solid var(--line); }
-        .map-legend-head { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--gold); margin-bottom: 4px; }
-        .map-legend h3 { margin: 2px 0 18px; font-size: 19px; font-weight: 800; line-height: 1.25; }
-        .point-row { display: flex; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); }
-        .point-row:first-of-type { border-top: 1px solid var(--line); }
-        .point-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); margin-top: 6px; flex-shrink: 0; box-shadow: 0 0 0 4px rgba(45,125,58,.14); }
-        .point-row strong { display: block; font-size: 13.5px; font-weight: 800; }
-        .point-row span { display: block; font-size: 12px; color: var(--muted); font-weight: 500; margin-top: 2px; line-height: 1.5; }
-
-        .agrilink-pin { position: relative; display: block; width: 28px; height: 28px; }
-        .agrilink-pin::before { content: ''; position: absolute; inset: 0; background: var(--pin-color); border: 3px solid white; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 3px 10px rgba(0,0,0,.28); }
-        .agrilink-flow-line { stroke-dasharray: 8 7; animation: flow 2.6s linear infinite; }
-        @keyframes flow { to { stroke-dashoffset: -60; } }
-        @media (prefers-reduced-motion: reduce) { .agrilink-flow-line { animation: none; } }
-
-        .steps-strip { padding: 0 0 112px; }
-        .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
-        .step-card { border-top: 2px solid var(--green); padding-top: 20px; }
-        .step-num { color: var(--green); font-weight: 800; font-size: 26px; }
-        .step-card p { margin: 6px 0 0; color: var(--muted); font-size: 14px; line-height: 1.6; font-weight: 500; }
-
-        .team { padding: 108px 0; }
-        .team-head { max-width: 550px; margin-bottom: 46px; }
-        .team-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
-        .team-card { border-top: 1px solid var(--line); padding-top: 14px; }
-        .team-card img { width: 100%; aspect-ratio: 1 / 1.12; object-fit: cover; border-radius: 8px; filter: saturate(.85); display: block; margin-bottom: 16px; }
-        .team-name { font-size: 15.5px; font-weight: 800; }
-        .team-role { margin-top: 4px; color: var(--muted); font-size: 12.5px; font-weight: 500; }
-
-        .cta { padding: 20px 0 100px; }
-        .cta-box { position: relative; overflow: hidden; border-radius: 8px; padding: 64px; background: var(--green); color: white; display: flex; align-items: end; justify-content: space-between; gap: 40px; }
-        .cta-box > * { position: relative; z-index: 1; }
-        .cta-box h2 { margin: 14px 0 14px; max-width: 600px; font-size: 44px; font-weight: 800; line-height: 1.08; }
-        .cta-box p { margin: 0; max-width: 480px; color: rgba(255,255,255,.78); line-height: 1.7; font-weight: 500; }
-        .cta-box .btn-primary { white-space: nowrap; }
-
-        footer { background: var(--green-dark); color: white; padding: 42px 0 28px; }
-        .footer-inner { display: grid; grid-template-columns: 1.1fr 1fr 1fr; align-items: start; gap: 36px; }
-        .footer-brand img { width: 124px; filter: brightness(0) invert(1); }
-        .footer-copy { color: rgba(255,255,255,.5); font-size: 12px; line-height: 1.6; }
-        .footer-company { margin-top: 16px; color: rgba(255,255,255,.68); font-size: 12px; line-height: 1.7; }
-        .footer-company strong { display: block; color: white; font-size: 13px; margin-bottom: 4px; }
-        .footer-contact { color: rgba(255,255,255,.65); font-size: 12px; line-height: 1.9; }
-        .footer-contact a { color: var(--gold-light); }
-        .footer-ttgi { display: flex; align-items: center; justify-content: flex-end; gap: 12px; color: rgba(255,255,255,.5); font-size: 11px; text-align: right; }
-        .footer-ttgi img { width: 86px; max-height: 52px; object-fit: contain; border-radius: 8px; background: white; padding: 5px; }
-
-        @media (max-width: 900px) {
-          .footer-inner { grid-template-columns: 1fr; gap: 22px; }
-          .footer-ttgi { justify-content: flex-start; text-align: left; }
-          .partner-list { grid-template-columns: 1fr; }
-          .partner-item { border-left: 0; border-top: 1px solid var(--line); padding: 14px 18px; }
-          .partner-item:first-child { border-top: 0; }
-          .partner-logos { gap: 10px; }
-          .partner-logos .total-logo { width: 120px; height: 42px; }
-          .partner-logos .program-logo { width: 124px; height: 82px; }
-          .partner-link { height: 82px; }
-          .partner-item .the-team-logo { width: 132px; height: 88px; }
-          .hero h1 { font-size: 44px; }
-          .section-title { font-size: 34px; }
-          .nav-links, .nav-actions { display: none; }
-          .menu-button { display: block; }
-          .nav.mobile-open { background: var(--green-dark); }
-          .nav.mobile-open .nav-inner { height: auto; padding: 20px 0; align-items: flex-start; flex-wrap: wrap; }
-          .nav.mobile-open .nav-links, .nav.mobile-open .nav-actions { display: flex; }
-          .nav.mobile-open .nav-links { order: 3; width: 100%; flex-direction: column; align-items: flex-start; padding: 20px 0 5px; }
-          .nav.mobile-open .nav-actions { order: 4; width: 100%; justify-content: flex-start; }
-          .intro-grid { grid-template-columns: 1fr; gap: 44px; }
-          .roles-grid { grid-template-columns: repeat(2, 1fr); }
-          .engine-grid { grid-template-columns: 1fr; }
-          .faq-inner { grid-template-columns: 1fr; gap: 28px; }
-          .aggregation-explainer { grid-template-columns: 1fr; }
-          .map-inner { grid-template-columns: 1fr; }
-          .map-canvas .leaflet-container, .map-canvas { min-height: 320px; }
-          .steps-grid { grid-template-columns: 1fr; }
-          .team-grid { grid-template-columns: repeat(2, 1fr); }
-          .cta-box { padding: 44px 30px; display: block; }
-          .cta-box .btn-primary { margin-top: 26px; }
+          .sec { padding: 72px 0; }
+          .hero { padding: 48px 0 72px; }
+          .hero-grid, .track { grid-template-columns: 1fr; gap: 48px; }
+          .hero-visual, .track .phone-frame { order: 2; }
+          .steps { grid-template-columns: 1fr; }
+          .faq-grid { grid-template-columns: 1fr; }
+          .app-panel { grid-template-columns: 1fr; padding: 40px 28px; gap: 28px; }
+          .stores { justify-self: start; }
+          .final-cta { padding: 64px 0; }
+          .final-cta-in { flex-direction: column; align-items: flex-start; gap: 28px; }
+          .foot { grid-template-columns: 1fr 1fr; }
+          .foot > :first-child { grid-column: 1 / -1; }
         }
-        @media (max-width: 580px) {
-          .partnership-announcement { padding: 16px 0; }
-          .partnership-card { grid-template-columns: 1fr; gap: 15px; padding: 20px; }
-          .partnership-brand { width: 100%; min-height: 48px; justify-content: flex-start; padding: 0 0 14px; border-right: 0; border-bottom: 1px solid #e5e9e2; }
-          .partnership-brand img { max-height: 46px; max-width: 180px; }
-          .partnership-copy h2 { font-size: 19px; }
-          .partnership-cta { grid-column: 1; width: 100%; }
-          .container { width: min(100% - 32px, 1160px); }
-          .hero { min-height: 640px; }
-          .hero-content { padding-top: 132px; }
-          .hero h1 { font-size: 36px; }
-          .section-title { font-size: 30px; }
-          .partners-inner { grid-template-columns: 1fr; gap: 22px; }
-          .partners-intro { max-width: none; }
-          .partner-list { grid-template-columns: 1fr; }
-          .partner-item { padding: 14px 0; }
-          .partner-item img { height: 40px; }
-          .partner-logos .total-logo { width: 130px; height: 42px; }
-          .partner-logos .program-logo { width: 152px; height: 88px; }
-          .partner-link { height: 88px; }
-          .feature-list, .roles-grid, .team-grid { grid-template-columns: 1fr; }
-          .intro, .roles, .team, .engine, .faq { padding: 72px 0; }
-          .aggregation { padding: 76px 0 72px; }
-          .footer-inner { align-items: flex-start; flex-direction: column; }
-          .cta-box h2 { font-size: 34px; }
+
+        @media (max-width: 520px) {
+          .wrap { width: min(100% - 32px, 1160px); }
+          .top-logo img { width: 112px; }
+          .top-links { padding: 8px 16px 16px; }
+          .hero h1 { font-size: clamp(36px, 11vw, 46px); }
+          .hero-actions { flex-direction: column; align-items: stretch; }
+          .hero-points { grid-template-columns: 1fr; gap: 14px; }
+          .hero-points li { flex-direction: row; align-items: center; gap: 12px; }
+          .featured-heading { flex-direction: column; align-items: flex-start; }
+          .featured-grid { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 12px; padding-bottom: 8px; scrollbar-width: none; }
+          .featured-grid::-webkit-scrollbar { display: none; }
+          .featured-product-card { flex: 0 0 min(82vw, 300px); scroll-snap-align: start; }
+          .partners { gap: 20px 40px; padding: 28px 20px; }
+          .stores { width: 100%; }
+          .foot { grid-template-columns: 1fr; }
         }
       `}</style>
 
-      <nav className={`nav ${menuOpen ? "mobile-open" : ""}`}>
-        <div className="container nav-inner">
-          <a className="brand" href="#top" aria-label="AgriLink">
-            <img src={agrilinkLogo} alt="AgriLink" />
-          </a>
-          <div className="nav-links">
-            <a href="#produto">Produto</a>
-            <a href="#tecnologia">Como funciona</a>
-            <a href="#agregacao">Pontos de agregação</a>
-            <a href="#faq">FAQ</a>
-            <a href="#equipa">Equipa</a>
+      <div className="chrome">
+        <div className="live-ticker-bar" aria-label="Mercado ao vivo">
+          <div className="wrap">
+            <DailyProductPriceTicker />
           </div>
-          <div className="nav-actions">
-            <button className="login-btn" onClick={() => navigate("/login")}>Entrar</button>
-            <button className="register-btn" onClick={goToRegister}>Começar</button>
-          </div>
-          <button className="menu-button" onClick={() => setMenuOpen((v) => !v)} aria-label="Abrir menu">
-            {menuOpen ? <X size={23} /> : <Menu size={23} />}
-          </button>
         </div>
-      </nav>
 
+        <header className="top">
+          <div className="wrap top-in">
+            <a className="top-logo" href="#top" aria-label="AgriLink"><img src={agrilinkLogo} alt="AgriLink" /></a>
+            <nav id="menu-principal" className={`top-links ${menuOpen ? "open" : ""}`} aria-label="Principal" onClick={() => setMenuOpen(false)}>
+              {NAV_LINKS.map((l) => (
+                <a key={l.href} href={l.href}>{l.label}</a>
+              ))}
+            </nav>
+            <div className="top-actions">
+              <button
+                type="button"
+                className="burger"
+                aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
+                aria-expanded={menuOpen}
+                aria-controls="menu-principal"
+                onClick={() => setMenuOpen((o) => !o)}
+              >
+                {menuOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
+              </button>
+              <button type="button" className="btn btn-primary btn-sm" onClick={goToRegister}>Começar</button>
+            </div>
+          </div>
+        </header>
+      </div>
+
+      {/* HERO */}
       <section className="hero" id="top">
-        <div className="container hero-content">
-          <div className="eyebrow">Mercado agrícola digital de Angola</div>
-          <h1>A tua produção, o teu negócio, numa rede que se encontra.</h1>
-          <p className="hero-copy">
-            A AgriLink liga fornecedores, agentes, compradores e motoristas num só sítio —
-            e leva o produto até quem compra em grande volume ou até ao ponto de agregação
-            mais próximo de quem compra menos.
-          </p>
-          <div className="hero-actions">
-            <button className="btn-primary" onClick={goToRegister}>Aceder à plataforma <ArrowRight size={16} /></button>
-            <a className="btn-ghost" href="#agregacao">Ver pontos de agregação</a>
-          </div>
-        </div>
-      </section>
-
-      <section className="partnership-announcement" aria-labelledby="casaletto-announcement-title">
-        <div className="container">
-          <div className="partnership-card">
-            <div className="partnership-brand">
-              <img src={casaLettoLogo} alt="Grupo CasaLetto" loading="eager" />
-            </div>
-            <div className="partnership-copy">
-              <div className="partnership-kicker"><Handshake size={14} strokeWidth={2} /> Parceria em destaque</div>
-              <h2 id="casaletto-announcement-title">AgriLink e Grupo CasaLetto: mais ligação entre a produção e o mercado.</h2>
-              <p>O Grupo CasaLetto integra a rede AgriLink como parceiro e cliente, reforçando a ligação entre fornecedores agrícolas e as necessidades de abastecimento do mercado.</p>
-            </div>
-            <a className="partnership-cta" href="https://casaletto.co.ao/" target="_blank" rel="noreferrer">
-              Conhecer o Grupo <ArrowRight size={15} />
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <section className="partners" aria-labelledby="partners-title">
-        <div className="container partners-inner">
-          <div className="partners-intro">
-            <p>Uma rede construída em conjunto</p>
-            <h2 id="partners-title">Parcerias que aproximam mercados.</h2>
-          </div>
-          <div className="partner-list">
-            <div className="partner-item">
-              <img className="the-team-logo" src={theTeamLogo} alt="The Team Group Investment" loading="lazy" />
-            </div>
-            <div className="partner-item">
-              <span className="partner-role">Parceiro institucional</span>
-              <div className="partner-logos">
-                <img className="total-logo" src={totalEnergiesLogo} alt="TotalEnergies" loading="lazy" />
-                <img className="program-logo" src={totalEntrepreneursLogo} alt="Programa 100 Anos, 100 Empreendedores da TotalEnergies Angola" loading="lazy" />
-              </div>
-            </div>
-            <div className="partner-item">
-              <span className="partner-role">Parceiro e cliente</span>
-              <a className="partner-link" href="https://casaletto.co.ao/" aria-label="Visitar o site do Grupo CasaLetto">
-                <img className="casaletto-logo" src={casaLettoLogo} alt="Grupo CasaLetto" loading="lazy" />
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="intro" id="produto">
-        <div className="container intro-grid">
+        <div className="wrap hero-grid">
           <div>
-            <div className="eyebrow" style={{ color: T.g600 }}>
-              <span style={{ display: "inline-block", width: 26, height: 2, background: T.g600 }} />
-            </div>
-            <h2 className="section-title">Menos incerteza. Mais negócio.</h2>
-            <p className="section-copy">
-              A AgriLink transforma relações dispersas em operações claras: aproxima quem
-              produz de quem compra, formaliza o acordo e acompanha a carga até chegar
-              ao destino certo — seja uma casa, um armazém ou um ponto de agregação.
+            <span className="kick">Tecnologia para o agronegócio angolano</span>
+            <h1 className="disp">
+              Ligue-se ao <span className="accent">mercado agrícola</span> de Angola.
+            </h1>
+            <p className="hero-copy">
+              Compre para entrega imediata ou garanta a colheita futura. Feche o negócio, pague em garantia
+              e acompanhe a entrega numa só plataforma, que liga produtores, compradores e transportadores.
             </p>
+            <div className="hero-actions">
+              <button type="button" className="btn btn-primary" onClick={goToRegister}>
+                Criar conta grátis <ArrowRight size={18} aria-hidden="true" />
+              </button>
+              <a className="btn btn-ghost" href="#mercado">Explorar publicações</a>
+            </div>
+            <ul className="hero-points">
+              {HERO_POINTS.map(({ icon: Icon, label }) => (
+                <li key={label}><Icon size={22} aria-hidden="true" />{label}</li>
+              ))}
+            </ul>
           </div>
-          <div className="feature-list">
-            {productFeatures.map(({ icon: Icon, title, description }) => (
-              <article className="feature" key={title}>
-                <div className="feature-icon"><Icon size={20} /></div>
-                <h3>{title}</h3>
-                <p>{description}</p>
-              </article>
-            ))}
+
+          <div className="hero-visual">
+            <div className="phone-frame">
+              <img src={appPreviewImage} alt="Prévia da aplicação móvel AgriLink" />
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── Papéis na plataforma ──────────────────────────────────────────── */}
-      <section className="roles">
-        <div className="container">
-          <div className="roles-head">
-            <div className="eyebrow" style={{ color: T.gold }}>
-              <span style={{ display: "inline-block", width: 26, height: 2, background: T.gold }} />
+      {/* MERCADO */}
+      <section className="sec sec-white" id="mercado" aria-labelledby="mercado-title">
+        <div className="wrap">
+          <div className="featured-heading rv">
+            <div className="sec-head">
+              <span className="kick">Mercado ao vivo</span>
+              <h2 className="h2 disp" id="mercado-title">Publicações em destaque</h2>
+              <p className="lead">As publicações mais recentes de fornecedores com stock disponível.</p>
             </div>
-            <h2 className="section-title">Uma rede, quatro papéis.</h2>
-            <p className="section-copy">Cada conta AgriLink tem o seu lugar próprio na cadeia — do campo até à mesa.</p>
-          </div>
-          <div className="roles-grid">
-            {ROLES.map((role) => (
-              <article className="role-card" key={role.id} style={{ borderColor: `${role.color}33` }}>
-                <div className="role-icon" style={{ background: `${role.color}1E` }}>
-                  <FontAwesomeIcon icon={role.icon} style={{ color: role.color, fontSize: 18 }} />
-                </div>
-                <h3 style={{ color: role.color }}>{role.label}</h3>
-                <p>{role.desc}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── O motor do produto ────────────────────────────────────────────── */}
-      <section className="engine" id="tecnologia">
-        <div className="container">
-          <div className="engine-head">
-            <div className="eyebrow" style={{ color: T.g600 }}>
-              <span style={{ display: "inline-block", width: 26, height: 2, background: T.g600 }} />
-              Como funciona por dentro
-            </div>
-            <h2 className="section-title">Não é só um catálogo. É a operação toda.</h2>
-            <p className="section-copy">
-              Por trás de cada negócio fechado na AgriLink há regras concretas a proteger
-              as duas partes — do preço do frete ao momento exacto em que o dinheiro muda de mãos.
-            </p>
-          </div>
-          <div className="engine-grid">
-            {engineFeatures.map(({ icon: Icon, tag, title, description }) => (
-              <article className="engine-card" key={title}>
-                <div className="engine-card-top">
-                  <div className="engine-icon"><Icon size={19} /></div>
-                  <span className="engine-tag">{tag}</span>
-                </div>
-                <h3>{title}</h3>
-                <p>{description}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Pontos de agregação ───────────────────────────────────────────── */}
-      <section className="aggregation" id="agregacao">
-        <div className="container">
-          <div className="aggregation-head">
-            <div className="eyebrow" style={{ justifyContent: "center" }}>Pontos de agregação</div>
-            <h2 className="section-title">A entrega certa para cada tipo de compra.</h2>
-            <p className="section-copy" style={{ margin: "0 auto" }}>
-              Nem todo o comprador consegue levar um camião de tomate para casa —
-              e é por isso que a AgriLink tem pontos de agregação: locais próximos
-              onde compradores informais e de pequena escala levantam os seus produtos
-              ao preço de quem produz.
-            </p>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => navigate("/app")}>
+              Explorar mais <ArrowRight size={16} aria-hidden="true" />
+            </button>
           </div>
 
-          <div className="aggregation-explainer">
-            <div className="explain-card">
-              <div className="row">
-                <div className="row-icon" style={{ background: `${T.g600}1E` }}>
-                  <Home size={17} color={T.g600} />
-                </div>
-                <h4>Grande volume</h4>
-              </div>
-              <p>Quem compra em grande quantidade recebe entrega directa em casa ou no armazém — sem paragens intermédias.</p>
-            </div>
-            <div className="explain-card">
-              <div className="row">
-                <div className="row-icon" style={{ background: `${T.gold}1E` }}>
-                  <Warehouse size={17} color={T.gold} />
-                </div>
-                <h4>Pequeno volume</h4>
-              </div>
-              <p>Quem compra menos levanta no ponto de agregação mais próximo — mais barato para todos, sem perder acesso ao preço de produtor.</p>
-            </div>
-          </div>
-
-          <div className="map-block">
-            <div className="map-inner">
-              <div className="map-canvas">
-                <MapContainer
-                  center={mapCenter}
-                  zoom={12}
-                  scrollWheelZoom={false}
-                  attributionControl={true}
-                >
-                  <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    subdomains="abc"
-                    maxZoom={19}
+          {featuredProducts.length > 0 ? (
+            <div className="featured-grid">
+              {featuredProducts.map((product) => (
+                <div className="featured-product-card" key={product.id}>
+                  <ProductCard
+                    product={product}
+                    onOpenMap={() => navigate(`/produto/${product.id}/localizacao`)}
                   />
-                  {networkLines.map((line, i) => (
-                    <Polyline
-                      key={i}
-                      positions={line}
-                      pathOptions={{ color: T.g600, weight: 2.5, opacity: 0.55, className: "agrilink-flow-line" }}
-                    />
-                  ))}
-                  {AGGREGATION_POINTS.map((point) => (
-                    <Marker key={point.id} position={[point.lat, point.lng]} icon={pinIcon(T.g600)}>
-                      <Tooltip direction="top" offset={[0, -26]}>
-                        <strong>{point.name}</strong><br />{point.area}
-                      </Tooltip>
-                    </Marker>
-                  ))}
-                </MapContainer>
-              </div>
-              <div className="map-legend">
-                <span className="map-legend-head">Rede activa</span>
-                <h3>Os nossos 3 pontos de agregação em Luanda</h3>
-                {AGGREGATION_POINTS.map((point) => (
-                  <div className="point-row" key={point.id}>
-                    <span className="point-dot" />
-                    <div>
-                      <strong>{point.name} — {point.area}</strong>
-                      <span>{point.note}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="steps-strip">
-        <div className="container">
-          <div className="steps-grid">
-            {steps.map((step, i) => (
-              <div className="step-card" key={step}>
-                <div className="step-num">0{i + 1}</div>
-                <p>{step}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── FAQ ──────────────────────────────────────────────────────────── */}
-      <section className="faq" id="faq">
-        <div className="container faq-inner">
-          <div className="faq-head">
-            <div className="eyebrow" style={{ color: T.g600 }}>
-              <span style={{ display: "inline-block", width: 26, height: 2, background: T.g600 }} />
-              Perguntas frequentes
-            </div>
-            <h2 className="section-title">Antes de começar.</h2>
-            <p className="section-copy">Se tiver outra dúvida, fale connosco pelos contactos no fundo da página.</p>
-          </div>
-          <div className="faq-list">
-            {faqs.map((item, i) => {
-              const isOpen = openFaq === i;
-              return (
-                <div className={`faq-item ${isOpen ? "open" : ""}`} key={item.q}>
-                  <button className="faq-question" onClick={() => setOpenFaq(isOpen ? null : i)} aria-expanded={isOpen}>
-                    {item.q}
-                    <ChevronDown size={18} className="faq-chevron" />
-                  </button>
-                  {isOpen && <p className="faq-answer">{item.a}</p>}
                 </div>
-              );
-            })}
+              ))}
+            </div>
+          ) : feedLoaded ? (
+            <p className="featured-empty">Ainda não há publicações em destaque. Volte em breve.</p>
+          ) : null}
+        </div>
+      </section>
+
+      {/* COMO FUNCIONA */}
+      <section className="sec" id="como-funciona" aria-labelledby="como-title">
+        <div className="wrap">
+          <div className="sec-head rv">
+            <span className="kick">Como funciona</span>
+            <h2 className="h2 disp" id="como-title">Do campo à entrega, em três passos.</h2>
+          </div>
+          <ol className="steps">
+            {STEPS.map((s, i) => (
+              <li className="step rv" key={s.title} style={{ "--d": `${i * 0.08}s` } as React.CSSProperties}>
+                <h3>{s.title}</h3>
+                <p>{s.text}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* RASTREIO */}
+      <section className="sec sec-white" id="rastreio" aria-labelledby="tracking-title">
+        <div className="wrap track">
+          <div className="rv">
+            <span className="kick">Rastreio de cargas</span>
+            <h2 className="h2 disp" id="tracking-title">Saiba onde está a sua entrega.</h2>
+            <p className="lead">Acompanhe a rota e consulte os dados da carga no mapa, do envio à recepção.</p>
+            <ul className="track-points">
+              <li><MapPin size={20} aria-hidden="true" /> Localização da carga no mapa</li>
+              <li><Navigation size={20} aria-hidden="true" /> Distância e previsão da rota</li>
+              <li><ShieldCheck size={20} aria-hidden="true" /> Informação acessível durante a entrega</li>
+            </ul>
+          </div>
+          <div className="phone-frame rv" style={{ "--d": ".1s" } as React.CSSProperties}>
+            <img
+              src={liveTrackingImage}
+              alt="Ecrã de rastreio AgriLink com mapa da rota, carga, distância e botão para acompanhar"
+              loading="lazy"
+            />
           </div>
         </div>
       </section>
 
-      <section className="team" id="equipa">
-        <div className="container">
-          <div className="team-head">
-            <div className="eyebrow">Quem está a construir</div>
-            <h2 className="section-title">Uma equipa próxima do terreno.</h2>
-            <p className="section-copy">
-              Tecnologia só cria impacto quando entende as pessoas que a utilizam. É por
-              isso que a nossa equipa combina produto, operações, comunidade e visão estratégica.
-            </p>
+      {/* PARCEIROS */}
+      <section className="sec" id="parceiros" aria-labelledby="parceiros-title">
+        <div className="wrap">
+          <div className="sec-head rv">
+            <span className="kick">A rede</span>
+            <h2 className="h2 disp" id="parceiros-title">Já a negociar na AgriLink.</h2>
           </div>
-          <div className="team-grid">
-            {team.map((member) => (
-              <article className="team-card" key={member.name}>
-                <img src={member.image} alt={member.name} loading="lazy" />
-                <div className="team-name">{member.name}</div>
-                <div className="team-role">{member.role}</div>
-              </article>
+          <div className="partners rv" aria-label="Parceiros AgriLink">
+            <img src={casaLettoLogo} alt="Grupo CasaLetto" loading="lazy" />
+            <img src={totalEnergiesLogo} alt="TotalEnergies" loading="lazy" />
+            <img className="tall" src={totalEntrepreneursLogo} alt="TotalEnergies, 100 Anos, 100 Empreendedores" loading="lazy" />
+          </div>
+        </div>
+      </section>
+
+      {/* APP */}
+      <section id="app" aria-labelledby="app-title" style={{ paddingBottom: 96 }}>
+        <div className="wrap">
+          <div className="app-panel rv">
+            <div>
+              <span className="kick">App AgriLink</span>
+              <h2 className="disp" id="app-title">Leve o mercado no bolso.</h2>
+              <p>Negocie, pague em garantia e acompanhe cada entrega no telemóvel, onde estiver.</p>
+            </div>
+            <div className="stores">
+              <StoreButton href={PLAY_STORE_URL} icon={<Play size={18} fill="currentColor" />} small="Disponível no" name="Google Play" />
+              <StoreButton href={APP_STORE_URL} icon={<Smartphone size={20} />} small="Descarregar na" name="App Store" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="sec sec-white" id="faq" aria-labelledby="faq-title" style={{ borderBottom: 0 }}>
+        <div className="wrap">
+          <div className="sec-head rv">
+            <span className="kick">Perguntas frequentes</span>
+            <h2 className="h2 disp" id="faq-title">Tudo o que precisa de saber.</h2>
+          </div>
+          <div className="faq-grid">
+            {FAQ_ITEMS.map((item) => (
+              <details className="faq-item rv" key={item.question}>
+                <summary>{item.question}</summary>
+                <p>{item.answer}</p>
+              </details>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="cta" id="contacto">
-        <div className="container">
-          <div className="cta-box">
-            <div>
-              <div className="eyebrow" style={{ color: "rgba(255,255,255,.85)" }}>
-                <span style={{ display: "inline-block", width: 26, height: 2, background: "rgba(255,255,255,.85)" }} />
-                Próximo passo
-              </div>
-              <h2>Faça parte da próxima fase do agronegócio angolano.</h2>
-              <p>Se produz, compra, transporta ou liga negócios agroalimentares, a AgriLink foi criada para si.</p>
-            </div>
-            <button className="btn-primary" onClick={goToRegister}>Criar conta <ArrowRight size={16} /></button>
+      {/* CTA FINAL */}
+      <section className="final-cta" aria-labelledby="cta-title">
+        <div className="wrap final-cta-in">
+          <div>
+            <h2 className="disp" id="cta-title">Comece a negociar hoje.</h2>
+            <p>Crie a sua conta grátis e explore o mercado, mesmo antes de publicar ou comprar.</p>
           </div>
+          <button type="button" className="btn btn-primary" onClick={goToRegister}>
+            Criar conta grátis <ArrowRight size={18} aria-hidden="true" />
+          </button>
         </div>
       </section>
 
       <footer>
-        <div className="container footer-inner">
+        <div className="wrap foot">
           <div>
-            <a className="footer-brand" href="#top"><img src={agrilinkLogo} alt="AgriLink" /></a>
-            <div className="footer-company">
-              <strong>The Team - Comércio e Serviços, Lda.</strong>
-              Empresa gestora da plataforma AgriLink.
-            </div>
+            <img src={agrilinkLogo} alt="AgriLink" />
+            <p className="foot-name">AgriLink – Comércio e Serviços</p>
+            <p style={{ fontVariantNumeric: "tabular-nums" }}>NIF 5003313409</p>
           </div>
           <div>
-            <div className="footer-contact">
-              <strong style={{ color: "white" }}>Contactos</strong><br />
-              <a href="mailto:contacto@agrilink.ao">contacto@agrilink.ao</a><br />
-              <a href="tel:+244937577782">+244 937 577 782</a>
-            </div>
-            <div className="footer-copy" style={{ marginTop: 12 }}>© 2025 AgriLink. Todos os direitos reservados.</div>
+            <strong>Onde estamos</strong>
+            <address>
+              Centro Logístico<br />
+              Talatona, Luanda<br />
+              Angola
+            </address>
           </div>
-          <div className="footer-ttgi">
-            <span>Uma plataforma gerida por</span>
-            <img src={ttgiLogo} alt="The Team - Comércio e Serviços, Lda." />
+          <div>
+            <strong>Contacto</strong>
+            <a href="mailto:contacto@agrilink.ao">contacto@agrilink.ao</a>
           </div>
+          <div className="foot-legal">© {new Date().getFullYear()} AgriLink – Comércio e Serviços. Todos os direitos reservados.</div>
         </div>
       </footer>
     </main>

@@ -101,7 +101,7 @@ const formInputStyle: React.CSSProperties = {
   boxSizing: 'border-box',
   padding: '9px 11px',
   border: `1px solid ${T.rule}`,
-  borderRadius: 6,
+  borderRadius: 12,
   background: T.white,
   color: T.ink,
   fontFamily: FONT,
@@ -807,7 +807,7 @@ const ProximasCargas = () => {
             minHeight: 40,
             padding: '0 12px',
             border: 'none',
-            borderRadius: 8,
+            borderRadius: 12,
             background: T.green,
             color: T.white,
             fontFamily: FONT,
@@ -838,7 +838,7 @@ const ProximasCargas = () => {
               onClick={() => setTab(key)}
               style={{
                 padding: '9px 16px',
-                borderRadius: 8,
+                borderRadius: 12,
                 cursor: 'pointer',
                 fontFamily: FONT,
                 fontSize: 13,
@@ -862,7 +862,7 @@ const ProximasCargas = () => {
             padding: 16,
             background: T.white,
             border: `1px solid ${T.rule}`,
-            borderRadius: 8,
+            borderRadius: 12,
           }}
         >
           <form onSubmit={publishLoad}>
@@ -997,7 +997,7 @@ const ProximasCargas = () => {
                         style={{
                           padding: '7px 10px',
                           border: `1px solid ${pointSelection === point ? T.green : T.rule}`,
-                          borderRadius: 6,
+                          borderRadius: 12,
                           background: pointSelection === point ? T.green : T.white,
                           color: pointSelection === point ? T.white : T.mid,
                           fontFamily: FONT,
@@ -1011,7 +1011,7 @@ const ProximasCargas = () => {
                     ))}
                   </div>
                 </div>
-                <div style={{ overflow: 'hidden', border: `1px solid ${T.rule}`, borderRadius: 6 }}>
+                <div style={{ overflow: 'hidden', border: `1px solid ${T.rule}`, borderRadius: 12 }}>
                   <FreightRouteMap
                     origin={origin}
                     destination={destination}
@@ -1074,7 +1074,7 @@ const ProximasCargas = () => {
                   minHeight: 42,
                   padding: '0 18px',
                   border: 'none',
-                  borderRadius: 6,
+                  borderRadius: 12,
                   background: T.green,
                   color: T.white,
                   fontFamily: FONT,
@@ -1103,7 +1103,7 @@ const ProximasCargas = () => {
             style={{
               background: T.white,
               border: `1px solid ${T.rule}`,
-              borderRadius: 18,
+              borderRadius: 12,
               padding: 32,
               textAlign: 'center',
             }}
@@ -1133,7 +1133,7 @@ const ProximasCargas = () => {
                 style={{
                   background: T.white,
                   border: `1px solid ${T.rule}`,
-                  borderRadius: 18,
+                  borderRadius: 12,
                   padding: 16,
                   boxShadow: `0 6px 20px ${T.shadow}`,
                 }}
@@ -1143,7 +1143,7 @@ const ProximasCargas = () => {
                     style={{
                       width: 42,
                       height: 42,
-                      borderRadius: 13,
+                      borderRadius: 12,
                       background: T.g50,
                       flexShrink: 0,
                       display: 'flex',
@@ -1235,7 +1235,7 @@ const ProximasCargas = () => {
                       minHeight: 38,
                       padding: '0 11px',
                       border: `1px solid ${T.rule}`,
-                      borderRadius: 6,
+                      borderRadius: 12,
                       background: T.white,
                       color: T.green,
                       fontFamily: FONT,
@@ -1258,7 +1258,7 @@ const ProximasCargas = () => {
                         minHeight: 38,
                         padding: '0 11px',
                         border: `1px solid ${T.rule}`,
-                        borderRadius: 6,
+                        borderRadius: 12,
                         background: T.white,
                         color: T.green,
                         fontFamily: FONT,
@@ -1286,7 +1286,7 @@ const ProximasCargas = () => {
                         minHeight: 38,
                         padding: '0 11px',
                         border: 'none',
-                        borderRadius: 6,
+                        borderRadius: 12,
                         background: sharingLocationFor === load.id ? T.gold : T.green,
                         color: T.white,
                         fontFamily: FONT,
@@ -1317,7 +1317,7 @@ const ProximasCargas = () => {
                       <p style={{ margin: 0, color: T.gold, fontSize: 12 }}>{loadRoute.error}</p>
                     ) : null}
                     <div
-                      style={{ overflow: 'hidden', border: `1px solid ${T.rule}`, borderRadius: 6 }}
+                      style={{ overflow: 'hidden', border: `1px solid ${T.rule}`, borderRadius: 12 }}
                     >
                       <FreightRouteMap
                         origin={
@@ -1402,7 +1402,7 @@ const ProximasCargas = () => {
                       <div><strong>Destino registado:</strong> {load.destination_label}</div>
                     </div>
                     {routeSetupLoadId !== load.id ? (
-                      <button type="button" onClick={() => void openRouteSetup(load)} style={{ padding: '10px 12px', border: `1px solid ${T.green}`, borderRadius: 10, background: T.white, color: T.green, fontFamily: FONT, fontWeight: 800, cursor: 'pointer' }}>
+                      <button type="button" onClick={() => void openRouteSetup(load)} style={{ padding: '10px 12px', border: `1px solid ${T.green}`, borderRadius: 12, background: T.white, color: T.green, fontFamily: FONT, fontWeight: 800, cursor: 'pointer' }}>
                         Corrigir rota GPS
                       </button>
                     ) : (
@@ -1443,7 +1443,7 @@ const ProximasCargas = () => {
                                   else setRouteSetupDestination(null);
                                   setRouteSetupSelection('destination');
                                 }}
-                                style={{ textAlign: 'left', padding: '9px 10px', border: `1px solid ${T.rule}`, borderRadius: 8, background: routeSetupDestinationLabel === item.label ? T.g50 : T.white, color: T.ink, cursor: 'pointer', fontFamily: FONT, fontSize: 12 }}
+                                style={{ textAlign: 'left', padding: '9px 10px', border: `1px solid ${T.rule}`, borderRadius: 12, background: routeSetupDestinationLabel === item.label ? T.g50 : T.white, color: T.ink, cursor: 'pointer', fontFamily: FONT, fontSize: 12 }}
                               >
                                 <span style={{ display: 'block', fontWeight: 800 }}>{item.label}</span>
                                 <span style={{ display: 'block', marginTop: 3, color: T.muted, fontSize: 10 }}>{item.source === 'geocoding' ? 'Resultado geográfico · ajuste o ponto exacto no mapa' : item.source === 'pre-compra' ? 'Localização original do comprador' : item.point ? 'Local já marcado no mapa · coordenadas disponíveis' : 'Local registado sem coordenadas GPS'}</span>
@@ -1455,15 +1455,15 @@ const ProximasCargas = () => {
                           {routeSetupSearchingPlaces && <p style={{ margin: 0, padding: 8, fontSize: 11, color: T.muted }}>A pesquisar locais em Angola…</p>}
                         </div>
                         <div style={{ display: 'flex', gap: 8 }}>
-                          <button type="button" onClick={() => setRouteSetupSelection('origin')} style={{ flex: 1, padding: 8, borderRadius: 8, border: `1px solid ${T.rule}`, background: routeSetupSelection === 'origin' ? T.g50 : T.white, color: T.green, fontFamily: FONT, fontWeight: 800 }}>
+                          <button type="button" onClick={() => setRouteSetupSelection('origin')} style={{ flex: 1, padding: 8, borderRadius: 12, border: `1px solid ${T.rule}`, background: routeSetupSelection === 'origin' ? T.g50 : T.white, color: T.green, fontFamily: FONT, fontWeight: 800 }}>
                             {routeSetupOrigin ? 'Alterar origem' : 'Marcar origem'}
                           </button>
-                          <button type="button" onClick={() => setRouteSetupSelection('destination')} style={{ flex: 1, padding: 8, borderRadius: 8, border: `1px solid ${T.rule}`, background: routeSetupSelection === 'destination' ? T.g50 : T.white, color: T.green, fontFamily: FONT, fontWeight: 800 }}>
+                          <button type="button" onClick={() => setRouteSetupSelection('destination')} style={{ flex: 1, padding: 8, borderRadius: 12, border: `1px solid ${T.rule}`, background: routeSetupSelection === 'destination' ? T.g50 : T.white, color: T.green, fontFamily: FONT, fontWeight: 800 }}>
                             {routeSetupDestination ? 'Alterar destino' : 'Marcar destino'}
                           </button>
                         </div>
                         <p style={{ margin: 0, fontSize: 11, color: T.muted }}>Os resultados da pesquisa ajudam a centrar o ponto, mas podem representar uma zona ampla. Ajuste sempre o marcador ao local exacto no mapa antes de guardar.</p>
-                        <div style={{ overflow: 'hidden', border: `1px solid ${T.rule}`, borderRadius: 8 }}>
+                        <div style={{ overflow: 'hidden', border: `1px solid ${T.rule}`, borderRadius: 12 }}>
                           <FreightRouteMap
                             origin={routeSetupOrigin}
                             destination={routeSetupDestination}
@@ -1484,8 +1484,8 @@ const ProximasCargas = () => {
                           <div><strong>Coordenadas:</strong> {routeSetupDestination ? formatCoordinateLabel(routeSetupDestination) : 'Por confirmar no mapa'}</div>
                         </div>
                         <div style={{ display: 'flex', gap: 8 }}>
-                          <button type="button" onClick={() => setRouteSetupLoadId(null)} style={{ flex: 1, padding: 10, border: `1px solid ${T.rule}`, borderRadius: 8, background: T.white, color: T.mid, fontFamily: FONT, fontWeight: 800 }}>Cancelar</button>
-                          <button type="button" disabled={busyId === load.id || !routeSetupOrigin || !routeSetupDestination} onClick={() => void saveRouteCoordinates(load)} style={{ flex: 1, padding: 10, border: 'none', borderRadius: 8, background: T.green, color: T.white, fontFamily: FONT, fontWeight: 800, opacity: !routeSetupOrigin || !routeSetupDestination ? 0.5 : 1 }}>
+                          <button type="button" onClick={() => setRouteSetupLoadId(null)} style={{ flex: 1, padding: 10, border: `1px solid ${T.rule}`, borderRadius: 12, background: T.white, color: T.mid, fontFamily: FONT, fontWeight: 800 }}>Cancelar</button>
+                          <button type="button" disabled={busyId === load.id || !routeSetupOrigin || !routeSetupDestination} onClick={() => void saveRouteCoordinates(load)} style={{ flex: 1, padding: 10, border: 'none', borderRadius: 12, background: T.green, color: T.white, fontFamily: FONT, fontWeight: 800, opacity: !routeSetupOrigin || !routeSetupDestination ? 0.5 : 1 }}>
                             {busyId === load.id ? 'A guardar…' : 'Guardar rota GPS'}
                           </button>
                         </div>
@@ -1502,7 +1502,7 @@ const ProximasCargas = () => {
                       marginTop: 14,
                       width: '100%',
                       padding: '12px 16px',
-                      borderRadius: 14,
+                      borderRadius: 12,
                       border: 'none',
                       background: tooHeavy ? T.rule : T.green,
                       color: tooHeavy ? T.muted : T.white,
@@ -1557,7 +1557,7 @@ const ProximasCargas = () => {
                     onClick={() => void advance(load)}
                     style={{
                       marginTop: 14, width: '100%', padding: '12px 16px',
-                      borderRadius: 14, border: 'none', background: T.green,
+                      borderRadius: 12, border: 'none', background: T.green,
                       color: T.white, fontFamily: FONT, fontSize: 14,
                       fontWeight: 800, cursor: 'pointer',
                     }}
@@ -1570,7 +1570,7 @@ const ProximasCargas = () => {
                     onClick={() => void advance(load)}
                     style={{
                       marginTop: 14, width: '100%', padding: '12px 16px',
-                      borderRadius: 14, border: `1.5px solid ${T.green}`,
+                      borderRadius: 12, border: `1.5px solid ${T.green}`,
                       background: T.white, color: T.green, fontFamily: FONT,
                       fontSize: 14, fontWeight: 800, cursor: 'pointer',
                     }}

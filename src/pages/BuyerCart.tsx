@@ -12,6 +12,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { toast } from "../hooks/use-toast";
 import { readBuyerCart, writeBuyerCart, readBuyerCartIdempotencyKey, writeBuyerCartIdempotencyKey, type BuyerCartItem } from "../features/marketplace/buyerCart";
 import { supabase } from "../integrations/supabase/client";
+import { R, T } from "../lib/brand";
 
 const money = (value: number) => new Intl.NumberFormat("pt-AO", {
   style: "currency", currency: "AOA", minimumFractionDigits: 2, maximumFractionDigits: 2,
@@ -374,7 +375,7 @@ export default function BuyerCart() {
   );
 
   return (
-    <main className="mx-auto max-w-6xl space-y-5 px-4 py-6 pb-28">
+    <main className="mx-auto max-w-6xl space-y-5 px-4 py-6 pb-28" style={{ background: T.canvas, color: T.ink }}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/app")} aria-label="Voltar ao marketplace"><ArrowLeft /></Button>
@@ -411,7 +412,7 @@ export default function BuyerCart() {
                     <p className="mt-2 text-sm font-semibold">Subtotal: {money(item.quantity * item.unit_price)}</p>
                   </div>
                   <div className="flex items-center gap-2 sm:flex-col sm:items-end">
-                    <div className="flex items-center rounded-lg border">
+                    <div className="flex items-center border" style={{ borderColor: T.rule, borderRadius: R.sm }}>
                       <Button variant="ghost" size="icon" disabled={item.quantity <= item.minimum_quantity} onClick={() => updateQuantity(item.product_id, item.quantity - 1)} aria-label="Diminuir quantidade"><Minus className="h-4 w-4" /></Button>
                       <span className="min-w-14 text-center text-sm font-semibold">{item.quantity} {item.unit}</span>
                       <Button variant="ghost" size="icon" disabled={item.quantity >= item.available_quantity} onClick={() => updateQuantity(item.product_id, item.quantity + 1)} aria-label="Aumentar quantidade"><Plus className="h-4 w-4" /></Button>
@@ -429,14 +430,14 @@ export default function BuyerCart() {
             <Card>
               <CardHeader><CardTitle>Como prefere organizar o frete?</CardTitle><CardDescription>Escolha a preferência para a equipa logística avaliar.</CardDescription></CardHeader>
               <CardContent className="space-y-3">
-                <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
+                <label className="flex cursor-pointer items-start gap-3 border p-3" style={{ borderColor: T.rule, borderRadius: R.sm }}>
                   <input type="radio" name="freight-preference" className="mt-1 accent-green-700" checked={freightPreference === "single_quote_requested"} onChange={() => { setFreightPreference("single_quote_requested"); rotateIdempotencyKey(); }} />
                   <span className="space-y-1">
                     <span className="block font-medium">Solicitar um frete único AgriLink</span>
                     <span className="block text-sm text-muted-foreground">A AgriLink tentará coordenar uma cotação única para esta encomenda/fatura. Só será cobrado após a logística confirmar viabilidade e preço e o cliente aceitar.</span>
                   </span>
                 </label>
-                <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3">
+                <label className="flex cursor-pointer items-start gap-3 border p-3" style={{ borderColor: T.rule, borderRadius: R.sm }}>
                   <input type="radio" name="freight-preference" className="mt-1 accent-green-700" checked={freightPreference === "separate_deliveries"} onChange={() => { setFreightPreference("separate_deliveries"); rotateIdempotencyKey(); }} />
                   <span className="space-y-1">
                     <span className="block font-medium">Entregas/fretes separados</span>
@@ -510,7 +511,7 @@ export default function BuyerCart() {
                 </Button>
               </CardContent>
             </Card>
-            <div className="flex gap-2 rounded-lg border p-3 text-xs text-muted-foreground">
+            <div className="flex gap-2 border p-3 text-xs text-muted-foreground" style={{ borderColor: T.rule, borderRadius: R.sm }}>
               <CalendarDays className="h-4 w-4 shrink-0" />
               <span>Uma submissão cria uma referência de encomenda e várias linhas de pré-compra. A aceitação e o pagamento continuam a ser controlados por produto/fornecedor, sem juntar pagamentos que o sistema ainda não suporta.</span>
             </div>
@@ -523,7 +524,7 @@ export default function BuyerCart() {
             <DialogTitle>Escolher ponto de entrega</DialogTitle>
             <DialogDescription>Clique no mapa para marcar o destino. Pode ajustar o marcador antes de confirmar.</DialogDescription>
           </DialogHeader>
-          <div className="overflow-hidden rounded-lg border">
+          <div className="overflow-hidden border" style={{ borderColor: T.rule, borderRadius: R.sm }}>
             <SimpleLeafletMap
               center={mapPickerSelection || (deliveryCoordinatesValid ? { lat: parsedDeliveryLatitude!, lng: parsedDeliveryLongitude! } : { lat: -8.8383, lng: 13.2344 })}
               zoom={mapPickerSelection || deliveryCoordinatesValid ? 14 : 10}

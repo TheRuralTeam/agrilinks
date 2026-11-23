@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Home, Map, Bell, MessageSquare, User, Plus, LayoutDashboard, BarChart3, Truck, ShoppingCart, Route } from 'lucide-react'
+import { Home, Map, Bell, MessageSquare, User, Plus, LayoutDashboard, BarChart3, Truck, ShoppingCart, Route, Search } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../integrations/supabase/client'
 import { BUYER_CART_UPDATED_EVENT, getBuyerCartQuantity } from '../features/marketplace/buyerCart'
+import { useGuestGate } from '../contexts/GuestGateContext'
 
 const BottomNavigation = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const { isAdmin, isRootAdmin, isSuperRoot, user, userProfile } = useAuth()
+  const { isGuest } = useGuestGate()
   const [unreadNotifications, setUnreadNotifications] = useState<number | null>(null)
   const [unreadMessages, setUnreadMessages] = useState<number | null>(null)
   const [buyerCartQuantity, setBuyerCartQuantity] = useState(0)
@@ -89,7 +91,9 @@ const BottomNavigation = () => {
   const canSeeAdmin = isAdmin || isRootAdmin || isSuperRoot
 
   // A acção principal varia conforme o papel real do utilizador.
-  const publishItem = isDriver
+  const publishItem = isGuest
+    ? { id: 'publish', icon: User, label: 'Entrar', path: '/login', isAction: true }
+    : isDriver
     ? { id: 'publish', icon: Truck, label: 'Cargas', path: '/cargas', isAction: true }
     : isBuyer
       ? { id: 'publish', icon: ShoppingCart, label: 'Carrinho', path: '/carrinho', isAction: true, cartCount: buyerCartQuantity }
@@ -98,7 +102,12 @@ const BottomNavigation = () => {
         : { id: 'publish', icon: Plus, label: t('navigation.publish'), path: '/publicar-produto', isAction: true }
 
   // Itens de navegação (7 itens no total)
-  const navItems = [
+  const navItems = isGuest ? [
+    { id: 'nav-home', icon: Home, label: 'Início', path: '/app' },
+    { id: 'nav-search', icon: Search, label: 'Pesquisar', path: '/search' },
+    { id: 'nav-market', icon: BarChart3, label: 'Mercado', path: '/mercado' },
+    { id: 'nav-login', icon: User, label: 'Entrar', path: '/login', isAction: true },
+  ] : [
     { id: 'nav-home', icon: Home, label: t('navigation.home', { defaultValue: 'Início' }), path: '/app' },
     canSeeAdmin
       ? { id: 'nav-admin', icon: LayoutDashboard, label: 'Admin', path: '/admindashboard' }

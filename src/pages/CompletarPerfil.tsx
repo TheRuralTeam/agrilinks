@@ -17,7 +17,7 @@ const T = {
 };
 
 const inputStyle: React.CSSProperties = {
-  height: 52, width: "100%", borderRadius: 14,
+  height: 52, width: "100%", borderRadius: 12,
   border: `1.5px solid ${T.goldBorder}`, backgroundColor: T.goldBg,
   color: T.ink, fontSize: 15, paddingLeft: 44, paddingRight: 16,
   outline: "none", fontFamily: "inherit",
@@ -37,7 +37,7 @@ const NativeSelect = ({ value, onChange, placeholder, options, disabled }: any) 
       value={value} onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
       style={{
-        height: 52, width: "100%", borderRadius: 14,
+        height: 52, width: "100%", borderRadius: 12,
         border: `1.5px solid ${T.goldBorder}`,
         backgroundColor: disabled ? "#F5F0E8" : T.goldBg,
         color: value ? T.ink : T.muted, fontSize: 15,
@@ -157,7 +157,7 @@ const CompletarPerfil = () => {
     }}>
       <div style={{
         width: "100%", maxWidth: 480, backgroundColor: T.white,
-        borderRadius: 24, padding: 28,
+        borderRadius: 12, padding: 28,
         border: `1px solid ${T.rule}`,
         boxShadow: "0 8px 40px rgba(160,114,42,0.10)",
       }}>
@@ -187,7 +187,7 @@ const CompletarPerfil = () => {
           <p style={{ margin: 0, fontSize: 12, lineHeight: 1.6, color: T.muted }}>
             Este dado é solicitado apenas porque a operação atual exige identificação legal. A AgriLink não exige verificação de identidade para entrar e utilizar a plataforma.
           </p>
-          <button type="submit" disabled={saving} style={{ width:"100%", height:54, borderRadius:16, border:"none", background:saving?T.muted:`linear-gradient(135deg, ${T.g600} 0%, ${T.g500} 100%)`, color:T.white, fontSize:16, fontWeight:900, cursor:saving?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+          <button type="submit" disabled={saving} style={{ width:"100%", height:54, borderRadius:12, border:"none", background:saving?T.muted:`linear-gradient(135deg, ${T.g600} 0%, ${T.g500} 100%)`, color:T.white, fontSize:16, fontWeight:900, cursor:saving?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
             {saving ? "A guardar…" : "Guardar e continuar"} <ArrowRight style={{ width:18,height:18 }} />
           </button>
         </form>
@@ -258,7 +258,7 @@ const CompletarPerfil = () => {
           <button
             type="submit" disabled={saving}
             style={{
-              width: "100%", height: 54, borderRadius: 16, border: "none",
+              width: "100%", height: 54, borderRadius: 12, border: "none",
               background: saving ? T.muted : `linear-gradient(135deg, ${T.g600} 0%, ${T.g500} 100%)`,
               color: T.white, fontSize: 16, fontWeight: 900,
               cursor: saving ? "not-allowed" : "pointer",
