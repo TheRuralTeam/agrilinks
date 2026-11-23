@@ -210,7 +210,8 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
+
 begin
   if new.status <> 'available'
      or old.status = 'available'
@@ -229,7 +230,7 @@ begin
 
   return new;
 end;
-$;
+$$;
 
 drop trigger if exists trg_create_marketplace_payout_intent on public.payment_allocations;
 create trigger trg_create_marketplace_payout_intent
