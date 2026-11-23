@@ -131,6 +131,20 @@ create table public.freight_settlements (
   confirmed_at timestamptz not null default now()
 );
 
+create schema if not exists storage;
+create table storage.buckets (
+  id text primary key,
+  name text not null,
+  public boolean not null default false,
+  file_size_limit bigint,
+  allowed_mime_types text[]
+);
+create table storage.objects (
+  id bigserial primary key,
+  bucket_id text not null,
+  name text not null
+);
+
 create table public.marketplace_payouts (
   id uuid primary key default gen_random_uuid(),
   payment_allocation_id uuid not null unique references public.payment_allocations(id) on delete restrict,
