@@ -396,3 +396,238 @@ comment on function public.release_marketplace_allocations_after_buyer_receipt()
   'Makes blocked marketplace allocations available only after evidence-backed delivery and buyer receipt confirmation.';
 
 commit;
+
+-- Verified payout destinations are provider/vault references only. Raw bank
+-- account numbers and IBANs must never be stored in this application table.
+create table if not exists public.marketplace_payout_beneficiaries (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users(id) on delete restrict,
+  channel text not null check (channel in ('bank_transfer','multicaixa_express','unitel_money','afrimoney','paypay')),
+  provider_beneficiary_ref text not null unique,
+  account_holder text not null check (char_length(btrim(account_holder)) between 2 and 160),
+  masked_account_label text not null check (char_length(btrim(masked_account_label)) between 3 and 80),
+  currency char(3) not null default 'AOA' check (currency = 'AOA'),
+  status text not null default 'pending'
+    check (status in ('pending','verified','rejected','disabled')),
+  verified_at timestamptz,
+  verified_by uuid references public.users(id),
+  rejection_reason text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint marketplace_payout_beneficiary_verification_check
+    check (
+      (status = 'verified' and verified_at is not null and verified_by is not null)
+      or status <> 'verified'
+    )
+);
+
+create unique index if not exists ux_marketplace_payout_one_verified_beneficiary
+  on public.marketplace_payout_beneficiaries(user_id)
+  where status = 'verified';
+
+alter table public.marketplace_payouts
+  add column if not exists beneficiary_id uuid
+    references public.marketplace_payout_beneficiaries(id) on delete restrict;
+
+create table if not exists public.marketplace_payout_audit (
+  id uuid primary key default gen_random_uuid(),
+  payout_id uuid references public.marketplace_payouts(id) on delete restrict,
+  beneficiary_id uuid references public.marketplace_payout_beneficiaries(id) on delete restrict,
+  actor_id uuid not null references public.users(id) on delete restrict,
+  action text not null,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  constraint marketplace_payout_audit_target_check
+    check (num_nonnulls(payout_id, beneficiary_id) = 1)
+);
+
+alter table public.marketplace_payout_beneficiaries enable row level security;
+alter table public.marketplace_payout_audit enable row level security;
+revoke all on public.marketplace_payout_beneficiaries from anon, authenticated;
+revoke all on public.marketplace_payout_audit from anon, authenticated;
+grant select (id, user_id, channel, account_holder, masked_account_label, currency, status, verified_at, created_at)
+  on public.marketplace_payout_beneficiaries to authenticated;
+create policy "Recipients and admins can read payout beneficiary status"
+on public.marketplace_payout_beneficiaries
+for select to authenticated
+using (
+  user_id = auth.uid()
+  or public.has_role(auth.uid(), 'admin'::public.app_role)
+);
+grant select on public.marketplace_payout_audit to authenticated;
+create policy "Admins can read payout audit"
+on public.marketplace_payout_audit
+for select to authenticated
+using (public.has_role(auth.uid(), 'admin'::public.app_role));
+
+create or replace function public.admin_review_marketplace_payout_beneficiary(
+  p_beneficiary_id uuid,
+  p_decision text,
+  p_reason text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_beneficiary public.marketplace_payout_beneficiaries%rowtype;
+begin
+  if auth.uid() is null or not public.has_role(auth.uid(), 'admin'::public.app_role) then
+    raise exception 'ADMIN_REQUIRED' using errcode = '42501';
+  end if;
+  if p_decision not in ('verified','rejected','disabled') then
+    raise exception 'INVALID_BENEFICIARY_DECISION' using errcode = '22023';
+  end if;
+
+  select * into v_beneficiary
+  from public.marketplace_payout_beneficiaries
+  where id = p_beneficiary_id
+  for update;
+  if not found then
+    raise exception 'PAYOUT_BENEFICIARY_NOT_FOUND' using errcode = 'P0002';
+  end if;
+
+  if p_decision = 'verified' and exists (
+    select 1 from public.marketplace_payout_beneficiaries b
+    where b.user_id = v_beneficiary.user_id
+      and b.status = 'verified'
+      and b.id <> v_beneficiary.id
+  ) then
+    raise exception 'USER_ALREADY_HAS_VERIFIED_PAYOUT_BENEFICIARY' using errcode = '23505';
+  end if;
+
+  update public.marketplace_payout_beneficiaries
+  set status = p_decision,
+      verified_at = case when p_decision = 'verified' then now() else null end,
+      verified_by = case when p_decision = 'verified' then auth.uid() else null end,
+      rejection_reason = case when p_decision = 'rejected' then nullif(btrim(p_reason), '') else null end,
+      updated_at = now()
+  where id = p_beneficiary_id;
+
+  if p_decision = 'verified' then
+    update public.marketplace_payouts p
+    set beneficiary_id = v_beneficiary.id,
+        status = 'awaiting_manual_payout',
+        updated_at = now()
+    where p.recipient_user_id = v_beneficiary.user_id
+      and p.status = 'awaiting_beneficiary_verification';
+  elsif p_decision in ('rejected','disabled') then
+    update public.marketplace_payouts p
+    set beneficiary_id = null,
+        status = 'awaiting_beneficiary_verification',
+        updated_at = now()
+    where p.beneficiary_id = p_beneficiary_id
+      and p.status = 'awaiting_manual_payout';
+  end if;
+
+  insert into public.marketplace_payout_audit(beneficiary_id, actor_id, action, metadata)
+  values (
+    p_beneficiary_id, auth.uid(), 'beneficiary.' || p_decision,
+    jsonb_build_object('reason', nullif(btrim(p_reason), ''))
+  );
+end;
+$$;
+
+create or replace function public.admin_transition_marketplace_payout(
+  p_payout_id uuid,
+  p_action text,
+  p_payout_reference text default null,
+  p_proof_url text default null,
+  p_failure_reason text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_payout public.marketplace_payouts%rowtype;
+  v_next_status text;
+begin
+  if auth.uid() is null or not public.has_role(auth.uid(), 'admin'::public.app_role) then
+    raise exception 'ADMIN_REQUIRED' using errcode = '42501';
+  end if;
+
+  select * into v_payout
+  from public.marketplace_payouts
+  where id = p_payout_id
+  for update;
+  if not found then
+    raise exception 'PAYOUT_NOT_FOUND' using errcode = 'P0002';
+  end if;
+
+  if p_action = 'processing' then
+    if v_payout.status <> 'awaiting_manual_payout' or v_payout.beneficiary_id is null then
+      raise exception 'VERIFIED_BENEFICIARY_REQUIRED_BEFORE_PROCESSING' using errcode = '23514';
+    end if;
+    v_next_status := 'processing';
+  elsif p_action = 'paid' then
+    if v_payout.status <> 'processing' then
+      raise exception 'PAYOUT_MUST_BE_PROCESSING_BEFORE_PAID' using errcode = '23514';
+    end if;
+    if nullif(btrim(p_payout_reference), '') is null
+       or nullif(btrim(p_proof_url), '') is null then
+      raise exception 'TRANSFER_REFERENCE_AND_PROOF_REQUIRED' using errcode = '23514';
+    end if;
+    v_next_status := 'paid';
+  elsif p_action = 'failed' then
+    if v_payout.status not in ('processing','awaiting_manual_payout') then
+      raise exception 'INVALID_PAYOUT_FAILURE_TRANSITION' using errcode = '23514';
+    end if;
+    if nullif(btrim(p_failure_reason), '') is null then
+      raise exception 'FAILURE_REASON_REQUIRED' using errcode = '23514';
+    end if;
+    v_next_status := 'failed';
+  elsif p_action = 'retry' then
+    if v_payout.status <> 'failed' or v_payout.beneficiary_id is null then
+      raise exception 'FAILED_PAYOUT_WITH_VERIFIED_BENEFICIARY_REQUIRED' using errcode = '23514';
+    end if;
+    v_next_status := 'awaiting_manual_payout';
+  elsif p_action = 'blocked' then
+    if v_payout.status in ('paid','cancelled') then
+      raise exception 'TERMINAL_PAYOUT_CANNOT_BE_BLOCKED' using errcode = '23514';
+    end if;
+    v_next_status := 'blocked';
+  elsif p_action = 'unblock' then
+    if v_payout.status <> 'blocked' or v_payout.beneficiary_id is null then
+      raise exception 'BLOCKED_PAYOUT_WITH_VERIFIED_BENEFICIARY_REQUIRED' using errcode = '23514';
+    end if;
+    v_next_status := 'awaiting_manual_payout';
+  elsif p_action = 'cancelled' then
+    if v_payout.status = 'paid' then
+      raise exception 'PAID_PAYOUT_CANNOT_BE_CANCELLED' using errcode = '23514';
+    end if;
+    v_next_status := 'cancelled';
+  else
+    raise exception 'INVALID_PAYOUT_ACTION' using errcode = '22023';
+  end if;
+
+  update public.marketplace_payouts
+  set status = v_next_status,
+      payout_reference = case when v_next_status = 'paid' then btrim(p_payout_reference) else payout_reference end,
+      proof_url = case when v_next_status = 'paid' then btrim(p_proof_url) else proof_url end,
+      paid_at = case when v_next_status = 'paid' then now() else paid_at end,
+      paid_by = case when v_next_status = 'paid' then auth.uid() else paid_by end,
+      failure_reason = case when v_next_status = 'failed' then btrim(p_failure_reason) else null end,
+      updated_at = now()
+  where id = p_payout_id;
+
+  insert into public.marketplace_payout_audit(payout_id, actor_id, action, metadata)
+  values (
+    p_payout_id, auth.uid(), 'payout.' || v_next_status,
+    jsonb_build_object(
+      'previous_status', v_payout.status,
+      'payout_reference', case when v_next_status = 'paid' then btrim(p_payout_reference) else null end,
+      'proof_url_present', v_next_status = 'paid',
+      'failure_reason', case when v_next_status = 'failed' then btrim(p_failure_reason) else null end
+    )
+  );
+end;
+$$;
+
+revoke all on function public.admin_review_marketplace_payout_beneficiary(uuid,text,text) from public, anon, authenticated;
+revoke all on function public.admin_transition_marketplace_payout(uuid,text,text,text,text) from public, anon, authenticated;
+grant execute on function public.admin_review_marketplace_payout_beneficiary(uuid,text,text) to authenticated;
+grant execute on function public.admin_transition_marketplace_payout(uuid,text,text,text,text) to authenticated;
+
