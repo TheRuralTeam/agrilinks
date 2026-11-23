@@ -345,7 +345,7 @@ const MarketplacePayouts = () => {
         <DialogContent>
           <DialogHeader><DialogTitle>Registar beneficiário</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label>ID do utilizador destinatário</Label><Input value={registerUserId} onChange={(e) => setRegisterUserId(e.target.value)} placeholder="UUID do fornecedor ou motorista" /></div>
+            <div><Label>Destinatário</Label><Select value={registerUserId} onValueChange={setRegisterUserId}><SelectTrigger><SelectValue placeholder="Seleccionar fornecedor ou motorista" /></SelectTrigger><SelectContent>{Object.values(recipients).map((user) => <SelectItem key={user.id} value={user.id}>{user.full_name || "Utilizador"} · {user.id.slice(0, 8)}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Canal de pagamento</Label><Select value={channel} onValueChange={setChannel}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(channelLabels).map(([value,label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Referência tokenizada do PSP/vault</Label><Input value={providerRef} onChange={(e) => setProviderRef(e.target.value)} autoComplete="off" /></div>
             <div><Label>Titular da conta</Label><Input value={accountHolder} onChange={(e) => setAccountHolder(e.target.value)} /></div>
