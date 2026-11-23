@@ -125,19 +125,25 @@ export default function MyPurchases() {
 
       const preOrderIds = rows.map((row) => row.id)
       if (preOrderIds.length) {
-        const { data: freightRows } = await (supabase as any)
-          .from('freight_loads')
-          .select('id,pre_order_id,status,delivered_at,buyer_receipt_confirmed_at,driver_id,created_at')
-          .in('pre_order_id', preOrderIds)
-          .order('created_at', { ascending: false })
+        try {
+          const { data: freightRows, error: freightError } = await (supabase as any)
+            .from('freight_loads')
+            .select('id,pre_order_id,status,delivered_at,buyer_receipt_confirmed_at,driver_id,created_at')
+            .in('pre_order_id', preOrderIds)
+            .order('created_at', { ascending: false })
+          if (freightError) throw freightError
 
-        const freightByPreOrder: Record<string, FreightLoadForPurchase> = {}
-        for (const freight of freightRows ?? []) {
-          if (freight.pre_order_id && !freightByPreOrder[freight.pre_order_id]) {
-            freightByPreOrder[freight.pre_order_id] = freight as FreightLoadForPurchase
+          const freightByPreOrder: Record<string, FreightLoadForPurchase> = {}
+          for (const freight of freightRows ?? []) {
+            if (freight.pre_order_id && !freightByPreOrder[freight.pre_order_id]) {
+              freightByPreOrder[freight.pre_order_id] = freight as FreightLoadForPurchase
+            }
           }
+          setFreightLoads(freightByPreOrder)
+        } catch {
+          // Keep purchase history available if the optional logistics query is temporarily unavailable.
+          setFreightLoads({})
         }
-        setFreightLoads(freightByPreOrder)
       } else {
         setFreightLoads({})
       }
