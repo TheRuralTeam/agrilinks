@@ -4589,6 +4589,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      get_freight_delivery_evidence: {
+        Args: { p_freight_load_id: string }
+        Returns: Json
+      }
       confirm_freight_receipt: {
         Args: { p_freight_load_id: string }
         Returns: undefined
