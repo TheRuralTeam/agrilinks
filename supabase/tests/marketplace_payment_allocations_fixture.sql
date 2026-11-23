@@ -31,9 +31,9 @@ end
 $types$;
 
 create or replace function public.has_role(_user_id uuid, _role public.app_role)
-returns boolean language sql stable as $
+returns boolean language sql stable as $role$
   select auth.uid() = _user_id and current_setting('test.is_admin', true) = 'true'
-$;
+$role$;
 
 create or replace function public.is_root_admin(p_user_id uuid)
 returns boolean language sql stable as $root$
