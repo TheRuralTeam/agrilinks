@@ -46,6 +46,25 @@ Allocations / Settlement / Ledger
 - `wallets`: saldo interno; não deve ser requisito para comprar no marketplace.
 - `payment_providers`: catálogo/configuração operacional do PSP.
 
+## Repartição e libertação de fundos
+
+A cobrança do comprador é única e corresponde ao valor do produto mais o frete aprovado. O beneficiário de entrada é a conta oficial da AgriLink; não há pagamentos directos do comprador ao fornecedor ou ao motorista.
+
+Após a confirmação do pagamento por webhook validado ou verificação administrativa do beneficiário oficial, o backend cria alocações bloqueadas em `payment_allocations`:
+- `seller`: valor integral do produto para o fornecedor;
+- `driver`: valor do frete líquido da comissão de frete já definida no sistema;
+- `platform_fee`: comissão de frete atribuída à AgriLink, sem inventar um utilizador beneficiário.
+
+A política de frete actualmente existente calcula uma comissão AgriLink de 8% e atribui os 92% restantes ao motorista. Esta taxa é preservada nesta implementação para não alterar silenciosamente a regra comercial existente.
+
+As alocações só passam de `blocked` para `available` depois de:
+1. prova de entrega do motorista persistida;
+2. carga marcada como entregue;
+3. confirmação independente de recepção pelo comprador;
+4. pré-compra marcada como paga.
+
+`available` significa elegível para liquidação, não transferência bancária concluída. A transição para `available` cria automaticamente um registo separado em `marketplace_payouts` para fornecedor e motorista, inicialmente em `awaiting_beneficiary_verification`. A comissão da plataforma não gera payout a um utilizador. A tabela de payouts é uma fila de instruções internas: não envia dinheiro por si só, não presume que o beneficiário tem conta bancária validada e não permite marcar como `paid` sem data e referência de transferência. A alocação só deve ser marcada como paga depois de existir referência e confirmação verificável da transferência real. Sem PSP de saída configurado, a liquidação permanece operacional/manual e não é simulada.
+
 ## Idempotência
 Todo pedido de criação de pagamento e reembolso recebe uma chave única. Webhooks usam `provider_id + provider_event_id` como identidade externa e verificam hash do payload.
 
@@ -89,3 +108,20 @@ Não basta o checkout abrir. Para considerar pagamentos enterprise funcionais é
 10. reconciliação PSP ↔ AgriLink;
 11. auditoria;
 12. liberação do frete somente após pagamento confirmado.
+
+## Verificação de beneficiários e controlo de payouts
+
+Os destinos de pagamento do marketplace são independentes do módulo P2P. O registo `marketplace_payout_beneficiaries` aceita apenas uma referência opaca/tokenizada emitida por um PSP ou vault aprovado, o titular e um rótulo mascarado. Não recebe nem persiste IBAN, número de conta, PIN, OTP ou credenciais bancárias em texto simples. A referência do fornecedor de pagamentos não é exposta pela Data API ao cliente.
+
+O registo e a revisão são operações administrativas auditadas:
+1. Administração regista a referência segura do beneficiário e os dados de identificação mascarados.
+2. Administração verifica a titularidade e aprova ou rejeita o beneficiário.
+3. A aprovação associa os payouts pendentes desse utilizador àquele beneficiário e move-os para `awaiting_manual_payout`.
+4. Uma revogação bloqueia os payouts ainda não pagos associados ao beneficiário.
+5. A administração inicia o processamento; só pode registar `paid` a partir de `processing`, com referência de transferência e caminho de comprovativo associado ao payout.
+6. Falhas exigem motivo e podem ser reencaminhadas para a fila manual após a validação do beneficiário.
+
+As funções administrativas validam `has_role(auth.uid(), 'admin')`; as tabelas não aceitam mutações directas do cliente. O histórico é append-only para os utilizadores autenticados e legível apenas pela administração. O estado `paid` é um registo administrativo de transferência confirmada, não uma transferência executada pela aplicação.
+
+**Limite operacional actual:** não existe PSP de saída activo nem integração bancária configurada para payouts automáticos. Até existir um fornecedor contratado, vault de beneficiários e reconciliação bancária, a operação permanece manual e não pode ser apresentada como liquidação automática. A prova carregada e a referência devem ser confrontadas com o extracto/portal bancário antes da marcação final.
+

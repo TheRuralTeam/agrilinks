@@ -50,6 +50,7 @@ import {
   Settings2,
   KeyRound,
   Route as RouteIcon,
+  Wallet,
 } from "lucide-react";
 import {
   Dialog,
@@ -68,6 +69,7 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import agrilinkLogo from "../assets/agrilink-logo.png";
 import AdminManagement from "../components/admin/AdminManagement";
 import DeliveryTracking from "../components/admin/DeliveryTracking";
+import MarketplacePayouts from "../components/admin/MarketplacePayouts";
 import SourcingOperations from "../components/admin/SourcingOperations";
 import WorkSessionTimer from "../components/admin/WorkSessionTimer";
 import MarketPricesManager from "../components/admin/MarketPricesManager";
@@ -176,7 +178,7 @@ interface Ficha {
   updated_at?: string | null;
 }
 
-type TabType = "dashboard" | "products" | "users" | "transactions" | "notifications" | "orders" | "fichas" | "sourcing" | "market" | "prices" | "admins" | "referrals" | "deliveries" | "freight" | "routes";
+type TabType = "dashboard" | "products" | "users" | "transactions" | "notifications" | "orders" | "fichas" | "sourcing" | "market" | "prices" | "admins" | "referrals" | "deliveries" | "freight" | "routes" | "payouts";
 
 interface SourcingRequest {
   id: string;
@@ -231,6 +233,7 @@ const TAB_TITLES: Record<TabType, string> = {
   deliveries: "Entregas",
   freight: "Configuração do Frete",
   routes: "Rotas da Aplicação",
+  payouts: "Pagamentos do Marketplace",
 };
 
 // --- Componentes Auxiliares ---
@@ -330,7 +333,7 @@ const AdminDashboard = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const requestedTab = new URLSearchParams(location.search).get("tab");
-    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries", "freight", "routes"]);
+    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries", "freight", "routes", "payouts"]);
     return requestedTab && supportedTabs.has(requestedTab as TabType) ? requestedTab as TabType : "dashboard";
   });
 
@@ -346,6 +349,7 @@ const AdminDashboard = () => {
   const [analyzingMarket, setAnalyzingMarket] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isRootAdmin, setIsRootAdmin] = useState(false);
+  const [canManagePayouts, setCanManagePayouts] = useState(false);
   const [isSuperRoot, setIsSuperRoot] = useState(false);
   const [isSupportAgent, setIsSupportAgent] = useState(false);
   const [userPermissions, setUserPermissions] = useState<AdminPermission[]>([]);
@@ -370,6 +374,7 @@ const AdminDashboard = () => {
       if (!user) return;
       
       setCurrentUserId(user.id);
+      const { data: adminRole } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
 
       // Check if root admin or super root
       const { data: userData } = await supabase
@@ -378,6 +383,7 @@ const AdminDashboard = () => {
         .eq("id", user.id)
         .single();
       
+      setCanManagePayouts(adminRole === true || userData?.is_root_admin === true);
       if (userData?.is_root_admin) {
         setIsRootAdmin(true);
         setUserPermissions(["manage_users", "manage_products", "manage_orders", "manage_support", "manage_sourcing", "view_analytics", "manage_admins"]);
@@ -434,11 +440,12 @@ const AdminDashboard = () => {
         return isSupportAgent || hasPermission("manage_orders");
       case "orders":
       case "freight":
-        return hasPermission("manage_orders");
+      case "payouts":
+        return canManagePayouts;
       default:
         return true;
     }
-  }, [hasPermission, isRootAdmin, isSupportAgent]);
+  }, [hasPermission, isRootAdmin, isSupportAgent, canManagePayouts]);
 
   useEffect(() => {
     if (!currentUserId || !adminPermissionsLoaded) return;
@@ -1171,6 +1178,11 @@ const AdminDashboard = () => {
           {(isSupportAgent || hasPermission("manage_orders")) && (
             <SidebarItem active={activeTab === "deliveries"} onClick={() => { setActiveTab("deliveries"); setMenuOpen(false); }} icon={<Truck className="h-4 w-4" />}>
               Entregas
+            </SidebarItem>
+          )}
+          {canManagePayouts && (
+            <SidebarItem active={activeTab === "payouts"} onClick={() => { setActiveTab("payouts"); setMenuOpen(false); }} icon={<Wallet className="h-4 w-4" />}>
+              Pagamentos do marketplace
             </SidebarItem>
           )}
           {hasPermission("manage_orders") && (
@@ -2465,6 +2477,7 @@ const AdminDashboard = () => {
         {/* ADMIN MANAGEMENT */}
         {activeTab === "prices" && <MarketPricesManager />}
         {activeTab === "freight" && hasPermission("manage_orders") && <FreightPricingSettings />}
+        {activeTab === "payouts" && canManagePayouts && <MarketplacePayouts />}
 
         {activeTab === "admins" && currentUserId && (
 

@@ -938,11 +938,15 @@ export type Database = {
       freight_loads: {
         Row: {
           accepted_at: string | null
+          buyer_id: string | null
+          buyer_receipt_confirmed_at: string | null
           contract_id: string | null
           created_at: string
           created_by: string
           currency: string
           delivered_at: string | null
+          driver_arrived_at: string | null
+          driver_delivery_confirmed_at: string | null
           destination_label: string
           destination_lat: number | null
           destination_lng: number | null
@@ -966,16 +970,22 @@ export type Database = {
           route_distance_km: number | null
           route_duration_minutes: number | null
           status: string
+          supplier_handover_confirmed_at: string | null
+          supplier_id: string | null
           updated_at: string
           weight_kg: number
         }
         Insert: {
           accepted_at?: string | null
+          buyer_id?: string | null
+          buyer_receipt_confirmed_at?: string | null
           contract_id?: string | null
           created_at?: string
           created_by: string
           currency?: string
           delivered_at?: string | null
+          driver_arrived_at?: string | null
+          driver_delivery_confirmed_at?: string | null
           destination_label: string
           destination_lat?: number | null
           destination_lng?: number | null
@@ -999,16 +1009,22 @@ export type Database = {
           route_distance_km?: number | null
           route_duration_minutes?: number | null
           status?: string
+          supplier_handover_confirmed_at?: string | null
+          supplier_id?: string | null
           updated_at?: string
           weight_kg?: number
         }
         Update: {
           accepted_at?: string | null
+          buyer_id?: string | null
+          buyer_receipt_confirmed_at?: string | null
           contract_id?: string | null
           created_at?: string
           created_by?: string
           currency?: string
           delivered_at?: string | null
+          driver_arrived_at?: string | null
+          driver_delivery_confirmed_at?: string | null
           destination_label?: string
           destination_lat?: number | null
           destination_lng?: number | null
@@ -1032,6 +1048,8 @@ export type Database = {
           route_distance_km?: number | null
           route_duration_minutes?: number | null
           status?: string
+          supplier_handover_confirmed_at?: string | null
+          supplier_id?: string | null
           updated_at?: string
           weight_kg?: number
         }
@@ -2638,7 +2656,7 @@ export type Database = {
           metadata: Json
           order_id: string | null
           payment_intent_id: string
-          recipient_user_id: string
+          recipient_user_id: string | null
           released_at: string | null
           status: string
           wallet_transaction_id: string | null
@@ -2652,7 +2670,7 @@ export type Database = {
           metadata?: Json
           order_id?: string | null
           payment_intent_id: string
-          recipient_user_id: string
+          recipient_user_id: string | null
           released_at?: string | null
           status?: string
           wallet_transaction_id?: string | null
@@ -2666,7 +2684,7 @@ export type Database = {
           metadata?: Json
           order_id?: string | null
           payment_intent_id?: string
-          recipient_user_id?: string
+          recipient_user_id?: string | null
           released_at?: string | null
           status?: string
           wallet_transaction_id?: string | null
@@ -3002,6 +3020,85 @@ export type Database = {
             columns: ["wallet_id"]
             isOneToOne: false
             referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_payouts: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          failure_reason: string | null
+          id: string
+          beneficiary_id: string | null
+          paid_at: string | null
+          paid_by: string | null
+          payout_reference: string | null
+          payout_type: string
+          payment_allocation_id: string
+          proof_url: string | null
+          provider_reference: string | null
+          recipient_user_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          failure_reason?: string | null
+          id?: string
+          beneficiary_id?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          payout_reference?: string | null
+          payout_type: string
+          payment_allocation_id: string
+          proof_url?: string | null
+          provider_reference?: string | null
+          recipient_user_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          failure_reason?: string | null
+          id?: string
+          beneficiary_id?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          payout_reference?: string | null
+          payout_type?: string
+          payment_allocation_id?: string
+          proof_url?: string | null
+          provider_reference?: string | null
+          recipient_user_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_payouts_paid_by_fkey"
+            columns: ["paid_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_payouts_payment_allocation_id_fkey"
+            columns: ["payment_allocation_id"]
+            isOneToOne: true
+            referencedRelation: "payment_allocations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_payouts_recipient_user_id_fkey"
+            columns: ["recipient_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -4570,6 +4667,30 @@ export type Database = {
           p_user_type: Database["public"]["Enums"]["user_type_enum"]
         }
         Returns: boolean
+      }
+      get_freight_delivery_evidence: {
+        Args: { p_freight_load_id: string }
+        Returns: Json
+      }
+      confirm_freight_receipt: {
+        Args: { p_freight_load_id: string }
+        Returns: undefined
+      }
+      confirm_supplier_handover: {
+        Args: { p_freight_load_id: string }
+        Returns: string
+      }
+      submit_freight_delivery_evidence: {
+        Args: {
+          p_accuracy_m?: number
+          p_freight_load_id: string
+          p_latitude: number
+          p_longitude: number
+          p_photo_path: string
+          p_recipient_name: string
+          p_signature_path: string
+        }
+        Returns: string
       }
       confirm_p2p_payment_received: {
         Args: { p_note?: string; p_p2p_order_id: string }
