@@ -156,7 +156,11 @@ begin
       v_total,v_seller_amount,v_driver_amount,v_fee_amount,v_blocked_count;
   end if;
 
-  -- Delivery without buyer confirmation must not release any allocation.
+  -- Persisted driver evidence plus buyer confirmation releases the allocations.
+  insert into public.freight_delivery_evidence(id,freight_load_id,driver_id)
+  values ('47000000-0000-0000-0000-000000000001',v_load,v_driver);
+
+  -- Driver delivery declaration without buyer confirmation must not release any allocation.
   update public.freight_loads
   set status='delivered',
       supplier_handover_confirmed_at=now(),
@@ -170,10 +174,6 @@ begin
   ) or exists (select 1 from public.marketplace_payouts) then
     raise exception 'Driver delivery declaration released funds or created payout intents before buyer confirmation';
   end if;
-
-  -- Persisted driver evidence plus buyer confirmation releases the allocations.
-  insert into public.freight_delivery_evidence(id,freight_load_id,driver_id)
-  values ('47000000-0000-0000-0000-000000000001',v_load,v_driver);
 
   update public.freight_loads
   set buyer_receipt_confirmed_at=now()
