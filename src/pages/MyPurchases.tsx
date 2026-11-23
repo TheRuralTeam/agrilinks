@@ -59,8 +59,11 @@ const purchaseStatus = (status: string) => ({
 const paymentStatus = (status: string | null) => ({
   unpaid: 'Pagamento por iniciar',
   pending: 'Pagamento em validação',
+  processing: 'Pagamento em validação',
   paid: 'Pago',
   failed: 'Pagamento não concluído',
+  cancelled: 'Pagamento cancelado',
+  expired: 'Tentativa expirada',
   refunded: 'Reembolsado',
 }[status || 'unpaid'] || status || 'Não iniciado')
 
@@ -120,6 +123,23 @@ export default function MyPurchases() {
 
   useEffect(() => { void loadPurchases() }, [loadPurchases])
 
+  useEffect(() => {
+    let refreshTimer: number | undefined
+    const refreshOnReturn = () => {
+      if (document.visibilityState === 'hidden') return
+      window.clearTimeout(refreshTimer)
+      refreshTimer = window.setTimeout(() => void loadPurchases(true), 250)
+    }
+
+    window.addEventListener('focus', refreshOnReturn)
+    document.addEventListener('visibilitychange', refreshOnReturn)
+    return () => {
+      window.clearTimeout(refreshTimer)
+      window.removeEventListener('focus', refreshOnReturn)
+      document.removeEventListener('visibilitychange', refreshOnReturn)
+    }
+  }, [loadPurchases])
+
   const openPaymentOptions = async (purchase: Purchase) => {
     setCheckout((current) => ({ ...current, [purchase.id]: { summary: null, recipients: [], loading: true, error: null } }))
     try {
@@ -136,7 +156,7 @@ export default function MyPurchases() {
           error: null,
         },
       }))
-      if (!recipients?.length || !summary?.payment_ready) {
+      if (!summary?.payment_ready) {
         toast({
           title: 'Pagamento ainda não disponível',
           description: summary?.reason || 'A AgriLink ainda não tem instruções de pagamento activas para esta compra.',
@@ -238,7 +258,7 @@ export default function MyPurchases() {
           {purchases.map((purchase) => {
             const state = checkout[purchase.id]
             const draft = paymentDrafts[purchase.id]
-            const canStartPayment = purchase.status === 'accepted' && (purchase.payment_status === 'unpaid' || !purchase.payment_status)
+            const canStartPayment = purchase.status === 'accepted' && ['unpaid', 'failed', null].includes(purchase.payment_status)
             return (
               <Card key={purchase.id}>
                 <CardHeader className="pb-3">
@@ -267,7 +287,19 @@ export default function MyPurchases() {
                             <div className="rounded-md border bg-background p-3"><p className="text-xs text-muted-foreground">Total do checkout</p><p className="font-semibold">{money(Number(state.summary.total || 0), state.summary.currency || 'AOA')}</p></div>
                           </div>
                           {!state.summary.payment_ready && <p className="rounded-md border p-3 text-sm text-muted-foreground">{state.summary.reason || 'O checkout ainda não está pronto. Aguarda a confirmação das condições de pagamento e/ou transporte.'}</p>}
-                          {state.summary.payment_ready && state.recipients.length === 0 && <p className="rounded-md border p-3 text-sm text-muted-foreground">O checkout está calculado, mas não há destinatários autorizados disponíveis. Não transfiras dinheiro para dados recebidos fora da AgriLink.</p>}
+                          {state.summary.payment_ready && (
+                            <div className="space-y-2 rounded-md border bg-background p-3">
+                              <div>
+                                <p className="font-semibold">EMIS GPO em configuração</p>
+                                <p className="mt-1 text-sm text-muted-foreground">A ligação de pagamento ainda não está activa. Nenhuma transacção EMIS pode ser iniciada até o adaptador e a confirmação por webhook estarem configurados.</p>
+                              </div>
+                              <Button disabled>
+                                <CreditCard className="mr-2 h-4 w-4" />
+                                EMIS indisponível
+                              </Button>
+                            </div>
+                          )}
+                          {state.summary.payment_ready && state.recipients.length === 0 && <p className="rounded-md border p-3 text-sm text-muted-foreground">Não há beneficiário activo para transferência manual e a ligação EMIS ainda está em configuração. Não transfiras dinheiro para dados recebidos fora da AgriLink.</p>}
                           {state.summary.payment_ready && state.recipients.length > 0 && (
                             <div className="space-y-3 rounded-md border bg-background p-3">
                               <Label>Escolhe o método e destinatário autorizado</Label>

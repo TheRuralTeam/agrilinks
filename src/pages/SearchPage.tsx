@@ -294,7 +294,7 @@ const SearchPage = () => {
             </button>
           </div>
 
-          {/* Categorias rápidas mantêm o formato de etiqueta; os controlos seguem os tokens partilhados. */}
+          {/* Os controlos mantêm o mesmo raio das abas do marketplace e do perfil. */}
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
             {productCategories.map((cat) => {
               const active = selectedCategory === cat.id
@@ -306,7 +306,7 @@ const SearchPage = () => {
                   style={{
                     background: active ? T.g600 : T.g50,
                     color: active ? T.white : T.mid,
-                    borderRadius: R.pill,
+                    borderRadius: R.md,
                   }}
                 >
                   <cat.icon className="h-3.5 w-3.5" />
@@ -371,7 +371,7 @@ const SearchPage = () => {
                         style={{
                           background: active ? T.g600 : T.g50,
                           color: active ? T.white : T.muted,
-                          borderRadius: R.pill,
+                          borderRadius: R.md,
                         }}
                       >
                         {p.name}

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import './i18n' // Initialize i18n
+import { R, T } from './lib/brand'
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   state = { hasError: false }
@@ -18,13 +19,19 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
   render() {
     if (this.state.hasError) {
       return (
-        <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '24px', background: '#f5f7f2', color: '#18321f', fontFamily: 'system-ui, sans-serif' }}>
-          <section style={{ width: 'min(100%, 520px)', padding: '32px', border: '1px solid #d6e2d3', borderRadius: '12px', background: '#fff', textAlign: 'center', boxShadow: '0 12px 32px rgba(24, 50, 31, 0.08)' }}>
-            <h1 style={{ margin: '0 0 12px', fontSize: '24px' }}>O AgriLink encontrou um problema</h1>
-            <p style={{ margin: '0 0 24px', lineHeight: 1.5, color: '#526257' }}>A tela não pôde ser carregada. Recarregue a página para tentar novamente.</p>
-            <button type="button" onClick={() => window.location.reload()} style={{ border: 0, borderRadius: '12px', padding: '12px 20px', background: '#1f7a3a', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>
-              Recarregar página
-            </button>
+        <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24, background: T.canvas, color: T.ink, fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
+          <section style={{ width: 'min(100%, 520px)', padding: 32, border: 'none', borderRadius: R.md, background: T.white, textAlign: 'center', boxShadow: '0 12px 32px rgba(0,0,0,0.06)' }}>
+            <p style={{ margin: '0 0 12px', color: T.g600, fontSize: 12, fontWeight: 800, letterSpacing: '0.12em' }}>AGRILINK</p>
+            <h1 style={{ margin: '0 0 12px', fontSize: 24 }}>A tela não pôde ser carregada</h1>
+            <p style={{ margin: '0 0 24px', lineHeight: 1.5, color: T.muted }}>Ocorreu um erro inesperado. Tente novamente ou volte à página inicial.</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
+              <button type="button" onClick={() => window.location.reload()} style={{ border: 0, borderRadius: R.md, padding: '12px 20px', background: 'rgba(44,134,59,0.10)', color: T.g700, fontWeight: 700, cursor: 'pointer', font: 'inherit' }}>
+                Tentar novamente
+              </button>
+              <button type="button" onClick={() => window.location.assign('/')} style={{ border: 0, borderRadius: R.md, padding: '12px 20px', background: T.g600, color: T.white, fontWeight: 700, cursor: 'pointer', font: 'inherit' }}>
+                Ir para a página inicial
+              </button>
+            </div>
           </section>
         </main>
       )

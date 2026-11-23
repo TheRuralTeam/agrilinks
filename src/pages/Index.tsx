@@ -7,8 +7,6 @@ import DailyProductPriceTicker from "../components/DailyProductPriceTicker";
 
 import agrilinkLogo from "../assets/agrilink-logo.png";
 import casaLettoLogo from "../assets/parceiros/Grupo_CasaLetto-no-bg.png";
-import totalEnergiesLogo from "../assets/Parceiros Institucionais/total energies.png";
-import totalEntrepreneursLogo from "../assets/Parceiros Institucionais/Total Energies 100 anos 100 empreendedores.png";
 import liveTrackingImage from "../assets/agrilink-live-tracking.jpg";
 import appPreviewImage from "../assets/agrilink-app-preview.jpg";
 import { supabase } from "../integrations/supabase/client";
@@ -23,7 +21,6 @@ const FEED_CACHE_KEY = "agrilink:marketplace:feed";
 
 const NAV_LINKS = [
   { href: "#mercado", label: "Mercado" },
-  { href: "#como-funciona", label: "Como funciona" },
   { href: "#rastreio", label: "Rastreio" },
   { href: "#parceiros", label: "Parceiros" },
   { href: "#app", label: "App" },
@@ -201,7 +198,7 @@ export default function AgriLinkLanding() {
         :where(.al) button { font: inherit; cursor: pointer; }
         .al { margin: 0; font-family: ${FONT}; color: var(--ink); background: var(--canvas); overflow-x: clip; }
         .al :focus-visible { outline: 3px solid var(--green); outline-offset: 3px; }
-        .app-panel :focus-visible, .final-cta :focus-visible, footer :focus-visible { outline-color: #fff; }
+        .app-panel :focus-visible, footer :focus-visible { outline-color: #fff; }
         .al section[id] { scroll-margin-top: 128px; }
 
         .wrap { width: min(1160px, calc(100% - 48px)); margin: 0 auto; }
@@ -286,7 +283,6 @@ export default function AgriLinkLanding() {
         /* Parceiros */
         .partners { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 24px 72px; padding: 40px 32px; background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-card); }
         .partners img { display: block; height: 52px; width: auto; max-width: 220px; object-fit: contain; }
-        .partners img.tall { height: 72px; }
 
         /* App */
         .app-panel { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; padding: 56px; background: var(--green-700); color: #fff; border-radius: var(--radius-card); }
@@ -312,12 +308,6 @@ export default function AgriLinkLanding() {
         .faq-item summary::after { content: '+'; position: absolute; right: 18px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--radius-card); background: var(--green-50); color: var(--green-700); font-size: 18px; }
         .faq-item[open] summary::after { content: '−'; background: var(--green); color: #fff; }
         .faq-item p { margin: 0; padding: 0 20px 20px; color: var(--muted); font-size: 15px; line-height: 1.7; font-weight: 500; }
-
-        /* CTA final */
-        .final-cta { padding: 88px 0; background: var(--green-50); border-top: 1px solid var(--line); }
-        .final-cta-in { display: flex; align-items: center; justify-content: space-between; gap: 40px; }
-        .final-cta h2 { margin: 0; max-width: 640px; font-size: clamp(32px, 4.4vw, 52px); line-height: 1.08; }
-        .final-cta p { margin: 16px 0 0; max-width: 460px; font-size: 17px; line-height: 1.6; font-weight: 500; color: var(--muted); }
 
         /* Rodapé */
         footer { padding: 56px 0 28px; background: #17231b; color: #fff; }
@@ -355,8 +345,6 @@ export default function AgriLinkLanding() {
           .faq-grid { grid-template-columns: 1fr; }
           .app-panel { grid-template-columns: 1fr; padding: 40px 28px; gap: 28px; }
           .stores { justify-self: start; }
-          .final-cta { padding: 64px 0; }
-          .final-cta-in { flex-direction: column; align-items: flex-start; gap: 28px; }
           .foot { grid-template-columns: 1fr 1fr; }
           .foot > :first-child { grid-column: 1 / -1; }
         }
@@ -417,7 +405,7 @@ export default function AgriLinkLanding() {
           <div>
             <span className="kick">Tecnologia para o agronegócio angolano</span>
             <h1 className="disp">
-              Ligue-se ao <span className="accent">mercado agrícola</span> de Angola.
+              CONECTA-TE AO MERCADO.
             </h1>
             <p className="hero-copy">
               Compre para entrega imediata ou garanta a colheita futura. Feche o negócio, pague em garantia
@@ -525,8 +513,6 @@ export default function AgriLinkLanding() {
           </div>
           <div className="partners rv" aria-label="Parceiros AgriLink">
             <img src={casaLettoLogo} alt="Grupo CasaLetto" loading="lazy" />
-            <img src={totalEnergiesLogo} alt="TotalEnergies" loading="lazy" />
-            <img className="tall" src={totalEntrepreneursLogo} alt="TotalEnergies, 100 Anos, 100 Empreendedores" loading="lazy" />
           </div>
         </div>
       </section>
@@ -566,19 +552,6 @@ export default function AgriLinkLanding() {
         </div>
       </section>
 
-      {/* CTA FINAL */}
-      <section className="final-cta" aria-labelledby="cta-title">
-        <div className="wrap final-cta-in">
-          <div>
-            <h2 className="disp" id="cta-title">Comece a negociar hoje.</h2>
-            <p>Crie a sua conta grátis e explore o mercado, mesmo antes de publicar ou comprar.</p>
-          </div>
-          <button type="button" className="btn btn-primary" onClick={goToRegister}>
-            Criar conta grátis <ArrowRight size={18} aria-hidden="true" />
-          </button>
-        </div>
-      </section>
-
       <footer>
         <div className="wrap foot">
           <div>
@@ -598,7 +571,13 @@ export default function AgriLinkLanding() {
             <strong>Contacto</strong>
             <a href="mailto:contacto@agrilink.ao">contacto@agrilink.ao</a>
           </div>
-          <div className="foot-legal">© {new Date().getFullYear()} AgriLink – Comércio e Serviços. Todos os direitos reservados.</div>
+          <div className="foot-legal">
+            © {new Date().getFullYear()} AgriLink – Comércio e Serviços. Todos os direitos reservados.
+            {" · "}
+            <a href="/termos-publicidade">Termos de Publicação</a>
+            {" · "}
+            <a href="/privacidade">Privacidade</a>
+          </div>
         </div>
       </footer>
     </main>

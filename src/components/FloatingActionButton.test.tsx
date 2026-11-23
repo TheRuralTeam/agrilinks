@@ -43,10 +43,10 @@ describe('FloatingActionButton', () => {
     },
   )
 
-  it('does not show the create action while already on the receiving form', () => {
+  it('keeps the create action available while marking the receiving form as current', () => {
     state.pathname = '/ficharecebimento'
     render(<FloatingActionButton />)
 
-    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Criar ficha de recebimento' })).toHaveAttribute('aria-current', 'page')
   })
 })

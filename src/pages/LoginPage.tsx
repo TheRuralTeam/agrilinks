@@ -261,11 +261,13 @@ const LoginPage = () => {
 
           {/* Logo, maior, sem legenda */}
           <div className="mb-10 flex justify-center lg:justify-start">
-            <img
-              src={agrilinkLogo}
-              alt="AgriLink"
-              style={{ height: 72, display: 'block', filter: 'drop-shadow(0 2px 10px rgba(0,0,0,0.08))' }}
-            />
+            <Link to="/" aria-label="Ir para a página inicial AgriLink">
+              <img
+                src={agrilinkLogo}
+                alt="AgriLink"
+                style={{ height: 72, display: 'block', filter: 'drop-shadow(0 2px 10px rgba(0,0,0,0.08))' }}
+              />
+            </Link>
           </div>
 
           <div className="mb-8 text-center lg:text-left">
@@ -492,6 +494,14 @@ const LoginPage = () => {
           <p style={{ textAlign: 'center', marginTop: 24, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.faint }}>
             © 2025 AgriLink Lda · Segurança Garantida
           </p>
+          <nav aria-label="Informações legais" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '8px 18px', marginTop: 12, fontSize: 12 }}>
+            <Link to="/termos-publicidade" style={{ color: T.muted, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+              Termos de Publicação
+            </Link>
+            <Link to="/privacidade" style={{ color: T.muted, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+              Privacidade
+            </Link>
+          </nav>
         </div>
       </div>
 

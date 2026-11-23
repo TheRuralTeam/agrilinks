@@ -10,7 +10,6 @@ const MESSAGES: { match: (p: string) => boolean; text: string }[] = [
   { match: p => p.startsWith('/publicar-produto'), text: 'Cria conta para publicar este produto de verdade' },
   { match: p => p.startsWith('/ficharecebimento'), text: 'Cria conta para enviar a tua ficha técnica aos fornecedores' },
   { match: p => p.startsWith('/listamensagens') || p.startsWith('/messages'), text: 'Cria conta para falar com fornecedores e compradores' },
-  { match: p => p.startsWith('/mercado'), text: 'Cria conta para acompanhar preços e negociar no mercado' },
   { match: p => p.startsWith('/mapa'), text: 'Cria conta para contactar os produtores que vês no mapa' },
   { match: p => p.startsWith('/contratos'), text: 'Cria conta para gerar e descarregar contratos digitais' },
   { match: () => true, text: 'Cria a tua conta para comprar e falar com fornecedores' },

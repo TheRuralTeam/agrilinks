@@ -19,6 +19,7 @@ const Registration = lazy(() => import("./pages/Registration"));
 const ProformaInvoices = lazy(() => import("./pages/ProformaInvoices"));
 const TechnicalSheet = lazy(() => import("./pages/TechnicalSheet"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AppHome = lazy(() => import("./pages/AppHome"));
 const MapView = lazy(() => import("./pages/MapView"));
@@ -28,7 +29,6 @@ const Profile = lazy(() => import("./pages/Profile"));
 const ConversationsList = lazy(() => import("./pages/ConversationsList"));
 const Support = lazy(() => import("./pages/Support"));
 const PublishProduct = lazy(() => import("./pages/PublishProduct"));
-const MarketData = lazy(() => import("./pages/MarketData"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminOrderTrash = lazy(() => import("./components/admin/AdminOrderTrash"));
 const FichaRecebimento = lazy(() => import("./pages/FichaRecebimento"));
@@ -192,6 +192,8 @@ const AppRoutes = () => {
         <Route path="/change-password" element={<ChangePassword />} />
         <Route path="/admin-password-resets" element={<PermissionRoute permissions={["manage_users"]} allowRootAdmins><AdminPasswordResets /></PermissionRoute>} />
         <Route path="/termos-publicidade" element={<TermsOfService />} />
+        <Route path="/privacidade" element={<PrivacyPolicy />} />
+        <Route path="/politica-privacidade" element={<PrivacyPolicy />} />
         <Route path="/produto/:id" element={<ProductDetail />} />
         <Route path="/produto/:id/localizacao" element={<PublicProductLocation />} />
         <Route path="/mapa" element={<MapPreviewRoute render={(readOnly) => <MapView readOnly={readOnly} />} />} />
@@ -307,16 +309,7 @@ const AppRoutes = () => {
             </OpenRoute>
           }
         />
-        <Route
-          path="/mercado"
-          element={
-            <OpenRoute>
-              <AppLayout>
-                <MarketData />
-              </AppLayout>
-            </OpenRoute>
-          }
-        />
+        <Route path="/mercado" element={<Navigate to="/app" replace />} />
         <Route
           path="/carteira"
           element={

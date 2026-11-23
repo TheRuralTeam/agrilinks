@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { useNavigate } from "react-router-dom";
-import { BarChart3, Menu, Phone, ShoppingCart, X } from "lucide-react";
+import { Menu, Phone, ShoppingCart, X } from "lucide-react";
 import agrilinkLogo from "../assets/agrilink-logo.png";
 
 const Header = () => {
@@ -39,15 +39,6 @@ const Header = () => {
 
           {/* Desktop CTA */}
           <div className="hidden lg:flex items-center space-x-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-10 rounded-xl text-sm"
-              onClick={() => navigate("/mercado")}
-            >
-              <BarChart3 aria-hidden="true" />
-              Dados de Mercado
-            </Button>
             <Button variant="outline" size="sm" className="h-10 rounded-xl text-sm">
               <Phone aria-hidden="true" />
               Contato
@@ -90,18 +81,6 @@ const Header = () => {
                 </a>
               ))}
               <div className="flex flex-col space-y-2 px-3 pt-4 border-t border-border/50 mt-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-11 w-full justify-start rounded-xl"
-                  onClick={() => {
-                    navigate("/mercado");
-                    setIsMenuOpen(false);
-                  }}
-                >
-                  <BarChart3 aria-hidden="true" />
-                  Dados de Mercado
-                </Button>
                 <Button
                   size="sm"
                   className="h-11 w-full justify-start rounded-xl"

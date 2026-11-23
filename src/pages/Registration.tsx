@@ -344,6 +344,10 @@ const Registration = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '22px 0' }}><div style={{ flex: 1, height: 1, background: T.rule }} /><span style={{ color: T.faint, fontSize: 11 }}>OU</span><div style={{ flex: 1, height: 1, background: T.rule }} /></div>
           <button type="button" onClick={handleGoogleSignUp} disabled={googleLoading} style={{ width: '100%', height: 50, borderRadius: 999, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, fontWeight: 700, cursor: googleLoading ? 'wait' : 'pointer' }}>{googleLoading ? 'A conectar…' : 'Continuar com Google'}</button>
           <p style={{ textAlign: 'center', margin: '20px 0 0', color: T.muted, fontSize: 13 }}>Já tem conta? <Link to="/login" style={{ color: T.g600, fontWeight: 700 }}>Entrar</Link></p>
+          <nav aria-label="Informações legais" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '8px 18px', marginTop: 14, fontSize: 12 }}>
+            <Link to="/termos-publicidade" style={{ color: T.muted, textDecoration: 'underline' }}>Termos de Publicação</Link>
+            <Link to="/privacidade" style={{ color: T.muted, textDecoration: 'underline' }}>Privacidade</Link>
+          </nav>
         </div>
       </div>
     );
@@ -767,6 +771,10 @@ const Registration = () => {
               </Link>
             </p>
           </form>
+          <nav aria-label="Informações legais" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '8px 18px', marginTop: 14, fontSize: 12 }}>
+            <Link to="/termos-publicidade" style={{ color: T.muted, textDecoration: 'underline' }}>Termos de Publicação</Link>
+            <Link to="/privacidade" style={{ color: T.muted, textDecoration: 'underline' }}>Privacidade</Link>
+          </nav>
         </div>
       </div>
     </div>

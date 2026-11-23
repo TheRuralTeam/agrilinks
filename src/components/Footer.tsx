@@ -92,8 +92,8 @@ const Footer = () => {
             <a href="/termos-publicidade" className="text-white/60 hover:text-accent text-sm transition-colors">
               Termos de Publicação
             </a>
-            <a href="/suporte" className="text-white/60 hover:text-accent text-sm transition-colors">
-              Privacidade e cookies — contactar suporte
+            <a href="/privacidade" className="text-white/60 hover:text-accent text-sm transition-colors">
+              Privacidade
             </a>
           </div>
         </div>

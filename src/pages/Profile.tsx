@@ -131,13 +131,12 @@ function agentStatusLabel(task?: SourcingAgentTaskStatus) {
    em vez de três caixas idênticas com sombra igual (o "kit SaaS" genérico). */
 const StatsStrip = ({ items }: { items: { value: number | string; label: string; color: string }[] }) => (
   <div style={{
-    background: T.white, borderRadius: R.md, border: `1px solid ${T.rule}`,
+    background: T.white, borderRadius: R.md, border: 'none',
     display: 'flex', overflow: 'hidden',
   }}>
     {items.map((it, i) => (
       <div key={it.label} style={{
         flex: 1, padding: '18px 14px', textAlign: 'center',
-        borderLeft: i > 0 ? `1px solid ${T.rule}` : 'none',
       }}>
         <div style={{ fontFamily: FONT, fontSize: 24, fontWeight: 800, color: it.color, letterSpacing: '-0.03em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
           {it.value}
@@ -1004,7 +1003,7 @@ const Profile = () => {
   const totalLikes = userProducts.reduce((s, p) => s + (productStats[p.id]?.likes || 0), 0)
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: T.subtle, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ minHeight: '100vh', background: T.white, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
         <div style={{ width: 40, height: 40, borderRadius: '50%', border: `2.5px solid ${T.gBorder}`, borderTopColor: T.g500 ?? T.g600, animation: 'ag-spin 0.8s linear infinite' }}/>
         <p style={{ fontSize: 13, color: T.faint, fontWeight: 500, fontFamily: FONT }}>{t('profile.loadingProfile')}</p>
@@ -1045,7 +1044,7 @@ const Profile = () => {
       ]
 
   return (
-    <div className="ag-profile-page" style={{ minHeight: '100vh', background: T.subtle, fontFamily: FONT, paddingBottom: 80, WebkitFontSmoothing: 'antialiased' }}>
+    <div className="ag-profile-page" style={{ minHeight: '100vh', background: T.white, fontFamily: FONT, paddingBottom: 80, WebkitFontSmoothing: 'antialiased' }}>
 
       {/* ═══ HEADER ═══════════════════════════════════════════════════════════ */}
       <header style={{
@@ -1067,7 +1066,7 @@ const Profile = () => {
                   <Settings size={14}/> <span className="hidden sm:inline">{t('profile.settings')}</span>
                 </Btn>
                 <Btn variant="danger" size="sm" onClick={() => logout()}>
-                  <LogOut size={14}/> <span className="hidden sm:inline">{t('common.logout') || 'Sair'}</span>
+                  <LogOut size={14}/> <span className="hidden sm:inline">Sair</span>
                 </Btn>
               </>
             ) : (
@@ -1105,17 +1104,16 @@ const Profile = () => {
         {/* ══ LEFT COLUMN ══════════════════════════════════════════════════════ */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-          {/* ── Cartão de membro: friso lateral na cor do papel + código no
-               rodapé, como um crachá real da rede AgriLink. Substitui o
-               banner fino + avatar flutuante genérico. ── */}
+          {/* Cartão de perfil organizado em quatro áreas de informação. */}
           <div style={{
-            display: 'flex', background: T.white, borderRadius: R.md, border: `1px solid ${T.rule}`,
-            overflow: 'hidden', boxShadow: '0 4px 16px rgba(17,24,20,.04)', animation: `ag-fade-up 0.5s ${EASE} both`,
+            display: 'block', background: T.white, borderRadius: R.md,
+            overflow: 'hidden', boxShadow: 'none', animation: `ag-fade-up 0.5s ${EASE} both`,
           }}>
-            <div style={{ width: 6, background: roleAccent, flexShrink: 0 }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ padding: '22px 22px 18px', display: 'flex', gap: 14, alignItems: 'flex-start', background: `linear-gradient(135deg, ${T.g50}, ${T.white} 72%)` }}>
-                <div style={{ position: 'relative', flexShrink: 0 }}>
+            {!editMode ? (
+              <>
+                <div className="ag-member-grid">
+                  <section className="ag-member-cell ag-member-identity">
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
                   <div style={{
                     width: 64, height: 64, borderRadius: '50%',
                     border: `2px solid ${roleAccent}33`,
@@ -1137,60 +1135,54 @@ const Profile = () => {
                   </label>
                   <input id="avatar-upload" type="file" accept="image/*" onChange={uploadAvatar} style={{ display: 'none' }}/>
                 </div>
-
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <h2 style={{ fontFamily: FONT, fontSize: 22, fontWeight: 800, color: T.ink, margin: 0, letterSpacing: '-0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {profileDisplayName}
-                    </h2>
-                    {(userProfile as any)?.verified && <BadgeCheck size={16} color={roleAccent} strokeWidth={2}/>}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: roleAccent, flexShrink: 0 }} />
-                    <span style={{ fontSize: 13, color: T.muted, fontWeight: 600 }}>{profileRoleLabel}</span>
-                  </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <h2 style={{ fontFamily: FONT, fontSize: 22, fontWeight: 800, color: T.ink, margin: 0, letterSpacing: '-0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {profileDisplayName}
+                        </h2>
+                        {(userProfile as any)?.verified && <BadgeCheck size={16} color={roleAccent} strokeWidth={2}/>}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: roleAccent, flexShrink: 0 }} />
+                        <span style={{ fontSize: 13, color: T.muted, fontWeight: 600 }}>{profileRoleLabel}</span>
+                      </div>
+                      <span style={{ display: 'block', marginTop: 7, fontSize: 10.5, color: T.faint, fontWeight: 700 }}>
+                        Rede AgriLink · #{memberCode}
+                      </span>
+                    </div>
+                  </section>
+                  <section className="ag-member-cell">
+                    <InfoRow icon={<Mail size={14} strokeWidth={1.6}/>} value={profileData.email} />
+                  </section>
+                  <section className="ag-member-cell">
+                    <InfoRow icon={<Phone size={14} strokeWidth={1.6}/>} value={profileData.phone} />
+                  </section>
+                  <section className="ag-member-cell">
+                    <InfoRow icon={<MapPin size={14} strokeWidth={1.6}/>} value={`${provinceName}${municipalityName ? ', ' + municipalityName : ''}`} />
+                  </section>
                 </div>
-              </div>
-
-              {!editMode ? (
-                <div style={{ padding: '0 22px 18px' }}>
-                  <InfoRow icon={<Mail size={14} strokeWidth={1.6}/>} value={profileData.email} />
-                  <InfoRow icon={<Phone size={14} strokeWidth={1.6}/>} value={profileData.phone} />
-                  <InfoRow icon={<MapPin size={14} strokeWidth={1.6}/>} value={`${provinceName}${municipalityName ? ', ' + municipalityName : ''}`} />
-                  <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                    <Btn variant="secondary" onClick={() => guardAction('editar o teu perfil', () => setEditMode(true))} style={{ flex: 1 }}>
-                      <Edit size={13} strokeWidth={1.75}/> {t('profile.editProfile')}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, padding: '0 22px 18px' }}>
+                  <Btn variant="secondary" onClick={() => guardAction('editar o teu perfil', () => setEditMode(true))} style={{ gridColumn: 'span 2' }}>
+                    <Edit size={13} strokeWidth={1.75}/> {t('profile.editProfile')}
+                  </Btn>
+                  {isAgente && (
+                    <Btn variant="outline" size="sm" onClick={shareAgentCode}>
+                      <Share2 size={13} strokeWidth={1.75}/>
                     </Btn>
-                    {isAgente && (
-                      <Btn variant="outline" size="sm" onClick={shareAgentCode}>
-                        <Share2 size={13} strokeWidth={1.75}/>
-                      </Btn>
-                    )}
-                  </div>
+                  )}
                 </div>
-              ) : (
-                <div style={{ padding: '0 22px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <Input label={t('profile.fullName')} value={profileData.full_name} onChange={(e: any) => setProfileData(p => ({ ...p, full_name: e.target.value }))} />
-                  <Input label={t('profile.phone')} value={profileData.phone} onChange={(e: any) => setProfileData(p => ({ ...p, phone: e.target.value }))} />
-                  <Input label={t('profile.email')} type="email" value={profileData.email} onChange={(e: any) => setProfileData(p => ({ ...p, email: e.target.value }))} />
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <Btn variant="primary" onClick={updateProfile} style={{ flex: 1 }}>{t('common.save')}</Btn>
-                    <Btn variant="outline" onClick={() => setEditMode(false)} style={{ flex: 1 }}>{t('common.cancel')}</Btn>
-                  </div>
+              </>
+            ) : (
+              <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <Input label={t('profile.fullName')} value={profileData.full_name} onChange={(e: any) => setProfileData(p => ({ ...p, full_name: e.target.value }))} />
+                <Input label={t('profile.phone')} value={profileData.phone} onChange={(e: any) => setProfileData(p => ({ ...p, phone: e.target.value }))} />
+                <Input label={t('profile.email')} type="email" value={profileData.email} onChange={(e: any) => setProfileData(p => ({ ...p, email: e.target.value }))} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Btn variant="primary" onClick={updateProfile} style={{ flex: 1 }}>{t('common.save')}</Btn>
+                  <Btn variant="outline" onClick={() => setEditMode(false)} style={{ flex: 1 }}>{t('common.cancel')}</Btn>
                 </div>
-              )}
-
-              {/* Talão do cartão — código de membro, separado por borda tracejada */}
-              <div style={{
-                borderTop: `1px dashed ${T.rule}`, padding: '11px 22px',
-                background: T.canvas, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              }}>
-                <span style={{ fontSize: 10.5, color: T.faint, fontWeight: 600 }}>Rede AgriLink</span>
-                <span style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 11.5, color: T.mid, fontWeight: 700, letterSpacing: '0.04em' }}>
-                  #{memberCode}
-                </span>
               </div>
-            </div>
+            )}
           </div>
 
           {user && !isGuest && (
@@ -1710,6 +1702,9 @@ const Profile = () => {
         @keyframes ag-fade-up { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: translateY(0) } }
 
         .ag-layout { display: grid; grid-template-columns: 1fr; gap: 22px; }
+        .ag-member-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); column-gap:16px; padding:18px 22px 12px; }
+        .ag-member-cell { display:flex; min-width:0; min-height:72px; align-items:center; padding:10px 0; }
+        .ag-member-identity { gap:12px; }
 
         .ag-btn:active { transform: scale(0.97); }
         .ag-btn { min-height: 40px; }
@@ -1747,6 +1742,7 @@ const Profile = () => {
             content: attr(data-label); font-size: 10.5px; font-weight: 700; color: ${T.faint}; text-align: left; flex-shrink: 0;
           }
           .ag-row-actions { opacity: 1; }
+          .ag-member-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
         }
 
         @media (max-width: 480px) {
@@ -1754,11 +1750,11 @@ const Profile = () => {
           .ag-profile-toolbar { padding: 0 14px !important; }
           .ag-profile-actions { gap: 5px !important; }
           .ag-profile-actions .ag-btn { padding-left: 9px !important; padding-right: 9px !important; }
+          .ag-member-grid { grid-template-columns:1fr; padding:14px 16px 10px; }
+          .ag-member-cell { min-height:58px; }
+          .ag-member-identity { min-height:76px; }
         }
 
-        @media (min-width: 1024px) {
-          .ag-layout { grid-template-columns: 320px 1fr !important; }
-        }
         @media (min-width: 640px) {
           .sm\\:grid-cols-2 { grid-template-columns: 1fr 1fr !important; }
           .sm\\:inline { display: inline !important; }

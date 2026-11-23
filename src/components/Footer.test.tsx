@@ -17,7 +17,7 @@ describe('Footer navigation', () => {
     render(<Footer />)
 
     expect(screen.getByRole('link', { name: 'Termos de Publicação' })).toHaveAttribute('href', '/termos-publicidade')
-    expect(screen.getByRole('link', { name: /Privacidade e cookies/ })).toHaveAttribute('href', '/suporte')
+    expect(screen.getByRole('link', { name: 'Privacidade' })).toHaveAttribute('href', '/privacidade')
     expect(screen.getByRole('link', { name: /Abrir área de suporte/ })).toHaveAttribute('href', '/suporte')
   })
 

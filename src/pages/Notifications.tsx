@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import usePushNotifications from '../components/usePushNotifications';
@@ -40,14 +40,17 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const requestSequence = useRef(0);
 
-  const fetchNotifications = useCallback(async () => {
+  const fetchNotifications = useCallback(async (showLoader = true) => {
+    const requestId = ++requestSequence.current;
     if (!user) {
       setNotifications([]);
+      setLoadError(null);
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (showLoader) setLoading(true);
     setLoadError(null);
     try {
       const { data, error } = await supabase
@@ -57,18 +60,41 @@ const Notifications = () => {
         .order('created_at', { ascending: false })
         .limit(300);
       if (error) throw error;
+      if (requestId !== requestSequence.current) return;
       setNotifications((data ?? []) as Notification[]);
     } catch (error) {
       console.error('Erro ao buscar notificações:', error);
-      setLoadError('Não foi possível consultar as notificações. Verifique a ligação e tente novamente.');
+      if (requestId === requestSequence.current) {
+        setLoadError('Não foi possível consultar as notificações. Verifique a ligação e tente novamente.');
+      }
     } finally {
-      setLoading(false);
+      if (requestId === requestSequence.current) setLoading(false);
     }
   }, [user]);
 
   useEffect(() => {
     void fetchNotifications();
-  }, [fetchNotifications]);
+    if (!user?.id) return;
+
+    let refreshTimeout: number | undefined;
+    const channel = supabase
+      .channel(`notifications-page-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        () => {
+          window.clearTimeout(refreshTimeout);
+          refreshTimeout = window.setTimeout(() => void fetchNotifications(false), 150);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      requestSequence.current += 1;
+      window.clearTimeout(refreshTimeout);
+      void supabase.removeChannel(channel);
+    };
+  }, [fetchNotifications, user?.id]);
 
   const markAsRead = useCallback(async (id: string) => {
     if (!user?.id) return false;
@@ -241,7 +267,7 @@ const Notifications = () => {
             </CardContent>
           </Card>
         )}
-        {!loadError && notifications.map((notification) => (
+        {notifications.map((notification) => (
           <Card
             key={notification.id}
             style={{ background: notification.read ? T.white : T.g50, border: `1px solid ${notification.read ? T.rule : T.gBorder}`, borderRadius: R.md }}

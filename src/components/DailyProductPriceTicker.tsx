@@ -188,7 +188,13 @@ export default function DailyProductPriceTicker() {
         @keyframes daily-price-live-pulse { 0% { transform:scale(.7); opacity:.8; } 100% { transform:scale(1.8); opacity:0; } }
         @keyframes daily-price-spin { to { transform:rotate(360deg); } }
         @media (prefers-reduced-motion: reduce) { .daily-price-track.is-moving, .daily-price-spinner, .daily-price-heading > span:first-of-type, .daily-price-item strong, .daily-price-item b, .daily-price-live i::after { animation:none; } }
-        @media (max-width:640px) { .daily-price-ticker { flex:1 1 auto; align-self:stretch; width:100%; } }
+        @media (max-width:640px) {
+          .daily-price-ticker { flex:1 1 auto; align-self:stretch; width:100%; padding:9px 10px; border:1px solid ${T.gBorder}; border-radius:${R.md}; background:${T.g50}; }
+          .daily-price-heading { flex-wrap:wrap; }
+          .daily-price-refresh { display:none; }
+          .daily-price-window { width:100%; }
+          .daily-price-track.is-moving { animation-duration:24s; }
+        }
       `}</style>
     </section>
   );

@@ -207,7 +207,7 @@ const FichaRecebimento = () => {
               </Label>
               <Select
                 value={formData.tipoNegocio}
-                onValueChange={(v) => setFormData({ ...formData, tipoNegocio: v })}
+                onValueChange={(v) => setFormData((previous) => ({ ...previous, tipoNegocio: v }))}
               >
                 <SelectTrigger className="h-12 text-base" style={{ borderColor: T.border }}>
                   <SelectValue placeholder="Selecione o tipo de negócio" />

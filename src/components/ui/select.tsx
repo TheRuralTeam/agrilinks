@@ -21,6 +21,7 @@ const SelectTrigger = React.forwardRef<
       className
     )}
     {...props}
+    type="button"
   >
     {children}
     <SelectPrimitive.Icon asChild>

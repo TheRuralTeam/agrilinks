@@ -1,7 +1,6 @@
 import React from 'react'
 import { useLocation } from 'react-router-dom'
 import BottomNavigation from '../components/BottomNavigation'
-import FloatingActionButton from '../components/FloatingActionButton'
 import { useNavigate } from 'react-router-dom'
 import { useGuestGate } from '../contexts/GuestGateContext'
 import { R, T } from '../lib/brand'
@@ -53,7 +52,6 @@ const AppLayout = ({ children }: AppLayoutProps) => {
           </button>
         </aside>
       )}
-      {!shouldHideNav && <FloatingActionButton />}
       {!shouldHideNav && <BottomNavigation />}
     </div>
   )

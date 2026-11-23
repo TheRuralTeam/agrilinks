@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { ArrowLeft, Package, Calendar, DollarSign, Hash, MapPin, User, Upload, X } from 'lucide-react';
 import { angolaProvinces } from '../data/angola-locations';
 import { useAuth } from '../contexts/AuthContext';
@@ -317,7 +317,8 @@ const PublishProduct = () => {
           className="border-[#2c863b] text-[#2c863b] hover:bg-[#2c863b] hover:text-white"
           onClick={() => navigate(-1)}
         >
-          Voltar
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          <span>Voltar</span>
         </Button>
 
       </div>
@@ -343,32 +344,36 @@ const PublishProduct = () => {
     {/* Produto agrícola: catálogo agrupado, sem sugerir produtos não agrícolas */}
     <div className="space-y-2">
       <Label htmlFor="product_type">Produto agrícola *</Label>
-      <Select value={formData.product_type} onValueChange={(value) => {
-        const normalized = value.toLocaleLowerCase('pt');
-        const category = /ovo|codorniz|galinha.*ovo|pata.*ovo/.test(normalized)
-          ? 'ovos'
-          : /frango|galinha|pato|peru|carne/.test(normalized)
-            ? 'carnes'
-            : /leite|queijo|iogurte|manteiga|nata|requeij|coalhada|lácteo|lacteo/.test(normalized)
-              ? 'lacteos'
-              : '';
-        setFormData((prev) => ({
-          ...prev,
-          product_type: value,
-          ...(category ? { category } : {}),
-          ...(normalized.includes('ovo') ? { sale_unit: 'caixa' as const } : {}),
-        }));
-      }}>
-        <SelectTrigger id="product_type" aria-label="Produto agrícola obrigatório"><SelectValue placeholder="Selecionar produto agrícola" /></SelectTrigger>
-        <SelectContent>
-          {AGRICULTURAL_PRODUCT_GROUPS.map((group) => (
-            <SelectGroup key={group.label}>
-              <SelectLabel>{group.label}</SelectLabel>
-              {group.products.map((product) => <SelectItem key={product} value={product}>{product}</SelectItem>)}
-            </SelectGroup>
-          ))}
-        </SelectContent>
-      </Select>
+      <Input
+        id="product_type"
+        list="agricultural-product-suggestions"
+        aria-label="Produto agrícola obrigatório"
+        placeholder="Escreva ou selecione um produto agrícola"
+        value={formData.product_type}
+        onChange={(event) => {
+          const value = event.target.value;
+          const normalized = value.toLocaleLowerCase('pt');
+          const category = /ovo|codorniz|galinha.*ovo|pata.*ovo/.test(normalized)
+            ? 'ovos'
+            : /frango|galinha|pato|peru|carne/.test(normalized)
+              ? 'carnes'
+              : /leite|queijo|iogurte|manteiga|nata|requeij|coalhada|lácteo|lacteo/.test(normalized)
+                ? 'lacteos'
+                : '';
+          setFormData((prev) => ({
+            ...prev,
+            product_type: value,
+            ...(category ? { category } : {}),
+            ...(normalized.includes('ovo') ? { sale_unit: 'caixa' as const } : {}),
+          }));
+        }}
+        required
+      />
+      <datalist id="agricultural-product-suggestions">
+        {AGRICULTURAL_PRODUCT_GROUPS.flatMap((group) => group.products).map((product) => (
+          <option key={product} value={product} />
+        ))}
+      </datalist>
     </div>
 
     {/* Categoria do produto (filtro do feed) */}
@@ -384,7 +389,11 @@ const PublishProduct = () => {
             <button
               type="button"
               key={c.id}
-              onClick={() => setFormData((prev) => ({ ...prev, category: c.id }))}
+              aria-pressed={active}
+              onClick={(event) => {
+                event.preventDefault();
+                setFormData((prev) => ({ ...prev, category: c.id }));
+              }}
               className="flex flex-col items-center justify-center gap-1 rounded-xl py-3 px-2 border transition-all"
               style={{
                 background: active ? c.color : '#fff',

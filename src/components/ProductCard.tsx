@@ -63,7 +63,7 @@ const styles: Record<string, React.CSSProperties> = {
   imageWrap: {
     position: 'relative',
     background: `linear-gradient(135deg, ${T.g50}, ${T.g100})`,
-    height: 190,
+    height: 220,
     overflow: 'hidden',
   },
   imageOverlay: {

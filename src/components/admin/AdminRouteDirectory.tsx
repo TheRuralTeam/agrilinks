@@ -24,7 +24,6 @@ const ROUTES: RouteEntry[] = [
   { label: "Mapa", path: "/mapa", audience: "Público (pré-visualização) / autenticados", category: "Mapa e logística" },
   { label: "Mapa dentro da aplicação", path: "/mapa-app", audience: "Utilizadores autenticados ou convidados", category: "Mapa e logística" },
   { label: "Pesquisar", path: "/search", audience: "Público/autenticado", category: "Marketplace" },
-  { label: "Mercado e preços", path: "/mercado", audience: "Público/autenticado", category: "Marketplace" },
   { label: "Publicar produto", path: "/publicar-produto", audience: "Agricultores/fornecedores", category: "Fornecedor" },
   { label: "Carrinho de compras", path: "/carrinho", audience: "Compradores", category: "Comprador" },
   { label: "Minhas compras", path: "/minhas-compras", audience: "Compradores", category: "Comprador" },

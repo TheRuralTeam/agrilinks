@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { toast } from 'sonner'
 import {
-  Search, ShoppingCart, Bell, CalendarClock,
+  Search, ShoppingCart, Bell, CalendarClock, LayoutDashboard,
   CheckCircle2, Package, MapPin, WifiOff, AlertCircle
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../components/ui/dialog'
@@ -64,7 +64,7 @@ const ProductSkeleton = () => (
    ════════════════════════════════════════════════════════════════════════════ */
 const AppHome = () => {
   const navigate = useNavigate()
-  const { user, userProfile, refreshProfile } = useAuth()
+  const { user, userProfile, refreshProfile, isAdmin, isRootAdmin, isSuperRoot } = useAuth()
   const { requireAct } = useCanAct()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -76,12 +76,13 @@ const AppHome = () => {
   const [deliveryCoordinates, setDeliveryCoordinates] = useState<{ latitude: number; longitude: number } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string>('all')
-  const [purchaseTab, setPurchaseTab] = useState<'future' | 'now'>('future')
+  const [purchaseTab, setPurchaseTab] = useState<'future' | 'now'>('now')
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [feedPage, setFeedPage] = useState(0)
   const [hasMoreProducts, setHasMoreProducts] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [identityDialogOpen, setIdentityDialogOpen] = useState(false)
+  const canSeeAdmin = isAdmin || isRootAdmin || isSuperRoot
 
   const filteredProducts = useMemo(() => {
     const purchaseProducts = products.filter(product =>
@@ -340,19 +341,31 @@ const AppHome = () => {
       }}>
         <div className="market-header-inner" style={{ maxWidth:1320, margin:'0 auto', padding:'0 16px', minHeight:56, display:'flex', alignItems:'center', gap:10 }}>
 
-          {/* Logo */}
-          <button
-            type="button"
-            aria-label="Ir para o início da AgriLink"
-            onClick={() => navigate('/')}
-            style={{ display:'flex', alignItems:'center', cursor:'pointer', flexShrink:0, border:0, padding:0, background:'transparent' }}
-          >
-            <img
-              src={agrilinkLogo}
-              alt="AgriLink"
-              style={{ height:26, width:'auto', objectFit:'contain', display:'block' }}
-            />
-          </button>
+          <div className="market-brand-actions">
+            <button
+              type="button"
+              aria-label="Ir para o início da AgriLink"
+              onClick={() => navigate('/')}
+              style={{ display:'flex', alignItems:'center', cursor:'pointer', flexShrink:0, border:0, padding:0, background:'transparent' }}
+            >
+              <img
+                src={agrilinkLogo}
+                alt="AgriLink"
+                style={{ height:26, width:'auto', objectFit:'contain', display:'block' }}
+              />
+            </button>
+            {canSeeAdmin && (
+              <button
+                type="button"
+                onClick={() => navigate('/admindashboard')}
+                aria-label="Abrir painel administrativo"
+                title="Administração"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-white text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <LayoutDashboard size={19} aria-hidden="true" />
+              </button>
+            )}
+          </div>
 
           <div className="market-search-ticket">
           {/* Pesquisa — pílula leve, sempre visível, encolhe em mobile sem sair da navbar */}
@@ -400,8 +413,8 @@ const AppHome = () => {
           }}
         >
           {([
-            { id: 'future', title: 'Compras de futuro', description: 'Colheitas previstas para mais de 5 dias', Icon: CalendarClock },
             { id: 'now', title: 'Comprar agora', description: 'Pronto ou disponível em menos de 5 dias', Icon: ShoppingCart },
+            { id: 'future', title: 'Compras de futuro', description: 'Colheitas previstas para mais de 5 dias', Icon: CalendarClock },
           ] as const).map(tab => {
             const selected = purchaseTab === tab.id
             return (
@@ -766,13 +779,15 @@ const AppHome = () => {
         * { box-sizing: border-box; }
 
         .market-search-ticket { display:flex; flex:1 1 auto; min-width:0; align-items:center; gap:12px; }
+        .market-brand-actions { display:flex; flex-shrink:0; align-items:center; gap:10px; }
         .market-search { flex:1 1 auto; min-width:0; max-width:480px; }
         @media (prefers-reduced-motion: reduce) { .market-tab-copy { animation:none; } }
 
         @media (max-width: 640px) {
           #products-grid { padding-left: 14px !important; padding-right: 14px !important; }
           .market-header-inner { display:grid !important; grid-template-columns:1fr; gap:8px !important; padding-top:8px !important; padding-bottom:10px !important; }
-          .market-search-ticket { display:flex; flex-direction:column-reverse; align-items:stretch; gap:8px; }
+          .market-brand-actions { width:100%; justify-content:space-between; }
+          .market-search-ticket { display:flex; width:100%; min-width:0; flex-direction:column-reverse; align-items:stretch; gap:8px; }
           .market-search { width:100%; max-width:none; }
         }
       `}</style>

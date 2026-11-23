@@ -43,6 +43,7 @@ import SatelliteMonitor from '../components/SatelliteMonitor';
 import { MAP_TILE_LAYERS } from '../lib/mapTiles';
 import { supabase } from '../integrations/supabase/client';
 import axios from 'axios';
+import agrilinkLogoMark from '../assets/LogoAgriLinkOfficiallNoBackground.png';
 
 // Mesma fonte de verdade de cor usada na Landing e no Cadastro — o mapa deixa
 // de ter a sua própria paleta paralela. Os tokens abaixo que NÃO existem em
@@ -226,7 +227,7 @@ const productIcon = L.divIcon({
     border:2.5px solid white;border-radius:50% 50% 50% 0;
     transform:rotate(-45deg);display:flex;align-items:center;
     justify-content:center;box-shadow:0 4px 12px rgba(44,134,59,0.35);
-  "><div style="transform:rotate(45deg);font-size:16px;line-height:1;">🌿</div></div>`,
+  "><span style="width:24px;height:28px;position:relative;display:block;overflow:hidden;transform:rotate(45deg);"><img src="${agrilinkLogoMark}" alt="" style="position:absolute;width:92px;max-width:none;left:-33px;top:-20px;filter:brightness(0) invert(1);" /></span></div>`,
   className: '',
   iconSize: [36, 36],
   iconAnchor: [18, 36],
@@ -669,7 +670,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
   const [filters, setFilters] = useState<FilterOptions>({
     productType: '',
     priceRange: [0, 10000],
-    radius: 200,
+    radius: 2000,
   });
 
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -705,11 +706,25 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
     setLoading(true);
     try {
       const data = await retryWithBackoff(async () => {
-        const { data, error } = await supabase.from('products').select('*').limit(100);
-        if (error) throw error;
-        return data;
+        const pageSize = 500;
+        const products: Product[] = [];
+        for (let offset = 0; ; offset += pageSize) {
+          const { data: page, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('status', 'active')
+            .order('created_at', { ascending: false })
+            .range(offset, offset + pageSize - 1);
+          if (error) throw error;
+          products.push(...(page || []).map((product) => ({
+            ...product,
+            farmer_id: product.user_id,
+          } as Product)));
+          if (!page || page.length < pageSize) break;
+        }
+        return products;
       }, 2, 600);
-      setProducts((data || []) as any);
+      setProducts(data);
       setMapError(null);
     } catch {
       setMapError('Erro ao carregar produtos. Verifique a sua ligação.');
@@ -838,7 +853,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
           !filters.productType || p.product_type.toLowerCase().includes(filters.productType.toLowerCase());
         const matchesPrice = p.price >= filters.priceRange[0] && p.price <= filters.priceRange[1];
         const matchesRadius =
-          !userLocation || !p.location_lat || !p.location_lng
+          !userLocation || p.location_lat == null || p.location_lng == null
             ? true
             : distanceKm(userLocation, [p.location_lng, p.location_lat]) <= filters.radius;
         return matchesType && matchesPrice && matchesRadius;
@@ -1116,8 +1131,8 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
           {/* Produtos */}
           {filteredProducts.map(
             (p) =>
-              p.location_lat &&
-              p.location_lng && (
+              p.location_lat != null &&
+              p.location_lng != null && (
                 <Marker
                   key={p.id}
                   position={[p.location_lat, p.location_lng]}
@@ -1513,7 +1528,7 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
                 <input
                   type="range"
                   min="5"
-                  max="500"
+                  max="2000"
                   step="5"
                   value={filters.radius}
                   onChange={(e) => setFilters({ ...filters, radius: parseInt(e.target.value) })}
