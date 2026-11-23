@@ -1,6 +1,6 @@
 -- Structural regression tests for centralized marketplace allocations.
--- Behavioural checkout tests require a configured PSP sandbox and isolated
--- payment fixtures; this file verifies the database gates after migrations.
+-- PSP network integration requires a configured sandbox; this suite exercises
+-- the database lifecycle with isolated synthetic payment and delivery fixtures.
 
 do $test$
 declare
