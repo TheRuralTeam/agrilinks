@@ -554,13 +554,18 @@ begin
         updated_at = now()
     where p.recipient_user_id = v_beneficiary.user_id
       and p.status = 'awaiting_beneficiary_verification';
-  elsif p_decision in ('rejected','disabled') then
+
     update public.marketplace_payouts p
-    set beneficiary_id = null,
-        status = 'awaiting_beneficiary_verification',
+    set status = 'awaiting_manual_payout',
         updated_at = now()
     where p.beneficiary_id = p_beneficiary_id
-      and p.status = 'awaiting_manual_payout';
+      and p.status = 'blocked';
+  elsif p_decision in ('rejected','disabled') then
+    update public.marketplace_payouts p
+    set status = 'blocked',
+        updated_at = now()
+    where p.beneficiary_id = p_beneficiary_id
+      and p.status in ('awaiting_manual_payout','processing','failed');
   end if;
 
   insert into public.marketplace_payout_audit(beneficiary_id, actor_id, action, metadata)
@@ -602,7 +607,8 @@ begin
   if p_action is null then
     raise exception 'INVALID_PAYOUT_ACTION' using errcode = '22023';
   elsif p_action = 'processing' then
-    if v_payout.status <> 'awaiting_manual_payout' or v_payout.beneficiary_id is null then
+    if v_payout.status <> 'awaiting_manual_payout' or v_payout.beneficiary_id is null
+       or not exists (select 1 from public.marketplace_payout_beneficiaries b where b.id = v_payout.beneficiary_id and b.user_id = v_payout.recipient_user_id and b.status = 'verified') then
       raise exception 'VERIFIED_BENEFICIARY_REQUIRED_BEFORE_PROCESSING' using errcode = '23514';
     end if;
     v_next_status := 'processing';
@@ -627,7 +633,8 @@ begin
     end if;
     v_next_status := 'failed';
   elsif p_action = 'retry' then
-    if v_payout.status <> 'failed' or v_payout.beneficiary_id is null then
+    if v_payout.status <> 'failed' or v_payout.beneficiary_id is null
+       or not exists (select 1 from public.marketplace_payout_beneficiaries b where b.id = v_payout.beneficiary_id and b.user_id = v_payout.recipient_user_id and b.status = 'verified') then
       raise exception 'FAILED_PAYOUT_WITH_VERIFIED_BENEFICIARY_REQUIRED' using errcode = '23514';
     end if;
     v_next_status := 'awaiting_manual_payout';
@@ -637,7 +644,8 @@ begin
     end if;
     v_next_status := 'blocked';
   elsif p_action = 'unblock' then
-    if v_payout.status <> 'blocked' or v_payout.beneficiary_id is null then
+    if v_payout.status <> 'blocked' or v_payout.beneficiary_id is null
+       or not exists (select 1 from public.marketplace_payout_beneficiaries b where b.id = v_payout.beneficiary_id and b.user_id = v_payout.recipient_user_id and b.status = 'verified') then
       raise exception 'BLOCKED_PAYOUT_WITH_VERIFIED_BENEFICIARY_REQUIRED' using errcode = '23514';
     end if;
     v_next_status := 'awaiting_manual_payout';
