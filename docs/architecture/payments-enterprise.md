@@ -108,3 +108,20 @@ Não basta o checkout abrir. Para considerar pagamentos enterprise funcionais é
 10. reconciliação PSP ↔ AgriLink;
 11. auditoria;
 12. liberação do frete somente após pagamento confirmado.
+
+## Verificação de beneficiários e controlo de payouts
+
+Os destinos de pagamento do marketplace são independentes do módulo P2P. O registo `marketplace_payout_beneficiaries` aceita apenas uma referência opaca/tokenizada emitida por um PSP ou vault aprovado, o titular e um rótulo mascarado. Não recebe nem persiste IBAN, número de conta, PIN, OTP ou credenciais bancárias em texto simples. A referência do fornecedor de pagamentos não é exposta pela Data API ao cliente.
+
+O registo e a revisão são operações administrativas auditadas:
+1. Administração regista a referência segura do beneficiário e os dados de identificação mascarados.
+2. Administração verifica a titularidade e aprova ou rejeita o beneficiário.
+3. A aprovação associa os payouts pendentes desse utilizador àquele beneficiário e move-os para `awaiting_manual_payout`.
+4. Uma revogação bloqueia os payouts ainda não pagos associados ao beneficiário.
+5. A administração inicia o processamento; só pode registar `paid` a partir de `processing`, com referência de transferência e caminho de comprovativo associado ao payout.
+6. Falhas exigem motivo e podem ser reencaminhadas para a fila manual após a validação do beneficiário.
+
+As funções administrativas validam `has_role(auth.uid(), 'admin')`; as tabelas não aceitam mutações directas do cliente. O histórico é append-only para os utilizadores autenticados e legível apenas pela administração. O estado `paid` é um registo administrativo de transferência confirmada, não uma transferência executada pela aplicação.
+
+**Limite operacional actual:** não existe PSP de saída activo nem integração bancária configurada para payouts automáticos. Até existir um fornecedor contratado, vault de beneficiários e reconciliação bancária, a operação permanece manual e não pode ser apresentada como liquidação automática. A prova carregada e a referência devem ser confrontadas com o extracto/portal bancário antes da marcação final.
+
