@@ -35,6 +35,11 @@ returns boolean language sql stable as $
   select auth.uid() = _user_id and current_setting('test.is_admin', true) = 'true'
 $;
 
+create or replace function public.is_root_admin(p_user_id uuid)
+returns boolean language sql stable as $root$
+  select false
+$root$;
+
 create table public.users (
   id uuid primary key
 );
