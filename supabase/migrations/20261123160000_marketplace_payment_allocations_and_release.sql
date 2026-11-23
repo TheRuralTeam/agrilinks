@@ -250,7 +250,7 @@ for select
 to authenticated
 using (
   recipient_user_id = auth.uid()
-  or public.has_role(auth.uid(), 'admin'::public.app_role)
+  or public.is_root_admin(auth.uid()) or public.has_role(auth.uid(), 'admin'::public.app_role)
 );
 
 revoke all on function public.create_marketplace_payout_intent() from public, anon, authenticated;
@@ -387,7 +387,7 @@ using (
     where pi.id = payment_allocations.payment_intent_id
       and pi.user_id = auth.uid()
   )
-  or public.has_role(auth.uid(), 'admin'::public.app_role)
+  or public.is_root_admin(auth.uid()) or public.has_role(auth.uid(), 'admin'::public.app_role)
 );
 
 comment on function public.create_marketplace_payment_allocations() is
@@ -452,7 +452,7 @@ on public.marketplace_payout_beneficiaries
 for select to authenticated
 using (
   user_id = auth.uid()
-  or public.has_role(auth.uid(), 'admin'::public.app_role)
+  or public.is_root_admin(auth.uid()) or public.has_role(auth.uid(), 'admin'::public.app_role)
 );
 grant select on public.marketplace_payout_audit to authenticated;
 create policy "Admins can read payout audit"
@@ -475,7 +475,7 @@ as $register$
 declare
   v_id uuid;
 begin
-  if auth.uid() is null or not public.has_role(auth.uid(), 'admin'::public.app_role) then
+  if auth.uid() is null or not (public.is_root_admin(auth.uid()) or public.has_role(auth.uid(), 'admin'::public.app_role)) then
     raise exception 'ADMIN_REQUIRED' using errcode = '42501';
   end if;
   if p_user_id is null
@@ -515,7 +515,7 @@ as $$
 declare
   v_beneficiary public.marketplace_payout_beneficiaries%rowtype;
 begin
-  if auth.uid() is null or not public.has_role(auth.uid(), 'admin'::public.app_role) then
+  if auth.uid() is null or not (public.is_root_admin(auth.uid()) or public.has_role(auth.uid(), 'admin'::public.app_role)) then
     raise exception 'ADMIN_REQUIRED' using errcode = '42501';
   end if;
   if p_decision is null or p_decision not in ('verified','rejected','disabled') then
@@ -592,7 +592,7 @@ declare
   v_payout public.marketplace_payouts%rowtype;
   v_next_status text;
 begin
-  if auth.uid() is null or not public.has_role(auth.uid(), 'admin'::public.app_role) then
+  if auth.uid() is null or not (public.is_root_admin(auth.uid()) or public.has_role(auth.uid(), 'admin'::public.app_role)) then
     raise exception 'ADMIN_REQUIRED' using errcode = '42501';
   end if;
 
