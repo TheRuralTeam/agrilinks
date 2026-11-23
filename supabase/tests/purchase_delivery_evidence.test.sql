@@ -107,6 +107,16 @@ begin
     raise exception 'Buyer receipt event is not idempotent';
   end if;
 
+  if not exists (
+    select 1 from public.order_transaction_events
+    where freight_load_id = v_load
+      and event_type = 'buyer_receipt_confirmed'
+      and from_status = 'delivered'
+      and to_status = 'buyer_received'
+  ) then
+    raise exception 'Buyer receipt transaction event does not preserve the distinct receipt state';
+  end if;
+
   select count(*) into v_event_count
   from public.freight_load_events
   where freight_load_id = v_load and event_type = 'driver_departure';
