@@ -286,11 +286,8 @@ begin
   set buyer_receipt_confirmed_at = now(), updated_at = now()
   where id = v_load.id and buyer_receipt_confirmed_at is null;
 
-  if v_load.pre_order_id is not null then
-    update public.pre_orders
-    set status = 'completed', updated_at = now()
-    where id = v_load.pre_order_id and status = 'accepted';
-  end if;
+  -- Keep the pre-order acceptance state intact. Delivery completion is represented
+  -- by freight_loads.status and buyer_receipt_confirmed_at, not by mutating pre_orders.
 
   insert into public.order_transaction_events (
     pre_order_id, order_id, freight_load_id, event_type, from_status, to_status, actor_id, metadata
