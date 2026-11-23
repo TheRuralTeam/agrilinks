@@ -244,3 +244,84 @@ begin
   raise notice 'PASS: one AgriLink collection, blocked split, buyer-confirmed release and driver settlement';
 end;
 $behavior$;
+
+
+-- Admin beneficiary review and manual payout state machine.
+do $admin_payouts$
+declare
+  v_admin uuid := '41000000-0000-0000-0000-000000000099';
+  v_supplier uuid := '41000000-0000-0000-0000-000000000002';
+  v_driver uuid := '41000000-0000-0000-0000-000000000003';
+  v_supplier_beneficiary uuid;
+  v_driver_beneficiary uuid;
+  v_supplier_payout uuid;
+  v_driver_payout uuid;
+begin
+  insert into public.users(id) values(v_admin) on conflict do nothing;
+  perform set_config('request.jwt.claim.sub', v_admin::text, true);
+  perform set_config('test.is_admin', 'true', true);
+
+  if has_column_privilege('authenticated','public.marketplace_payout_beneficiaries','provider_beneficiary_ref','SELECT') then
+    raise exception 'Provider beneficiary token must not be exposed through the client Data API';
+  end if;
+
+  if has_table_privilege('authenticated','public.marketplace_payout_audit','INSERT')
+     or has_table_privilege('authenticated','public.marketplace_payout_audit','UPDATE')
+     or has_table_privilege('authenticated','public.marketplace_payout_audit','DELETE') then
+    raise exception 'Payout audit must be append-only through controlled backend functions';
+  end if;
+
+  select id into v_supplier_payout
+  from public.marketplace_payouts where recipient_user_id=v_supplier;
+  select id into v_driver_payout
+  from public.marketplace_payouts where recipient_user_id=v_driver;
+
+  if v_supplier_payout is null or v_driver_payout is null then
+    raise exception 'Expected distinct supplier and driver payout intents';
+  end if;
+
+  v_supplier_beneficiary := public.admin_register_marketplace_payout_beneficiary(
+    v_supplier,'bank_transfer','vault:beneficiary:supplier-01','Supplier Test','IBAN •••• 1024'
+  );
+  v_driver_beneficiary := public.admin_register_marketplace_payout_beneficiary(
+    v_driver,'bank_transfer','vault:beneficiary:driver-01','Driver Test','IBAN •••• 2048'
+  );
+
+  perform public.admin_review_marketplace_payout_beneficiary(v_supplier_beneficiary,'verified',null);
+  perform public.admin_review_marketplace_payout_beneficiary(v_driver_beneficiary,'verified',null);
+
+  if (select status from public.marketplace_payouts where id=v_supplier_payout) <> 'awaiting_manual_payout'
+     or (select status from public.marketplace_payouts where id=v_driver_payout) <> 'awaiting_manual_payout' then
+    raise exception 'Verified beneficiary did not unlock the corresponding payout intents';
+  end if;
+
+  begin
+    perform public.admin_transition_marketplace_payout(v_supplier_payout,'processing',null,null,null);
+    perform public.admin_transition_marketplace_payout(v_supplier_payout,'paid',null,null,null);
+    raise exception 'Paid transition unexpectedly accepted missing transfer evidence';
+  exception when check_violation then
+    null;
+  end;
+
+  perform public.admin_transition_marketplace_payout(v_supplier_payout,'processing',null,null,null);
+  perform public.admin_transition_marketplace_payout(
+    v_supplier_payout,'paid','BANK-TRANSFER-TEST-001',
+    v_supplier_payout::text || '/proof/bank-confirmation.pdf',null
+  );
+
+  if (select status from public.marketplace_payouts where id=v_supplier_payout) <> 'paid'
+     or (select paid_at from public.marketplace_payouts where id=v_supplier_payout) is null
+     or (select paid_by from public.marketplace_payouts where id=v_supplier_payout) <> v_admin then
+    raise exception 'Paid payout lacks required audit fields';
+  end if;
+
+  perform public.admin_transition_marketplace_payout(v_driver_payout,'processing',null,null,null);
+  perform public.admin_transition_marketplace_payout(v_driver_payout,'failed',null,null,'Bank transfer rejected');
+  perform public.admin_transition_marketplace_payout(v_driver_payout,'retry',null,null,null);
+  if (select status from public.marketplace_payouts where id=v_driver_payout) <> 'awaiting_manual_payout' then
+    raise exception 'Failed payout retry did not return to manual payout queue';
+  end if;
+
+  raise notice 'PASS: beneficiary review, restricted token visibility, separate payout processing, evidence-gated paid state and retry';
+end;
+$admin_payouts$;
