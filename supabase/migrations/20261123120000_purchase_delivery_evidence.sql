@@ -287,7 +287,7 @@ returns timestamptz
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_actor uuid := auth.uid();
   v_load public.freight_loads%rowtype;
@@ -327,7 +327,7 @@ begin
 
   return (select fl.supplier_handover_confirmed_at from public.freight_loads fl where fl.id = v_load.id);
 end;
-$;
+$$;
 
 revoke all on function public.confirm_supplier_handover(uuid) from public, anon;
 grant execute on function public.confirm_supplier_handover(uuid) to authenticated;
@@ -337,7 +337,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 begin
   if new.status = 'in_transit' and old.status is distinct from new.status
      and new.supplier_handover_confirmed_at is null then
@@ -346,7 +346,7 @@ begin
   end if;
   return new;
 end;
-$;
+$$;
 
 drop trigger if exists trg_guard_freight_handover_before_transit on public.freight_loads;
 create trigger trg_guard_freight_handover_before_transit
@@ -361,7 +361,7 @@ language plpgsql
 stable
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_actor uuid := auth.uid();
   v_load public.freight_loads%rowtype;
@@ -401,7 +401,7 @@ begin
     'delivered_at', v_evidence.delivered_at
   );
 end;
-$;
+$$;
 
 revoke all on function public.get_freight_delivery_evidence(uuid) from public, anon;
 grant execute on function public.get_freight_delivery_evidence(uuid) to authenticated;
