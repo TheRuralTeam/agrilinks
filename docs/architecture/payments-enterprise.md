@@ -63,7 +63,7 @@ As alocações só passam de `blocked` para `available` depois de:
 3. confirmação independente de recepção pelo comprador;
 4. pré-compra marcada como paga.
 
-`available` significa elegível para liquidação, não transferência bancária concluída. A alocação só deve ser marcada como paga depois de existir referência e confirmação verificável da transferência real. Sem PSP de saída configurado, a liquidação permanece operacional/manual e não é simulada.
+`available` significa elegível para liquidação, não transferência bancária concluída. A transição para `available` cria automaticamente um registo separado em `marketplace_payouts` para fornecedor e motorista, inicialmente em `awaiting_beneficiary_verification`. A comissão da plataforma não gera payout a um utilizador. A tabela de payouts é uma fila de instruções internas: não envia dinheiro por si só, não presume que o beneficiário tem conta bancária validada e não permite marcar como `paid` sem data e referência de transferência. A alocação só deve ser marcada como paga depois de existir referência e confirmação verificável da transferência real. Sem PSP de saída configurado, a liquidação permanece operacional/manual e não é simulada.
 
 ## Idempotência
 Todo pedido de criação de pagamento e reembolso recebe uma chave única. Webhooks usam `provider_id + provider_event_id` como identidade externa e verificam hash do payload.
