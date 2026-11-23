@@ -293,7 +293,7 @@ begin
     pre_order_id, order_id, freight_load_id, event_type, from_status, to_status, actor_id, metadata
   ) values (
     v_load.pre_order_id, v_load.order_id, v_load.id, 'buyer_receipt_confirmed',
-    'delivered', 'completed', v_actor,
+    'delivered', 'buyer_received', v_actor,
     jsonb_build_object('source', 'buyer_confirmation', 'confirmed_at', now())
   );
 
