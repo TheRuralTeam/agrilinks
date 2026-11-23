@@ -31,6 +31,14 @@ vi.mock('../contexts/AuthContext', () => ({
   }),
 }))
 
+vi.mock('../contexts/GuestGateContext', () => ({
+  useGuestGate: () => ({
+    isGuest: false,
+    minutesLeft: 0,
+    requireAuth: vi.fn(),
+  }),
+}))
+
 vi.mock('../integrations/supabase/client', () => ({
   supabase: {
     from: () => ({
