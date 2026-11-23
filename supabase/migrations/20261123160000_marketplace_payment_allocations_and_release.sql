@@ -418,7 +418,7 @@ create policy "Admins upload marketplace payout proofs"
 on storage.objects for insert to authenticated
 with check (
   bucket_id = 'marketplace-payout-proofs'
-  and public.is_root_admin(auth.uid()) or public.has_role(auth.uid(), 'admin'::public.app_role)
+  and (public.is_root_admin(auth.uid()) or public.has_role(auth.uid(), 'admin'::public.app_role))
 );
 
 drop policy if exists "Admins read marketplace payout proofs" on storage.objects;
