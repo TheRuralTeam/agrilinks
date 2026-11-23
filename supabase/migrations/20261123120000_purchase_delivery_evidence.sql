@@ -31,6 +31,7 @@ create index if not exists idx_freight_delivery_evidence_driver
 
 alter table public.freight_delivery_evidence enable row level security;
 revoke all on public.freight_delivery_evidence from anon, authenticated;
+grant select on public.freight_delivery_evidence to authenticated;
 drop policy if exists "Freight participants can read delivery evidence" on public.freight_delivery_evidence;
 create policy "Freight participants can read delivery evidence"
 on public.freight_delivery_evidence for select to authenticated
