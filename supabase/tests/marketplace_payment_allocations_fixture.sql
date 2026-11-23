@@ -30,8 +30,10 @@ exception when duplicate_object then null;
 end
 $types$;
 
-create or replace function public.has_role(p_user_id uuid, p_role public.app_role)
-returns boolean language sql stable as $$ select false $$;
+create or replace function public.has_role(_user_id uuid, _role public.app_role)
+returns boolean language sql stable as $
+  select auth.uid() = _user_id and current_setting('test.is_admin', true) = 'true'
+$;
 
 create table public.users (
   id uuid primary key
