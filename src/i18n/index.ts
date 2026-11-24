@@ -192,6 +192,7 @@ i18n
     lng: getSavedLanguage(),
     fallbackLng: ['pt', 'en'],
     supportedLngs: [...supportedLanguages],
+    showSupportNotice: false,
     interpolation: {
       escapeValue: false,
     },

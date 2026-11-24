@@ -1,31 +1,60 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, ArrowDown, CalendarClock, Check, MapPin, Menu, Navigation, Play, ShieldCheck, Smartphone, X, Zap } from "lucide-react";
+import { ArrowRight, CreditCard, MapPin, Menu, Navigation, Play, ShieldCheck, Smartphone, Sprout, X } from "lucide-react";
 
 import { FONT, R, T } from "../lib/brand";
 import DailyProductPriceTicker from "../components/DailyProductPriceTicker";
 
 import agrilinkLogo from "../assets/agrilink-logo.png";
 import casaLettoLogo from "../assets/parceiros/Grupo_CasaLetto-no-bg.png";
-import totalEnergiesLogo from "../assets/Parceiros Institucionais/total energies.png";
-import totalEntrepreneursLogo from "../assets/Parceiros Institucionais/Total Energies 100 anos 100 empreendedores.png";
-import communityConferenceImage from "../assets/agrilink-community-conference.jpg";
-import communityMeetupImage from "../assets/agrilink-meetup.jpg";
 import liveTrackingImage from "../assets/agrilink-live-tracking.jpg";
-import heroImage from "../assets/hero-agriculture.jpg";
+import appPreviewImage from "../assets/supply-chain-hero.jpg";
+import operationPhoto1 from "../assets/operacoes/agrilink-operacao-01.jpg";
+import operationPhoto2 from "../assets/operacoes/agrilink-operacao-02.jpg";
+import operationPhoto3 from "../assets/operacoes/agrilink-operacao-03.jpg";
+import operationPhoto4 from "../assets/operacoes/agrilink-operacao-04.jpg";
+import operationPhoto5 from "../assets/operacoes/agrilink-operacao-05.jpg";
+import { supabase } from "../integrations/supabase/client";
+import { ProductCard, type Product as ProductCardProduct } from "../components/ProductCard";
 
-// Preenche com os links reais das lojas. Enquanto estiverem vazios,
+// Preencha com os links reais das lojas. Enquanto estiverem vazios,
 // os botões aparecem como "Brevemente" (sem links mortos).
 const PLAY_STORE_URL = "";
 const APP_STORE_URL = "";
 
+const FEED_CACHE_KEY = "agrilink:marketplace:feed";
+
 const NAV_LINKS = [
-  { href: "#compra", label: "Compra" },
-  { href: "#produto", label: "Produto" },
+  { href: "#mercado", label: "Mercado" },
+  { href: "#operacoes", label: "Operações" },
   { href: "#rastreio", label: "Rastreio" },
   { href: "#parceiros", label: "Parceiros" },
   { href: "#app", label: "App" },
+  { href: "#faq", label: "Perguntas" },
 ];
+
+const OPERATIONS_GALLERY = [
+  { src: operationPhoto1, alt: "Representantes da AgriLink visitam uma exploração agrícola", caption: "Visita a produtores no campo" },
+  { src: operationPhoto2, alt: "Equipa AgriLink percorre uma plantação com produtores", caption: "Acompanhamento das explorações" },
+  { src: operationPhoto3, alt: "Equipa AgriLink numa estrada rural durante uma visita de campo", caption: "Operações nas comunidades rurais" },
+  { src: operationPhoto4, alt: "Equipa AgriLink junto de um produtor agrícola", caption: "Ligação directa aos produtores" },
+  { src: operationPhoto5, alt: "Equipa AgriLink visita uma plantação de hortícolas", caption: "Produção agrícola local" },
+];
+
+const FAQ_ITEMS = [
+  { question: "Como posso criar uma conta na AgriLink?", answer: "Selecione “Começar” ou “Criar conta grátis”, escolha o seu perfil e complete o cadastro com os dados solicitados." },
+  { question: "Posso usar a plataforma como visitante?", answer: "Sim. Visitantes podem explorar publicações, pesquisar produtos e consultar perfis públicos. Compras, mensagens e publicação exigem uma conta." },
+  { question: "Como funciona o pagamento em garantia?", answer: "O valor é retido até que a entrega seja confirmada. Só depois a plataforma libera o pagamento ao fornecedor." },
+  { question: "Como acompanho uma entrega?", answer: "Pode consultar localização, estado da rota e previsão da entrega na área de rastreio." },
+  { question: "Posso comprar produtos para entrega imediata?", answer: "Quando um produto está disponível e qualifica para compra imediata, pode iniciar o pedido após criar uma conta." },
+  { question: "Como funciona uma compra futura?", answer: "Permite reservar uma colheita prevista. Quantidade, data e condições são confirmadas com o fornecedor." },
+  { question: "Quem pode publicar produtos?", answer: "Contas de fornecedor podem publicar produtos com preço, quantidade, unidade, origem e data de colheita." },
+  { question: "Como é calculado o frete?", answer: "O frete considera origem, destino, peso ou quantidade e a rota disponível. O valor é confirmado pela equipa logística." },
+  { question: "A minha informação está protegida?", answer: "Dados públicos são separados dos dados privados da conta, pagamentos e contactos administrativos." },
+];
+
+// Atraso escalonado para as animações de entrada do hero.
+const delay = (seconds: number) => ({ "--d": `${seconds}s` } as React.CSSProperties);
 
 function StoreButton({ href, icon, small, name }: { href: string; icon: React.ReactNode; small: string; name: string }) {
   const inner = (
@@ -44,35 +73,73 @@ function StoreButton({ href, icon, small, name }: { href: string; icon: React.Re
   );
 }
 
-const RULES = [
-  {
-    n: "01",
-    title: "Dinheiro em garantia até à entrega",
-    text: "O comprador deposita, o valor fica retido e só é libertado quando a entrega é confirmada.",
-  },
-  {
-    n: "02",
-    title: "Transporte pela rota real",
-    text: "O custo do frete é calculado pelas estradas efectivas. Todos sabem o preço antes de aceitar.",
-  },
-  {
-    n: "03",
-    title: "Oferta e procura ligadas sozinhas",
-    text: "Defina o que precisa uma vez. Cada novo lote que encaixa chega até si automaticamente.",
-  },
-];
+function readCachedFeed(): ProductCardProduct[] {
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(FEED_CACHE_KEY) || "null");
+    return cached?.expiresAt > Date.now() && Array.isArray(cached.products)
+      ? (cached.products as ProductCardProduct[]).slice(0, 3)
+      : [];
+  } catch {
+    return [];
+  }
+}
 
 export default function AgriLinkLanding() {
   const navigate = useNavigate();
   const rootRef = React.useRef<HTMLElement>(null);
   const [ready, setReady] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const [featuredProducts, setFeaturedProducts] = React.useState<ProductCardProduct[]>(readCachedFeed);
+  const [feedLoaded, setFeedLoaded] = React.useState(() => readCachedFeed().length > 0);
   const goToRegister = () => navigate("/cadastro");
 
-  // Animações de entrada ao fazer scroll (respeita prefers-reduced-motion via CSS).
+  React.useEffect(() => {
+    let active = true;
+    void supabase
+      .from("products_public")
+      .select("id, user_id, product_type, price, quantity, harvest_date, sale_unit, province_id, municipality_id, farmer_name, photos, status, created_at, description")
+      .gt("quantity", 0)
+      .order("created_at", { ascending: false })
+      .limit(3)
+      .then(({ data, error }) => {
+        if (!active) return;
+        setFeedLoaded(true);
+        if (error || !data) return;
+        const realProducts = (data as unknown as Array<Record<string, unknown>>).map((row) => ({
+          id: String(row.id),
+          user_id: String(row.user_id || ""),
+          product_type: String(row.product_type || "Produto"),
+          description: row.description == null ? null : String(row.description),
+          quantity: Number(row.quantity || 0),
+          harvest_date: String(row.harvest_date || ""),
+          price: Number(row.price || 0),
+          province_id: String(row.province_id || ""),
+          municipality_id: String(row.municipality_id || ""),
+          farmer_name: String(row.farmer_name || "Fornecedor"),
+          photos: Array.isArray(row.photos) ? (row.photos as string[]) : null,
+          status: String(row.status || "active"),
+          created_at: row.created_at == null ? null : String(row.created_at),
+          sale_unit: row.sale_unit == null ? "kg" : String(row.sale_unit),
+          min_order_quantity: 1,
+          comments_count: 0,
+          is_liked: false,
+          likes_count: 0,
+        }));
+        setFeaturedProducts(realProducts);
+        try {
+          sessionStorage.setItem(FEED_CACHE_KEY, JSON.stringify({
+            expiresAt: Date.now() + 5 * 60_000,
+            products: realProducts,
+          }));
+        } catch {}
+      });
+    return () => { active = false; };
+  }, []);
+
+  // Revelação suave ao fazer scroll (desativada com prefers-reduced-motion via CSS).
   React.useEffect(() => {
     setReady(true);
-    const els = Array.from(rootRef.current?.querySelectorAll(".rv") ?? []);
+    const els = Array.from(rootRef.current?.querySelectorAll(".rv:not(.in)") ?? []);
     if (!("IntersectionObserver" in window)) {
       els.forEach((e) => e.classList.add("in"));
       return undefined;
@@ -86,11 +153,11 @@ export default function AgriLinkLanding() {
           }
         });
       },
-      { threshold: 0.15, rootMargin: "0px 0px -6% 0px" }
+      { threshold: 0.12, rootMargin: "0px 0px -6% 0px" }
     );
     els.forEach((e) => io.observe(e));
     return () => io.disconnect();
-  }, []);
+  }, [featuredProducts.length, feedLoaded]);
 
   // Menu móvel: fecha com a tecla Esc.
   React.useEffect(() => {
@@ -121,160 +188,191 @@ export default function AgriLinkLanding() {
       }
     >
       <style>{`
-        * { box-sizing: border-box; }
+        .al, .al *, .al *::before, .al *::after { box-sizing: border-box; }
         @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
         :where(.al) a { color: inherit; text-decoration: none; }
         :where(.al) button { font: inherit; cursor: pointer; }
-        .al { margin: 0; font-family: ${FONT}; color: var(--ink); background: var(--canvas); overflow: hidden; }
+        .al { margin: 0; font-family: ${FONT}; color: var(--ink); background: var(--canvas); overflow-x: clip; }
         .al :focus-visible { outline: 3px solid var(--green); outline-offset: 3px; }
         .app-panel :focus-visible, footer :focus-visible { outline-color: #fff; }
-        .al section[id] { scroll-margin-top: 84px; }
+        .al section[id] { scroll-margin-top: 128px; }
 
         .wrap { width: min(1160px, calc(100% - 48px)); margin: 0 auto; }
-        .disp { font-weight: 800; letter-spacing: -.04em; }
-        .lbl { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
-        .num { font-variant-numeric: tabular-nums; }
-        .tag, .kick { display: inline-flex; align-items: center; gap: 10px; color: var(--green-700); }
+        .disp { font-weight: 800; letter-spacing: -.035em; }
+        .kick { display: inline-flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--green-700); }
 
-        /* Marcador */
-        .mk { display: inline-block; white-space: nowrap; background: var(--green); color: #fff; border-radius: var(--radius-card); padding: .02em .16em .08em; margin: 0 .02em; }
-        .mk-inv { background: #fff; color: var(--green-700); }
+        /* Botões */
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 0 22px; border: 1px solid transparent; border-radius: var(--radius-card); font-size: 15px; font-weight: 700; white-space: nowrap; transition: background .18s ease, border-color .18s ease, color .18s ease; }
+        .btn-primary { background: var(--green); color: #fff; }
+        .btn-primary:hover { background: var(--green-dark); }
+        .btn-ghost { background: var(--white); color: var(--ink); border-color: var(--line); }
+        .btn-ghost:hover { border-color: var(--green); color: var(--green-700); }
+        .btn-sm { min-height: 42px; padding: 0 18px; font-size: 14px; }
 
-        /* TOPO */
-        .top { position: fixed; inset: 0 0 auto; z-index: 20; background: rgba(255,255,255,.92); border-bottom: 1px solid var(--line); backdrop-filter: blur(14px); }
-        .top-in { height: 76px; display: flex; align-items: center; gap: 32px; }
-        .top img { width: 138px; display: block; }
-        .top-links { margin-left: auto; display: flex; gap: 4px; }
-        .top-links a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border-radius: var(--radius-card); font-size: 13px; font-weight: 700; color: var(--muted); transition: color .18s ease, background .18s ease; }
-        .top-links a:hover { color: var(--ink); background: var(--canvas); }
+        /* Topo: ticker e menu num único bloco fixo (NOVO, plano) */
+        .chrome { position: sticky; top: 0; z-index: 30; }
+        .live-ticker-bar { height: 52px; background: var(--green-700); color: #fff; }
+        .live-ticker-bar .wrap { display: flex; align-items: center; height: 52px; }
+        .live-ticker-bar .daily-price-ticker { color: #fff; }
+        .live-ticker-bar .daily-price-heading { color: #fff; }
+        .live-ticker-bar .daily-price-heading > svg,
+        .live-ticker-bar .daily-price-item strong,
+        .live-ticker-bar .daily-price-item b { color: #fff; }
+        .live-ticker-bar .daily-price-item { color: rgba(255,255,255,.85); }
+        .live-ticker-bar .daily-price-refresh { color: rgba(255,255,255,.75); }
+        .live-ticker-bar .daily-price-live { background: rgba(255,255,255,.16); color: #fff; }
+        .live-ticker-bar .daily-price-live i { background: #fff; }
+        .live-ticker-bar .daily-price-fallback { background: rgba(255,255,255,.16); color: #fff; }
+
+        .top { position: relative; background: var(--white); }
+        .top-in { height: 68px; display: flex; align-items: center; gap: 28px; }
+        .top-logo { display: flex; align-items: center; }
+        .top-logo img { display: block; width: 128px; height: auto; transition: transform .2s ease; }
+        .top-logo:hover img { transform: scale(1.04); }
+        .top-links { margin-left: auto; display: flex; gap: 2px; }
+        .top-links a { position: relative; display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border-radius: var(--radius-card); font-size: 14px; font-weight: 600; color: var(--muted); transition: color .15s ease; }
+        .top-links a::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 5px; height: 2px; background: var(--green); transform: scaleX(0); transform-origin: left; transition: transform .2s ease; }
+        .top-links a:hover { color: var(--green-700); }
+        .top-links a:hover::after { transform: scaleX(1); }
         .top-actions { display: flex; align-items: center; gap: 8px; }
-        .burger { display: none; width: 42px; height: 42px; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--white); color: var(--ink); }
-        .sq { min-height: 42px; padding: 0 20px; border: 0; border-radius: var(--radius-card); background: var(--green); color: #fff; font-size: 14px; font-weight: 800; transition: transform .18s ease, background .18s ease, box-shadow .18s ease; }
-        .sq:hover { transform: translateY(-1px); background: var(--green-dark); box-shadow: 0 6px 16px rgba(44,134,59,.18); }
+        .top .btn:hover { transform: translateY(-2px); }
+        .top .btn { transition: background .18s ease, transform .18s ease; }
+        .burger { display: none; width: 42px; height: 42px; align-items: center; justify-content: center; border: 2px solid var(--ink); border-radius: var(--radius-card); background: var(--white); color: var(--ink); }
 
-        /* HERO */
-        .hero { padding: 142px 0 88px; background: var(--canvas); }
-        .hero-grid { display: grid; grid-template-columns: 1.08fr .92fr; gap: 56px; align-items: center; }
-        .hero h1 { margin: 20px 0; font-size: clamp(42px, 5.4vw, 72px); line-height: 1.08; letter-spacing: -.055em; color: var(--ink); }
-        .hero-copy { max-width: 500px; margin: 0; font-size: 16px; line-height: 1.75; font-weight: 500; color: var(--muted); }
-        .hero-actions { margin-top: 28px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
-        .big { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 0 22px; border: 0; border-radius: var(--radius-card); background: var(--green); color: #fff; font-size: 15px; font-weight: 800; transition: background .18s ease, transform .18s ease, box-shadow .18s ease; }
-        .big:hover { transform: translateY(-2px); background: var(--green-dark); box-shadow: 0 8px 20px rgba(44,134,59,.2); }
-        .big svg, .textlink svg { transition: transform .2s ease; }
-        .big:hover svg { transform: translateX(4px); }
-        .textlink { display: inline-flex; align-items: center; gap: 7px; min-height: 42px; color: var(--ink); font-size: 14px; font-weight: 800; }
-        .textlink:hover svg { transform: translateY(3px); }
+        /* Secções (original) */
+        .sec { padding: 96px 0; }
+        .sec-white { background: var(--white); }
+        .sec-head { max-width: 620px; margin-bottom: 44px; }
+        .h2 { margin: 12px 0 0; font-size: clamp(30px, 3.6vw, 42px); line-height: 1.12; letter-spacing: -.035em; color: var(--ink); }
+        .lead { margin: 16px 0 0; font-size: 17px; line-height: 1.65; font-weight: 500; color: var(--muted); }
 
-        .collage { position: relative; height: 470px; }
-        .photo { position: absolute; top: 0; right: 0; width: 86%; height: 430px; border-radius: var(--radius-card); background: url(${heroImage}) center/cover; box-shadow: 0 18px 48px rgba(17,24,20,.14); }
-        .ticket { position: absolute; left: 0; bottom: 4px; width: 284px; padding: 18px; background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: 0 12px 32px rgba(17,24,20,.12); }
-        .tk-head { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
-        .tk-head b { font-size: 19px; font-weight: 800; letter-spacing: -.03em; color: var(--green-700); }
-        .tk-head span { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-        .tk-body { margin: 12px 0 0; display: flex; flex-direction: column; gap: 8px; }
-        .tk-body div { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
-        .tk-body dt { color: var(--muted); font-weight: 600; }
-        .tk-body dd { margin: 0; font-weight: 700; text-align: right; }
-        .tk-tear { margin: 16px -18px 14px; border-top: 1px dashed var(--line); }
-        .tk-foot { display: flex; flex-direction: column; gap: 3px; font-size: 12px; font-weight: 600; color: var(--muted); }
-        .tk-foot strong { color: var(--ink); font-size: 14px; font-weight: 800; }
-        .stamp { position: absolute; right: 14px; bottom: 16px; display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border: 1px solid var(--green); border-radius: var(--radius-card); background: var(--green-50); color: var(--green-700); font-size: 11px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; }
-        .stamp svg { color: var(--green); }
+        /* Hero (NOVO, plano e animado) */
+        .hero { position: relative; overflow: hidden; padding: 72px 0 96px; }
+        .hero-grid { position: relative; z-index: 1; display: grid; grid-template-columns: 1.1fr .9fr; gap: 64px; align-items: center; }
+        .hero h1 { margin: 16px 0 0; font-size: clamp(40px, 5vw, 64px); line-height: 1.06; letter-spacing: -.045em; color: var(--ink); }
+        .hero h1 .accent { color: var(--green); }
+        .hero-copy { max-width: 520px; margin: 22px 0 0; font-size: 17px; line-height: 1.7; font-weight: 500; color: var(--muted); }
+        .hero-actions { margin-top: 32px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .hero .btn { border-width: 2px; transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease; }
+        .hero .btn:hover { transform: translateY(-2px); }
+        .hero .btn:active { transform: translateY(0) scale(.98); }
+        .hero .btn svg { transition: transform .18s ease; }
+        .hero .btn:hover svg:last-child { transform: translateX(3px); }
+        .hero .btn-ghost { border-color: var(--ink); }
+        .hero .btn-ghost:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
+        .payment-options { margin-top: 24px; }
+        .payment-label { display: block; margin-bottom: 10px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+        .payment-brands { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+        .payment-brand { display: inline-flex; align-items: center; gap: 9px; min-height: 42px; padding: 7px 13px; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--white); color: var(--ink); transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+        .payment-brand:hover { transform: translateY(-3px); border-color: var(--green); box-shadow: 0 8px 18px rgba(17,24,20,.08); }
+        .payment-brand-mark { display: grid; width: 26px; height: 26px; place-items: center; border-radius: 8px; color: #fff; }
+        .payment-brand:hover .payment-brand-mark { transform: rotate(-8deg) scale(1.08); }
+        .payment-brand-mark.emis { background: #d33b32; }
+        .payment-brand-mark.unitel { background: #e85c25; }
+        .payment-brand strong { font-size: 12px; font-weight: 800; }
+        .payment-note { margin: 9px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 
-        /* REFERÊNCIAS DIÁRIAS DE PREÇOS */
-        .marq { overflow: hidden; background: var(--white); color: var(--muted); box-shadow: inset 0 1px 0 var(--line), inset 0 -1px 0 var(--line); }
-        .marq .wrap { display: flex; align-items: center; min-height: 74px; }
+        .shape { position: absolute; pointer-events: none; z-index: 0; }
+        .shape.s1 { top: -90px; right: -70px; width: 320px; height: 320px; border-radius: 50%; background: var(--green-50); }
+        .shape.s2 { bottom: 48px; left: -36px; width: 110px; height: 110px; border-radius: 50%; background: var(--green-light); opacity: .22; }
+        .shape.s3 { top: 18%; left: 47%; width: 56px; height: 56px; border: 3px solid var(--green); border-radius: 14px; opacity: .5; }
+        .shape.s4 { bottom: 14%; right: 38%; width: 18px; height: 18px; border-radius: 50%; background: var(--green); opacity: .6; }
 
-        /* SECÇÕES */
-        .sec { padding: 88px 0 0; }
-        .h2 { margin: 10px 0 0; max-width: 720px; font-size: clamp(30px, 4vw, 48px); line-height: 1.12; letter-spacing: -.045em; color: var(--ink); }
+        .hero-visual { position: relative; display: flex; justify-content: center; padding: 24px 0; }
+        .hero-visual::before { content: ""; position: absolute; top: 50%; left: 50%; width: min(100%, 340px); aspect-ratio: 1; border-radius: 50%; background: var(--green-50); transform: translate(-50%, -50%); }
+        .hero-visual .phone-frame { position: relative; }
+        .chip { position: absolute; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--white); border: 2px solid var(--ink); border-radius: 999px; font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+        .chip svg { color: var(--green); }
+        .chip.a { top: 14%; left: -6%; }
+        .chip.b { bottom: 12%; right: -4%; }
+        .dot { position: relative; width: 10px; height: 10px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
 
-        /* FORMAS DE COMPRA */
-        .modes { margin-top: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-        .mode { display: flex; flex-direction: column; gap: 14px; padding: 26px; background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: 0 4px 16px rgba(17,24,20,.04); transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
-        .mode:hover { transform: translateY(-3px); border-color: rgba(44,134,59,.28); box-shadow: 0 12px 28px rgba(17,24,20,.08); }
-        .mode-top { display: flex; align-items: center; justify-content: space-between; }
-        .mode-icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: var(--radius-card); background: var(--green-50); color: var(--green-700); }
-        .mode-badge { padding: 6px 10px; border-radius: var(--radius-card); background: var(--green-50); color: var(--green-700); font-size: 10px; }
-        .mode h3 { margin: 4px 0 0; font-size: 27px; line-height: 1.04; letter-spacing: -.035em; }
-        .mode p { margin: 0; max-width: 440px; font-size: 15.5px; line-height: 1.7; font-weight: 500; color: var(--muted); }
-        .flow { margin-top: 8px; padding-top: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 7px; border-top: 1px solid var(--line); font-size: 13px; font-weight: 700; }
-        .flow span { padding: 6px 9px; background: var(--canvas); border: 1px solid var(--line); border-radius: var(--radius-card); color: var(--muted); font-size: 12px; }
-        .flow i { font-style: normal; font-weight: 800; color: var(--green); }
+        .phone-frame { margin: 0 auto; width: min(100%, 300px); padding: 10px; background: var(--white); border: 0; border-radius: 32px; box-shadow: none; }
+        .phone-frame img { display: block; width: 100%; height: auto; border-radius: 22px; }
 
-        /* PRODUTO */
-        .rules { margin-top: 30px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-        .rule { display: grid; grid-template-columns: 1fr; gap: 14px; align-content: start; padding: 22px; background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-card); transition: transform .2s ease, box-shadow .2s ease; }
-        .rule:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(17,24,20,.07); }
-        .rule-n { font-size: 36px; font-weight: 800; line-height: 1; letter-spacing: -.05em; color: var(--green); }
-        .rule h3 { margin: 0; font-size: 19px; line-height: 1.3; letter-spacing: -.025em; }
-        .rule p { margin: 0; max-width: 440px; font-size: 14px; line-height: 1.65; font-weight: 500; color: var(--muted); }
+        /* Mercado (original) */
+        .featured-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 32px; }
+        .featured-heading .sec-head { margin-bottom: 0; }
+        .featured-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+        .featured-product-card { min-width: 0; }
+        .featured-empty { padding: 40px 24px; text-align: center; border: 1px dashed var(--line); border-radius: var(--radius-card); background: var(--white); color: var(--muted); font-size: 15px; font-weight: 500; }
 
-        /* RASTREIO */
-        .track { display: grid; grid-template-columns: 1fr .7fr; gap: 48px; align-items: center; }
-        .track-copy > p { margin: 18px 0 0; max-width: 460px; font-size: 16px; line-height: 1.7; font-weight: 500; color: var(--muted); }
-        .track-points { margin: 28px 0 0; padding: 0; max-width: 460px; list-style: none; border-top: 1px solid var(--line); }
-        .track-points li { display: flex; align-items: center; gap: 12px; min-height: 50px; border-bottom: 1px solid var(--line); font-size: 14px; font-weight: 600; }
+        /* Operações: fotos quadradas pequenas a deslizar na horizontal */
+        .strip { --count: 3; --gap: 20px; --tile: calc((100cqw - var(--gap) * (var(--count) - 1)) / var(--count)); container-type: inline-size; width: 100%; padding: 14px 0; overflow: hidden; }
+        .strip-track { display: flex; width: max-content; animation: strip-move 36s linear infinite; }
+        .strip:hover .strip-track { animation-play-state: paused; }
+        .tile { position: relative; flex: 0 0 var(--tile); width: var(--tile); aspect-ratio: 1; margin-right: var(--gap); overflow: hidden; border-radius: var(--radius-card); background: #17231b; transition: scale .25s ease; animation: tile-bob 4s ease-in-out infinite; animation-delay: calc(var(--i) * -.8s); }
+        .tile img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
+        .tile:hover { scale: 1.04; }
+        .tile:hover img { transform: scale(1.08); }
+        .tile span { position: absolute; right: 0; bottom: 0; left: 0; padding: 8px 10px; background: rgba(23,35,27,.88); color: #fff; font-size: 12px; line-height: 1.3; font-weight: 700; }
+        @keyframes strip-move { to { transform: translateX(-50%); } }
+        @keyframes tile-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        @media (prefers-reduced-motion: reduce) {
+          .strip { overflow-x: auto; }
+          .strip-track { animation: none; }
+          .tile { animation: none; }
+          .tile[aria-hidden="true"] { display: none; }
+        }
+
+        /* Extras animados */
+        .featured-product-card { transition: transform .22s ease; }
+        .featured-product-card:hover { transform: translateY(-6px); }
+        .track-visual { position: relative; display: flex; justify-content: center; }
+        .track-visual::before { content: ""; position: absolute; top: 50%; left: 50%; width: min(100%, 340px); aspect-ratio: 1; border-radius: 50%; background: var(--green-50); transform: translate(-50%, -50%); }
+        .pin { position: absolute; z-index: 2; top: 8%; right: 8%; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--green); color: #fff; }
+        .track-points li { transition: padding-left .2s ease, color .2s ease; }
+        .track-points li:hover { padding-left: 8px; color: var(--green-700); }
+        .partners img { transition: transform .2s ease; }
+        .partners img:hover { transform: scale(1.08); }
+        .app-panel { position: relative; overflow: hidden; }
+        .app-panel > * { position: relative; z-index: 1; }
+        .app-panel::before, .app-panel::after { content: ""; position: absolute; z-index: 0; border-radius: 50%; background: #fff; opacity: .07; pointer-events: none; }
+        .app-panel::before { top: -110px; right: -70px; width: 320px; height: 320px; }
+        .app-panel::after { bottom: -80px; left: 36%; width: 200px; height: 200px; }
+        .faq-item { transition: border-color .2s ease; }
+        .faq-item:hover, .faq-item[open] { border-color: var(--ink); }
+        .faq-item summary::after { transition: background .2s ease, color .2s ease, transform .25s ease; }
+        .faq-item[open] summary::after { transform: translateY(-50%) rotate(180deg); }
+        .kick .dot { margin-right: 0; }
+
+        /* Rastreio (original) */
+        .track { display: grid; grid-template-columns: 1.1fr .9fr; gap: 64px; align-items: center; }
+        .track-points { margin: 32px 0 0; padding: 0; max-width: 480px; list-style: none; border-top: 1px solid var(--line); }
+        .track-points li { display: flex; align-items: center; gap: 14px; min-height: 56px; border-bottom: 1px solid var(--line); font-size: 15px; font-weight: 600; }
         .track-points svg { color: var(--green); flex-shrink: 0; }
-        .phone-wrap { position: relative; display: flex; justify-content: center; align-items: center; padding: 10px; }
-        .pulse { position: absolute; inset: 0; margin: auto; width: 270px; height: 270px; border-radius: 50%; border: 1px solid var(--green); opacity: 0; }
-        .phone { position: relative; z-index: 1; width: min(100%, 280px); padding: 9px; background: var(--white); border: 8px solid var(--white); border-radius: 28px; box-shadow: 0 18px 42px rgba(17,24,20,.12); }
-        .phone img { display: block; width: 100%; height: auto; border-radius: 18px; }
 
-        /* REDE */
-        .net { margin-top: 48px; display: grid; grid-template-columns: 1.25fr 1fr; grid-template-rows: 1fr 1fr; overflow: hidden; background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: 0 6px 24px rgba(17,24,20,.05); }
-        .cell { padding: 28px; display: flex; flex-direction: column; justify-content: space-between; gap: 22px; }
-        .cell + .cell { border-left: 1px solid var(--line); }
-        .cell.big-cell { grid-row: 1 / span 2; }
-        .cell.b { border-top: 1px solid var(--line); }
-        .cell-label { color: var(--muted); }
-        .cell img { display: block; object-fit: contain; max-width: 100%; }
-        .logo-big { height: 96px; width: auto; align-self: flex-start; }
-        .cell h3 { margin: 0 0 12px; font-size: 31px; line-height: 1.08; color: var(--ink); }
-        .cell p { margin: 0 0 22px; max-width: 420px; font-size: 15px; line-height: 1.7; font-weight: 500; color: var(--muted); }
-        .logos-pair { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
-        .logos-pair img { height: 46px; width: auto; }
-        .logos-pair img.tall { height: 76px; }
-        .cell.photos { padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0; min-height: 200px; }
-        .cell.photos figure { position: relative; margin: 0; overflow: hidden; }
-        .cell.photos figure + figure { border-left: 1px solid var(--line); }
-        .cell.photos img { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; transition: transform .5s ease; }
-        .cell.photos figure:hover img { transform: scale(1.05); }
-        .cell.photos figcaption { position: absolute; left: 0; bottom: 0; padding: 6px 10px; border-top-right-radius: var(--radius-card); background: rgba(18,30,22,.78); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+        /* Parceiros (original) */
+        .partners { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 24px 72px; padding: 40px 32px; background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-card); }
+        .partners img { display: block; height: 52px; width: auto; max-width: 220px; object-fit: contain; }
 
-        /* APP */
-        .app-panel { position: relative; overflow: hidden; display: grid; grid-template-columns: 1.1fr .9fr; gap: 24px; min-height: 440px; padding: 56px 56px 0; background: var(--green-700); color: #fff; border-radius: var(--radius-card); }
-        .app-copy { align-self: center; padding-bottom: 56px; }
-        .app-copy .kick { color: #fff; }
-        .app-copy h2 { margin: 14px 0; font-size: clamp(34px, 4.4vw, 54px); line-height: 1.04; }
-        .app-copy p { margin: 0; max-width: 440px; font-size: 16px; line-height: 1.7; font-weight: 500; color: #fff; }
-        .stores { margin-top: 30px; display: flex; gap: 16px; flex-wrap: wrap; }
-        .store { display: inline-flex; align-items: center; gap: 14px; min-height: 62px; padding: 8px 24px 8px 14px; background: #fff; color: var(--ink); border-radius: var(--radius-card); transition: transform .15s ease; }
+        /* App (original) */
+        .app-panel { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; padding: 56px; background: var(--green-700); color: #fff; border-radius: var(--radius-card); }
+        .app-panel .kick { color: #fff; opacity: .9; }
+        .app-panel h2 { margin: 12px 0 0; font-size: clamp(30px, 3.6vw, 42px); line-height: 1.1; }
+        .app-panel p { margin: 16px 0 0; max-width: 460px; font-size: 17px; line-height: 1.65; font-weight: 500; color: rgba(255,255,255,.92); }
+        .stores { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; justify-self: end; width: min(100%, 300px); }
+        .store { display: inline-flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; padding: 8px 22px 8px 14px; background: #fff; color: var(--ink); border-radius: var(--radius-card); transition: transform .15s ease; }
         a.store:hover { transform: translateY(-2px); }
         .store-ico { width: 40px; height: 40px; display: grid; place-items: center; flex-shrink: 0; border-radius: var(--radius-card); background: var(--green-50); color: var(--green-700); }
         .store-txt { display: flex; flex-direction: column; line-height: 1.15; }
         .store-txt small { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
-        .store-txt strong { font-size: 20px; font-weight: 800; letter-spacing: -.03em; }
-        .store.off { cursor: default; background: transparent; color: #fff; border: 1px dashed rgba(255,255,255,.5); }
+        .store-txt strong { font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
+        .store.off { cursor: default; background: transparent; color: #fff; border: 1px dashed rgba(255,255,255,.55); }
         .store.off .store-ico { background: #fff; color: var(--ink); }
-        .store.off .store-txt small { color: rgba(255,255,255,.82); }
-        .app-visual { position: relative; display: flex; justify-content: center; align-items: flex-end; }
-        .app-phone { width: min(100%, 270px); height: 390px; padding: 9px 9px 0; background: #fff; border-radius: 30px 30px 0 0; overflow: hidden; }
-        .app-phone img { display: block; width: 100%; height: auto; border-radius: 22px 22px 0 0; }
-        .chip { position: absolute; display: inline-flex; align-items: center; gap: 8px; padding: 9px 13px; background: #fff; color: var(--ink); border-radius: var(--radius-card); box-shadow: 0 6px 18px rgba(17,24,20,.14); font-size: 12.5px; font-weight: 800; white-space: nowrap; }
-        .chip svg { color: var(--green); }
-        .chip.c1 { left: -6px; top: 76px; }
-        .chip.c2 { right: -8px; top: 206px; }
+        .store.off .store-txt small { color: rgba(255,255,255,.85); }
 
-        /* CTA */
-        .cta { margin-top: 88px; padding: 90px 0; background: var(--green-50); color: var(--ink); }
-        .cta-in { display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; }
-        .cta h2 { margin: 0; max-width: 760px; font-size: clamp(40px, 6vw, 78px); line-height: 1.04; }
-        .cta p { margin: 18px 0 0; max-width: 420px; font-size: 16px; line-height: 1.6; font-weight: 500; color: var(--muted); }
-        .cta .big { white-space: nowrap; }
+        /* FAQ (original) */
+        .faq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+        .faq-item { background: var(--canvas); border: 1px solid var(--line); border-radius: var(--radius-card); overflow: hidden; }
+        .faq-item summary { position: relative; min-height: 64px; display: flex; align-items: center; padding: 18px 56px 18px 20px; color: var(--ink); font-size: 15px; font-weight: 700; cursor: pointer; list-style: none; }
+        .faq-item summary::-webkit-details-marker { display: none; }
+        .faq-item summary::after { content: '+'; position: absolute; right: 18px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--radius-card); background: var(--green-50); color: var(--green-700); font-size: 18px; }
+        .faq-item[open] summary::after { content: '−'; background: var(--green); color: #fff; }
+        .faq-item p { margin: 0; padding: 0 20px 20px; color: var(--muted); font-size: 15px; line-height: 1.7; font-weight: 500; }
 
-        /* RODAPÉ */
-        footer { padding: 52px 0 28px; background: #17231b; color: #fff; }
+        /* Rodapé (original) */
+        footer { padding: 56px 0 28px; background: #17231b; color: #fff; }
         .foot { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 36px; font-size: 14px; line-height: 1.7; font-weight: 500; }
         .foot img { display: block; width: 124px; margin-bottom: 16px; }
         .foot strong { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.78); }
@@ -282,317 +380,310 @@ export default function AgriLinkLanding() {
         .foot p { margin: 0; }
         .foot .foot-name { font-size: 15px; font-weight: 700; }
         .foot a { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
-        .foot-legal { grid-column: 1 / -1; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.16); font-size: 12.5px; color: rgba(255,255,255,.78); }
+        .foot-legal { grid-column: 1 / -1; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.16); font-size: 13px; color: rgba(255,255,255,.78); }
 
-        /* ── ANIMAÇÕES ────────────────────────────────────────────────── */
+        /* Animações do hero + revelação ao scroll (só com movimento permitido) */
+        @keyframes rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+        @keyframes rv { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+        @keyframes pop { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+        @keyframes float-b { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(10px); } }
+        @keyframes drift { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(14px, -16px); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes rv-l { from { opacity: 0; transform: translateX(-34px); } to { opacity: 1; transform: none; } }
+        @keyframes rv-r { from { opacity: 0; transform: translateX(34px); } to { opacity: 1; transform: none; } }
+        @keyframes rv-z { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+        @keyframes pin-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+        @keyframes faq-open { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+        @keyframes ping { 0% { transform: scale(1); opacity: .6; } 80%, 100% { transform: scale(2.6); opacity: 0; } }
+
         @media (prefers-reduced-motion: no-preference) {
-          @keyframes up { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
-          @keyframes rv { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
-          @keyframes wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
-          @keyframes stampIn { 0% { opacity: 0; transform: rotate(-9deg) scale(2.4); } 60% { opacity: 1; transform: rotate(-9deg) scale(.9); } 100% { opacity: 1; transform: rotate(-9deg) scale(1); } }
-          @keyframes ring { 0% { transform: scale(.62); opacity: .5; } 100% { transform: scale(1.75); opacity: 0; } }
-          @keyframes zap { 0%,100% { transform: scale(1) rotate(0); } 50% { transform: scale(1.22) rotate(-8deg); } }
-          @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px) rotate(6deg); } }
-          @keyframes chipA { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
-          @keyframes chipB { 0%,100% { transform: translateY(0); } 50% { transform: translateY(10px); } }
-
-          .hero .a1, .hero .a2, .hero .a3, .hero .a4 { animation: up .8s cubic-bezier(.2,.7,.2,1) both; }
-          .hero .a1 { animation-delay: .05s; } .hero .a2 { animation-delay: .18s; } .hero .a3 { animation-delay: .34s; } .hero .a4 { animation-delay: .46s; }
-          .mk { clip-path: inset(0 100% 0 0); }
-          .al:not(.js) .mk { clip-path: none; }
-          .hero .mk { animation: wipe .75s .55s cubic-bezier(.7,0,.2,1) forwards; }
-          .rv.in .mk { animation: wipe .75s .4s cubic-bezier(.7,0,.2,1) forwards; }
-          .stamp { animation: stampIn .5s 1.5s cubic-bezier(.2,.7,.2,1) both; }
-          .pulse { animation: ring 3.4s ease-out infinite; }
-          .pulse + .pulse { animation-delay: 1.7s; }
-          .mode.now .mode-icon svg { animation: zap 1.6s ease-in-out infinite; }
-          .mode.future .mode-icon svg { animation: bob 3s ease-in-out infinite; }
-          .chip.c1 { animation: chipA 4.5s ease-in-out infinite; }
-          .chip.c2 { animation: chipB 5.2s ease-in-out infinite; }
-
-          /* Revelação ao scroll: animação (não transição) para não colidir com os hovers dos cartões */
           .js .rv { opacity: 0; }
-          .js .rv.in { opacity: 1; animation: rv .7s cubic-bezier(.2,.7,.2,1) var(--d, 0s) backwards; }
+          .js .rv.in { opacity: 1; animation: rv .5s cubic-bezier(.2,.7,.2,1) var(--d, 0s) backwards; }
+
+          .fx { animation: rise .7s cubic-bezier(.2,.7,.2,1) var(--d, 0s) both; }
+          .hero-visual .phone-frame { animation: rise .8s cubic-bezier(.2,.7,.2,1) .25s both, float 6s ease-in-out 1.1s infinite; }
+          .chip.a { animation: pop .5s cubic-bezier(.3,1.4,.5,1) .9s both, float 5s ease-in-out 1.4s infinite; }
+          .chip.b { animation: pop .5s cubic-bezier(.3,1.4,.5,1) 1.1s both, float-b 5.5s ease-in-out 1.6s infinite; }
+          .payment-brand:first-child { animation: pop .5s cubic-bezier(.3,1.4,.5,1) .55s both; }
+          .payment-brand:last-child { animation: pop .5s cubic-bezier(.3,1.4,.5,1) .7s both; }
+          .shape.s1 { animation: drift 14s ease-in-out infinite; }
+          .shape.s2 { animation: drift 10s ease-in-out infinite reverse; }
+          .shape.s3 { animation: spin 18s linear infinite; }
+          .shape.s4 { animation: float 4s ease-in-out infinite; }
+          .js .rv.in.l { animation-name: rv-l; }
+          .js .rv.in.r { animation-name: rv-r; }
+          .js .rv.in.z { animation-name: rv-z; }
+          .track-visual .phone-frame { animation: float 6s ease-in-out infinite; }
+          .pin { animation: pin-bounce 2.2s ease-in-out infinite; }
+          .partners img { animation: float 5s ease-in-out infinite; }
+          .app-panel::before { animation: drift 16s ease-in-out infinite; }
+          .app-panel::after { animation: drift 12s ease-in-out infinite reverse; }
+          .faq-item[open] p { animation: faq-open .3s ease both; }
+          .dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--green); animation: ping 1.8s ease-out infinite; }
         }
 
         @media (max-width: 920px) {
-          .top-in { gap: 12px; }
+          .live-ticker-bar, .live-ticker-bar .wrap { height: 48px; }
+          .top-in { gap: 12px; height: 64px; }
           .top-actions { margin-left: auto; }
           .burger { display: inline-flex; }
-          .top-links { display: none; position: absolute; top: 100%; left: 0; right: 0; margin: 0; padding: 8px 24px 16px; flex-direction: column; gap: 0; background: rgba(255,255,255,.98); border-bottom: 1px solid var(--line); }
+          .top-links { display: none; position: absolute; top: 100%; left: 0; right: 0; margin: 0; padding: 8px 24px 16px; flex-direction: column; gap: 0; background: var(--white); }
           .top-links.open { display: flex; }
-          .top-links a { min-height: 48px; font-size: 15px; }
-          .hero { padding: 118px 0 72px; }
-          .hero-grid { grid-template-columns: 1fr; gap: 38px; }
-          .collage { max-width: 460px; }
-          .rules { grid-template-columns: 1fr; }
-          .rule { grid-template-columns: 56px 1fr; }
-          .rule-n { grid-row: span 2; align-self: start; font-size: 34px; }
-          .track { grid-template-columns: 1fr; }
-          .modes { grid-template-columns: 1fr; }
-          .app-panel { grid-template-columns: 1fr; padding: 40px 28px 0; }
-          .app-copy { padding-bottom: 8px; }
-          .app-phone { height: 330px; }
-          .chip.c1 { left: 0; }
-          .chip.c2 { right: 0; }
-          .net { grid-template-columns: 1fr; grid-template-rows: auto; }
-          .cell.big-cell { grid-row: auto; }
-          .cell + .cell { border-left: 0; border-top: 1px solid var(--line); }
-          .cell.photos { min-height: 190px; }
-          .sec { padding-top: 72px; }
-          .cta { margin-top: 72px; padding: 64px 0; }
-          .cta-in { flex-direction: column; align-items: flex-start; }
+          .top-links a { min-height: 48px; font-size: 16px; }
+          .top-links a::after { display: none; }
+          .al section[id] { scroll-margin-top: 116px; }
+
+          .sec { padding: 72px 0; }
+          .hero { padding: 48px 0 72px; }
+          .hero-grid, .track { grid-template-columns: 1fr; gap: 48px; }
+          .hero-visual, .track .track-visual { order: 2; }
+          .faq-grid { grid-template-columns: 1fr; }
+          .app-panel { grid-template-columns: 1fr; padding: 40px 28px; gap: 28px; }
+          .stores { justify-self: start; }
           .foot { grid-template-columns: 1fr 1fr; }
           .foot > :first-child { grid-column: 1 / -1; }
+          .shape.s3 { display: none; }
         }
+
+        /* Fotos: duas visíveis em ecrãs pequenos */
+        @media (max-width: 640px) {
+          .strip { --count: 2; --gap: 12px; }
+        }
+
         @media (max-width: 520px) {
           .wrap { width: min(100% - 32px, 1160px); }
-          .top-in { height: 68px; }
-          .top img { width: 124px; }
+          .live-ticker-bar { height: auto; min-height: 56px; }
+          .live-ticker-bar .wrap { height: auto; min-height: 56px; }
+          .top-logo img { width: 112px; }
           .top-links { padding: 8px 16px 16px; }
-          .sq { min-height: 40px; padding: 0 16px; }
-          .hero { padding-top: 104px; }
-          .hero h1 { font-size: clamp(40px, 12vw, 54px); }
-          .hero-actions { align-items: stretch; gap: 12px; }
-          .big { width: 100%; }
-          .textlink { justify-content: center; }
-          .collage { height: 430px; }
-          .photo { width: 88%; height: 360px; }
-          .ticket { width: min(278px, 88%); }
-          .mode { padding: 21px; }
-          .rule { padding: 18px; }
-          .cell { padding: 22px; }
-          .cta-in { gap: 24px; }
+          .hero h1 { font-size: clamp(36px, 11vw, 46px); }
+          .hero-actions { flex-direction: column; align-items: stretch; }
+          .chip { font-size: 12px; padding: 8px 12px; }
+          .chip.a { left: 0; }
+          .chip.b { right: 0; }
+          .shape.s1 { width: 220px; height: 220px; }
+          .featured-heading { flex-direction: column; align-items: flex-start; }
+          .featured-grid { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 12px; padding-bottom: 8px; scrollbar-width: none; }
+          .featured-grid::-webkit-scrollbar { display: none; }
+          .featured-product-card { flex: 0 0 min(82vw, 300px); scroll-snap-align: start; }
+          .partners { gap: 20px 40px; padding: 28px 20px; }
+          .stores { width: 100%; }
           .foot { grid-template-columns: 1fr; }
         }
       `}</style>
 
-      <header className="top">
-        <div className="wrap top-in">
-          <a href="#top" aria-label="AgriLink"><img src={agrilinkLogo} alt="AgriLink" /></a>
-          <nav id="menu-principal" className={`top-links ${menuOpen ? "open" : ""}`} aria-label="Principal" onClick={() => setMenuOpen(false)}>
-            {NAV_LINKS.map((l) => (
-              <a key={l.href} href={l.href}>{l.label}</a>
-            ))}
-          </nav>
-          <div className="top-actions">
-            <button
-              type="button"
-              className="burger"
-              aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
-              aria-expanded={menuOpen}
-              aria-controls="menu-principal"
-              onClick={() => setMenuOpen((o) => !o)}
-            >
-              {menuOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
-            </button>
-            <button type="button" className="sq" onClick={goToRegister}>Começar</button>
+      <div className="chrome">
+        <div className="live-ticker-bar" aria-label="Mercado ao vivo">
+          <div className="wrap">
+            <DailyProductPriceTicker />
           </div>
         </div>
-      </header>
+
+        <header className="top">
+          <div className="wrap top-in">
+            <a className="top-logo" href="#top" aria-label="AgriLink"><img src={agrilinkLogo} alt="AgriLink" /></a>
+            <nav id="menu-principal" className={`top-links ${menuOpen ? "open" : ""}`} aria-label="Principal" onClick={() => setMenuOpen(false)}>
+              {NAV_LINKS.map((l) => (
+                <a key={l.href} href={l.href}>{l.label}</a>
+              ))}
+            </nav>
+            <div className="top-actions">
+              <button
+                type="button"
+                className="burger"
+                aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
+                aria-expanded={menuOpen}
+                aria-controls="menu-principal"
+                onClick={() => setMenuOpen((o) => !o)}
+              >
+                {menuOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
+              </button>
+              <button type="button" className="btn btn-primary btn-sm" onClick={goToRegister}>Começar</button>
+            </div>
+          </div>
+        </header>
+      </div>
 
       {/* HERO */}
       <section className="hero" id="top">
+        <span className="shape s1" aria-hidden="true" />
+        <span className="shape s2" aria-hidden="true" />
+        <span className="shape s3" aria-hidden="true" />
+        <span className="shape s4" aria-hidden="true" />
         <div className="wrap hero-grid">
           <div>
-            <span className="tag lbl a1">Tecnologia para o agronegócio angolano</span>
-            <h1 className="disp a2">
-              Conecta-te <span className="mk">ao mercado</span>.
+            <h1 className="disp fx" style={delay(0)}>
+              CONECTA-TE <span className="accent">AO MERCADO.</span>
             </h1>
-            <p className="hero-copy a3">
-              Compre para entrega imediata ou garanta a colheita futura. Feche acordos digitais e
-              acompanhe a entrega numa só plataforma, ligando produtores, compradores e transportadores.
+            <p className="hero-copy fx" style={delay(0.1)}>
+              Compre para entrega imediata ou garanta a colheita futura. Feche o negócio, pague em garantia
+              e acompanhe a entrega numa só plataforma, que liga produtores, compradores e transportadores.
             </p>
-            <div className="hero-actions a4">
-              <button type="button" className="big" onClick={goToRegister}>Criar conta grátis <ArrowRight size={18} aria-hidden="true" /></button>
-              <a className="textlink" href="#produto">Explorar a plataforma <ArrowDown size={15} aria-hidden="true" /></a>
+            <div className="hero-actions fx" style={delay(0.2)}>
+              <button type="button" className="btn btn-primary" onClick={goToRegister}>
+                Criar conta grátis <ArrowRight size={18} aria-hidden="true" />
+              </button>
+              <a className="btn btn-ghost" href="#mercado">Explorar publicações</a>
+            </div>
+            <div className="payment-options fx" style={delay(0.3)} aria-label="Opções de pagamento previstas">
+              <span className="payment-label">Opções de pagamento</span>
+              <div className="payment-brands">
+                <span className="payment-brand">
+                  <span className="payment-brand-mark emis" aria-hidden="true"><CreditCard size={15} /></span>
+                  <strong>EMIS GPO</strong>
+                </span>
+                <span className="payment-brand">
+                  <span className="payment-brand-mark unitel" aria-hidden="true"><Smartphone size={15} /></span>
+                  <strong>Unitel Money</strong>
+                </span>
+              </div>
+              <p className="payment-note">A disponibilidade é confirmada no checkout de cada operação.</p>
             </div>
           </div>
 
-          <div className="collage" aria-hidden="true">
-            <div className="photo" />
-            <div className="ticket num">
-              <span className="stamp"><Check size={15} strokeWidth={3} /> Em garantia</span>
-              <div className="tk-head"><b>AgriLink</b><span>Exemplo de negócio</span></div>
-              <dl className="tk-body">
-                <div><dt>Produto</dt><dd>Tomate</dd></div>
-                <div><dt>Quantidade</dt><dd>2 t</dd></div>
-                <div><dt>Origem</dt><dd>Caxito</dd></div>
-                <div><dt>Destino</dt><dd>Rangel, Luanda</dd></div>
-                <div><dt>Frete</dt><dd>Rota real</dd></div>
-              </dl>
-              <div className="tk-tear" />
-              <div className="tk-foot">
-                <span>Pagamento</span>
-                <strong>Retido até à entrega</strong>
-              </div>
+          <div className="hero-visual">
+            <div className="phone-frame">
+              <img src={appPreviewImage} alt="Prévia da aplicação móvel AgriLink" />
             </div>
+            <span className="chip a" aria-hidden="true"><Sprout size={16} /> Rede de produtores</span>
+            <span className="chip b" aria-hidden="true"><Navigation size={16} /> Operações no campo</span>
           </div>
         </div>
       </section>
 
-      {/* PREÇOS PUBLICADOS */}
-      <div className="marq">
+      {/* MERCADO */}
+      <section className="sec sec-white" id="mercado" aria-labelledby="mercado-title">
         <div className="wrap">
-          <DailyProductPriceTicker />
-        </div>
-      </div>
+          <div className="featured-heading rv">
+            <div className="sec-head">
+              <span className="kick"><span className="dot" aria-hidden="true" />Mercado ao vivo</span>
+              <h2 className="h2 disp" id="mercado-title">Publicações em destaque</h2>
+              <p className="lead">As publicações mais recentes de fornecedores com stock disponível.</p>
+            </div>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => navigate("/app")}>
+              Explorar mais <ArrowRight size={16} aria-hidden="true" />
+            </button>
+          </div>
 
-      {/* FORMAS DE COMPRA */}
-      <section className="sec" id="compra">
-        <div className="wrap">
-          <div className="rv">
-            <span className="kick lbl">Formas de compra</span>
-            <h2 className="h2 disp">Compre já ou garanta a colheita futura.</h2>
-          </div>
-          <div className="modes">
-            <article className="mode now rv">
-              <div className="mode-top">
-                <span className="mode-icon" aria-hidden="true"><Zap size={24} /></span>
-                <span className="mode-badge lbl">Imediata</span>
-              </div>
-              <h3 className="disp">Compra imediata</h3>
-              <p>Escolha produtos que já estão colhidos e disponíveis na rede, feche o acordo e receba com a entrega acompanhada.</p>
-              <div className="flow">
-                <span>Escolhe</span><i>→</i><span>Fecha o acordo</span><i>→</i><span>Recebe</span>
-              </div>
-            </article>
-            <article className="mode future rv" style={{ "--d": ".14s" } as React.CSSProperties}>
-              <div className="mode-top">
-                <span className="mode-icon" aria-hidden="true"><CalendarClock size={24} /></span>
-                <span className="mode-badge lbl">Futura</span>
-              </div>
-              <h3 className="disp">Compra futura</h3>
-              <p>Contrate hoje a colheita que ainda vai ser produzida, com quantidade e prazo acordados, e planeie o seu abastecimento.</p>
-              <div className="flow">
-                <span>Reserva</span><i>→</i><span>Aguarda a colheita</span><i>→</i><span>Recebe</span>
-              </div>
-            </article>
-          </div>
+          {featuredProducts.length > 0 ? (
+            <div className="featured-grid">
+              {featuredProducts.map((product, i) => (
+                <div className="featured-product-card rv" key={product.id} style={delay(i * 0.1)}>
+                  <ProductCard
+                    product={product}
+                    onOpenMap={() => navigate(`/produto/${product.id}/localizacao`)}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : feedLoaded ? (
+            <p className="featured-empty">Ainda não há publicações em destaque. Volte em breve.</p>
+          ) : null}
         </div>
       </section>
 
-      {/* PRODUTO */}
-      <section className="sec" id="produto">
+      {/* OPERAÇÕES */}
+      <section className="sec" id="operacoes" aria-labelledby="operacoes-title">
         <div className="wrap">
-          <div className="rv">
-            <span className="kick lbl">O produto</span>
-            <h2 className="h2 disp">Tudo o que precisa para negociar melhor.</h2>
+          <div className="sec-head rv">
+            <span className="kick">AgriLink no terreno</span>
+            <h2 className="h2 disp" id="operacoes-title">A acompanhar de perto a produção local.</h2>
+            <p className="lead">Conheça algumas das operações e visitas da nossa equipa junto dos produtores.</p>
           </div>
-          <div className="rules">
-            {RULES.map((r, i) => (
-              <article className="rule rv" style={{ "--d": `${i * 0.12}s` } as React.CSSProperties} key={r.n}>
-                <span className="rule-n num" aria-hidden="true">{r.n}</span>
-                <h3 className="disp">{r.title}</h3>
-                <p>{r.text}</p>
-              </article>
-            ))}
+          <div className="strip rv z" aria-label="Galeria de operações da AgriLink">
+            <div className="strip-track">
+              {/* A lista é repetida para o movimento ser contínuo, sem saltos. */}
+              {[...OPERATIONS_GALLERY, ...OPERATIONS_GALLERY].map((photo, index) => {
+                const isCopy = index >= OPERATIONS_GALLERY.length;
+                return (
+                  <figure
+                    className="tile"
+                    key={`${photo.src}-${index}`}
+                    style={{ "--i": index % OPERATIONS_GALLERY.length, margin: 0, marginRight: "var(--gap)" } as React.CSSProperties}
+                    aria-hidden={isCopy || undefined}
+                  >
+                    <img src={photo.src} alt={isCopy ? "" : photo.alt} loading={index === 0 ? "eager" : "lazy"} />
+                    <span>{photo.caption}</span>
+                  </figure>
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>
 
       {/* RASTREIO */}
-      <section className="sec" id="rastreio" aria-labelledby="tracking-title">
+      <section className="sec sec-white" id="rastreio" aria-labelledby="tracking-title">
         <div className="wrap track">
-          <div className="track-copy rv">
-            <span className="kick lbl">Rastreio de cargas</span>
+          <div className="rv l">
+            <span className="kick">Rastreio de cargas</span>
             <h2 className="h2 disp" id="tracking-title">Saiba onde está a sua entrega.</h2>
-            <p>Acompanhe a rota e consulte os dados da carga no mapa, do envio à recepção.</p>
+            <p className="lead">Acompanhe a rota e consulte os dados da carga no mapa, do envio à recepção.</p>
             <ul className="track-points">
               <li><MapPin size={20} aria-hidden="true" /> Localização da carga no mapa</li>
               <li><Navigation size={20} aria-hidden="true" /> Distância e previsão da rota</li>
               <li><ShieldCheck size={20} aria-hidden="true" /> Informação acessível durante a entrega</li>
             </ul>
           </div>
-          <div className="phone-wrap rv" style={{ "--d": ".15s" } as React.CSSProperties}>
-            <span className="pulse" aria-hidden="true" />
-            <span className="pulse" aria-hidden="true" />
-            <div className="phone">
+          <div className="track-visual rv r" style={delay(0.1)}>
+            <div className="phone-frame">
               <img
                 src={liveTrackingImage}
                 alt="Ecrã de rastreio AgriLink com mapa da rota, carga, distância e botão para acompanhar"
                 loading="lazy"
               />
             </div>
+            <span className="pin" aria-hidden="true"><MapPin size={24} /></span>
           </div>
         </div>
       </section>
 
-      {/* REDE: CLIENTES, PARCEIROS E COMUNIDADE */}
-      <section className="sec" id="parceiros">
+      {/* PARCEIROS */}
+      <section className="sec" id="parceiros" aria-labelledby="parceiros-title">
         <div className="wrap">
-          <div className="rv">
-            <span className="kick lbl">A rede</span>
-            <h2 className="h2 disp">Já a negociar na AgriLink.</h2>
+          <div className="sec-head rv">
+            <span className="kick">A rede</span>
+            <h2 className="h2 disp" id="parceiros-title">Já a negociar na AgriLink.</h2>
           </div>
-
-          <div className="net rv" style={{ "--d": ".1s" } as React.CSSProperties}>
-            <div className="cell big-cell">
-              <span className="cell-label lbl">Cliente e parceiro</span>
-              <img className="logo-big" src={casaLettoLogo} alt="Grupo CasaLetto" loading="lazy" />
-              <div>
-                <h3 className="disp">Grupo CasaLetto compra directo da fonte.</h3>
-                <p>Compra directa a fornecedores da rede, com contrato digital e entrega acompanhada.</p>
-                <a className="textlink" href="https://casaletto.co.ao/" target="_blank" rel="noreferrer">
-                  Conhecer o Grupo <ArrowRight size={15} aria-hidden="true" />
-                </a>
-              </div>
-            </div>
-
-            <div className="cell">
-              <span className="cell-label lbl">Parceiro institucional</span>
-              <div className="logos-pair">
-                <img src={totalEnergiesLogo} alt="TotalEnergies" loading="lazy" />
-                <img className="tall" src={totalEntrepreneursLogo} alt="TotalEnergies — 100 Anos, 100 Empreendedores" loading="lazy" />
-              </div>
-            </div>
-
-            <div className="cell b photos">
-              <figure>
-                <img src={communityMeetupImage} alt="Encontro da comunidade AgriLink com produtores e parceiros" loading="lazy" />
-                <figcaption>Encontros</figcaption>
-              </figure>
-              <figure>
-                <img src={communityConferenceImage} alt="Membros da comunidade AgriLink em conversa" loading="lazy" />
-                <figcaption>Comunidade</figcaption>
-              </figure>
-            </div>
+          <div className="partners rv z" aria-label="Parceiros AgriLink">
+            <img src={casaLettoLogo} alt="Grupo CasaLetto" loading="lazy" />
           </div>
         </div>
       </section>
 
       {/* APP */}
-      <section className="sec" id="app" aria-labelledby="app-title">
+      <section id="app" aria-labelledby="app-title" style={{ paddingBottom: 96 }}>
         <div className="wrap">
-          <div className="app-panel rv">
-            <div className="app-copy">
-              <span className="kick lbl">App AgriLink</span>
+          <div className="app-panel rv z">
+            <div>
+              <span className="kick">App AgriLink</span>
               <h2 className="disp" id="app-title">Leve o mercado no bolso.</h2>
               <p>Negocie, pague em garantia e acompanhe cada entrega no telemóvel, onde estiver.</p>
-              <div className="stores">
-                <StoreButton href={PLAY_STORE_URL} icon={<Play size={18} fill="currentColor" />} small="Disponível no" name="Google Play" />
-                <StoreButton href={APP_STORE_URL} icon={<Smartphone size={20} />} small="Descarregar na" name="App Store" />
-              </div>
             </div>
-            <div className="app-visual" aria-hidden="true">
-              <span className="chip c1"><ShieldCheck size={16} /> Pagamento em garantia</span>
-              <span className="chip c2"><Navigation size={16} /> Entrega a caminho</span>
-              <div className="app-phone">
-                <img src={liveTrackingImage} alt="" loading="lazy" />
-              </div>
+            <div className="stores">
+              <StoreButton href={PLAY_STORE_URL} icon={<Play size={18} fill="currentColor" />} small="Disponível no" name="Google Play" />
+              <StoreButton href={APP_STORE_URL} icon={<Smartphone size={20} />} small="Descarregar na" name="App Store" />
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="cta" id="contacto">
-        <div className="wrap cta-in rv">
-          <div>
-            <h2 className="disp">O seu próximo negócio agrícola <span className="mk mk-inv">começa aqui</span>.</h2>
-            <p>Crie a conta em minutos e ligue-se à rede.</p>
+      {/* FAQ */}
+      <section className="sec sec-white" id="faq" aria-labelledby="faq-title" style={{ borderBottom: 0 }}>
+        <div className="wrap">
+          <div className="sec-head rv">
+            <span className="kick">Perguntas frequentes</span>
+            <h2 className="h2 disp" id="faq-title">Tudo o que precisa de saber.</h2>
           </div>
-          <button type="button" className="big" onClick={goToRegister}>Criar conta <ArrowRight size={18} aria-hidden="true" /></button>
+          <div className="faq-grid">
+            {FAQ_ITEMS.map((item, i) => (
+              <details className="faq-item rv" key={item.question} style={delay((i % 2) * 0.08)}>
+                <summary>{item.question}</summary>
+                <p>{item.answer}</p>
+              </details>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -601,7 +692,7 @@ export default function AgriLinkLanding() {
           <div>
             <img src={agrilinkLogo} alt="AgriLink" />
             <p className="foot-name">AgriLink – Comércio e Serviços</p>
-            <p className="num">NIF 5003313409</p>
+            <p style={{ fontVariantNumeric: "tabular-nums" }}>NIF 5003313409</p>
           </div>
           <div>
             <strong>Onde estamos</strong>
@@ -615,7 +706,13 @@ export default function AgriLinkLanding() {
             <strong>Contacto</strong>
             <a href="mailto:contacto@agrilink.ao">contacto@agrilink.ao</a>
           </div>
-          <div className="foot-legal">© {new Date().getFullYear()} AgriLink – Comércio e Serviços. Todos os direitos reservados.</div>
+          <div className="foot-legal">
+            © {new Date().getFullYear()} AgriLink – Comércio e Serviços. Todos os direitos reservados.
+            {" · "}
+            <a href="/termos-publicidade">Termos de Publicação</a>
+            {" · "}
+            <a href="/privacidade">Privacidade</a>
+          </div>
         </div>
       </footer>
     </main>

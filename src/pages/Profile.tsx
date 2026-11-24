@@ -4,7 +4,7 @@ import i18n, { supportedLanguageOptions } from '../i18n/index'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import {
-  User, Edit, Package, MapPin, Phone, Mail, Calendar, BarChart3,
+  User, Edit, Package, MapPin, Phone, Mail, Calendar, BarChart3, CreditCard,
   Settings, LogOut, Trash2, Camera, CheckCircle, Share2, Star, Users,
   ClipboardList, Bell, ShoppingCart, Search, BadgeCheck, Globe,
   TrendingUp, MessageCircle, Heart, Sparkles, LogIn
@@ -26,6 +26,7 @@ import agrilinkLogo from '../assets/agrilink-logo.png'
 import { downloadMarketplaceTransactionReceipt } from '../features/orders/transactionReceipts'
 import { angolaProvinces } from '../data/angola-locations'
 import { SOURCING_AGRICULTURAL_PRODUCTS, SOURCING_UNITS } from '../features/sourcing/sourcingCatalog'
+import ProfileReceiptButton from '../components/ProfileReceiptButton'
 
 /* ─── Shared AgriLink design tokens ───────────────────────────────────────── */
 import { FONT, R, T } from '../lib/brand';
@@ -63,7 +64,9 @@ interface BuyerFreightQuote {
   origin_label: string; destination_label: string; driver_offered_price: number | null
   currency: string; driver_quote_status: string; route_distance_km: number | null
   route_duration_minutes: number | null; status: string; created_at: string
+  buyer_quote_approved: boolean; supplier_quote_approved: boolean
 }
+type SupplierFreightProposal = BuyerFreightQuote
 interface SourcingRequest {
   id: string; product_name: string; quantity: number; unit: string; delivery_date: string
   quality_specification: string | null; delivery_province_id: string | null; delivery_municipality_id: string | null
@@ -131,13 +134,12 @@ function agentStatusLabel(task?: SourcingAgentTaskStatus) {
    em vez de três caixas idênticas com sombra igual (o "kit SaaS" genérico). */
 const StatsStrip = ({ items }: { items: { value: number | string; label: string; color: string }[] }) => (
   <div style={{
-    background: T.white, borderRadius: R.md, border: `1px solid ${T.rule}`,
+    background: T.white, borderRadius: R.md, border: 'none',
     display: 'flex', overflow: 'hidden',
   }}>
     {items.map((it, i) => (
       <div key={it.label} style={{
         flex: 1, padding: '18px 14px', textAlign: 'center',
-        borderLeft: i > 0 ? `1px solid ${T.rule}` : 'none',
       }}>
         <div style={{ fontFamily: FONT, fontSize: 24, fontWeight: 800, color: it.color, letterSpacing: '-0.03em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
           {it.value}
@@ -343,6 +345,7 @@ const Profile = () => {
   const [receivedOrders, setReceivedOrders] = useState<ReceivedOrder[]>([])
   const [buyerPreOrders, setBuyerPreOrders] = useState<BuyerPreOrder[]>([])
   const [buyerFreightQuotes, setBuyerFreightQuotes] = useState<BuyerFreightQuote[]>([])
+  const [supplierFreightProposals, setSupplierFreightProposals] = useState<SupplierFreightProposal[]>([])
   const [freightQuoteBusyId, setFreightQuoteBusyId] = useState<string | null>(null)
   const [receiptBusyId, setReceiptBusyId] = useState<string | null>(null)
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null)
@@ -629,9 +632,10 @@ const Profile = () => {
   const fetchBuyerFreightQuotes = React.useCallback(async () => {
     if (!user?.id) { setBuyerFreightQuotes([]); return }
     try {
-      const { data, error } = await supabase.from('freight_loads')
-        .select('id, pre_order_id, product_name, weight_kg, origin_label, destination_label, driver_offered_price, currency, driver_quote_status, route_distance_km, route_duration_minutes, status, created_at')
-        .eq('driver_quote_status', 'pending_buyer_approval')
+      const { data, error } = await (supabase as any).from('freight_loads')
+        .select('id, pre_order_id, product_name, weight_kg, origin_label, destination_label, driver_offered_price, currency, driver_quote_status, buyer_quote_approved, supplier_quote_approved, route_distance_km, route_duration_minutes, status, created_at')
+        .eq('buyer_id', user.id)
+        .in('driver_quote_status', ['pending_buyer_approval', 'approved', 'rejected'])
         .order('created_at', { ascending: false })
       if (error) throw error
       setBuyerFreightQuotes((data || []) as BuyerFreightQuote[])
@@ -639,6 +643,23 @@ const Profile = () => {
     } catch (error) {
       console.error(error)
       reportProfileLoadError('buyerFreightQuotes', 'Propostas de transporte', error)
+    }
+  }, [user?.id, clearProfileLoadError, reportProfileLoadError])
+
+  const fetchSupplierFreightProposals = React.useCallback(async () => {
+    if (!user?.id) { setSupplierFreightProposals([]); return }
+    try {
+      const { data, error } = await (supabase as any).from('freight_loads')
+        .select('id, pre_order_id, product_name, weight_kg, origin_label, destination_label, driver_offered_price, currency, driver_quote_status, buyer_quote_approved, supplier_quote_approved, route_distance_km, route_duration_minutes, status, created_at')
+        .eq('supplier_id', user.id)
+        .in('driver_quote_status', ['pending_buyer_approval', 'approved', 'rejected'])
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      setSupplierFreightProposals((data || []) as SupplierFreightProposal[])
+      clearProfileLoadError('supplierFreightProposals')
+    } catch (error) {
+      console.error(error)
+      reportProfileLoadError('supplierFreightProposals', 'Propostas de transporte recebidas', error)
     }
   }, [user?.id, clearProfileLoadError, reportProfileLoadError])
 
@@ -665,7 +686,7 @@ const Profile = () => {
       })
       if (error) throw error
       toast({ title: approved ? 'Preço de transporte aprovado.' : 'Proposta de transporte recusada.' })
-      await fetchBuyerFreightQuotes()
+      await Promise.all([fetchBuyerFreightQuotes(), fetchSupplierFreightProposals()])
     } catch (error: any) {
       toast({ title: 'Não foi possível responder à proposta', description: error.message, variant: 'destructive' } as any)
     } finally { setFreightQuoteBusyId(null) }
@@ -751,10 +772,15 @@ const Profile = () => {
       return
     }
     if (userProfile?.user_type === 'comprador') { fetchFichasRecebimento(); fetchSourcingRequests(); fetchBuyerStats(); fetchBuyerPreOrders(); fetchBuyerFreightQuotes() }
-    else { fetchUserProducts(); fetchReceivedOrders() }
+    else {
+      fetchUserProducts();
+      fetchReceivedOrders();
+      if (userProfile?.user_type === 'agricultor' || userProfile?.user_type === 'agente') fetchSupplierFreightProposals();
+      else setSupplierFreightProposals([]);
+    }
     if (userProfile?.user_type === 'agente') fetchAgentStats()
     setLoading(false)
-  }, [user, userProfile, isGuest, fetchAgentStats, fetchBuyerStats, fetchBuyerPreOrders, fetchFichasRecebimento, fetchReceivedOrders, fetchSourcingRequests, fetchUserProducts, fetchBuyerFreightQuotes])
+  }, [user, userProfile, isGuest, fetchAgentStats, fetchBuyerStats, fetchBuyerPreOrders, fetchFichasRecebimento, fetchReceivedOrders, fetchSourcingRequests, fetchUserProducts, fetchBuyerFreightQuotes, fetchSupplierFreightProposals])
 
   // Refresh sourcing agent results while the buyer is viewing the sourcing tab.
   useEffect(() => {
@@ -1004,7 +1030,7 @@ const Profile = () => {
   const totalLikes = userProducts.reduce((s, p) => s + (productStats[p.id]?.likes || 0), 0)
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: T.subtle, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ minHeight: '100vh', background: T.white, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
         <div style={{ width: 40, height: 40, borderRadius: '50%', border: `2.5px solid ${T.gBorder}`, borderTopColor: T.g500 ?? T.g600, animation: 'ag-spin 0.8s linear infinite' }}/>
         <p style={{ fontSize: 13, color: T.faint, fontWeight: 500, fontFamily: FONT }}>{t('profile.loadingProfile')}</p>
@@ -1045,7 +1071,7 @@ const Profile = () => {
       ]
 
   return (
-    <div className="ag-profile-page" style={{ minHeight: '100vh', background: T.subtle, fontFamily: FONT, paddingBottom: 80, WebkitFontSmoothing: 'antialiased' }}>
+    <div className="ag-profile-page" style={{ minHeight: '100vh', background: T.white, fontFamily: FONT, paddingBottom: 80, WebkitFontSmoothing: 'antialiased' }}>
 
       {/* ═══ HEADER ═══════════════════════════════════════════════════════════ */}
       <header style={{
@@ -1067,7 +1093,7 @@ const Profile = () => {
                   <Settings size={14}/> <span className="hidden sm:inline">{t('profile.settings')}</span>
                 </Btn>
                 <Btn variant="danger" size="sm" onClick={() => logout()}>
-                  <LogOut size={14}/> <span className="hidden sm:inline">{t('common.logout') || 'Sair'}</span>
+                  <LogOut size={14}/> <span className="hidden sm:inline">Sair</span>
                 </Btn>
               </>
             ) : (
@@ -1105,17 +1131,16 @@ const Profile = () => {
         {/* ══ LEFT COLUMN ══════════════════════════════════════════════════════ */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-          {/* ── Cartão de membro: friso lateral na cor do papel + código no
-               rodapé, como um crachá real da rede AgriLink. Substitui o
-               banner fino + avatar flutuante genérico. ── */}
+          {/* Cartão de perfil organizado em quatro áreas de informação. */}
           <div style={{
-            display: 'flex', background: T.white, borderRadius: R.md, border: `1px solid ${T.rule}`,
-            overflow: 'hidden', boxShadow: '0 4px 16px rgba(17,24,20,.04)', animation: `ag-fade-up 0.5s ${EASE} both`,
+            display: 'block', background: T.white, borderRadius: R.md,
+            overflow: 'hidden', boxShadow: 'none', animation: `ag-fade-up 0.5s ${EASE} both`,
           }}>
-            <div style={{ width: 6, background: roleAccent, flexShrink: 0 }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ padding: '22px 22px 18px', display: 'flex', gap: 14, alignItems: 'flex-start', background: `linear-gradient(135deg, ${T.g50}, ${T.white} 72%)` }}>
-                <div style={{ position: 'relative', flexShrink: 0 }}>
+            {!editMode ? (
+              <>
+                <div className="ag-member-grid">
+                  <section className="ag-member-cell ag-member-identity">
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
                   <div style={{
                     width: 64, height: 64, borderRadius: '50%',
                     border: `2px solid ${roleAccent}33`,
@@ -1137,60 +1162,55 @@ const Profile = () => {
                   </label>
                   <input id="avatar-upload" type="file" accept="image/*" onChange={uploadAvatar} style={{ display: 'none' }}/>
                 </div>
-
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <h2 style={{ fontFamily: FONT, fontSize: 22, fontWeight: 800, color: T.ink, margin: 0, letterSpacing: '-0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {profileDisplayName}
-                    </h2>
-                    {(userProfile as any)?.verified && <BadgeCheck size={16} color={roleAccent} strokeWidth={2}/>}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: roleAccent, flexShrink: 0 }} />
-                    <span style={{ fontSize: 13, color: T.muted, fontWeight: 600 }}>{profileRoleLabel}</span>
-                  </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <h2 style={{ fontFamily: FONT, fontSize: 22, fontWeight: 800, color: T.ink, margin: 0, letterSpacing: '-0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {profileDisplayName}
+                        </h2>
+                        {(userProfile as any)?.verified && <BadgeCheck size={16} color={roleAccent} strokeWidth={2}/>}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: roleAccent, flexShrink: 0 }} />
+                        <span style={{ fontSize: 13, color: T.muted, fontWeight: 600 }}>{profileRoleLabel}</span>
+                      </div>
+                      <span style={{ display: 'block', marginTop: 7, fontSize: 10.5, color: T.faint, fontWeight: 700 }}>
+                        Rede AgriLink · #{memberCode}
+                      </span>
+                    </div>
+                  </section>
+                  <section className="ag-member-cell">
+                    <InfoRow icon={<Mail size={14} strokeWidth={1.6}/>} value={profileData.email} />
+                  </section>
+                  <section className="ag-member-cell">
+                    <InfoRow icon={<Phone size={14} strokeWidth={1.6}/>} value={profileData.phone} />
+                  </section>
+                  <section className="ag-member-cell">
+                    <InfoRow icon={<MapPin size={14} strokeWidth={1.6}/>} value={`${provinceName}${municipalityName ? ', ' + municipalityName : ''}`} />
+                  </section>
                 </div>
-              </div>
-
-              {!editMode ? (
-                <div style={{ padding: '0 22px 18px' }}>
-                  <InfoRow icon={<Mail size={14} strokeWidth={1.6}/>} value={profileData.email} />
-                  <InfoRow icon={<Phone size={14} strokeWidth={1.6}/>} value={profileData.phone} />
-                  <InfoRow icon={<MapPin size={14} strokeWidth={1.6}/>} value={`${provinceName}${municipalityName ? ', ' + municipalityName : ''}`} />
-                  <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                    <Btn variant="secondary" onClick={() => guardAction('editar o teu perfil', () => setEditMode(true))} style={{ flex: 1 }}>
-                      <Edit size={13} strokeWidth={1.75}/> {t('profile.editProfile')}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, padding: '0 22px 18px' }}>
+                  <Btn variant="secondary" onClick={() => guardAction('editar o teu perfil', () => setEditMode(true))} style={{ gridColumn: 'span 2' }}>
+                    <Edit size={13} strokeWidth={1.75}/> {t('profile.editProfile')}
+                  </Btn>
+                  {isComprador && <ProfileReceiptButton />}
+                  {isAgente && (
+                    <Btn variant="outline" size="sm" onClick={shareAgentCode}>
+                      <Share2 size={13} strokeWidth={1.75}/>
                     </Btn>
-                    {isAgente && (
-                      <Btn variant="outline" size="sm" onClick={shareAgentCode}>
-                        <Share2 size={13} strokeWidth={1.75}/>
-                      </Btn>
-                    )}
-                  </div>
+                  )}
                 </div>
-              ) : (
-                <div style={{ padding: '0 22px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <Input label={t('profile.fullName')} value={profileData.full_name} onChange={(e: any) => setProfileData(p => ({ ...p, full_name: e.target.value }))} />
-                  <Input label={t('profile.phone')} value={profileData.phone} onChange={(e: any) => setProfileData(p => ({ ...p, phone: e.target.value }))} />
-                  <Input label={t('profile.email')} type="email" value={profileData.email} onChange={(e: any) => setProfileData(p => ({ ...p, email: e.target.value }))} />
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <Btn variant="primary" onClick={updateProfile} style={{ flex: 1 }}>{t('common.save')}</Btn>
-                    <Btn variant="outline" onClick={() => setEditMode(false)} style={{ flex: 1 }}>{t('common.cancel')}</Btn>
-                  </div>
+              </>
+            ) : (
+              <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <Input label={t('profile.fullName')} value={profileData.full_name} onChange={(e: any) => setProfileData(p => ({ ...p, full_name: e.target.value }))} />
+                <Input label={t('profile.phone')} value={profileData.phone} onChange={(e: any) => setProfileData(p => ({ ...p, phone: e.target.value }))} />
+                <Input label={t('profile.email')} type="email" value={profileData.email} onChange={(e: any) => setProfileData(p => ({ ...p, email: e.target.value }))} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Btn variant="primary" onClick={updateProfile} style={{ flex: 1 }}>{t('common.save')}</Btn>
+                  <Btn variant="outline" onClick={() => setEditMode(false)} style={{ flex: 1 }}>{t('common.cancel')}</Btn>
                 </div>
-              )}
-
-              {/* Talão do cartão — código de membro, separado por borda tracejada */}
-              <div style={{
-                borderTop: `1px dashed ${T.rule}`, padding: '11px 22px',
-                background: T.canvas, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              }}>
-                <span style={{ fontSize: 10.5, color: T.faint, fontWeight: 600 }}>Rede AgriLink</span>
-                <span style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 11.5, color: T.mid, fontWeight: 700, letterSpacing: '0.04em' }}>
-                  #{memberCode}
-                </span>
               </div>
-            </div>
+            )}
           </div>
 
           {user && !isGuest && (
@@ -1416,18 +1436,32 @@ const Profile = () => {
                 { key: 'produto', label: 'Produto', render: r => <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}><span style={{ fontWeight: 700, color: T.ink }}>{r.product?.product_type || 'Produto'}</span><StatusPill status={r.status} /></div> },
                 { key: 'qtd', label: 'Quantidade', align: 'right', render: r => <span style={{ fontWeight: 700, color: T.g600 }}>{r.quantity.toLocaleString('pt-AO')} kg</span> },
                 { key: 'valor', label: 'Total', align: 'right', render: r => `${Number(r.total_price || 0).toLocaleString('pt-AO')} Kz` },
-                { key: 'pagamento', label: 'Pagamento', render: r => <span style={{ fontSize: 12, fontWeight: 600, color: r.payment_status === 'paid' ? T.g600 : T.faint }}>{r.payment_status === 'paid' ? 'Pago' : r.status === 'accepted' ? 'A aguardar pagamento' : 'Não iniciado'}</span> },
+                { key: 'pagamento', label: 'Pagamento', render: r => {
+                  const freightQuote = buyerFreightQuotes.find(quote => quote.pre_order_id === r.id)
+                  const freightAgreed = freightQuote?.driver_quote_status === 'approved' && freightQuote.buyer_quote_approved
+                  const label = r.payment_status === 'paid'
+                    ? 'Pago'
+                    : r.status !== 'accepted'
+                      ? 'Não iniciado'
+                      : freightAgreed
+                        ? 'Pronto para pagamento'
+                        : 'A negociar transporte'
+                  return <span style={{ fontSize: 12, fontWeight: 600, color: r.payment_status === 'paid' || freightAgreed ? T.g600 : T.faint }}>{label}</span>
+                } },
                 { key: 'data', label: 'Data', render: r => formatDate(r.created_at) },
               ]}
               rows={buyerPreOrders}
               keyField={r => r.id}
               accent={r => r.status === 'pending' ? T.goldL : r.status === 'accepted' ? T.g400 : r.status === 'rejected' ? '#EF4444' : T.faint}
               actions={r => (
-                <IconBtn
-                  icon={<FileSignature size={13} strokeWidth={1.75}/>}
-                  title={receiptBusyId === r.id ? 'A gerar comprovante…' : 'Histórico e comprovante PDF'}
-                  onClick={() => { if (receiptBusyId !== r.id) void downloadTransactionReceipt(r.id) }}
-                />
+                <>
+                  <IconBtn icon={<CreditCard size={13} strokeWidth={1.75}/>} title="Acompanhar pedido e pagamento" onClick={() => navigate(`/pagamento/${r.id}`)} />
+                  <IconBtn
+                    icon={<FileSignature size={13} strokeWidth={1.75}/>}
+                    title={receiptBusyId === r.id ? 'A gerar comprovante…' : 'Histórico e comprovante PDF'}
+                    onClick={() => { if (receiptBusyId !== r.id) void downloadTransactionReceipt(r.id) }}
+                  />
+                </>
               )}
               empty={<EmptyState icon={<ShoppingCart size={26} color={T.faint}/>} message="Ainda não tens pré-compras." sub="As pré-compras enviadas aparecerão aqui e serão actualizadas quando o fornecedor responder." />}
             />
@@ -1446,13 +1480,21 @@ const Profile = () => {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: 16, fontWeight: 800, color: T.g600 }}>{quote.driver_offered_price == null ? '—' : Number(quote.driver_offered_price).toLocaleString('pt-AO') + ' ' + (quote.currency || 'Kz')}</div>
-                      <div style={{ marginTop: 3, fontSize: 11, color: T.gold, fontWeight: 700 }}>A aguardar a tua decisão</div>
+                      <div style={{ marginTop: 3, fontSize: 11, color: quote.driver_quote_status === 'approved' ? T.g600 : quote.driver_quote_status === 'rejected' ? T.danger : T.gold, fontWeight: 700 }}>
+                        {quote.driver_quote_status === 'approved'
+                          ? 'Preço aprovado por ti'
+                          : quote.driver_quote_status === 'rejected'
+                            ? 'Recusada · o motorista pode rever o preço'
+                            : 'A aguardar a tua decisão'}
+                      </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 13, flexWrap: 'wrap' }}>
-                    <IconBtn icon={<Trash2 size={13} strokeWidth={1.75}/>} title={freightQuoteBusyId === quote.id ? 'A processar…' : 'Recusar transporte'} danger onClick={() => { if (freightQuoteBusyId !== quote.id) void respondToFreightQuote(quote.id, false) }} />
-                    <IconBtn icon={<CheckCircle size={13} strokeWidth={1.75}/>} title={freightQuoteBusyId === quote.id ? 'A processar…' : 'Aprovar transporte'} onClick={() => { if (freightQuoteBusyId !== quote.id) void respondToFreightQuote(quote.id, true) }} />
-                  </div>
+                  {quote.driver_quote_status === 'pending_buyer_approval' && !quote.buyer_quote_approved && (
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 13, flexWrap: 'wrap' }}>
+                      <IconBtn icon={<Trash2 size={13} strokeWidth={1.75}/>} title={freightQuoteBusyId === quote.id ? 'A processar…' : 'Recusar transporte'} danger onClick={() => { if (freightQuoteBusyId !== quote.id) void respondToFreightQuote(quote.id, false) }} />
+                      <IconBtn icon={<CheckCircle size={13} strokeWidth={1.75}/>} title={freightQuoteBusyId === quote.id ? 'A processar…' : 'Aprovar transporte'} onClick={() => { if (freightQuoteBusyId !== quote.id) void respondToFreightQuote(quote.id, true) }} />
+                    </div>
+                  )}
                 </section>
               ))}
             </div>
@@ -1460,6 +1502,39 @@ const Profile = () => {
 
           {/* ── Received Orders ── */}
           {activeTab === 'orders' && (isAgricultor || isAgente) && (
+            <>
+            <StatsStrip items={[
+              { value: receivedOrders.length, label: 'Pedidos recebidos', color: T.ink },
+              { value: receivedOrders.filter(order => order.status === 'accepted').length, label: 'Pedidos aceites', color: T.g600 },
+              { value: receivedOrders.filter(order => order.payment_status === 'paid').length, label: 'Pagamentos confirmados', color: T.g600 },
+              { value: `${receivedOrders.filter(order => order.payment_status === 'paid').reduce((sum, order) => sum + Number(order.total_price || 0) * 0.92, 0).toLocaleString('pt-AO')} Kz`, label: 'Entradas líquidas (após 8%)', color: T.g600 },
+            ]} />
+            {supplierFreightProposals.length > 0 && (
+              <div style={{ display: 'grid', gap: 10, marginTop: 14, marginBottom: 14 }}>
+                {supplierFreightProposals.map((proposal) => (
+                  <section key={proposal.id} style={{ background: T.white, border: `1px solid ${T.rule}`, borderRadius: R.md, padding: 14 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>Proposta de transporte · {proposal.product_name}</div>
+                        <div style={{ marginTop: 4, fontSize: 12, color: T.muted }}>{proposal.origin_label} → {proposal.destination_label}</div>
+                        <div style={{ marginTop: 3, fontSize: 11, color: T.faint }}>{Number(proposal.weight_kg).toLocaleString('pt-AO')} kg · {proposal.route_distance_km != null ? `${Number(proposal.route_distance_km).toFixed(1)} km` : 'rota por confirmar'}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: T.g600 }}>{proposal.driver_offered_price == null ? '—' : `${Number(proposal.driver_offered_price).toLocaleString('pt-AO')} ${proposal.currency || 'Kz'}`}</div>
+                        <div style={{ marginTop: 3, fontSize: 11, fontWeight: 700, color: proposal.driver_quote_status === 'approved' ? T.g600 : proposal.driver_quote_status === 'rejected' ? T.danger : T.gold }}>
+                          {proposal.driver_quote_status === 'approved'
+                            ? 'Preço aprovado pelo comprador'
+                            : proposal.driver_quote_status === 'rejected'
+                              ? 'Recusada · aguarda novo preço do motorista'
+                              : 'A aguardar decisão do comprador'}
+                        </div>
+                      </div>
+                    </div>
+                    <p style={{ margin: '10px 0 0', fontSize: 11, color: T.muted }}>O preço de transporte é aprovado pelo comprador. Após a confirmação do pagamento, a AgriLink retém 8% do produto e contabiliza o teu valor líquido.</p>
+                  </section>
+                ))}
+              </div>
+            )}
             <OrdersTable
               columns={[
                 { key: 'produto', label: 'Produto', render: r => (
@@ -1481,7 +1556,10 @@ const Profile = () => {
                 ) },
                 { key: 'local', label: 'Localização', render: r => r.location },
                 { key: 'qtd', label: 'Quantidade', align: 'right', render: r => <span style={{ fontWeight: 700, color: T.g600 }}>{r.quantity.toLocaleString()} kg</span> },
-                { key: 'valor', label: 'Valor', align: 'right', render: r => `${((r.product?.price || 0) * r.quantity).toLocaleString()} Kz` },
+                { key: 'valor', label: 'Valor do produto', align: 'right', render: r => `${Number(r.total_price || 0).toLocaleString('pt-AO')} Kz` },
+                { key: 'comissao', label: 'Comissão (8%)', align: 'right', render: r => r.payment_status === 'paid' ? `${(Number(r.total_price || 0) * 0.08).toLocaleString('pt-AO')} Kz` : 'Após pagamento' },
+                { key: 'liquido', label: 'Líquido', align: 'right', render: r => r.payment_status === 'paid' ? `${(Number(r.total_price || 0) * 0.92).toLocaleString('pt-AO')} Kz` : 'A liquidar' },
+                { key: 'pagamento', label: 'Pagamento', render: r => <span style={{ fontSize: 11, fontWeight: 700, color: r.payment_status === 'paid' ? T.g600 : T.faint }}>{r.payment_status === 'paid' ? 'Confirmado' : r.payment_status === 'pending' || r.payment_status === 'processing' ? 'Em validação' : 'Não iniciado'}</span> },
                 { key: 'data', label: 'Data', render: r => formatDate(r.created_at) },
               ]}
               rows={receivedOrders}
@@ -1497,6 +1575,7 @@ const Profile = () => {
               )}
               empty={<EmptyState icon={<ShoppingCart size={26} color={T.faint}/>} message={t('profile.noOrdersReceived')} sub={t('profile.ordersWillAppear')} />}
             />
+            </>
           )}
 
           {/* ── Referrals ── */}
@@ -1710,6 +1789,9 @@ const Profile = () => {
         @keyframes ag-fade-up { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: translateY(0) } }
 
         .ag-layout { display: grid; grid-template-columns: 1fr; gap: 22px; }
+        .ag-member-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); column-gap:16px; padding:18px 22px 12px; }
+        .ag-member-cell { display:flex; min-width:0; min-height:72px; align-items:center; padding:10px 0; }
+        .ag-member-identity { gap:12px; }
 
         .ag-btn:active { transform: scale(0.97); }
         .ag-btn { min-height: 40px; }
@@ -1747,6 +1829,7 @@ const Profile = () => {
             content: attr(data-label); font-size: 10.5px; font-weight: 700; color: ${T.faint}; text-align: left; flex-shrink: 0;
           }
           .ag-row-actions { opacity: 1; }
+          .ag-member-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
         }
 
         @media (max-width: 480px) {
@@ -1754,11 +1837,11 @@ const Profile = () => {
           .ag-profile-toolbar { padding: 0 14px !important; }
           .ag-profile-actions { gap: 5px !important; }
           .ag-profile-actions .ag-btn { padding-left: 9px !important; padding-right: 9px !important; }
+          .ag-member-grid { grid-template-columns:1fr; padding:14px 16px 10px; }
+          .ag-member-cell { min-height:58px; }
+          .ag-member-identity { min-height:76px; }
         }
 
-        @media (min-width: 1024px) {
-          .ag-layout { grid-template-columns: 320px 1fr !important; }
-        }
         @media (min-width: 640px) {
           .sm\\:grid-cols-2 { grid-template-columns: 1fr 1fr !important; }
           .sm\\:inline { display: inline !important; }

@@ -6,7 +6,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '../components/ui/select';
-import { ArrowLeft, Package, Calendar, DollarSign, Hash, MapPin, User, Upload, X } from 'lucide-react';
+import { ArrowLeft, Package, Calendar, DollarSign, Hash, MapPin, Navigation, User, Upload, X } from 'lucide-react';
 import { angolaProvinces } from '../data/angola-locations';
 import { useAuth } from '../contexts/AuthContext';
 import { useGuestGate } from '../contexts/GuestGateContext';
@@ -50,9 +50,40 @@ const PublishProduct = () => {
     logistics_access: 'sim'
   });
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'found' | 'error'>('idle');
+  const [locationMessage, setLocationMessage] = useState('Pode usar a sua localização actual ou ajustar o marcador no mapa.');
   const [identityDialogOpen, setIdentityDialogOpen] = useState(false);
 
   const imagePreviewUrlsRef = useRef<string[]>([]);
+
+  const detectCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationStatus('error');
+      setLocationMessage('Este navegador não disponibiliza geolocalização. Ajuste o marcador no mapa.');
+      return;
+    }
+    setLocationStatus('loading');
+    setLocationMessage('A localizar a posição actual…');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const next = { lat: position.coords.latitude, lng: position.coords.longitude };
+        setLocation(next);
+        setLocationStatus('found');
+        setLocationMessage('Localização actual encontrada. Pode ajustar o marcador se necessário.');
+      },
+      (error) => {
+        setLocationStatus('error');
+        setLocationMessage(error.code === error.PERMISSION_DENIED
+          ? 'Permissão de localização negada. Permita a localização nas definições do navegador ou ajuste o mapa.'
+          : 'Não foi possível obter a localização actual. Ajuste o marcador no mapa.');
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+    );
+  };
+
+  useEffect(() => {
+    detectCurrentLocation();
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -595,13 +626,17 @@ const PublishProduct = () => {
     {/* Localização no mapa */}
     <div className="space-y-2 mt-4">
       <Label>Localização no Mapa</Label>
-      <p className="text-xs text-muted-foreground">
-        Clique no mapa para definir a localização exata do produto.
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">{locationMessage}</p>
+        <Button type="button" variant="outline" size="sm" onClick={detectCurrentLocation} disabled={locationStatus === 'loading'}>
+          <Navigation className="mr-2 h-4 w-4" />
+          {locationStatus === 'loading' ? 'Localizando…' : 'Usar localização actual'}
+        </Button>
+      </div>
       <div className="w-full rounded-lg overflow-hidden border border-border" style={{ height: 256 }}>
         <SimpleLeafletMap
-          center={{ lat: -8.839, lng: 13.234 }}
-          zoom={6}
+          center={location || { lat: -8.839, lng: 13.234 }}
+          zoom={location ? 15 : 6}
           height={256}
           onClick={(c) => setLocation(c)}
           markers={location ? [{ lat: location.lat, lng: location.lng, color: '#DC2626' }] : []}

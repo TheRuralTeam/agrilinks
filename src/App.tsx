@@ -50,7 +50,6 @@ const ProximasCargas = lazy(() => import("./pages/ProximasCargas"));
 const FreightLoadScan = lazy(() => import("./pages/FreightLoadScan"));
 const P2PBeneficiary = lazy(() => import("./pages/P2PBeneficiary"));
 const MyPurchases = lazy(() => import("./pages/MyPurchases"));
-const BuyerCart = lazy(() => import("./pages/BuyerCart"));
 
 const queryClient = new QueryClient();
 
@@ -259,12 +258,16 @@ const AppRoutes = () => {
         />
         <Route
           path="/carrinho"
+          element={<Navigate to="/app" replace />}
+        />
+        <Route
+          path="/pagamento/:purchaseId"
           element={
-            <RoleRoute allowedRole="comprador">
+            <ProtectedRoute>
               <AppLayout>
-                <BuyerCart />
+                <MyPurchases />
               </AppLayout>
-            </RoleRoute>
+            </ProtectedRoute>
           }
         />
         <Route
@@ -459,12 +462,8 @@ const AppRoutes = () => {
 const App = () => {
   useEffect(() => {
     purgeExpiredGuestSession();
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready
-        .then((registration) => {
-          console.log('SW já ativo:', registration);
-        })
-        .catch((error) => {
+    if ('serviceWorker' in navigator && import.meta.env.PROD) {
+      void navigator.serviceWorker.ready.catch((error) => {
           console.warn('Service worker not ready yet:', error);
         });
     }

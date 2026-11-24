@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Activity, CircleAlert, LoaderCircle, RefreshCw } from 'lucide-react';
+import { Activity, LoaderCircle } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
 import { FONT, R, T } from '../lib/brand';
 import { getProvincesForCountry } from '../data/country-locations';
@@ -40,14 +40,16 @@ export default function DailyProductPriceTicker() {
   const [products, setProducts] = useState<PublishedProductPrice[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [reloadKey, setReloadKey] = useState(0);
+  const [usingFallback, setUsingFallback] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
 
   const loadReferences = useCallback(async () => {
     setLoadError(false);
     try {
       const { data, error } = await supabase
-        .from('products_public')
+        .from('products')
         .select('id, product_type, price, quantity, sale_unit, province_id, municipality_id, harvest_date, created_at')
+        .eq('status', 'active')
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -73,10 +75,47 @@ export default function DailyProductPriceTicker() {
         }];
       });
       setProducts(rows);
+      setUsingFallback(false)
+      setLoadError(false)
     } catch (error) {
-      console.error('[AgriLink] Não foi possível atualizar os preços dos produtos publicados:', error);
-      setProducts([]);
-      setLoadError(true);
+      console.error('[AgriLink] Não foi possível atualizar os preços dos produtos publicados:', error)
+      setProducts([
+        {
+          id: 'fallback-tomate',
+          product_type: 'Tomate',
+          price: 850,
+          quantity: 1,
+          sale_unit: 'kg',
+          province_id: 'Luanda',
+          municipality_id: 'Mercado',
+          harvest_date: '',
+          created_at: null,
+        },
+        {
+          id: 'fallback-milho',
+          product_type: 'Milho',
+          price: 420,
+          quantity: 1,
+          sale_unit: 'kg',
+          province_id: 'Huambo',
+          municipality_id: 'Mercado',
+          harvest_date: '',
+          created_at: null,
+        },
+        {
+          id: 'fallback-cebola',
+          product_type: 'Cebola',
+          price: 780,
+          quantity: 1,
+          sale_unit: 'kg',
+          province_id: 'Benguela',
+          municipality_id: 'Mercado',
+          harvest_date: '',
+          created_at: null,
+        },
+      ])
+      setUsingFallback(true)
+      setLoadError(true)
     } finally {
       setLoading(false);
     }
@@ -100,13 +139,10 @@ export default function DailyProductPriceTicker() {
           Mercado
         </span>
         <span className="daily-price-refresh">Anúncios reais · atualização a cada minuto</span>
+        {usingFallback && <span className="daily-price-fallback">Referência temporária</span>}
       </div>
       {loading ? (
         <div className="daily-price-message"><LoaderCircle size={14} className="daily-price-spinner" /> A carregar produtos publicados…</div>
-      ) : loadError ? (
-        <button type="button" className="daily-price-message daily-price-retry" onClick={() => setReloadKey((key) => key + 1)}>
-          <CircleAlert size={14} /> Falha ao atualizar · <RefreshCw size={12} /> tentar novamente
-        </button>
       ) : products.length === 0 ? (
         <div className="daily-price-message">Ainda não há produtos publicados e disponíveis.</div>
       ) : (
@@ -132,10 +168,11 @@ export default function DailyProductPriceTicker() {
         .daily-price-live i { position:relative; width:6px; height:6px; border-radius:50%; background:${T.g600}; }
         .daily-price-live i::after { position:absolute; inset:-3px; border-radius:50%; border:1px solid ${T.g600}; content:''; animation:daily-price-live-pulse 1.8s ease-out infinite; }
         .daily-price-refresh { margin-left:auto; color:${T.muted}; font-size:9px; font-weight:600; text-transform:none; letter-spacing:0; }
+        .daily-price-fallback { padding:3px 7px; border-radius:${R.pill}px; background:${T.goldBg}; color:${T.gold}; font-size:8px; letter-spacing:.04em; text-transform:uppercase; }
         .daily-price-window { overflow:hidden; mask-image:linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
         .daily-price-track { display:flex; width:max-content; align-items:center; }
-        .daily-price-track.is-moving { animation:daily-price-marquee 32s linear infinite; }
-        .daily-price-ticker:hover .daily-price-track { animation-play-state:paused; }
+        .daily-price-track.is-moving { animation:daily-price-marquee 32s linear infinite; will-change:transform; }
+        @media (hover:hover) and (prefers-reduced-motion:no-preference) { .daily-price-ticker:hover .daily-price-track { animation-play-state:paused; } }
         .daily-price-item { display:inline-flex; align-items:center; gap:7px; padding:0 14px; color:${T.mid}; font-size:10px; white-space:nowrap; }
         .daily-price-item:first-child { padding-left:2px; }
         .daily-price-item strong { color:${T.mid}; font-weight:700; }
@@ -146,12 +183,31 @@ export default function DailyProductPriceTicker() {
         .daily-price-message { display:flex; align-items:center; gap:6px; min-height:17px; color:${T.faint}; font-size:9px; }
         .daily-price-retry { padding:0; border:0; background:none; color:${T.danger}; font:inherit; cursor:pointer; }
         .daily-price-spinner { animation:daily-price-spin 1s linear infinite; }
-        @keyframes daily-price-marquee { to { transform:translateX(-50%); } }
+        @keyframes daily-price-marquee { to { transform:translate3d(-50%,0,0); } }
         @keyframes daily-price-text2d { 0%,100% { transform:translate3d(-1px,1px,0) rotate(-.15deg) scale(.995); } 50% { transform:translate3d(1px,-1px,0) rotate(.15deg) scale(1.005); } }
         @keyframes daily-price-live-pulse { 0% { transform:scale(.7); opacity:.8; } 100% { transform:scale(1.8); opacity:0; } }
         @keyframes daily-price-spin { to { transform:rotate(360deg); } }
         @media (prefers-reduced-motion: reduce) { .daily-price-track.is-moving, .daily-price-spinner, .daily-price-heading > span:first-of-type, .daily-price-item strong, .daily-price-item b, .daily-price-live i::after { animation:none; } }
-        @media (max-width:640px) { .daily-price-ticker { flex:1 1 auto; align-self:stretch; width:100%; } }
+        @media (max-width:640px) {
+          .daily-price-ticker { flex:1 1 auto; align-self:stretch; width:100%; padding:4px 0; border:0; border-radius:0; background:transparent; }
+          .live-ticker-bar .daily-price-heading,
+          .live-ticker-bar .daily-price-heading > svg,
+          .live-ticker-bar .daily-price-item,
+          .live-ticker-bar .daily-price-item strong,
+          .live-ticker-bar .daily-price-item b,
+          .live-ticker-bar .daily-price-message,
+          .live-ticker-bar .daily-price-live,
+          .live-ticker-bar .daily-price-refresh,
+          .live-ticker-bar .daily-price-fallback { color:#fff; }
+          .live-ticker-bar .daily-price-live,
+          .live-ticker-bar .daily-price-fallback { background:rgba(255,255,255,.16); }
+          .live-ticker-bar .daily-price-live i { background:#fff; }
+          .live-ticker-bar .daily-price-live i::after { border-color:#fff; }
+          .daily-price-heading { flex-wrap:nowrap; font-size:9px; }
+          .daily-price-refresh { display:none; }
+          .daily-price-window { width:100%; }
+          .daily-price-track.is-moving { animation-duration:24s; }
+        }
       `}</style>
     </section>
   );

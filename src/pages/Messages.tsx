@@ -158,10 +158,17 @@ const Messages = () => {
   useEffect(() => {
     if (!id || !user) return;
     const loadConversation = async () => {
+      setIsLoading(true);
+      setLoadError(null);
       try {
-        const { data, error } = await supabase.from("conversations").select("*").eq("id", id).single();
+        const { data, error } = await supabase.from("conversations").select("*").eq("id", id).maybeSingle();
         if (error) throw error;
-        if (!data) throw new Error("Conversa não encontrada.");
+        if (!data) {
+          setConversation(null);
+          setLoadError("Esta conversa não existe ou já não está disponível para a sua conta.");
+          setIsLoading(false);
+          return;
+        }
 
         const peerId = data.user_id === user.id
           ? (data.participant_id || data.peer_user_id || null)
@@ -184,12 +191,13 @@ const Messages = () => {
         setConversation({ ...data, title: conversationTitle, avatar: conversationAvatar } as Conversation);
       } catch (err) {
         console.error("Erro ao carregar conversa:", err);
-        toast({ title: "Erro", description: "Não foi possível carregar a conversa", variant: "destructive" });
-        navigate(-1);
+        setConversation(null);
+        setLoadError("Não foi possível carregar esta conversa. Verifique a ligação e tente novamente.");
+        setIsLoading(false);
       }
     };
     loadConversation();
-  }, [id, user, navigate, toast]);
+  }, [id, user, reloadToken]);
 
   // Presença real no chat: só considera online quem está ligado ao canal desta conversa.
   // Se a ligação de presença falhar, mostramos estado desconhecido em vez de afirmar offline.

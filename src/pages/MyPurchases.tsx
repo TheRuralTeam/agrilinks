@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ArrowLeft, ShoppingBag, CreditCard, Clock3, CheckCircle2, AlertCircle, MapPin, RefreshCw } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
@@ -59,14 +59,26 @@ const purchaseStatus = (status: string) => ({
 const paymentStatus = (status: string | null) => ({
   unpaid: 'Pagamento por iniciar',
   pending: 'Pagamento em validação',
+  processing: 'Pagamento em validação',
   paid: 'Pago',
   failed: 'Pagamento não concluído',
+  cancelled: 'Pagamento cancelado',
+  expired: 'Tentativa expirada',
   refunded: 'Reembolsado',
 }[status || 'unpaid'] || status || 'Não iniciado')
 
+const checkoutReasonLabel = (reason: string | null | undefined) => ({
+  WAITING_FREIGHT_QUOTE: 'A aguardar a proposta de transporte do motorista.',
+  WAITING_FREIGHT_NEGOTIATION: 'O pagamento só será aberto depois de aprovares o preço do transporte proposto pelo motorista.',
+  WAITING_PAYMENT_PROVIDER: 'A AgriLink ainda não configurou um meio de pagamento para esta compra.',
+  WAITING_FREIGHT: 'A aguardar confirmação do transporte.',
+}[reason || ''] || reason || 'O checkout ainda não está pronto. Aguarda a confirmação das condições.')
+
 export default function MyPurchases() {
-  const { user } = useAuth()
+  const { user, userProfile } = useAuth()
   const navigate = useNavigate()
+  const { purchaseId } = useParams<{ purchaseId?: string }>()
+  const purchaseHistoryPath = String(userProfile?.user_type ?? '').toLowerCase() === 'comprador' ? '/minhas-compras' : '/app'
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -88,12 +100,13 @@ export default function MyPurchases() {
     else setLoading(true)
     setLoadError(null)
     try {
-      const { data, error } = await (supabase as any)
+      let purchasesQuery = (supabase as any)
         .from('pre_orders')
         .select('id,product_id,cart_order_id,requested_delivery_date,quantity,location,status,payment_status,total_price,created_at')
         .eq('user_id', user.id)
         .is('deleted_at', null)
-        .order('created_at', { ascending: false })
+      if (purchaseId) purchasesQuery = purchasesQuery.eq('id', purchaseId)
+      const { data, error } = await purchasesQuery.order('created_at', { ascending: false })
       if (error) throw error
 
       const rows = (data ?? []) as Purchase[]
@@ -116,9 +129,26 @@ export default function MyPurchases() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [user?.id])
+  }, [purchaseId, user?.id])
 
   useEffect(() => { void loadPurchases() }, [loadPurchases])
+
+  useEffect(() => {
+    let refreshTimer: number | undefined
+    const refreshOnReturn = () => {
+      if (document.visibilityState === 'hidden') return
+      window.clearTimeout(refreshTimer)
+      refreshTimer = window.setTimeout(() => void loadPurchases(true), 250)
+    }
+
+    window.addEventListener('focus', refreshOnReturn)
+    document.addEventListener('visibilitychange', refreshOnReturn)
+    return () => {
+      window.clearTimeout(refreshTimer)
+      window.removeEventListener('focus', refreshOnReturn)
+      document.removeEventListener('visibilitychange', refreshOnReturn)
+    }
+  }, [loadPurchases])
 
   const openPaymentOptions = async (purchase: Purchase) => {
     setCheckout((current) => ({ ...current, [purchase.id]: { summary: null, recipients: [], loading: true, error: null } }))
@@ -136,10 +166,10 @@ export default function MyPurchases() {
           error: null,
         },
       }))
-      if (!recipients?.length || !summary?.payment_ready) {
+      if (!summary?.payment_ready) {
         toast({
           title: 'Pagamento ainda não disponível',
-          description: summary?.reason || 'A AgriLink ainda não tem instruções de pagamento activas para esta compra.',
+          description: checkoutReasonLabel(summary?.reason),
         })
       }
     } catch (error: any) {
@@ -206,12 +236,12 @@ export default function MyPurchases() {
     <main className="mx-auto w-full max-w-5xl space-y-6 p-4 md:p-6">
       <header className="flex flex-wrap items-start justify-between gap-4 border-b pb-5">
         <div>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/perfil')} className="mb-2 -ml-2">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao perfil
+          <Button variant="ghost" size="sm" onClick={() => navigate(purchaseId ? purchaseHistoryPath : '/perfil')} className="mb-2 -ml-2">
+            <ArrowLeft className="mr-2 h-4 w-4" /> {purchaseId ? (purchaseHistoryPath === '/minhas-compras' ? 'Voltar às minhas compras' : 'Voltar ao marketplace') : 'Voltar ao perfil'}
           </Button>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">AgriLink · Área do comprador</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">As minhas compras</h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Consulta as pré-compras, acompanha a confirmação do fornecedor e vê as instruções de pagamento disponíveis para cada compra.</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">{purchaseId ? 'Finalizar compra' : 'As minhas compras'}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{purchaseId ? 'Acompanhe esta compra individual. O pagamento só fica disponível após a confirmação do fornecedor e das condições de entrega.' : 'Consulta cada pré-compra individual, acompanha a confirmação do fornecedor e vê as instruções de pagamento autorizadas.'}</p>
         </div>
         <Button variant="outline" onClick={() => void loadPurchases(true)} disabled={refreshing}>
           <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> Actualizar
@@ -232,19 +262,19 @@ export default function MyPurchases() {
           <Button className="mt-4" variant="outline" onClick={() => void loadPurchases(true)} disabled={refreshing}>{refreshing ? 'A actualizar…' : 'Tentar novamente'}</Button>
         </CardContent></Card>
       ) : purchases.length === 0 ? (
-        <Card><CardContent className="flex flex-col items-center py-12 text-center"><ShoppingBag className="mb-3 h-10 w-10 text-muted-foreground" /><h2 className="font-semibold">Ainda não tens compras</h2><p className="mt-2 max-w-md text-sm text-muted-foreground">Quando enviares uma pré-compra no marketplace, ela aparecerá aqui para acompanhares a resposta do fornecedor e o pagamento.</p><Button className="mt-4" onClick={() => navigate('/app')}>Explorar marketplace</Button></CardContent></Card>
+        <Card><CardContent className="flex flex-col items-center py-12 text-center"><ShoppingBag className="mb-3 h-10 w-10 text-muted-foreground" /><h2 className="font-semibold">{purchaseId ? 'Compra não encontrada' : 'Ainda não tens compras'}</h2><p className="mt-2 max-w-md text-sm text-muted-foreground">{purchaseId ? 'Esta compra não existe, não pertence à tua conta ou já não está disponível.' : 'Quando enviares um pedido individual no marketplace, ele aparecerá aqui para acompanhares a resposta do fornecedor e o pagamento.'}</p><Button className="mt-4" onClick={() => navigate(purchaseId ? purchaseHistoryPath : '/app')}>{purchaseId ? (purchaseHistoryPath === '/minhas-compras' ? 'Voltar às minhas compras' : 'Voltar ao marketplace') : 'Explorar marketplace'}</Button></CardContent></Card>
       ) : (
         <div className="space-y-4">
           {purchases.map((purchase) => {
             const state = checkout[purchase.id]
             const draft = paymentDrafts[purchase.id]
-            const canStartPayment = purchase.status === 'accepted' && (purchase.payment_status === 'unpaid' || !purchase.payment_status)
+            const canStartPayment = purchase.status === 'accepted' && ['unpaid', 'failed', null].includes(purchase.payment_status)
             return (
               <Card key={purchase.id}>
                 <CardHeader className="pb-3">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div><CardTitle className="text-base">{purchase.product_name}</CardTitle><p className="mt-1 text-xs text-muted-foreground">Compra #{purchase.id.slice(0, 8)} · {new Date(purchase.created_at).toLocaleDateString('pt-AO')}</p>{purchase.cart_order_id && <p className="mt-1 text-xs font-medium text-primary">Encomenda agrupada #{purchase.cart_order_id.slice(0, 8)}</p>}{purchase.requested_delivery_date && <p className="mt-1 text-xs text-muted-foreground">Entrega solicitada: {new Date(`${purchase.requested_delivery_date}T12:00:00`).toLocaleDateString('pt-AO')}</p>}</div>
-                    <div className="flex flex-wrap gap-2"><Badge variant={purchase.status === 'accepted' ? 'default' : 'outline'}>{purchaseStatus(purchase.status)}</Badge><Badge variant={purchase.payment_status === 'paid' ? 'default' : 'secondary'}>{paymentStatus(purchase.payment_status)}</Badge></div>
+                    <div className="flex flex-wrap items-center gap-2"><Badge variant={purchase.status === 'accepted' ? 'default' : 'outline'}>{purchaseStatus(purchase.status)}</Badge><Badge variant={purchase.payment_status === 'paid' ? 'default' : 'secondary'}>{paymentStatus(purchase.payment_status)}</Badge>{!purchaseId && <Button variant="outline" size="sm" onClick={() => navigate(`/pagamento/${purchase.id}`)}>Abrir compra</Button>}</div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -266,8 +296,20 @@ export default function MyPurchases() {
                             <div className="rounded-md border bg-background p-3"><p className="text-xs text-muted-foreground">Transporte</p><p className="font-semibold">{money(Number(state.summary.freight_total || 0), state.summary.currency || 'AOA')}</p></div>
                             <div className="rounded-md border bg-background p-3"><p className="text-xs text-muted-foreground">Total do checkout</p><p className="font-semibold">{money(Number(state.summary.total || 0), state.summary.currency || 'AOA')}</p></div>
                           </div>
-                          {!state.summary.payment_ready && <p className="rounded-md border p-3 text-sm text-muted-foreground">{state.summary.reason || 'O checkout ainda não está pronto. Aguarda a confirmação das condições de pagamento e/ou transporte.'}</p>}
-                          {state.summary.payment_ready && state.recipients.length === 0 && <p className="rounded-md border p-3 text-sm text-muted-foreground">O checkout está calculado, mas não há destinatários autorizados disponíveis. Não transfiras dinheiro para dados recebidos fora da AgriLink.</p>}
+                          {!state.summary.payment_ready && <p className="rounded-md border p-3 text-sm text-muted-foreground">{checkoutReasonLabel(state.summary.reason)}</p>}
+                          {state.summary.payment_ready && (
+                            <div className="space-y-2 rounded-md border bg-background p-3">
+                              <div>
+                                <p className="font-semibold">Gateway de pagamento indisponível</p>
+                                <p className="mt-1 text-sm text-muted-foreground">Nenhuma cobrança será iniciada: falta configurar um provedor e a confirmação segura por webhook. Se houver um meio autorizado abaixo, podes usá-lo; caso contrário, aguarda a activação do gateway.</p>
+                              </div>
+                              <Button disabled>
+                                <CreditCard className="mr-2 h-4 w-4" />
+                                EMIS indisponível
+                              </Button>
+                            </div>
+                          )}
+                          {state.summary.payment_ready && state.recipients.length === 0 && <p className="rounded-md border p-3 text-sm text-muted-foreground">Não há beneficiário activo para transferência manual e a ligação EMIS ainda está em configuração. Não transfiras dinheiro para dados recebidos fora da AgriLink.</p>}
                           {state.summary.payment_ready && state.recipients.length > 0 && (
                             <div className="space-y-3 rounded-md border bg-background p-3">
                               <Label>Escolhe o método e destinatário autorizado</Label>

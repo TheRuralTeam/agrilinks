@@ -47,6 +47,10 @@ interface FreightLoad {
   currency: string;
   status: string;
   driver_id: string | null;
+  driver_quote_status: string;
+  driver_offered_price: number | null;
+  buyer_quote_approved: boolean;
+  supplier_quote_approved: boolean;
   notes: string | null;
   origin_lat: number | null;
   origin_lng: number | null;
@@ -115,6 +119,9 @@ const ProximasCargas = () => {
   const [loads, setLoads] = useState<FreightLoad[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [quoteDraftLoadId, setQuoteDraftLoadId] = useState<string | null>(null);
+  const [quotePriceMethod, setQuotePriceMethod] = useState<'suggested' | 'manual'>('suggested');
+  const [manualQuotePrice, setManualQuotePrice] = useState('');
   const [tab, setTab] = useState<'disponiveis' | 'minhas'>('disponiveis');
   const [createOpen, setCreateOpen] = useState(false);
   const [productName, setProductName] = useState('');
@@ -525,6 +532,10 @@ const ProximasCargas = () => {
   const submitQuote = async (load: FreightLoad) => {
     if (!requireAct('propor o preço de uma carga')) return;
     if (!user?.id || load.created_by === user.id) return;
+    if (quotePriceMethod === 'manual' && (!Number.isFinite(Number(manualQuotePrice)) || Number(manualQuotePrice) <= 0)) {
+      toast.error('Introduza um preço de transporte válido em Kz.');
+      return;
+    }
     setBusyId(load.id);
     try {
       let originPoint: FreightCoordinate | null =
@@ -618,13 +629,15 @@ const ProximasCargas = () => {
       const route = await calculateFreightRoute(originPoint, destinationPoint);
       const { error } = await supabase.rpc('submit_freight_quote', {
         p_freight_load_id: load.id,
-        p_price_method: 'suggested',
-        p_manual_price: null as unknown as number,
+        p_price_method: quotePriceMethod,
+        p_manual_price: quotePriceMethod === 'manual' ? Number(manualQuotePrice) : null as unknown as number,
         p_route_distance_km: route.distanceKm,
         p_route_duration_minutes: route.durationMinutes,
       });
       if (error) throw error;
-      toast.success('Carga aceite. O preço de transporte foi enviado ao comprador para aprovação.');
+      toast.success('Proposta enviada ao comprador. O pagamento só será liberado depois da aprovação do preço.');
+      setQuoteDraftLoadId(null);
+      setManualQuotePrice('');
       await fetchLoads();
     } catch (error: any) {
       toast.error(error?.message || 'Não foi possível aceitar a carga e calcular o frete.');
@@ -1119,7 +1132,8 @@ const ProximasCargas = () => {
 
         {!loading &&
           visible.map((load) => {
-            const tooHeavy = !!capacity && load.weight_kg > capacity;
+            const capacityUnavailable = !capacity || !Number.isFinite(Number(capacity)) || Number(capacity) <= 0;
+            const tooHeavy = capacityUnavailable || load.weight_kg > Number(capacity);
             const isAssignedDriver = load.driver_id === user?.id;
             const latestDriverLocation = driverLocations[load.id];
             const hasCoordinates =
@@ -1494,10 +1508,54 @@ const ProximasCargas = () => {
                   </section>
                 )}
 
-{tab === 'disponiveis' ? (
+{(tab === 'disponiveis' && Boolean(load.pre_order_id)) || (tab === 'minhas' && isAssignedDriver && load.status === 'accepted' && load.driver_quote_status === 'rejected') ? (
+                  <section style={{ marginTop: 14, display: 'grid', gap: 10, padding: 12, border: `1px solid ${T.rule}`, borderRadius: 12, background: T.canvas }}>
+                    {quoteDraftLoadId !== load.id ? (
+                      <>
+                        {load.driver_quote_status === 'rejected' && load.driver_offered_price != null && (
+                          <p style={{ margin: 0, fontSize: 12, color: T.danger }}>A proposta anterior de {money(load.driver_offered_price, load.currency)} foi recusada. Podes rever o preço e enviar outra proposta.</p>
+                        )}
+                        <button
+                          type="button"
+                          disabled={busyId === load.id || tooHeavy}
+                          onClick={() => { setQuoteDraftLoadId(load.id); setQuotePriceMethod('suggested'); setManualQuotePrice('') }}
+                          style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: 'none', background: tooHeavy ? T.rule : T.green, color: tooHeavy ? T.muted : T.white, fontFamily: FONT, fontSize: 14, fontWeight: 800, cursor: tooHeavy ? 'not-allowed' : 'pointer' }}
+                        >
+                          {capacityUnavailable ? 'Regista a capacidade do veículo' : tooHeavy ? 'Carga acima da tua capacidade' : load.driver_quote_status === 'rejected' ? 'Rever preço e enviar proposta' : 'Propor preço do transporte'}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ display: 'grid', gap: 5 }}>
+                          <label htmlFor={`quote-method-${load.id}`} style={{ fontSize: 12, fontWeight: 800, color: T.ink }}>O teu preço de transporte</label>
+                          <select id={`quote-method-${load.id}`} value={quotePriceMethod} onChange={(event) => setQuotePriceMethod(event.target.value as 'suggested' | 'manual')} style={formInputStyle}>
+                            <option value="suggested">Usar preço calculado pela rota</option>
+                            <option value="manual">Apresentar o meu preço</option>
+                          </select>
+                        </div>
+                        {quotePriceMethod === 'suggested' ? (
+                          <p style={{ margin: 0, fontSize: 11, color: T.muted, lineHeight: 1.5 }}>O preço será calculado com base na rota, distância, peso e tarifas activas. A AgriLink retém 10% do frete e o teu líquido será 90% após a liquidação. Se quiseres negociar outro valor, escolhe “Apresentar o meu preço”.</p>
+                        ) : (
+                          <div style={{ display: 'grid', gap: 5 }}>
+                            <label htmlFor={`manual-price-${load.id}`} style={{ fontSize: 12, fontWeight: 800, color: T.ink }}>Valor da tua proposta (Kz)</label>
+                            <input id={`manual-price-${load.id}`} type="number" min="0.01" max="1000000000000" step="0.01" inputMode="decimal" value={manualQuotePrice} onChange={(event) => setManualQuotePrice(event.target.value)} placeholder="Ex.: 25 000" style={formInputStyle} />
+                            {Number(manualQuotePrice) > 0 && <p style={{ margin: 0, fontSize: 11, color: T.muted }}>Comissão AgriLink (10%): {money(Number(manualQuotePrice) * 0.1, load.currency)} · líquido estimado: {money(Number(manualQuotePrice) * 0.9, load.currency)}.</p>}
+                          </div>
+                        )}
+                        <p style={{ margin: 0, fontSize: 11, color: T.muted, lineHeight: 1.5 }}>A proposta será enviada ao comprador. O pagamento só será liberado depois da aprovação dele.</p>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button type="button" onClick={() => setQuoteDraftLoadId(null)} style={{ flex: 1, padding: 10, border: `1px solid ${T.rule}`, borderRadius: 12, background: T.white, color: T.mid, fontFamily: FONT, fontWeight: 800 }}>Cancelar</button>
+                          <button type="button" disabled={busyId === load.id || (quotePriceMethod === 'manual' && (!Number.isFinite(Number(manualQuotePrice)) || Number(manualQuotePrice) <= 0))} onClick={() => void submitQuote(load)} style={{ flex: 1, padding: 10, border: 'none', borderRadius: 12, background: T.green, color: T.white, fontFamily: FONT, fontWeight: 800, opacity: busyId === load.id ? 0.6 : 1 }}>
+                            {busyId === load.id ? 'A calcular e enviar…' : 'Enviar proposta'}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </section>
+                ) : tab === 'disponiveis' ? (
                   <button
                     disabled={busyId === load.id || tooHeavy}
-                    onClick={() => load.pre_order_id ? void submitQuote(load) : void accept(load)}
+                    onClick={() => void accept(load)}
                     style={{
                       marginTop: 14,
                       width: '100%',
@@ -1513,11 +1571,24 @@ const ProximasCargas = () => {
                     }}
                   >
                     {busyId === load.id
-                      ? (load.pre_order_id ? 'A aceitar e calcular frete…' : 'A aceitar…')
-                      : tooHeavy
-                        ? 'Capacidade insuficiente'
-                        : load.pre_order_id ? 'Aceitar carga e propor frete' : 'Aceitar carga'}
+                      ? 'A aceitar…'
+                      : capacityUnavailable
+                        ? 'Regista a capacidade do veículo'
+                        : tooHeavy
+                          ? 'Capacidade insuficiente'
+                          : 'Aceitar carga'}
                   </button>
+                ) : isAssignedDriver && load.status === 'accepted' && load.pre_order_id && load.driver_quote_status !== 'approved' ? (
+                  <section role="status" style={{ display: 'grid', gap: 5, marginTop: 14, padding: 12, border: `1px solid ${T.gold}`, borderRadius: 12, background: T.goldBg }}>
+                    <strong style={{ fontSize: 12, color: T.ink }}>
+                      {load.driver_quote_status === 'rejected'
+                        ? 'A proposta foi recusada. Reveja o preço para continuar.'
+                        : load.buyer_quote_approved
+                          ? 'Preço aprovado pelo comprador. Aguardando a etapa de pagamento.'
+                          : 'A aguardar decisão do comprador.'}
+                    </strong>
+                    <span style={{ fontSize: 11, color: T.muted }}>Não inicies a viagem até o acordo estar fechado na AgriLink.</span>
+                  </section>
                 ) : isAssignedDriver && load.status === 'accepted' ? (
                   <div style={{ display: 'grid', gap: 8, marginTop: 14 }}>
                     <button
