@@ -9,6 +9,8 @@ import { Textarea } from '../components/ui/textarea'
 import { Badge } from '../components/ui/badge'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../integrations/supabase/client'
+import FreightDeliveryEvidenceViewer from '../components/FreightDeliveryEvidenceViewer'
+import { downloadMarketplaceTransactionReceipt } from '../features/orders/transactionReceipts'
 import { toast } from '../hooks/use-toast'
 import {
   getMarketplaceCheckoutSummary,
@@ -32,6 +34,14 @@ type Purchase = {
   created_at: string
   product_name: string
 }
+type FreightLoadForPurchase = {
+  id: string
+  pre_order_id: string
+  status: string
+  delivered_at: string | null
+  buyer_receipt_confirmed_at: string | null
+  driver_id: string | null
+}
 type CheckoutState = {
   summary: MarketplaceCheckoutSummary | null
   recipients: AuthorizedPaymentRecipient[]
@@ -51,7 +61,9 @@ const purchaseStatus = (status: string) => ({
   cancelled: 'Cancelada',
   expired: 'Expirada',
   completed: 'Concluída',
-  delivered: 'Entregue',
+  delivered: 'Entregue pelo motorista',
+  at_pickup: 'Motorista no local de recolha',
+  in_transit: 'Em transporte',
   processing: 'Em preparação',
   shipped: 'Em transporte',
 }[status] || status)
@@ -71,6 +83,8 @@ export default function MyPurchases() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [purchases, setPurchases] = useState<Purchase[]>([])
+  const [freightLoads, setFreightLoads] = useState<Record<string, FreightLoadForPurchase>>({})
+  const [deliveryEvidenceViewId, setDeliveryEvidenceViewId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -111,6 +125,29 @@ export default function MyPurchases() {
         productNames = Object.fromEntries((products ?? []).map((product) => [product.id, product.product_type || 'Produto']))
       }
       setPurchases(rows.map((row) => ({ ...row, product_name: productNames[row.product_id] || 'Produto' })) as Purchase[])
+
+      const preOrderIds = rows.map((row) => row.id)
+      if (preOrderIds.length) {
+        try {
+          const { data: freightRows, error: freightError } = await (supabase as any)
+            .from('freight_loads')
+            .select('id,pre_order_id,status,delivered_at,buyer_receipt_confirmed_at,driver_id,created_at')
+            .in('pre_order_id', preOrderIds)
+            .order('created_at', { ascending: false })
+          if (freightError) throw freightError
+          const freightByPreOrder: Record<string, FreightLoadForPurchase> = {}
+          for (const freight of freightRows ?? []) {
+            if (freight.pre_order_id && !freightByPreOrder[freight.pre_order_id]) {
+              freightByPreOrder[freight.pre_order_id] = freight as FreightLoadForPurchase
+            }
+          }
+          setFreightLoads(freightByPreOrder)
+        } catch {
+          setFreightLoads({})
+        }
+      } else {
+        setFreightLoads({})
+      }
     } catch (error: any) {
       const message = 'Não foi possível consultar o histórico de compras. Verifique a ligação e tente novamente.'
       setLoadError(message)
@@ -196,6 +233,31 @@ export default function MyPurchases() {
     }
   }
 
+  const confirmPurchaseReceipt = async (freightLoad: FreightLoadForPurchase, purchaseId: string) => {
+    setBusyId(purchaseId)
+    try {
+      const { error } = await supabase.rpc('confirm_freight_receipt', { p_freight_load_id: freightLoad.id })
+      if (error) throw error
+      toast({ title: 'Recepção confirmada', description: 'A compra foi concluída e a confirmação ficou registada no histórico.' })
+      await loadPurchases(true)
+    } catch (error: any) {
+      toast({ title: 'Não foi possível confirmar a recepção', description: error?.message || 'Verifica a entrega e tenta novamente.', variant: 'destructive' })
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const downloadReceipt = async (purchaseId: string) => {
+    setBusyId(purchaseId)
+    try {
+      await downloadMarketplaceTransactionReceipt(purchaseId)
+    } catch (error: any) {
+      toast({ title: 'Não foi possível gerar o recibo', description: error?.message || 'Tenta novamente dentro de instantes.', variant: 'destructive' })
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   const submitProof = async (purchaseId: string) => {
     const draft = paymentDrafts[purchaseId]
     const reference = proofReferences[purchaseId]?.trim()
@@ -258,13 +320,19 @@ export default function MyPurchases() {
           {purchases.map((purchase) => {
             const state = checkout[purchase.id]
             const draft = paymentDrafts[purchase.id]
+            const freightLoad = freightLoads[purchase.id]
+            const displayedStatus = freightLoad?.buyer_receipt_confirmed_at
+              ? 'Recepção confirmada'
+              : freightLoad?.status === 'delivered'
+                ? 'Entregue pelo motorista'
+                : purchaseStatus(purchase.status)
             const canStartPayment = purchase.status === 'accepted' && ['unpaid', 'failed', null].includes(purchase.payment_status)
             return (
               <Card key={purchase.id}>
                 <CardHeader className="pb-3">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div><CardTitle className="text-base">{purchase.product_name}</CardTitle><p className="mt-1 text-xs text-muted-foreground">Compra #{purchase.id.slice(0, 8)} · {new Date(purchase.created_at).toLocaleDateString('pt-AO')}</p>{purchase.cart_order_id && <p className="mt-1 text-xs font-medium text-primary">Encomenda agrupada #{purchase.cart_order_id.slice(0, 8)}</p>}{purchase.requested_delivery_date && <p className="mt-1 text-xs text-muted-foreground">Entrega solicitada: {new Date(`${purchase.requested_delivery_date}T12:00:00`).toLocaleDateString('pt-AO')}</p>}</div>
-                    <div className="flex flex-wrap gap-2"><Badge variant={purchase.status === 'accepted' ? 'default' : 'outline'}>{purchaseStatus(purchase.status)}</Badge><Badge variant={purchase.payment_status === 'paid' ? 'default' : 'secondary'}>{paymentStatus(purchase.payment_status)}</Badge></div>
+                    <div className="flex flex-wrap gap-2"><Badge variant={freightLoad?.buyer_receipt_confirmed_at || freightLoad?.status === 'delivered' || purchase.status === 'accepted' ? 'default' : 'outline'}>{displayedStatus}</Badge><Badge variant={purchase.payment_status === 'paid' ? 'default' : 'secondary'}>{paymentStatus(purchase.payment_status)}</Badge></div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -331,11 +399,44 @@ export default function MyPurchases() {
                     <p className="flex items-start gap-2 rounded-md border p-3 text-sm text-muted-foreground"><Clock3 className="mt-0.5 h-4 w-4 shrink-0" />{purchase.status === 'pending' || purchase.status === 'aguardando' ? 'O fornecedor ainda não aceitou a pré-compra. Não é necessário pagar nesta fase.' : 'Consulta o estado acima. Não efectues pagamentos adicionais sem instruções oficiais na plataforma.'}</p>
                   )}
                   {purchase.payment_status === 'paid' && <p className="flex items-center gap-2 rounded-md border border-emerald-200 p-3 text-sm"><CheckCircle2 className="h-4 w-4" />Pagamento confirmado pela AgriLink.</p>}
+
+                  {freightLoad && (
+                    <section className="space-y-3 rounded-lg border p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="font-semibold">Transporte e entrega</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{purchaseStatus(freightLoad.status)}</p>
+                        </div>
+                        {freightLoad.buyer_receipt_confirmed_at && <Badge variant="default">Recepção confirmada</Badge>}
+                      </div>
+                      {freightLoad.status === 'delivered' && (
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">
+                            {freightLoad.buyer_receipt_confirmed_at
+                              ? `Recepção confirmada em ${new Date(freightLoad.buyer_receipt_confirmed_at).toLocaleString('pt-AO')}.`
+                              : 'O motorista registou a entrega. Consulta os comprovativos antes de confirmar que recebeste os produtos.'}
+                          </p>
+                          <Button variant="outline" className="w-full" onClick={() => setDeliveryEvidenceViewId(freightLoad.id)}>Consultar comprovativos do motorista</Button>
+                          {!freightLoad.buyer_receipt_confirmed_at && (
+                            <Button className="w-full" onClick={() => void confirmPurchaseReceipt(freightLoad, purchase.id)} disabled={busyId === purchase.id}>
+                              {busyId === purchase.id ? 'A confirmar…' : 'Confirmar recepção da encomenda'}
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                      <Button variant="outline" className="w-full" onClick={() => void downloadReceipt(purchase.id)} disabled={busyId === purchase.id}>
+                        {busyId === purchase.id ? 'A preparar recibo…' : 'Descarregar recibo completo (PDF)'}
+                      </Button>
+                    </section>
+                  )}
                 </CardContent>
               </Card>
             )
           })}
         </div>
+      )}
+      {deliveryEvidenceViewId && (
+        <FreightDeliveryEvidenceViewer freightLoadId={deliveryEvidenceViewId} onClose={() => setDeliveryEvidenceViewId(null)} />
       )}
     </main>
   )

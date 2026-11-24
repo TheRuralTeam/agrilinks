@@ -32,6 +32,8 @@ import {
 import { toast } from 'sonner';
 import { downloadFreightLoadPdf } from '../lib/freightPdf';
 import Loader from '../components/ui/Loader';
+import FreightDeliveryEvidenceForm from '../components/FreightDeliveryEvidenceForm';
+import FreightDeliveryEvidenceViewer from '../components/FreightDeliveryEvidenceViewer';
 
 interface FreightLoad {
   id: string;
@@ -47,6 +49,10 @@ interface FreightLoad {
   currency: string;
   status: string;
   driver_id: string | null;
+  buyer_id: string | null;
+  supplier_id: string | null;
+  supplier_handover_confirmed_at: string | null;
+  buyer_receipt_confirmed_at: string | null;
   notes: string | null;
   origin_lat: number | null;
   origin_lng: number | null;
@@ -115,6 +121,8 @@ const ProximasCargas = () => {
   const [loads, setLoads] = useState<FreightLoad[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [deliveryEvidenceLoad, setDeliveryEvidenceLoad] = useState<FreightLoad | null>(null);
+  const [deliveryEvidenceViewLoad, setDeliveryEvidenceViewLoad] = useState<FreightLoad | null>(null);
   const [tab, setTab] = useState<'disponiveis' | 'minhas'>('disponiveis');
   const [createOpen, setCreateOpen] = useState(false);
   const [productName, setProductName] = useState('');
@@ -729,6 +737,14 @@ const ProximasCargas = () => {
       return;
     }
     const nextStatus = load.status === 'accepted' ? 'at_pickup' : load.status === 'at_pickup' ? 'in_transit' : 'delivered';
+    if (nextStatus === 'delivered') {
+      setDeliveryEvidenceLoad(load);
+      return;
+    }
+    if (nextStatus === 'in_transit' && !load.supplier_handover_confirmed_at) {
+      toast.error('A viagem só pode começar depois de o fornecedor confirmar a entrega física da mercadoria.');
+      return;
+    }
     setBusyId(load.id);
     const { error } = await supabase.rpc('advance_freight_load_status', { p_freight_load_id: load.id, p_status: nextStatus });
     setBusyId(null);
@@ -736,13 +752,46 @@ const ProximasCargas = () => {
       toast.error(error?.message || 'Não foi possível actualizar.');
       return;
     }
-    if (nextStatus === 'delivered' && sharingLocationFor === load.id) stopLocationSharing();
     if (nextStatus === 'in_transit') startLocationSharing({ ...load, status: 'in_transit' });
     await fetchLoads();
   };
 
+  const confirmSupplierHandover = async (load: FreightLoad) => {
+    if (!requireAct('confirmar a entrega da mercadoria ao motorista')) return;
+    if (!user?.id || load.supplier_id !== user.id || load.status !== 'at_pickup') {
+      toast.error('Só o fornecedor associado à encomenda pode confirmar a entrega ao motorista.');
+      return;
+    }
+    setBusyId(load.id);
+    const { error } = await supabase.rpc('confirm_supplier_handover' as never, { p_freight_load_id: load.id } as never);
+    setBusyId(null);
+    if (error) {
+      toast.error(error.message || 'Não foi possível confirmar a entrega ao motorista.');
+      return;
+    }
+    toast.success('Entrega ao motorista confirmada. O motorista já pode iniciar a viagem.');
+    await fetchLoads();
+  };
+
+  const confirmBuyerReceipt = async (load: FreightLoad) => {
+    if (!requireAct('confirmar a recepção da encomenda')) return;
+    if (!user?.id || load.buyer_id !== user.id || load.status !== 'delivered') {
+      toast.error('Só o comprador associado à encomenda pode confirmar a recepção.');
+      return;
+    }
+    setBusyId(load.id);
+    const { error } = await supabase.rpc('confirm_freight_receipt' as never, { p_freight_load_id: load.id } as never);
+    setBusyId(null);
+    if (error) {
+      toast.error(error.message || 'Não foi possível confirmar a recepção.');
+      return;
+    }
+    toast.success('Recepção confirmada. A encomenda foi concluída e o histórico actualizado.');
+    await fetchLoads();
+  };
+
   const visible = loads.filter((load) => {
-    if (tab === 'minhas') return load.driver_id === user?.id || load.created_by === user?.id;
+    if (tab === 'minhas') return load.driver_id === user?.id || load.created_by === user?.id || load.buyer_id === user?.id || load.supplier_id === user?.id;
     return (
       ['available', 'open', 'agendado'].includes(load.status) &&
       !load.driver_id &&
@@ -1121,6 +1170,8 @@ const ProximasCargas = () => {
           visible.map((load) => {
             const tooHeavy = !!capacity && load.weight_kg > capacity;
             const isAssignedDriver = load.driver_id === user?.id;
+            const isBuyer = load.buyer_id === user?.id;
+            const isSupplier = load.supplier_id === user?.id;
             const latestDriverLocation = driverLocations[load.id];
             const hasCoordinates =
               load.origin_lat != null &&
@@ -1551,19 +1602,33 @@ const ProximasCargas = () => {
                       {busyId === load.id ? 'A actualizar…' : 'Confirmar chegada à recolha'}
                     </button>
                   </div>
-                ) : isAssignedDriver && load.status === 'at_pickup' ? (
-                  <button
-                    disabled={busyId === load.id}
-                    onClick={() => void advance(load)}
-                    style={{
-                      marginTop: 14, width: '100%', padding: '12px 16px',
-                      borderRadius: 12, border: 'none', background: T.green,
-                      color: T.white, fontFamily: FONT, fontSize: 14,
-                      fontWeight: 800, cursor: 'pointer',
-                    }}
-                  >
-                    {busyId === load.id ? 'A confirmar…' : 'Confirmar que estou com a carga · iniciar GPS'}
-                  </button>
+                ) : (isAssignedDriver || isSupplier) && load.status === 'at_pickup' ? (
+                  <div style={{ display: 'grid', gap: 8, marginTop: 14 }}>
+                    {isSupplier && (
+                      <section style={{ display: 'grid', gap: 8, padding: 12, border: `1px solid ${T.rule}`, borderRadius: 12, background: T.g50 }}>
+                        <strong style={{ color: T.ink, fontSize: 13 }}>Confirmação do fornecedor</strong>
+                        {load.supplier_handover_confirmed_at ? (
+                          <p style={{ margin: 0, color: T.green, fontSize: 12, fontWeight: 700 }}>Mercadoria entregue ao motorista em {new Date(load.supplier_handover_confirmed_at).toLocaleString('pt-AO')}.</p>
+                        ) : (
+                          <>
+                            <p style={{ margin: 0, color: T.mid, fontSize: 12 }}>Confirme apenas depois de entregar fisicamente a mercadoria ao motorista.</p>
+                            <button type="button" disabled={busyId === load.id} onClick={() => void confirmSupplierHandover(load)} style={{ width: '100%', padding: 11, border: 'none', borderRadius: 10, background: T.green, color: T.white, fontFamily: FONT, fontWeight: 800 }}>
+                              {busyId === load.id ? 'A confirmar…' : 'Confirmar entrega ao motorista'}
+                            </button>
+                          </>
+                        )}
+                      </section>
+                    )}
+                    {isAssignedDriver && (
+                      <button
+                        disabled={busyId === load.id || !load.supplier_handover_confirmed_at}
+                        onClick={() => void advance(load)}
+                        style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: 'none', background: load.supplier_handover_confirmed_at ? T.green : T.rule, color: load.supplier_handover_confirmed_at ? T.white : T.mid, fontFamily: FONT, fontSize: 14, fontWeight: 800, cursor: load.supplier_handover_confirmed_at ? 'pointer' : 'not-allowed' }}
+                      >
+                        {busyId === load.id ? 'A iniciar viagem…' : load.supplier_handover_confirmed_at ? 'Confirmar recolha e iniciar viagem' : 'A aguardar confirmação do fornecedor'}
+                      </button>
+                    )}
+                  </div>
                 ) : isAssignedDriver && load.status === 'in_transit' ? (
                   <button
                     disabled={busyId === load.id}
@@ -1575,13 +1640,49 @@ const ProximasCargas = () => {
                       fontSize: 14, fontWeight: 800, cursor: 'pointer',
                     }}
                   >
-                    {busyId === load.id ? 'A actualizar…' : 'Marcar como entregue'}
+                    {busyId === load.id ? 'A actualizar…' : 'Registar prova de entrega'}
                   </button>
+                ) : isBuyer && load.status === 'delivered' ? (
+                  <section style={{ display: 'grid', gap: 8, marginTop: 14, padding: 12, border: `1px solid ${T.rule}`, borderRadius: 12, background: T.g50 }}>
+                    <strong style={{ color: T.ink, fontSize: 13 }}>Confirmação de recepção</strong>
+                    {load.buyer_receipt_confirmed_at ? (
+                      <p style={{ margin: 0, color: T.green, fontSize: 12, fontWeight: 700 }}>Recepção confirmada em {new Date(load.buyer_receipt_confirmed_at).toLocaleString('pt-AO')}.</p>
+                    ) : (
+                      <>
+                        <p style={{ margin: 0, color: T.mid, fontSize: 12 }}>Consulte a fotografia, a assinatura e a localização registadas pelo motorista antes de confirmar a recepção.</p>
+                        <button type="button" onClick={() => setDeliveryEvidenceViewLoad(load)} style={{ width: '100%', padding: 11, border: `1px solid ${T.rule}`, borderRadius: 10, background: T.white, color: T.green, fontFamily: FONT, fontWeight: 800 }}>
+                          Consultar comprovativos da entrega
+                        </button>
+                        <button type="button" disabled={busyId === load.id} onClick={() => void confirmBuyerReceipt(load)} style={{ width: '100%', padding: 12, border: 'none', borderRadius: 10, background: T.green, color: T.white, fontFamily: FONT, fontWeight: 800 }}>
+                          {busyId === load.id ? 'A confirmar…' : 'Confirmar que recebi a encomenda'}
+                        </button>
+                      </>
+                    )}
+                  </section>
                 ) : null}
               </article>
             );
           })}
       </main>
+      {deliveryEvidenceLoad && user?.id && (
+        <FreightDeliveryEvidenceForm
+          freightLoadId={deliveryEvidenceLoad.id}
+          driverId={user.id}
+          onCancel={() => setDeliveryEvidenceLoad(null)}
+          onSubmitted={() => {
+            setDeliveryEvidenceLoad(null);
+            if (sharingLocationFor === deliveryEvidenceLoad.id) stopLocationSharing();
+            toast.success('Prova de entrega registada. A encomenda aguarda a confirmação do comprador.');
+            void fetchLoads();
+          }}
+        />
+      )}
+      {deliveryEvidenceViewLoad && (
+        <FreightDeliveryEvidenceViewer
+          freightLoadId={deliveryEvidenceViewLoad.id}
+          onClose={() => setDeliveryEvidenceViewLoad(null)}
+        />
+      )}
     </div>
   );
 };

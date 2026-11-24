@@ -52,7 +52,7 @@ export async function fetchMarketplaceTransactionReceipt(preOrderId: string) {
 const statusLabels: Record<string, string> = {
   pending: 'Pendente', accepted: 'Aceite', rejected: 'Rejeitado', completed: 'Concluído',
   paid: 'Pago', unpaid: 'Não pago', created: 'Criado', processing: 'A processar',
-  in_transit: 'Em trânsito', delivered: 'Entregue', cancelled: 'Cancelado',
+  in_transit: 'Em trânsito', delivered: 'Entregue pelo motorista', buyer_received: 'Recepção confirmada', cancelled: 'Cancelado',
   offered: 'Proposto', awaiting_driver: 'A aguardar motorista', expired: 'Expirado',
 }
 
@@ -66,6 +66,8 @@ const eventLabels: Record<string, string> = {
   freight_created: 'Frete criado',
   freight_status_changed: 'Estado do frete alterado',
   driver_assigned: 'Motorista associado',
+  supplier_handover_confirmed: 'Fornecedor entregou a mercadoria ao motorista',
+  buyer_receipt_confirmed: 'Comprador confirmou a recepção',
 }
 
 const actorLabels: Record<string, string> = {
@@ -78,6 +80,68 @@ const money = (value: number, currency = 'AOA') =>
 const dateTime = (value: string | null | undefined) =>
   value ? new Date(value).toLocaleString('pt-AO') : '—'
 
+type FreightDeliveryEvidence = {
+  id: string;
+  recipient_name: string;
+  photo_path: string;
+  signature_path: string;
+  latitude: number;
+  longitude: number;
+  accuracy_m: number | null;
+  delivered_at: string;
+};
+
+async function imageUrlToJpegDataUrl(url: string) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Não foi possível carregar uma imagem do comprovativo.');
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+
+  try {
+    const image = new Image();
+    image.src = objectUrl;
+    await image.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Não foi possível preparar a imagem do comprovativo.');
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0);
+    return canvas.toDataURL('image/jpeg', 0.9);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+async function fetchFreightDeliveryEvidence(freightLoadId: string) {
+  const { data, error } = await supabase.rpc('get_freight_delivery_evidence', {
+    p_freight_load_id: freightLoadId,
+  });
+  if (error) throw error;
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+
+  const evidence = data as unknown as FreightDeliveryEvidence;
+  const bucket = supabase.storage.from('freight-delivery-evidence');
+  const [{ data: photo, error: photoError }, { data: signature, error: signatureError }] =
+    await Promise.all([
+      bucket.createSignedUrl(evidence.photo_path, 600),
+      bucket.createSignedUrl(evidence.signature_path, 600),
+    ]);
+  if (photoError) throw photoError;
+  if (signatureError) throw signatureError;
+  if (!photo?.signedUrl || !signature?.signedUrl) {
+    throw new Error('Os ficheiros privados do comprovativo não estão acessíveis.');
+  }
+
+  const [photoDataUrl, signatureDataUrl] = await Promise.all([
+    imageUrlToJpegDataUrl(photo.signedUrl),
+    imageUrlToJpegDataUrl(signature.signedUrl),
+  ]);
+  return { evidence, photoDataUrl, signatureDataUrl };
+}
+
 function addWrapped(doc: jsPDF, value: string, x: number, y: number, width: number, lineHeight = 5) {
   const lines = doc.splitTextToSize(value, width) as string[]
   doc.text(lines, x, y)
@@ -86,6 +150,9 @@ function addWrapped(doc: jsPDF, value: string, x: number, y: number, width: numb
 
 export async function downloadMarketplaceTransactionReceipt(preOrderId: string) {
   const receipt = await fetchMarketplaceTransactionReceipt(preOrderId)
+  const deliveryProof = receipt.freight?.status === 'delivered'
+    ? await fetchFreightDeliveryEvidence(receipt.freight.id)
+    : null
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   const margin = 16
   const width = 210 - margin * 2
@@ -155,6 +222,32 @@ export async function downloadMarketplaceTransactionReceipt(preOrderId: string) 
     y = addWrapped(doc, `Tempo estimado: ${receipt.freight.route_duration_minutes == null ? '—' : Math.round(receipt.freight.route_duration_minutes / 60) + ' h'}`, margin, y, width)
     y = addWrapped(doc, `Motorista associado: ${receipt.freight.driver_id ?? '—'}`, margin, y, width)
     y = addWrapped(doc, `Entrega concluída em: ${dateTime(receipt.freight.delivered_at)}`, margin, y, width); y += 3
+  }
+
+  if (receipt.freight?.status === 'delivered') {
+    section('Comprovativo de entrega do motorista')
+    if (!deliveryProof) {
+      y = addWrapped(doc, 'Não existe um comprovativo digital associado a esta entrega histórica.', margin, y, width)
+    } else {
+      const { evidence, photoDataUrl, signatureDataUrl } = deliveryProof
+      y = addWrapped(doc, `Recebido por: ${evidence.recipient_name}`, margin, y, width)
+      y = addWrapped(doc, `Data e hora do servidor: ${dateTime(evidence.delivered_at)}`, margin, y, width)
+      y = addWrapped(doc, `Localização GPS: ${evidence.latitude.toFixed(6)}, ${evidence.longitude.toFixed(6)}`, margin, y, width)
+      y = addWrapped(doc, `Precisão GPS: ${evidence.accuracy_m == null ? 'Não disponibilizada' : '±' + Math.round(evidence.accuracy_m) + ' m'}`, margin, y, width)
+      y = addWrapped(doc, `ID da evidência: ${evidence.id}`, margin, y, width)
+      y += 3
+      if (y > 210) { doc.addPage(); y = 18 }
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8)
+      doc.text('Produto entregue', margin, y)
+      doc.text('Assinatura do destinatário', margin + 94, y)
+      y += 3
+      doc.addImage(photoDataUrl, 'JPEG', margin, y, 86, 52, undefined, 'FAST')
+      doc.addImage(signatureDataUrl, 'JPEG', margin + 94, y, 84, 52, undefined, 'FAST')
+      y += 57
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8)
+      y = addWrapped(doc, 'As imagens e os metadados acima foram recuperados do registo privado de evidência da AgriLink.', margin, y, width, 4)
+      y += 3
+    }
   }
 
   section('Histórico transacional')
