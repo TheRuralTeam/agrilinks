@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
-import FloatingActionButton from './FloatingActionButton'
+import ProfileReceiptButton from './ProfileReceiptButton'
 
 const state = vi.hoisted(() => ({
   userProfile: { user_type: 'comprador' } as { user_type: string } | null,
-  pathname: '/app',
+  pathname: '/perfil',
   navigate: vi.fn(),
 }))
 
@@ -17,35 +17,34 @@ vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({ userProfile: state.userProfile }),
 }))
 
-describe('FloatingActionButton', () => {
+describe('ProfileReceiptButton', () => {
   beforeEach(() => {
     state.userProfile = { user_type: 'comprador' }
-    state.pathname = '/app'
+    state.pathname = '/perfil'
     state.navigate.mockReset()
   })
 
-  it('shows the distinct buyer action with a truthful accessible label', () => {
-    render(<FloatingActionButton />)
+  it('lets buyers open the receiving form from their profile', () => {
+    render(<ProfileReceiptButton />)
 
-    const button = screen.getByRole('button', { name: 'Criar ficha de recebimento' })
-    fireEvent.click(button)
+    fireEvent.click(screen.getByRole('button', { name: 'Criar ficha de recebimento' }))
 
     expect(state.navigate).toHaveBeenCalledWith('/ficharecebimento')
   })
 
   it.each(['agricultor', 'agente', 'motorista', 'unknown', null])(
-    'does not duplicate the primary navigation action for role %s',
+    'does not show the buyer-only action for role %s',
     (userType) => {
       state.userProfile = userType ? { user_type: userType } : null
-      render(<FloatingActionButton />)
+      render(<ProfileReceiptButton />)
 
       expect(screen.queryByRole('button')).not.toBeInTheDocument()
     },
   )
 
-  it('keeps the create action available while marking the receiving form as current', () => {
+  it('marks the receiving form as the current destination', () => {
     state.pathname = '/ficharecebimento'
-    render(<FloatingActionButton />)
+    render(<ProfileReceiptButton />)
 
     expect(screen.getByRole('button', { name: 'Criar ficha de recebimento' })).toHaveAttribute('aria-current', 'page')
   })

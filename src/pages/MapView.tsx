@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useLocation as useRouterLocation } from 'react-router-dom';
 import {
   MapContainer,
   TileLayer,
@@ -653,6 +654,7 @@ const StatsPanel: React.FC<{ count: number; avgPrice: number; unitTypes: number 
    MAIN COMPONENT
    ════════════════════════════════════════════════════════════════════════════ */
 const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
+  const routerLocation = useRouterLocation();
   const mapInstanceRef = useRef<L.Map | null>(null);
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -700,6 +702,25 @@ const MapView = ({ readOnly = false }: { readOnly?: boolean }) => {
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; zoom: number } | null>(null);
 
   const { user } = useAuth();
+
+  useEffect(() => {
+    const freightLoad = (routerLocation.state as any)?.freightLoad as {
+      origin_lat?: number | null;
+      origin_lng?: number | null;
+      destination_lat?: number | null;
+      destination_lng?: number | null;
+    } | undefined;
+    if (!freightLoad) return;
+
+    const origin = freightLoad.origin_lat != null && freightLoad.origin_lng != null
+      ? { lat: freightLoad.origin_lat, lng: freightLoad.origin_lng }
+      : null;
+    const destination = freightLoad.destination_lat != null && freightLoad.destination_lng != null
+      ? { lat: freightLoad.destination_lat, lng: freightLoad.destination_lng }
+      : null;
+    const target = destination || origin;
+    if (target) setFlyTarget({ lat: target.lat, lng: target.lng, zoom: 13 });
+  }, [routerLocation.state]);
 
   /* ── Fetch de produtos com retries + backoff exponencial ─────────────────── */
   const fetchProducts = useCallback(async () => {

@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, MapPin, Menu, Navigation, Play, ShieldCheck, Smartphone, Sprout, X } from "lucide-react";
+import { ArrowRight, CreditCard, MapPin, Menu, Navigation, Play, ShieldCheck, Smartphone, Sprout, X } from "lucide-react";
 
 import { FONT, R, T } from "../lib/brand";
 import DailyProductPriceTicker from "../components/DailyProductPriceTicker";
@@ -8,7 +8,12 @@ import DailyProductPriceTicker from "../components/DailyProductPriceTicker";
 import agrilinkLogo from "../assets/agrilink-logo.png";
 import casaLettoLogo from "../assets/parceiros/Grupo_CasaLetto-no-bg.png";
 import liveTrackingImage from "../assets/agrilink-live-tracking.jpg";
-import appPreviewImage from "../assets/agrilink-app-preview.jpg";
+import appPreviewImage from "../assets/supply-chain-hero.jpg";
+import operationPhoto1 from "../assets/operacoes/agrilink-operacao-01.jpg";
+import operationPhoto2 from "../assets/operacoes/agrilink-operacao-02.jpg";
+import operationPhoto3 from "../assets/operacoes/agrilink-operacao-03.jpg";
+import operationPhoto4 from "../assets/operacoes/agrilink-operacao-04.jpg";
+import operationPhoto5 from "../assets/operacoes/agrilink-operacao-05.jpg";
 import { supabase } from "../integrations/supabase/client";
 import { ProductCard, type Product as ProductCardProduct } from "../components/ProductCard";
 
@@ -21,31 +26,19 @@ const FEED_CACHE_KEY = "agrilink:marketplace:feed";
 
 const NAV_LINKS = [
   { href: "#mercado", label: "Mercado" },
+  { href: "#operacoes", label: "Operações" },
   { href: "#rastreio", label: "Rastreio" },
   { href: "#parceiros", label: "Parceiros" },
   { href: "#app", label: "App" },
   { href: "#faq", label: "Perguntas" },
 ];
 
-const HERO_POINTS = [
-  { icon: Sprout, label: "Compra imediata ou colheita futura" },
-  { icon: ShieldCheck, label: "Pagamento em garantia" },
-  { icon: Navigation, label: "Entrega acompanhada no mapa" },
-];
-
-const STEPS = [
-  {
-    title: "Encontre ou publique",
-    text: "Explore produtos disponíveis e colheitas futuras. Os fornecedores publicam com preço, quantidade e origem.",
-  },
-  {
-    title: "Pague em garantia",
-    text: "O valor fica retido até a entrega ser confirmada. Só então o fornecedor recebe o pagamento.",
-  },
-  {
-    title: "Acompanhe a entrega",
-    text: "Veja a localização da carga e a previsão de chegada no mapa, do envio à recepção.",
-  },
+const OPERATIONS_GALLERY = [
+  { src: operationPhoto1, alt: "Representantes da AgriLink visitam uma exploração agrícola", caption: "Visita a produtores no campo" },
+  { src: operationPhoto2, alt: "Equipa AgriLink percorre uma plantação com produtores", caption: "Acompanhamento das explorações" },
+  { src: operationPhoto3, alt: "Equipa AgriLink numa estrada rural durante uma visita de campo", caption: "Operações nas comunidades rurais" },
+  { src: operationPhoto4, alt: "Equipa AgriLink junto de um produtor agrícola", caption: "Ligação directa aos produtores" },
+  { src: operationPhoto5, alt: "Equipa AgriLink visita uma plantação de hortícolas", caption: "Produção agrícola local" },
 ];
 
 const FAQ_ITEMS = [
@@ -59,6 +52,9 @@ const FAQ_ITEMS = [
   { question: "Como é calculado o frete?", answer: "O frete considera origem, destino, peso ou quantidade e a rota disponível. O valor é confirmado pela equipa logística." },
   { question: "A minha informação está protegida?", answer: "Dados públicos são separados dos dados privados da conta, pagamentos e contactos administrativos." },
 ];
+
+// Atraso escalonado para as animações de entrada do hero.
+const delay = (seconds: number) => ({ "--d": `${seconds}s` } as React.CSSProperties);
 
 function StoreButton({ href, icon, small, name }: { href: string; icon: React.ReactNode; small: string; name: string }) {
   const inner = (
@@ -143,7 +139,7 @@ export default function AgriLinkLanding() {
   // Revelação suave ao fazer scroll (desativada com prefers-reduced-motion via CSS).
   React.useEffect(() => {
     setReady(true);
-    const els = Array.from(rootRef.current?.querySelectorAll(".rv") ?? []);
+    const els = Array.from(rootRef.current?.querySelectorAll(".rv:not(.in)") ?? []);
     if (!("IntersectionObserver" in window)) {
       els.forEach((e) => e.classList.add("in"));
       return undefined;
@@ -161,7 +157,7 @@ export default function AgriLinkLanding() {
     );
     els.forEach((e) => io.observe(e));
     return () => io.disconnect();
-  }, []);
+  }, [featuredProducts.length, feedLoaded]);
 
   // Menu móvel: fecha com a tecla Esc.
   React.useEffect(() => {
@@ -203,7 +199,7 @@ export default function AgriLinkLanding() {
 
         .wrap { width: min(1160px, calc(100% - 48px)); margin: 0 auto; }
         .disp { font-weight: 800; letter-spacing: -.035em; }
-        .kick { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--green-700); }
+        .kick { display: inline-flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--green-700); }
 
         /* Botões */
         .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 0 22px; border: 1px solid transparent; border-radius: var(--radius-card); font-size: 15px; font-weight: 700; white-space: nowrap; transition: background .18s ease, border-color .18s ease, color .18s ease; }
@@ -213,7 +209,7 @@ export default function AgriLinkLanding() {
         .btn-ghost:hover { border-color: var(--green); color: var(--green-700); }
         .btn-sm { min-height: 42px; padding: 0 18px; font-size: 14px; }
 
-        /* Topo: ticker e menu num único bloco fixo */
+        /* Topo: ticker e menu num único bloco fixo (NOVO, plano) */
         .chrome { position: sticky; top: 0; z-index: 30; }
         .live-ticker-bar { height: 52px; background: var(--green-700); color: #fff; }
         .live-ticker-bar .wrap { display: flex; align-items: center; height: 52px; }
@@ -228,63 +224,129 @@ export default function AgriLinkLanding() {
         .live-ticker-bar .daily-price-live i { background: #fff; }
         .live-ticker-bar .daily-price-fallback { background: rgba(255,255,255,.16); color: #fff; }
 
-        .top { position: relative; background: var(--white); border-bottom: 1px solid var(--line); }
+        .top { position: relative; background: var(--white); }
         .top-in { height: 68px; display: flex; align-items: center; gap: 28px; }
         .top-logo { display: flex; align-items: center; }
-        .top-logo img { display: block; width: 128px; height: auto; }
+        .top-logo img { display: block; width: 128px; height: auto; transition: transform .2s ease; }
+        .top-logo:hover img { transform: scale(1.04); }
         .top-links { margin-left: auto; display: flex; gap: 2px; }
-        .top-links a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border-radius: var(--radius-card); font-size: 14px; font-weight: 600; color: var(--muted); transition: color .15s ease, background .15s ease; }
-        .top-links a:hover { color: var(--green-700); background: var(--green-50); }
+        .top-links a { position: relative; display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border-radius: var(--radius-card); font-size: 14px; font-weight: 600; color: var(--muted); transition: color .15s ease; }
+        .top-links a::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 5px; height: 2px; background: var(--green); transform: scaleX(0); transform-origin: left; transition: transform .2s ease; }
+        .top-links a:hover { color: var(--green-700); }
+        .top-links a:hover::after { transform: scaleX(1); }
         .top-actions { display: flex; align-items: center; gap: 8px; }
-        .burger { display: none; width: 42px; height: 42px; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--white); color: var(--ink); }
+        .top .btn:hover { transform: translateY(-2px); }
+        .top .btn { transition: background .18s ease, transform .18s ease; }
+        .burger { display: none; width: 42px; height: 42px; align-items: center; justify-content: center; border: 2px solid var(--ink); border-radius: var(--radius-card); background: var(--white); color: var(--ink); }
 
-        /* Secções */
+        /* Secções (original) */
         .sec { padding: 96px 0; }
-        .sec-white { background: var(--white); border-block: 1px solid var(--line); }
+        .sec-white { background: var(--white); }
         .sec-head { max-width: 620px; margin-bottom: 44px; }
         .h2 { margin: 12px 0 0; font-size: clamp(30px, 3.6vw, 42px); line-height: 1.12; letter-spacing: -.035em; color: var(--ink); }
         .lead { margin: 16px 0 0; font-size: 17px; line-height: 1.65; font-weight: 500; color: var(--muted); }
 
-        /* Hero */
-        .hero { padding: 72px 0 96px; }
-        .hero-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 64px; align-items: center; }
+        /* Hero (NOVO, plano e animado) */
+        .hero { position: relative; overflow: hidden; padding: 72px 0 96px; }
+        .hero-grid { position: relative; z-index: 1; display: grid; grid-template-columns: 1.1fr .9fr; gap: 64px; align-items: center; }
         .hero h1 { margin: 16px 0 0; font-size: clamp(40px, 5vw, 64px); line-height: 1.06; letter-spacing: -.045em; color: var(--ink); }
         .hero h1 .accent { color: var(--green); }
         .hero-copy { max-width: 520px; margin: 22px 0 0; font-size: 17px; line-height: 1.7; font-weight: 500; color: var(--muted); }
         .hero-actions { margin-top: 32px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .hero-points { margin: 40px 0 0; padding: 24px 0 0; list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; border-top: 1px solid var(--line); }
-        .hero-points li { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 1.4; font-weight: 600; color: var(--ink); }
-        .hero-points svg { color: var(--green); }
+        .hero .btn { border-width: 2px; transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease; }
+        .hero .btn:hover { transform: translateY(-2px); }
+        .hero .btn:active { transform: translateY(0) scale(.98); }
+        .hero .btn svg { transition: transform .18s ease; }
+        .hero .btn:hover svg:last-child { transform: translateX(3px); }
+        .hero .btn-ghost { border-color: var(--ink); }
+        .hero .btn-ghost:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
+        .payment-options { margin-top: 24px; }
+        .payment-label { display: block; margin-bottom: 10px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+        .payment-brands { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+        .payment-brand { display: inline-flex; align-items: center; gap: 9px; min-height: 42px; padding: 7px 13px; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--white); color: var(--ink); transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+        .payment-brand:hover { transform: translateY(-3px); border-color: var(--green); box-shadow: 0 8px 18px rgba(17,24,20,.08); }
+        .payment-brand-mark { display: grid; width: 26px; height: 26px; place-items: center; border-radius: 8px; color: #fff; }
+        .payment-brand:hover .payment-brand-mark { transform: rotate(-8deg) scale(1.08); }
+        .payment-brand-mark.emis { background: #d33b32; }
+        .payment-brand-mark.unitel { background: #e85c25; }
+        .payment-brand strong { font-size: 12px; font-weight: 800; }
+        .payment-note { margin: 9px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 
-        .phone-frame { margin: 0 auto; width: min(100%, 300px); padding: 10px; background: var(--white); border: 1px solid var(--line); border-radius: 32px; box-shadow: 0 20px 48px rgba(17,24,20,.10); }
+        .shape { position: absolute; pointer-events: none; z-index: 0; }
+        .shape.s1 { top: -90px; right: -70px; width: 320px; height: 320px; border-radius: 50%; background: var(--green-50); }
+        .shape.s2 { bottom: 48px; left: -36px; width: 110px; height: 110px; border-radius: 50%; background: var(--green-light); opacity: .22; }
+        .shape.s3 { top: 18%; left: 47%; width: 56px; height: 56px; border: 3px solid var(--green); border-radius: 14px; opacity: .5; }
+        .shape.s4 { bottom: 14%; right: 38%; width: 18px; height: 18px; border-radius: 50%; background: var(--green); opacity: .6; }
+
+        .hero-visual { position: relative; display: flex; justify-content: center; padding: 24px 0; }
+        .hero-visual::before { content: ""; position: absolute; top: 50%; left: 50%; width: min(100%, 340px); aspect-ratio: 1; border-radius: 50%; background: var(--green-50); transform: translate(-50%, -50%); }
+        .hero-visual .phone-frame { position: relative; }
+        .chip { position: absolute; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--white); border: 2px solid var(--ink); border-radius: 999px; font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+        .chip svg { color: var(--green); }
+        .chip.a { top: 14%; left: -6%; }
+        .chip.b { bottom: 12%; right: -4%; }
+        .dot { position: relative; width: 10px; height: 10px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+        .phone-frame { margin: 0 auto; width: min(100%, 300px); padding: 10px; background: var(--white); border: 0; border-radius: 32px; box-shadow: none; }
         .phone-frame img { display: block; width: 100%; height: auto; border-radius: 22px; }
-        .hero-visual { display: flex; justify-content: center; }
 
-        /* Mercado */
+        /* Mercado (original) */
         .featured-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 32px; }
         .featured-heading .sec-head { margin-bottom: 0; }
         .featured-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
         .featured-product-card { min-width: 0; }
         .featured-empty { padding: 40px 24px; text-align: center; border: 1px dashed var(--line); border-radius: var(--radius-card); background: var(--white); color: var(--muted); font-size: 15px; font-weight: 500; }
 
-        /* Como funciona */
-        .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 0; padding: 0; list-style: none; counter-reset: step; }
-        .step { counter-increment: step; padding: 28px; background: var(--canvas); border: 1px solid var(--line); border-radius: var(--radius-card); }
-        .step::before { content: counter(step, decimal-leading-zero); display: block; margin-bottom: 20px; font-size: 14px; font-weight: 800; letter-spacing: .04em; color: var(--green); font-variant-numeric: tabular-nums; }
-        .step h3 { margin: 0 0 8px; font-size: 20px; line-height: 1.25; letter-spacing: -.02em; }
-        .step p { margin: 0; font-size: 15px; line-height: 1.65; font-weight: 500; color: var(--muted); }
+        /* Operações: fotos quadradas pequenas a deslizar na horizontal */
+        .strip { --count: 3; --gap: 20px; --tile: calc((100cqw - var(--gap) * (var(--count) - 1)) / var(--count)); container-type: inline-size; width: 100%; padding: 14px 0; overflow: hidden; }
+        .strip-track { display: flex; width: max-content; animation: strip-move 36s linear infinite; }
+        .strip:hover .strip-track { animation-play-state: paused; }
+        .tile { position: relative; flex: 0 0 var(--tile); width: var(--tile); aspect-ratio: 1; margin-right: var(--gap); overflow: hidden; border-radius: var(--radius-card); background: #17231b; transition: scale .25s ease; animation: tile-bob 4s ease-in-out infinite; animation-delay: calc(var(--i) * -.8s); }
+        .tile img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
+        .tile:hover { scale: 1.04; }
+        .tile:hover img { transform: scale(1.08); }
+        .tile span { position: absolute; right: 0; bottom: 0; left: 0; padding: 8px 10px; background: rgba(23,35,27,.88); color: #fff; font-size: 12px; line-height: 1.3; font-weight: 700; }
+        @keyframes strip-move { to { transform: translateX(-50%); } }
+        @keyframes tile-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        @media (prefers-reduced-motion: reduce) {
+          .strip { overflow-x: auto; }
+          .strip-track { animation: none; }
+          .tile { animation: none; }
+          .tile[aria-hidden="true"] { display: none; }
+        }
 
-        /* Rastreio */
+        /* Extras animados */
+        .featured-product-card { transition: transform .22s ease; }
+        .featured-product-card:hover { transform: translateY(-6px); }
+        .track-visual { position: relative; display: flex; justify-content: center; }
+        .track-visual::before { content: ""; position: absolute; top: 50%; left: 50%; width: min(100%, 340px); aspect-ratio: 1; border-radius: 50%; background: var(--green-50); transform: translate(-50%, -50%); }
+        .pin { position: absolute; z-index: 2; top: 8%; right: 8%; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--green); color: #fff; }
+        .track-points li { transition: padding-left .2s ease, color .2s ease; }
+        .track-points li:hover { padding-left: 8px; color: var(--green-700); }
+        .partners img { transition: transform .2s ease; }
+        .partners img:hover { transform: scale(1.08); }
+        .app-panel { position: relative; overflow: hidden; }
+        .app-panel > * { position: relative; z-index: 1; }
+        .app-panel::before, .app-panel::after { content: ""; position: absolute; z-index: 0; border-radius: 50%; background: #fff; opacity: .07; pointer-events: none; }
+        .app-panel::before { top: -110px; right: -70px; width: 320px; height: 320px; }
+        .app-panel::after { bottom: -80px; left: 36%; width: 200px; height: 200px; }
+        .faq-item { transition: border-color .2s ease; }
+        .faq-item:hover, .faq-item[open] { border-color: var(--ink); }
+        .faq-item summary::after { transition: background .2s ease, color .2s ease, transform .25s ease; }
+        .faq-item[open] summary::after { transform: translateY(-50%) rotate(180deg); }
+        .kick .dot { margin-right: 0; }
+
+        /* Rastreio (original) */
         .track { display: grid; grid-template-columns: 1.1fr .9fr; gap: 64px; align-items: center; }
         .track-points { margin: 32px 0 0; padding: 0; max-width: 480px; list-style: none; border-top: 1px solid var(--line); }
         .track-points li { display: flex; align-items: center; gap: 14px; min-height: 56px; border-bottom: 1px solid var(--line); font-size: 15px; font-weight: 600; }
         .track-points svg { color: var(--green); flex-shrink: 0; }
 
-        /* Parceiros */
+        /* Parceiros (original) */
         .partners { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 24px 72px; padding: 40px 32px; background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-card); }
         .partners img { display: block; height: 52px; width: auto; max-width: 220px; object-fit: contain; }
 
-        /* App */
+        /* App (original) */
         .app-panel { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; padding: 56px; background: var(--green-700); color: #fff; border-radius: var(--radius-card); }
         .app-panel .kick { color: #fff; opacity: .9; }
         .app-panel h2 { margin: 12px 0 0; font-size: clamp(30px, 3.6vw, 42px); line-height: 1.1; }
@@ -300,7 +362,7 @@ export default function AgriLinkLanding() {
         .store.off .store-ico { background: #fff; color: var(--ink); }
         .store.off .store-txt small { color: rgba(255,255,255,.85); }
 
-        /* FAQ */
+        /* FAQ (original) */
         .faq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
         .faq-item { background: var(--canvas); border: 1px solid var(--line); border-radius: var(--radius-card); overflow: hidden; }
         .faq-item summary { position: relative; min-height: 64px; display: flex; align-items: center; padding: 18px 56px 18px 20px; color: var(--ink); font-size: 15px; font-weight: 700; cursor: pointer; list-style: none; }
@@ -309,7 +371,7 @@ export default function AgriLinkLanding() {
         .faq-item[open] summary::after { content: '−'; background: var(--green); color: #fff; }
         .faq-item p { margin: 0; padding: 0 20px 20px; color: var(--muted); font-size: 15px; line-height: 1.7; font-weight: 500; }
 
-        /* Rodapé */
+        /* Rodapé (original) */
         footer { padding: 56px 0 28px; background: #17231b; color: #fff; }
         .foot { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 36px; font-size: 14px; line-height: 1.7; font-weight: 500; }
         .foot img { display: block; width: 124px; margin-bottom: 16px; }
@@ -320,11 +382,45 @@ export default function AgriLinkLanding() {
         .foot a { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
         .foot-legal { grid-column: 1 / -1; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.16); font-size: 13px; color: rgba(255,255,255,.78); }
 
-        /* Revelação ao scroll */
+        /* Animações do hero + revelação ao scroll (só com movimento permitido) */
+        @keyframes rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+        @keyframes rv { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+        @keyframes pop { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+        @keyframes float-b { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(10px); } }
+        @keyframes drift { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(14px, -16px); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes rv-l { from { opacity: 0; transform: translateX(-34px); } to { opacity: 1; transform: none; } }
+        @keyframes rv-r { from { opacity: 0; transform: translateX(34px); } to { opacity: 1; transform: none; } }
+        @keyframes rv-z { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+        @keyframes pin-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+        @keyframes faq-open { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+        @keyframes ping { 0% { transform: scale(1); opacity: .6; } 80%, 100% { transform: scale(2.6); opacity: 0; } }
+
         @media (prefers-reduced-motion: no-preference) {
-          @keyframes rv { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
           .js .rv { opacity: 0; }
           .js .rv.in { opacity: 1; animation: rv .5s cubic-bezier(.2,.7,.2,1) var(--d, 0s) backwards; }
+
+          .fx { animation: rise .7s cubic-bezier(.2,.7,.2,1) var(--d, 0s) both; }
+          .hero-visual .phone-frame { animation: rise .8s cubic-bezier(.2,.7,.2,1) .25s both, float 6s ease-in-out 1.1s infinite; }
+          .chip.a { animation: pop .5s cubic-bezier(.3,1.4,.5,1) .9s both, float 5s ease-in-out 1.4s infinite; }
+          .chip.b { animation: pop .5s cubic-bezier(.3,1.4,.5,1) 1.1s both, float-b 5.5s ease-in-out 1.6s infinite; }
+          .payment-brand:first-child { animation: pop .5s cubic-bezier(.3,1.4,.5,1) .55s both; }
+          .payment-brand:last-child { animation: pop .5s cubic-bezier(.3,1.4,.5,1) .7s both; }
+          .shape.s1 { animation: drift 14s ease-in-out infinite; }
+          .shape.s2 { animation: drift 10s ease-in-out infinite reverse; }
+          .shape.s3 { animation: spin 18s linear infinite; }
+          .shape.s4 { animation: float 4s ease-in-out infinite; }
+          .js .rv.in.l { animation-name: rv-l; }
+          .js .rv.in.r { animation-name: rv-r; }
+          .js .rv.in.z { animation-name: rv-z; }
+          .track-visual .phone-frame { animation: float 6s ease-in-out infinite; }
+          .pin { animation: pin-bounce 2.2s ease-in-out infinite; }
+          .partners img { animation: float 5s ease-in-out infinite; }
+          .app-panel::before { animation: drift 16s ease-in-out infinite; }
+          .app-panel::after { animation: drift 12s ease-in-out infinite reverse; }
+          .faq-item[open] p { animation: faq-open .3s ease both; }
+          .dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--green); animation: ping 1.8s ease-out infinite; }
         }
 
         @media (max-width: 920px) {
@@ -332,31 +428,41 @@ export default function AgriLinkLanding() {
           .top-in { gap: 12px; height: 64px; }
           .top-actions { margin-left: auto; }
           .burger { display: inline-flex; }
-          .top-links { display: none; position: absolute; top: 100%; left: 0; right: 0; margin: 0; padding: 8px 24px 16px; flex-direction: column; gap: 0; background: var(--white); border-bottom: 1px solid var(--line); box-shadow: 0 16px 24px rgba(17,24,20,.08); }
+          .top-links { display: none; position: absolute; top: 100%; left: 0; right: 0; margin: 0; padding: 8px 24px 16px; flex-direction: column; gap: 0; background: var(--white); }
           .top-links.open { display: flex; }
           .top-links a { min-height: 48px; font-size: 16px; }
+          .top-links a::after { display: none; }
           .al section[id] { scroll-margin-top: 116px; }
 
           .sec { padding: 72px 0; }
           .hero { padding: 48px 0 72px; }
           .hero-grid, .track { grid-template-columns: 1fr; gap: 48px; }
-          .hero-visual, .track .phone-frame { order: 2; }
-          .steps { grid-template-columns: 1fr; }
+          .hero-visual, .track .track-visual { order: 2; }
           .faq-grid { grid-template-columns: 1fr; }
           .app-panel { grid-template-columns: 1fr; padding: 40px 28px; gap: 28px; }
           .stores { justify-self: start; }
           .foot { grid-template-columns: 1fr 1fr; }
           .foot > :first-child { grid-column: 1 / -1; }
+          .shape.s3 { display: none; }
+        }
+
+        /* Fotos: duas visíveis em ecrãs pequenos */
+        @media (max-width: 640px) {
+          .strip { --count: 2; --gap: 12px; }
         }
 
         @media (max-width: 520px) {
           .wrap { width: min(100% - 32px, 1160px); }
+          .live-ticker-bar { height: auto; min-height: 56px; }
+          .live-ticker-bar .wrap { height: auto; min-height: 56px; }
           .top-logo img { width: 112px; }
           .top-links { padding: 8px 16px 16px; }
           .hero h1 { font-size: clamp(36px, 11vw, 46px); }
           .hero-actions { flex-direction: column; align-items: stretch; }
-          .hero-points { grid-template-columns: 1fr; gap: 14px; }
-          .hero-points li { flex-direction: row; align-items: center; gap: 12px; }
+          .chip { font-size: 12px; padding: 8px 12px; }
+          .chip.a { left: 0; }
+          .chip.b { right: 0; }
+          .shape.s1 { width: 220px; height: 220px; }
           .featured-heading { flex-direction: column; align-items: flex-start; }
           .featured-grid { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 12px; padding-bottom: 8px; scrollbar-width: none; }
           .featured-grid::-webkit-scrollbar { display: none; }
@@ -401,33 +507,47 @@ export default function AgriLinkLanding() {
 
       {/* HERO */}
       <section className="hero" id="top">
+        <span className="shape s1" aria-hidden="true" />
+        <span className="shape s2" aria-hidden="true" />
+        <span className="shape s3" aria-hidden="true" />
+        <span className="shape s4" aria-hidden="true" />
         <div className="wrap hero-grid">
           <div>
-            <span className="kick">Tecnologia para o agronegócio angolano</span>
-            <h1 className="disp">
-              CONECTA-TE AO MERCADO.
+            <h1 className="disp fx" style={delay(0)}>
+              CONECTA-TE <span className="accent">AO MERCADO.</span>
             </h1>
-            <p className="hero-copy">
+            <p className="hero-copy fx" style={delay(0.1)}>
               Compre para entrega imediata ou garanta a colheita futura. Feche o negócio, pague em garantia
               e acompanhe a entrega numa só plataforma, que liga produtores, compradores e transportadores.
             </p>
-            <div className="hero-actions">
+            <div className="hero-actions fx" style={delay(0.2)}>
               <button type="button" className="btn btn-primary" onClick={goToRegister}>
                 Criar conta grátis <ArrowRight size={18} aria-hidden="true" />
               </button>
               <a className="btn btn-ghost" href="#mercado">Explorar publicações</a>
             </div>
-            <ul className="hero-points">
-              {HERO_POINTS.map(({ icon: Icon, label }) => (
-                <li key={label}><Icon size={22} aria-hidden="true" />{label}</li>
-              ))}
-            </ul>
+            <div className="payment-options fx" style={delay(0.3)} aria-label="Opções de pagamento previstas">
+              <span className="payment-label">Opções de pagamento</span>
+              <div className="payment-brands">
+                <span className="payment-brand">
+                  <span className="payment-brand-mark emis" aria-hidden="true"><CreditCard size={15} /></span>
+                  <strong>EMIS GPO</strong>
+                </span>
+                <span className="payment-brand">
+                  <span className="payment-brand-mark unitel" aria-hidden="true"><Smartphone size={15} /></span>
+                  <strong>Unitel Money</strong>
+                </span>
+              </div>
+              <p className="payment-note">A disponibilidade é confirmada no checkout de cada operação.</p>
+            </div>
           </div>
 
           <div className="hero-visual">
             <div className="phone-frame">
               <img src={appPreviewImage} alt="Prévia da aplicação móvel AgriLink" />
             </div>
+            <span className="chip a" aria-hidden="true"><Sprout size={16} /> Rede de produtores</span>
+            <span className="chip b" aria-hidden="true"><Navigation size={16} /> Operações no campo</span>
           </div>
         </div>
       </section>
@@ -437,7 +557,7 @@ export default function AgriLinkLanding() {
         <div className="wrap">
           <div className="featured-heading rv">
             <div className="sec-head">
-              <span className="kick">Mercado ao vivo</span>
+              <span className="kick"><span className="dot" aria-hidden="true" />Mercado ao vivo</span>
               <h2 className="h2 disp" id="mercado-title">Publicações em destaque</h2>
               <p className="lead">As publicações mais recentes de fornecedores com stock disponível.</p>
             </div>
@@ -448,8 +568,8 @@ export default function AgriLinkLanding() {
 
           {featuredProducts.length > 0 ? (
             <div className="featured-grid">
-              {featuredProducts.map((product) => (
-                <div className="featured-product-card" key={product.id}>
+              {featuredProducts.map((product, i) => (
+                <div className="featured-product-card rv" key={product.id} style={delay(i * 0.1)}>
                   <ProductCard
                     product={product}
                     onOpenMap={() => navigate(`/produto/${product.id}/localizacao`)}
@@ -463,28 +583,40 @@ export default function AgriLinkLanding() {
         </div>
       </section>
 
-      {/* COMO FUNCIONA */}
-      <section className="sec" id="como-funciona" aria-labelledby="como-title">
+      {/* OPERAÇÕES */}
+      <section className="sec" id="operacoes" aria-labelledby="operacoes-title">
         <div className="wrap">
           <div className="sec-head rv">
-            <span className="kick">Como funciona</span>
-            <h2 className="h2 disp" id="como-title">Do campo à entrega, em três passos.</h2>
+            <span className="kick">AgriLink no terreno</span>
+            <h2 className="h2 disp" id="operacoes-title">A acompanhar de perto a produção local.</h2>
+            <p className="lead">Conheça algumas das operações e visitas da nossa equipa junto dos produtores.</p>
           </div>
-          <ol className="steps">
-            {STEPS.map((s, i) => (
-              <li className="step rv" key={s.title} style={{ "--d": `${i * 0.08}s` } as React.CSSProperties}>
-                <h3>{s.title}</h3>
-                <p>{s.text}</p>
-              </li>
-            ))}
-          </ol>
+          <div className="strip rv z" aria-label="Galeria de operações da AgriLink">
+            <div className="strip-track">
+              {/* A lista é repetida para o movimento ser contínuo, sem saltos. */}
+              {[...OPERATIONS_GALLERY, ...OPERATIONS_GALLERY].map((photo, index) => {
+                const isCopy = index >= OPERATIONS_GALLERY.length;
+                return (
+                  <figure
+                    className="tile"
+                    key={`${photo.src}-${index}`}
+                    style={{ "--i": index % OPERATIONS_GALLERY.length, margin: 0, marginRight: "var(--gap)" } as React.CSSProperties}
+                    aria-hidden={isCopy || undefined}
+                  >
+                    <img src={photo.src} alt={isCopy ? "" : photo.alt} loading={index === 0 ? "eager" : "lazy"} />
+                    <span>{photo.caption}</span>
+                  </figure>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </section>
 
       {/* RASTREIO */}
       <section className="sec sec-white" id="rastreio" aria-labelledby="tracking-title">
         <div className="wrap track">
-          <div className="rv">
+          <div className="rv l">
             <span className="kick">Rastreio de cargas</span>
             <h2 className="h2 disp" id="tracking-title">Saiba onde está a sua entrega.</h2>
             <p className="lead">Acompanhe a rota e consulte os dados da carga no mapa, do envio à recepção.</p>
@@ -494,12 +626,15 @@ export default function AgriLinkLanding() {
               <li><ShieldCheck size={20} aria-hidden="true" /> Informação acessível durante a entrega</li>
             </ul>
           </div>
-          <div className="phone-frame rv" style={{ "--d": ".1s" } as React.CSSProperties}>
-            <img
-              src={liveTrackingImage}
-              alt="Ecrã de rastreio AgriLink com mapa da rota, carga, distância e botão para acompanhar"
-              loading="lazy"
-            />
+          <div className="track-visual rv r" style={delay(0.1)}>
+            <div className="phone-frame">
+              <img
+                src={liveTrackingImage}
+                alt="Ecrã de rastreio AgriLink com mapa da rota, carga, distância e botão para acompanhar"
+                loading="lazy"
+              />
+            </div>
+            <span className="pin" aria-hidden="true"><MapPin size={24} /></span>
           </div>
         </div>
       </section>
@@ -511,7 +646,7 @@ export default function AgriLinkLanding() {
             <span className="kick">A rede</span>
             <h2 className="h2 disp" id="parceiros-title">Já a negociar na AgriLink.</h2>
           </div>
-          <div className="partners rv" aria-label="Parceiros AgriLink">
+          <div className="partners rv z" aria-label="Parceiros AgriLink">
             <img src={casaLettoLogo} alt="Grupo CasaLetto" loading="lazy" />
           </div>
         </div>
@@ -520,7 +655,7 @@ export default function AgriLinkLanding() {
       {/* APP */}
       <section id="app" aria-labelledby="app-title" style={{ paddingBottom: 96 }}>
         <div className="wrap">
-          <div className="app-panel rv">
+          <div className="app-panel rv z">
             <div>
               <span className="kick">App AgriLink</span>
               <h2 className="disp" id="app-title">Leve o mercado no bolso.</h2>
@@ -542,8 +677,8 @@ export default function AgriLinkLanding() {
             <h2 className="h2 disp" id="faq-title">Tudo o que precisa de saber.</h2>
           </div>
           <div className="faq-grid">
-            {FAQ_ITEMS.map((item) => (
-              <details className="faq-item rv" key={item.question}>
+            {FAQ_ITEMS.map((item, i) => (
+              <details className="faq-item rv" key={item.question} style={delay((i % 2) * 0.08)}>
                 <summary>{item.question}</summary>
                 <p>{item.answer}</p>
               </details>

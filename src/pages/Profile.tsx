@@ -4,10 +4,10 @@ import i18n, { supportedLanguageOptions } from '../i18n/index'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import {
-  User, Edit, Package, MapPin, Phone, Mail, Calendar, BarChart3,
+  User, Edit, Package, MapPin, Phone, Mail, Calendar, BarChart3, CreditCard,
   Settings, LogOut, Trash2, Camera, CheckCircle, Share2, Star, Users,
   ClipboardList, Bell, ShoppingCart, Search, BadgeCheck, Globe,
-  TrendingUp, MessageCircle, Heart, Sparkles, LogIn
+  TrendingUp, MessageCircle, Heart, Sparkles, LogIn, Plus
 } from 'lucide-react'
 import { FileSignature } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -26,6 +26,7 @@ import agrilinkLogo from '../assets/agrilink-logo.png'
 import { downloadMarketplaceTransactionReceipt } from '../features/orders/transactionReceipts'
 import { angolaProvinces } from '../data/angola-locations'
 import { SOURCING_AGRICULTURAL_PRODUCTS, SOURCING_UNITS } from '../features/sourcing/sourcingCatalog'
+import ProfileReceiptButton from '../components/ProfileReceiptButton'
 
 /* ─── Shared AgriLink design tokens ───────────────────────────────────────── */
 import { FONT, R, T } from '../lib/brand';
@@ -63,7 +64,9 @@ interface BuyerFreightQuote {
   origin_label: string; destination_label: string; driver_offered_price: number | null
   currency: string; driver_quote_status: string; route_distance_km: number | null
   route_duration_minutes: number | null; status: string; created_at: string
+  buyer_quote_approved: boolean; supplier_quote_approved: boolean
 }
+type SupplierFreightProposal = BuyerFreightQuote
 interface SourcingRequest {
   id: string; product_name: string; quantity: number; unit: string; delivery_date: string
   quality_specification: string | null; delivery_province_id: string | null; delivery_municipality_id: string | null
@@ -127,37 +130,32 @@ function agentStatusLabel(task?: SourcingAgentTaskStatus) {
    MICRO COMPONENTS
    ════════════════════════════════════════════════════════════════════════════ */
 
-/* Tira de estatísticas — números grandes lado a lado com divisórias finas,
-   em vez de três caixas idênticas com sombra igual (o "kit SaaS" genérico). */
+/* Tira de estatísticas — células iguais separadas por linhas finas.
+   Funciona com 2, 3 ou 4 valores e passa a 2×2 no telemóvel. */
 const StatsStrip = ({ items }: { items: { value: number | string; label: string; color: string }[] }) => (
-  <div style={{
-    background: T.white, borderRadius: R.md, border: 'none',
-    display: 'flex', overflow: 'hidden',
-  }}>
-    {items.map((it, i) => (
-      <div key={it.label} style={{
-        flex: 1, padding: '18px 14px', textAlign: 'center',
-      }}>
-        <div style={{ fontFamily: FONT, fontSize: 24, fontWeight: 800, color: it.color, letterSpacing: '-0.03em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
-          {it.value}
-        </div>
-        <div style={{ fontSize: 11, color: T.faint, fontWeight: 500, marginTop: 6 }}>{it.label}</div>
+  <div className="ag-stats" data-n={items.length} style={{ ['--n' as any]: items.length }}>
+    {items.map((it) => (
+      <div key={it.label} className="ag-stat">
+        <div className="ag-stat-value" style={{ color: it.color }}>{it.value}</div>
+        <div className="ag-stat-label">{it.label}</div>
       </div>
     ))}
   </div>
 )
 
-const InfoRow = ({ icon, value }: { icon: React.ReactNode; value: string }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 0', borderBottom: `1px solid ${T.rule}` }}>
-    <span style={{ color: T.faint, flexShrink: 0, display: 'flex' }}>{icon}</span>
-    <span style={{ fontSize: 13.5, color: T.mid, fontWeight: 500, fontFamily: FONT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value || '—'}</span>
+const InfoRow = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
+  <div className="ag-info-row">
+    <span className="ag-info-ico" aria-hidden="true">{icon}</span>
+    <div style={{ minWidth: 0 }}>
+      <div className="ag-info-label">{label}</div>
+      <div className="ag-info-value">{value || '—'}</div>
+    </div>
   </div>
 )
 
-/* Tabs por sublinhado na cor do papel, em vez de pílula neutra genérica */
 const TabBtn = ({ active, onClick, icon, label, badge, accent }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; badge?: number; accent: string }) => (
-  <button onClick={onClick} className="ag-tab" style={{
-    display: 'flex', alignItems: 'center', gap: 7, padding: '11px 3px',
+  <button type="button" role="tab" aria-selected={active} onClick={onClick} className="ag-tab" style={{
+    display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
     border: `1px solid ${active ? `${accent}35` : 'transparent'}`,
     borderRadius: R.md, background: active ? T.g50 : 'transparent', cursor: 'pointer',
     color: active ? T.g700 : T.muted,
@@ -171,6 +169,19 @@ const TabBtn = ({ active, onClick, icon, label, badge, accent }: { active: boole
       <span style={{ minWidth: 16, height: 16, padding: '0 4px', borderRadius: R.pill, background: '#EF4444', color: T.white, fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{badge}</span>
     )}
   </button>
+)
+
+const SectionHead = ({ title, count, sub, action }: { title: string; count?: number; sub?: string; action?: React.ReactNode }) => (
+  <div className="ag-section-head">
+    <div style={{ minWidth: 0 }}>
+      <h3 className="ag-section-title">
+        {title}
+        {typeof count === 'number' && <span className="ag-count">{count}</span>}
+      </h3>
+      {sub && <p className="ag-section-sub">{sub}</p>}
+    </div>
+    {action}
+  </div>
 )
 
 const Btn = ({ children, onClick, variant = 'primary', disabled = false, size = 'md', type = 'button', style: extraStyle = {} }: any) => {
@@ -245,8 +256,8 @@ const StatusPill = ({ status }: { status: string }) => {
 }
 
 const IconBtn = ({ icon, title, danger = false, onClick }: { icon: React.ReactNode; title: string; danger?: boolean; onClick?: () => void }) => (
-  <button type="button" title={title} onClick={(event) => { event.stopPropagation(); onClick?.() }} className="ag-icon-btn" style={{
-    width: 30, height: 30, borderRadius: R.md, border: 'none',
+  <button type="button" title={title} aria-label={title} onClick={(event) => { event.stopPropagation(); onClick?.() }} className="ag-icon-btn" style={{
+    width: 34, height: 34, borderRadius: R.md, border: 'none',
     background: danger ? '#FEF2F2' : T.g50, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
     color: danger ? '#DC2626' : T.muted, transition: `all 0.2s ${EASE}`,
   }}>{icon}</button>
@@ -259,6 +270,72 @@ const EmptyState = ({ icon, message, sub }: { icon: React.ReactNode; message: st
     {sub && <p style={{ fontSize: 12, color: T.faint, marginTop: 6, maxWidth: 260, lineHeight: 1.6 }}>{sub}</p>}
   </div>
 )
+
+/* ── Estado da análise automática de um pedido de sourcing ── */
+type StockMatch = NonNullable<SourcingAgentTaskStatus['stock_match_details']>[number]
+
+function describeStockMatch(match: StockMatch, fallbackUnit: string) {
+  const unit = match.unit || fallbackUnit
+  const quantityNote = match.clarification_required
+    ? 'unidade por confirmar'
+    : match.partial_quantity
+      ? 'quantidade parcial'
+      : match.covers_requested_quantity
+        ? 'quantidade indicada suficiente'
+        : 'quantidade por confirmar'
+  const location = match.location_match === 'same_municipality'
+    ? 'Localização: mesmo município.'
+    : match.location_match === 'same_province'
+      ? 'Localização: mesma província.'
+      : match.location_match === 'other_location'
+        ? 'Localização diferente da entrega.'
+        : 'Localização por confirmar.'
+  const eligibility = match.meets_minimum_order === false
+    ? `Mínimo de encomenda não atingido (${match.minimum_order_in_requested_unit == null ? 'valor por confirmar' : Number(match.minimum_order_in_requested_unit).toLocaleString('pt-AO') + ' ' + unit}); não elegível para este pedido.`
+    : match.commercially_eligible === true
+      ? 'Elegível para análise comercial; aguarda confirmação do fornecedor.'
+      : match.commercially_eligible === false
+        ? 'Não elegível para este pedido.'
+        : 'Elegibilidade comercial por confirmar.'
+  return `Stock estimado: ${Number(match.available_quantity_estimate).toLocaleString('pt-AO')} ${unit} — ${quantityNote}. ${location} ${eligibility} Aguarda confirmação do fornecedor.`
+}
+
+const SourcingStatusCell = ({ request, task, busy, onReanalyze }: {
+  request: SourcingRequest; task?: SourcingAgentTaskStatus; busy: boolean; onReanalyze: () => void
+}) => {
+  const matches = task?.stock_match_details ?? []
+  const hasCounts = !!task && (task.verified_supplier_count > 0 || task.marketplace_listing_count > 0 || task.confirmed_quote_count > 0)
+  return (
+    <div className="ag-agent-cell">
+      <StatusPill status={request.status} />
+      <span className="ag-agent-label" title={task?.summary || ''}>{agentStatusLabel(task)}</span>
+      {task?.summary && <span className="ag-agent-note">{task.summary}</span>}
+      <button type="button" disabled={busy} onClick={onReanalyze} aria-live="polite" className="ag-link-btn"
+        style={{ color: busy ? T.faint : T.g600, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>
+        {busy ? 'A analisar…' : 'Actualizar estado do agente'}
+      </button>
+      {hasCounts && task && (
+        <span className="ag-agent-note">
+          {task.verified_supplier_count} fornecedor(es) confirmado(s) · {task.marketplace_listing_count} publicação(ões) a verificar · {task.confirmed_quote_count} cotação(ões) confirmada(s)
+        </span>
+      )}
+      {matches.length > 0 && (
+        <div className="ag-agent-matches">
+          {matches.slice(0, 3).map((match, index) => (
+            <span key={match.product_id || `${request.id}-stock-${index}`} className="ag-agent-note" style={{ color: match.partial_quantity ? '#9a6700' : T.mid }}>
+              {describeStockMatch(match, request.unit)}
+            </span>
+          ))}
+          {matches.length > 3 && <span className="ag-agent-note">Mais correspondências disponíveis na análise automática.</span>}
+          <span className="ag-agent-note" style={{ fontSize: 9 }}>Estimativa baseada na publicação e nas reservas registadas; não confirma stock físico.</span>
+        </div>
+      )}
+      {task?.prior_context && (
+        <span className="ag-agent-note">Histórico comparável: {task.prior_context.similar_completed_requests ?? 0} pedido(s)</span>
+      )}
+    </div>
+  )
+}
 
 /* ── Responsive data table: real table on desktop, stacked cards on mobile ── */
 interface RCol<T> { key: string; label: string; align?: 'left' | 'right' | 'center'; width?: string; render: (row: T) => React.ReactNode }
@@ -342,6 +419,7 @@ const Profile = () => {
   const [receivedOrders, setReceivedOrders] = useState<ReceivedOrder[]>([])
   const [buyerPreOrders, setBuyerPreOrders] = useState<BuyerPreOrder[]>([])
   const [buyerFreightQuotes, setBuyerFreightQuotes] = useState<BuyerFreightQuote[]>([])
+  const [supplierFreightProposals, setSupplierFreightProposals] = useState<SupplierFreightProposal[]>([])
   const [freightQuoteBusyId, setFreightQuoteBusyId] = useState<string | null>(null)
   const [receiptBusyId, setReceiptBusyId] = useState<string | null>(null)
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null)
@@ -628,9 +706,10 @@ const Profile = () => {
   const fetchBuyerFreightQuotes = React.useCallback(async () => {
     if (!user?.id) { setBuyerFreightQuotes([]); return }
     try {
-      const { data, error } = await supabase.from('freight_loads')
-        .select('id, pre_order_id, product_name, weight_kg, origin_label, destination_label, driver_offered_price, currency, driver_quote_status, route_distance_km, route_duration_minutes, status, created_at')
-        .eq('driver_quote_status', 'pending_buyer_approval')
+      const { data, error } = await (supabase as any).from('freight_loads')
+        .select('id, pre_order_id, product_name, weight_kg, origin_label, destination_label, driver_offered_price, currency, driver_quote_status, buyer_quote_approved, supplier_quote_approved, route_distance_km, route_duration_minutes, status, created_at')
+        .eq('buyer_id', user.id)
+        .in('driver_quote_status', ['pending_buyer_approval', 'approved', 'rejected'])
         .order('created_at', { ascending: false })
       if (error) throw error
       setBuyerFreightQuotes((data || []) as BuyerFreightQuote[])
@@ -638,6 +717,23 @@ const Profile = () => {
     } catch (error) {
       console.error(error)
       reportProfileLoadError('buyerFreightQuotes', 'Propostas de transporte', error)
+    }
+  }, [user?.id, clearProfileLoadError, reportProfileLoadError])
+
+  const fetchSupplierFreightProposals = React.useCallback(async () => {
+    if (!user?.id) { setSupplierFreightProposals([]); return }
+    try {
+      const { data, error } = await (supabase as any).from('freight_loads')
+        .select('id, pre_order_id, product_name, weight_kg, origin_label, destination_label, driver_offered_price, currency, driver_quote_status, buyer_quote_approved, supplier_quote_approved, route_distance_km, route_duration_minutes, status, created_at')
+        .eq('supplier_id', user.id)
+        .in('driver_quote_status', ['pending_buyer_approval', 'approved', 'rejected'])
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      setSupplierFreightProposals((data || []) as SupplierFreightProposal[])
+      clearProfileLoadError('supplierFreightProposals')
+    } catch (error) {
+      console.error(error)
+      reportProfileLoadError('supplierFreightProposals', 'Propostas de transporte recebidas', error)
     }
   }, [user?.id, clearProfileLoadError, reportProfileLoadError])
 
@@ -664,7 +760,7 @@ const Profile = () => {
       })
       if (error) throw error
       toast({ title: approved ? 'Preço de transporte aprovado.' : 'Proposta de transporte recusada.' })
-      await fetchBuyerFreightQuotes()
+      await Promise.all([fetchBuyerFreightQuotes(), fetchSupplierFreightProposals()])
     } catch (error: any) {
       toast({ title: 'Não foi possível responder à proposta', description: error.message, variant: 'destructive' } as any)
     } finally { setFreightQuoteBusyId(null) }
@@ -750,10 +846,15 @@ const Profile = () => {
       return
     }
     if (userProfile?.user_type === 'comprador') { fetchFichasRecebimento(); fetchSourcingRequests(); fetchBuyerStats(); fetchBuyerPreOrders(); fetchBuyerFreightQuotes() }
-    else { fetchUserProducts(); fetchReceivedOrders() }
+    else {
+      fetchUserProducts();
+      fetchReceivedOrders();
+      if (userProfile?.user_type === 'agricultor' || userProfile?.user_type === 'agente') fetchSupplierFreightProposals();
+      else setSupplierFreightProposals([]);
+    }
     if (userProfile?.user_type === 'agente') fetchAgentStats()
     setLoading(false)
-  }, [user, userProfile, isGuest, fetchAgentStats, fetchBuyerStats, fetchBuyerPreOrders, fetchFichasRecebimento, fetchReceivedOrders, fetchSourcingRequests, fetchUserProducts, fetchBuyerFreightQuotes])
+  }, [user, userProfile, isGuest, fetchAgentStats, fetchBuyerStats, fetchBuyerPreOrders, fetchFichasRecebimento, fetchReceivedOrders, fetchSourcingRequests, fetchUserProducts, fetchBuyerFreightQuotes, fetchSupplierFreightProposals])
 
   // Refresh sourcing agent results while the buyer is viewing the sourcing tab.
   useEffect(() => {
@@ -1026,6 +1127,20 @@ const Profile = () => {
     { id: 'statistics', label: t('profile.statistics'), icon: <BarChart3 size={15}/> },
   ]
 
+  const firstName = (profileDisplayName || '').trim().split(/\s+/)[0] || ''
+  const provinceEntry = angolaProvinces.find((province) => province.id === provinceName)
+  const provinceLabel = provinceEntry?.name || provinceName
+  const municipalityLabel = provinceEntry?.municipalities.find((municipality) => municipality.id === municipalityName)?.name || municipalityName
+  const locationLabel = [provinceLabel, municipalityLabel].filter(Boolean).join(', ')
+  const pageSubtitle = isComprador
+    ? 'Acompanha as tuas pré-compras, pedidos de sourcing e fichas.'
+    : isAgente
+      ? 'Gere as tuas publicações, os pedidos recebidos e as indicações.'
+      : 'Gere as tuas publicações e os pedidos que recebes.'
+  const quickAction = isComprador
+    ? { label: 'Minhas compras', icon: <ShoppingCart size={14} />, to: '/minhas-compras', guard: 'ver as tuas compras' }
+    : { label: 'Publicar produto', icon: <Plus size={14} />, to: '/publicar-produto', guard: 'publicar um produto' }
+
   const statItems = isAgente
     ? [
         { value: profileLoadErrors.agentStats ? '—' : agentStats?.totalReferrals || 0, label: t('profile.usersReferred'), color: T.g600 },
@@ -1099,75 +1214,68 @@ const Profile = () => {
         </div>
       )}
 
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 20px', display: 'grid', gridTemplateColumns: '1fr', gap: 22 }} className="ag-layout">
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 20px' }} className="ag-layout">
 
         {/* ══ LEFT COLUMN ══════════════════════════════════════════════════════ */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="ag-side">
 
           {/* Cartão de perfil organizado em quatro áreas de informação. */}
-          <div style={{
-            display: 'block', background: T.white, borderRadius: R.md,
-            overflow: 'hidden', boxShadow: 'none', animation: `ag-fade-up 0.5s ${EASE} both`,
-          }}>
+          <div className="ag-card" style={{ animation: `ag-fade-up 0.5s ${EASE} both` }}>
             {!editMode ? (
               <>
-                <div className="ag-member-grid">
-                  <section className="ag-member-cell ag-member-identity">
-                    <div style={{ position: 'relative', flexShrink: 0 }}>
-                  <div style={{
-                    width: 64, height: 64, borderRadius: '50%',
-                    border: `2px solid ${roleAccent}33`,
-                    background: roleAccent,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-                  }}>
-                    {profileAvatarUrl
-                      ? <img src={profileAvatarUrl} alt={profileDisplayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
-                      : <span style={{ fontFamily: FONT, fontSize: 24, fontWeight: 800, color: T.white }}>{profileDisplayName.charAt(0).toUpperCase() || 'U'}</span>
-                    }
-                  </div>
-                  <label htmlFor="avatar-upload" className="ag-avatar-edit" style={{
-                    position: 'absolute', bottom: -2, right: -2, width: 22, height: 22,
-                    borderRadius: '50%', background: T.white, border: `1px solid ${T.rule}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                    transition: `transform 0.2s ${EASE}`,
-                  }}>
-                    {avatarLoading ? <div style={{ width: 10, height: 10, borderRadius: '50%', border: `1.5px solid ${roleAccent}`, borderTopColor: 'transparent', animation: 'ag-spin 0.8s linear infinite' }}/> : <Camera size={10} color={roleAccent} strokeWidth={1.75}/>}
-                  </label>
-                  <input id="avatar-upload" type="file" accept="image/*" onChange={uploadAvatar} style={{ display: 'none' }}/>
-                </div>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <h2 style={{ fontFamily: FONT, fontSize: 22, fontWeight: 800, color: T.ink, margin: 0, letterSpacing: '-0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {profileDisplayName}
-                        </h2>
-                        {(userProfile as any)?.verified && <BadgeCheck size={16} color={roleAccent} strokeWidth={2}/>}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: roleAccent, flexShrink: 0 }} />
-                        <span style={{ fontSize: 13, color: T.muted, fontWeight: 600 }}>{profileRoleLabel}</span>
-                      </div>
-                      <span style={{ display: 'block', marginTop: 7, fontSize: 10.5, color: T.faint, fontWeight: 700 }}>
-                        Rede AgriLink · #{memberCode}
-                      </span>
+                <div className="ag-profile-cover" aria-hidden="true" />
+                <div className="ag-profile-head">
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    <div style={{
+                      width: 72, height: 72, borderRadius: '50%',
+                      border: `2px solid ${roleAccent}33`, boxShadow: `0 0 0 4px ${T.white}`,
+                      background: roleAccent,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                    }}>
+                      {profileAvatarUrl
+                        ? <img src={profileAvatarUrl} alt={profileDisplayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                        : <span style={{ fontFamily: FONT, fontSize: 26, fontWeight: 800, color: T.white }}>{profileDisplayName.charAt(0).toUpperCase() || 'U'}</span>
+                      }
                     </div>
-                  </section>
-                  <section className="ag-member-cell">
-                    <InfoRow icon={<Mail size={14} strokeWidth={1.6}/>} value={profileData.email} />
-                  </section>
-                  <section className="ag-member-cell">
-                    <InfoRow icon={<Phone size={14} strokeWidth={1.6}/>} value={profileData.phone} />
-                  </section>
-                  <section className="ag-member-cell">
-                    <InfoRow icon={<MapPin size={14} strokeWidth={1.6}/>} value={`${provinceName}${municipalityName ? ', ' + municipalityName : ''}`} />
-                  </section>
+                    <label htmlFor="avatar-upload" className="ag-avatar-edit" title="Alterar foto de perfil" style={{
+                      position: 'absolute', bottom: -2, right: -2, width: 26, height: 26,
+                      borderRadius: '50%', background: T.white, border: `1px solid ${T.rule}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                      transition: `transform 0.2s ${EASE}`,
+                    }}>
+                      {avatarLoading ? <div style={{ width: 11, height: 11, borderRadius: '50%', border: `1.5px solid ${roleAccent}`, borderTopColor: 'transparent', animation: 'ag-spin 0.8s linear infinite' }}/> : <Camera size={12} color={roleAccent} strokeWidth={1.75}/>}
+                    </label>
+                    <input id="avatar-upload" type="file" accept="image/*" onChange={uploadAvatar} style={{ display: 'none' }}/>
+                  </div>
+                  <div style={{ minWidth: 0, width: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <h2 style={{ fontFamily: FONT, fontSize: 21, fontWeight: 800, color: T.ink, margin: 0, letterSpacing: '-0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {profileDisplayName}
+                      </h2>
+                      {(userProfile as any)?.verified && <BadgeCheck size={16} color={roleAccent} strokeWidth={2} aria-label="Perfil verificado"/>}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: roleAccent, flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, color: T.muted, fontWeight: 600 }}>{profileRoleLabel}</span>
+                    </div>
+                    <span style={{ display: 'block', marginTop: 6, fontSize: 10.5, color: T.faint, fontWeight: 700 }}>
+                      Rede AgriLink · #{memberCode}
+                    </span>
+                  </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, padding: '0 22px 18px' }}>
-                  <Btn variant="secondary" onClick={() => guardAction('editar o teu perfil', () => setEditMode(true))} style={{ gridColumn: 'span 2' }}>
+                <div className="ag-profile-info">
+                  <InfoRow icon={<Mail size={14} strokeWidth={1.6}/>} label={t('profile.email')} value={profileData.email} />
+                  <InfoRow icon={<Phone size={14} strokeWidth={1.6}/>} label={t('profile.phone')} value={profileData.phone} />
+                  <InfoRow icon={<MapPin size={14} strokeWidth={1.6}/>} label="Localização" value={locationLabel} />
+                </div>
+                <div className="ag-profile-foot">
+                  <Btn variant="secondary" onClick={() => guardAction('editar o teu perfil', () => setEditMode(true))} style={{ gridColumn: '1 / -1' }}>
                     <Edit size={13} strokeWidth={1.75}/> {t('profile.editProfile')}
                   </Btn>
+                  {isComprador && <ProfileReceiptButton />}
                   {isAgente && (
-                    <Btn variant="outline" size="sm" onClick={shareAgentCode}>
-                      <Share2 size={13} strokeWidth={1.75}/>
+                    <Btn variant="outline" onClick={shareAgentCode}>
+                      <Share2 size={13} strokeWidth={1.75}/> Partilhar código
                     </Btn>
                   )}
                 </div>
@@ -1209,8 +1317,18 @@ const Profile = () => {
         {/* ══ RIGHT COLUMN ═════════════════════════════════════════════════════ */}
         <div style={{ animation: `ag-fade-up 0.5s ${EASE} 0.1s both`, minWidth: 0 }}>
 
-          {/* Tabs com os controlos arredondados partilhados da AgriLink */}
-          <div style={{ display: 'flex', gap: 8, padding: 5, border: `1px solid ${T.rule}`, borderRadius: R.md, marginBottom: 20, overflowX: 'auto', background: T.white }}>
+          <div className="ag-page-head">
+            <div style={{ minWidth: 0 }}>
+              <h2 className="ag-page-title">{firstName ? `Olá, ${firstName}` : t('profile.title')}</h2>
+              <p className="ag-page-sub">{pageSubtitle}</p>
+            </div>
+            <Btn variant="primary" onClick={() => guardAction(quickAction.guard, () => navigate(quickAction.to))}>
+              {quickAction.icon} {quickAction.label}
+            </Btn>
+          </div>
+
+          {/* Separadores */}
+          <div role="tablist" className="ag-tabs">
             {tabs.map(tab => (
               <TabBtn
                 key={tab.id}
@@ -1228,7 +1346,13 @@ const Profile = () => {
 
           {/* ── Products / Fichas ── */}
           {activeTab === 'products' && (
-            isComprador ? (
+            <>
+            <SectionHead
+              title={isComprador ? t('profile.myFichas') : t('profile.myProducts')}
+              count={isComprador ? fichasRecebimento.length : userProducts.length}
+              sub={isComprador ? 'Fichas de recebimento que criaste.' : 'Produtos publicados no teu catálogo.'}
+            />
+            {isComprador ? (
               <FichaTable
                 columns={[
                   { key: 'nome', label: 'Ficha', render: r => <span style={{ fontWeight: 700, color: T.ink }}>{r.nomeFicha}</span> },
@@ -1279,7 +1403,8 @@ const Profile = () => {
                 )}
                 empty={<EmptyState icon={<Package size={26} color={T.faint}/>} message={t('profile.noProductsPublished')} />}
               />
-            )
+            )}
+            </>
           )}
 
           {/* ── Sourcing ── */}
@@ -1351,7 +1476,7 @@ const Profile = () => {
                     return <span style={{ fontSize: 12 }}>{[province?.name, municipality?.name, r.delivery_location].filter(Boolean).join(' · ') || '—'}</span>;
                   } },
                   { key: 'data', label: t('sourcing.deliveryDate'), render: r => new Date(r.delivery_date).toLocaleDateString('pt-AO') },
-                  { key: 'estado', label: 'Estado', render: r => <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 5 }}><StatusPill status={r.status} /><span title={sourcingAgentStatuses[r.id]?.summary || ''} style={{ fontSize: 11, color: T.mid, maxWidth: 240 }}>{agentStatusLabel(sourcingAgentStatuses[r.id])}</span>{sourcingAgentStatuses[r.id]?.summary && <span style={{ fontSize: 10, color: T.faint, maxWidth: 240 }}>{sourcingAgentStatuses[r.id].summary}</span>}<button type="button" disabled={!!reanalyzingSourcingIds[r.id]} onClick={() => void reanalyzeSourcingRequest(r)} aria-live="polite" style={{ border: 0, padding: 0, background: 'transparent', color: reanalyzingSourcingIds[r.id] ? T.faint : T.g600, fontSize: 11, fontWeight: 700, cursor: reanalyzingSourcingIds[r.id] ? 'wait' : 'pointer', opacity: reanalyzingSourcingIds[r.id] ? 0.7 : 1 }}>{reanalyzingSourcingIds[r.id] ? 'A analisar…' : 'Actualizar estado do agente'}</button>{sourcingAgentStatuses[r.id] && (sourcingAgentStatuses[r.id].verified_supplier_count > 0 || sourcingAgentStatuses[r.id].marketplace_listing_count > 0 || sourcingAgentStatuses[r.id].confirmed_quote_count > 0) && <span style={{ fontSize: 10, color: T.faint }}>{sourcingAgentStatuses[r.id].verified_supplier_count} fornecedor(es) confirmado(s) · {sourcingAgentStatuses[r.id].marketplace_listing_count} publicação(ões) a verificar · {sourcingAgentStatuses[r.id].confirmed_quote_count} cotação(ões) confirmada(s)</span>}{(sourcingAgentStatuses[r.id]?.stock_match_details?.length ?? 0) > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxWidth: 240 }}>{sourcingAgentStatuses[r.id]?.stock_match_details?.slice(0, 3).map((match, matchIndex) => <span key={match.product_id || `${r.id}-stock-${matchIndex}`} style={{ fontSize: 10, color: match.partial_quantity ? '#9a6700' : T.mid }}>Stock estimado: {Number(match.available_quantity_estimate).toLocaleString('pt-AO')} {match.unit || r.unit} — {match.clarification_required ? 'unidade por confirmar' : match.partial_quantity ? 'quantidade parcial' : match.covers_requested_quantity ? 'quantidade indicada suficiente' : 'quantidade por confirmar'}. {match.location_match === 'same_municipality' ? 'Localização: mesmo município.' : match.location_match === 'same_province' ? 'Localização: mesma província.' : match.location_match === 'other_location' ? 'Localização diferente da entrega.' : 'Localização por confirmar.'} {match.meets_minimum_order === false ? `Mínimo de encomenda não atingido (${match.minimum_order_in_requested_unit == null ? 'valor por confirmar' : Number(match.minimum_order_in_requested_unit).toLocaleString('pt-AO') + ' ' + (match.unit || r.unit)}); não elegível para este pedido.` : match.commercially_eligible === true ? 'Elegível para análise comercial; aguarda confirmação do fornecedor.' : match.commercially_eligible === false ? 'Não elegível para este pedido.' : 'Elegibilidade comercial por confirmar.'} Aguarda confirmação do fornecedor.</span>)}{(sourcingAgentStatuses[r.id]?.stock_match_details?.length ?? 0) > 3 && <span style={{ fontSize: 10, color: T.faint }}>Mais correspondências disponíveis na análise automática.</span>}<span style={{ fontSize: 9, color: T.faint }}>Estimativa baseada na publicação e nas reservas registadas; não confirma stock físico.</span></div>}{sourcingAgentStatuses[r.id]?.prior_context && <span style={{ fontSize: 10, color: T.faint }}>Histórico comparável: {sourcingAgentStatuses[r.id].prior_context?.similar_completed_requests ?? 0} pedido(s)</span>}</div> },
+                  { key: 'estado', label: 'Estado', render: r => <SourcingStatusCell request={r} task={sourcingAgentStatuses[r.id]} busy={!!reanalyzingSourcingIds[r.id]} onReanalyze={() => void reanalyzeSourcingRequest(r)} /> },
                 ]}
                 rows={sourcingRequests}
                 keyField={r => r.id}
@@ -1408,18 +1533,32 @@ const Profile = () => {
                 { key: 'produto', label: 'Produto', render: r => <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}><span style={{ fontWeight: 700, color: T.ink }}>{r.product?.product_type || 'Produto'}</span><StatusPill status={r.status} /></div> },
                 { key: 'qtd', label: 'Quantidade', align: 'right', render: r => <span style={{ fontWeight: 700, color: T.g600 }}>{r.quantity.toLocaleString('pt-AO')} kg</span> },
                 { key: 'valor', label: 'Total', align: 'right', render: r => `${Number(r.total_price || 0).toLocaleString('pt-AO')} Kz` },
-                { key: 'pagamento', label: 'Pagamento', render: r => <span style={{ fontSize: 12, fontWeight: 600, color: r.payment_status === 'paid' ? T.g600 : T.faint }}>{r.payment_status === 'paid' ? 'Pago' : r.status === 'accepted' ? 'A aguardar pagamento' : 'Não iniciado'}</span> },
+                { key: 'pagamento', label: 'Pagamento', render: r => {
+                  const freightQuote = buyerFreightQuotes.find(quote => quote.pre_order_id === r.id)
+                  const freightAgreed = freightQuote?.driver_quote_status === 'approved' && freightQuote.buyer_quote_approved
+                  const label = r.payment_status === 'paid'
+                    ? 'Pago'
+                    : r.status !== 'accepted'
+                      ? 'Não iniciado'
+                      : freightAgreed
+                        ? 'Pronto para pagamento'
+                        : 'A negociar transporte'
+                  return <span style={{ fontSize: 12, fontWeight: 600, color: r.payment_status === 'paid' || freightAgreed ? T.g600 : T.faint }}>{label}</span>
+                } },
                 { key: 'data', label: 'Data', render: r => formatDate(r.created_at) },
               ]}
               rows={buyerPreOrders}
               keyField={r => r.id}
               accent={r => r.status === 'pending' ? T.goldL : r.status === 'accepted' ? T.g400 : r.status === 'rejected' ? '#EF4444' : T.faint}
               actions={r => (
-                <IconBtn
-                  icon={<FileSignature size={13} strokeWidth={1.75}/>}
-                  title={receiptBusyId === r.id ? 'A gerar comprovante…' : 'Histórico e comprovante PDF'}
-                  onClick={() => { if (receiptBusyId !== r.id) void downloadTransactionReceipt(r.id) }}
-                />
+                <>
+                  <IconBtn icon={<CreditCard size={13} strokeWidth={1.75}/>} title="Acompanhar pedido e pagamento" onClick={() => navigate(`/pagamento/${r.id}`)} />
+                  <IconBtn
+                    icon={<FileSignature size={13} strokeWidth={1.75}/>}
+                    title={receiptBusyId === r.id ? 'A gerar comprovante…' : 'Histórico e comprovante PDF'}
+                    onClick={() => { if (receiptBusyId !== r.id) void downloadTransactionReceipt(r.id) }}
+                  />
+                </>
               )}
               empty={<EmptyState icon={<ShoppingCart size={26} color={T.faint}/>} message="Ainda não tens pré-compras." sub="As pré-compras enviadas aparecerão aqui e serão actualizadas quando o fornecedor responder." />}
             />
@@ -1438,13 +1577,21 @@ const Profile = () => {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: 16, fontWeight: 800, color: T.g600 }}>{quote.driver_offered_price == null ? '—' : Number(quote.driver_offered_price).toLocaleString('pt-AO') + ' ' + (quote.currency || 'Kz')}</div>
-                      <div style={{ marginTop: 3, fontSize: 11, color: T.gold, fontWeight: 700 }}>A aguardar a tua decisão</div>
+                      <div style={{ marginTop: 3, fontSize: 11, color: quote.driver_quote_status === 'approved' ? T.g600 : quote.driver_quote_status === 'rejected' ? T.danger : T.gold, fontWeight: 700 }}>
+                        {quote.driver_quote_status === 'approved'
+                          ? 'Preço aprovado por ti'
+                          : quote.driver_quote_status === 'rejected'
+                            ? 'Recusada · o motorista pode rever o preço'
+                            : 'A aguardar a tua decisão'}
+                      </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 13, flexWrap: 'wrap' }}>
-                    <IconBtn icon={<Trash2 size={13} strokeWidth={1.75}/>} title={freightQuoteBusyId === quote.id ? 'A processar…' : 'Recusar transporte'} danger onClick={() => { if (freightQuoteBusyId !== quote.id) void respondToFreightQuote(quote.id, false) }} />
-                    <IconBtn icon={<CheckCircle size={13} strokeWidth={1.75}/>} title={freightQuoteBusyId === quote.id ? 'A processar…' : 'Aprovar transporte'} onClick={() => { if (freightQuoteBusyId !== quote.id) void respondToFreightQuote(quote.id, true) }} />
-                  </div>
+                  {quote.driver_quote_status === 'pending_buyer_approval' && !quote.buyer_quote_approved && (
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 13, flexWrap: 'wrap' }}>
+                      <IconBtn icon={<Trash2 size={13} strokeWidth={1.75}/>} title={freightQuoteBusyId === quote.id ? 'A processar…' : 'Recusar transporte'} danger onClick={() => { if (freightQuoteBusyId !== quote.id) void respondToFreightQuote(quote.id, false) }} />
+                      <IconBtn icon={<CheckCircle size={13} strokeWidth={1.75}/>} title={freightQuoteBusyId === quote.id ? 'A processar…' : 'Aprovar transporte'} onClick={() => { if (freightQuoteBusyId !== quote.id) void respondToFreightQuote(quote.id, true) }} />
+                    </div>
+                  )}
                 </section>
               ))}
             </div>
@@ -1452,6 +1599,40 @@ const Profile = () => {
 
           {/* ── Received Orders ── */}
           {activeTab === 'orders' && (isAgricultor || isAgente) && (
+            <div className="ag-stack">
+            <SectionHead title={t('profile.receivedOrders')} count={receivedOrders.length} sub="Pedidos de compradores aos teus produtos." />
+            <StatsStrip items={[
+              { value: receivedOrders.length, label: 'Pedidos recebidos', color: T.ink },
+              { value: receivedOrders.filter(order => order.status === 'accepted').length, label: 'Pedidos aceites', color: T.g600 },
+              { value: receivedOrders.filter(order => order.payment_status === 'paid').length, label: 'Pagamentos confirmados', color: T.g600 },
+              { value: `${receivedOrders.filter(order => order.payment_status === 'paid').reduce((sum, order) => sum + Number(order.total_price || 0) * 0.92, 0).toLocaleString('pt-AO')} Kz`, label: 'Entradas líquidas (após 8%)', color: T.g600 },
+            ]} />
+            {supplierFreightProposals.length > 0 && (
+              <div style={{ display: 'grid', gap: 10, marginTop: 14, marginBottom: 14 }}>
+                {supplierFreightProposals.map((proposal) => (
+                  <section key={proposal.id} style={{ background: T.white, border: `1px solid ${T.rule}`, borderRadius: R.md, padding: 14 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>Proposta de transporte · {proposal.product_name}</div>
+                        <div style={{ marginTop: 4, fontSize: 12, color: T.muted }}>{proposal.origin_label} → {proposal.destination_label}</div>
+                        <div style={{ marginTop: 3, fontSize: 11, color: T.faint }}>{Number(proposal.weight_kg).toLocaleString('pt-AO')} kg · {proposal.route_distance_km != null ? `${Number(proposal.route_distance_km).toFixed(1)} km` : 'rota por confirmar'}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: T.g600 }}>{proposal.driver_offered_price == null ? '—' : `${Number(proposal.driver_offered_price).toLocaleString('pt-AO')} ${proposal.currency || 'Kz'}`}</div>
+                        <div style={{ marginTop: 3, fontSize: 11, fontWeight: 700, color: proposal.driver_quote_status === 'approved' ? T.g600 : proposal.driver_quote_status === 'rejected' ? T.danger : T.gold }}>
+                          {proposal.driver_quote_status === 'approved'
+                            ? 'Preço aprovado pelo comprador'
+                            : proposal.driver_quote_status === 'rejected'
+                              ? 'Recusada · aguarda novo preço do motorista'
+                              : 'A aguardar decisão do comprador'}
+                        </div>
+                      </div>
+                    </div>
+                    <p style={{ margin: '10px 0 0', fontSize: 11, color: T.muted }}>O preço de transporte é aprovado pelo comprador. Após a confirmação do pagamento, a AgriLink retém 8% do produto e contabiliza o teu valor líquido.</p>
+                  </section>
+                ))}
+              </div>
+            )}
             <OrdersTable
               columns={[
                 { key: 'produto', label: 'Produto', render: r => (
@@ -1473,7 +1654,10 @@ const Profile = () => {
                 ) },
                 { key: 'local', label: 'Localização', render: r => r.location },
                 { key: 'qtd', label: 'Quantidade', align: 'right', render: r => <span style={{ fontWeight: 700, color: T.g600 }}>{r.quantity.toLocaleString()} kg</span> },
-                { key: 'valor', label: 'Valor', align: 'right', render: r => `${((r.product?.price || 0) * r.quantity).toLocaleString()} Kz` },
+                { key: 'valor', label: 'Valor do produto', align: 'right', render: r => `${Number(r.total_price || 0).toLocaleString('pt-AO')} Kz` },
+                { key: 'comissao', label: 'Comissão (8%)', align: 'right', render: r => r.payment_status === 'paid' ? `${(Number(r.total_price || 0) * 0.08).toLocaleString('pt-AO')} Kz` : 'Após pagamento' },
+                { key: 'liquido', label: 'Líquido', align: 'right', render: r => r.payment_status === 'paid' ? `${(Number(r.total_price || 0) * 0.92).toLocaleString('pt-AO')} Kz` : 'A liquidar' },
+                { key: 'pagamento', label: 'Pagamento', render: r => <span style={{ fontSize: 11, fontWeight: 700, color: r.payment_status === 'paid' ? T.g600 : T.faint }}>{r.payment_status === 'paid' ? 'Confirmado' : r.payment_status === 'pending' || r.payment_status === 'processing' ? 'Em validação' : 'Não iniciado'}</span> },
                 { key: 'data', label: 'Data', render: r => formatDate(r.created_at) },
               ]}
               rows={receivedOrders}
@@ -1489,11 +1673,13 @@ const Profile = () => {
               )}
               empty={<EmptyState icon={<ShoppingCart size={26} color={T.faint}/>} message={t('profile.noOrdersReceived')} sub={t('profile.ordersWillAppear')} />}
             />
+            </div>
           )}
 
           {/* ── Referrals ── */}
           {activeTab === 'referrals' && isAgente && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <SectionHead title={t('profile.myReferrals')} count={agentStats?.recentReferrals?.length || 0} sub="Utilizadores que entraram com o teu código." />
               <StatsStrip items={[
                 { value: agentStats?.totalReferrals || 0, label: t('profile.usersReferred'), color: roleAccent },
                 { value: agentStats?.totalPoints || 0, label: t('profile.pointsEarned'), color: T.gold },
@@ -1530,7 +1716,7 @@ const Profile = () => {
               <h3 style={{ fontFamily: FONT, fontSize: 18, fontWeight: 700, color: T.ink, margin: '0 0 18px', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <TrendingUp size={17} color={roleAccent} strokeWidth={1.75}/> {t('profile.performanceSummary')}
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              <div className="ag-metric-grid">
                 {(isAgente ? [
                   { label: t('profile.totalReferrals'), val: agentStats?.totalReferrals || 0, color: T.g600 },
                   { label: t('profile.totalPoints'), val: agentStats?.totalPoints || 0, color: T.gold },
@@ -1543,10 +1729,10 @@ const Profile = () => {
                   { label: t('profile.activeProducts'), val: activeProducts, color: T.g600 },
                   { label: t('profile.totalComments'), val: totalComments, color: T.g600 },
                   { label: t('profile.totalLikes'), val: totalLikes, color: T.gold },
-                ]).map((row, i, arr) => (
-                  <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: i < arr.length - 1 ? `1px solid ${T.rule}` : 'none' }}>
-                    <span style={{ fontSize: 13, color: T.muted, fontWeight: 500 }}>{row.label}</span>
-                    <span style={{ fontFamily: FONT, fontSize: 21, fontWeight: 700, color: row.color, fontVariantNumeric: 'tabular-nums' }}>{typeof row.val === 'number' ? row.val.toLocaleString() : row.val}</span>
+                ]).map((row) => (
+                  <div key={row.label} className="ag-metric">
+                    <span className="ag-metric-label">{row.label}</span>
+                    <span className="ag-metric-value" style={{ color: row.color }}>{typeof row.val === 'number' ? row.val.toLocaleString() : row.val}</span>
                   </div>
                 ))}
               </div>
@@ -1701,10 +1887,6 @@ const Profile = () => {
         @keyframes ag-spin    { to { transform: rotate(360deg) } }
         @keyframes ag-fade-up { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: translateY(0) } }
 
-        .ag-layout { display: grid; grid-template-columns: 1fr; gap: 22px; }
-        .ag-member-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); column-gap:16px; padding:18px 22px 12px; }
-        .ag-member-cell { display:flex; min-width:0; min-height:72px; align-items:center; padding:10px 0; }
-        .ag-member-identity { gap:12px; }
 
         .ag-btn:active { transform: scale(0.97); }
         .ag-btn { min-height: 40px; }
@@ -1713,20 +1895,18 @@ const Profile = () => {
         .ag-input:focus { border-color: ${T.g500 ?? T.g600} !important; background: ${T.white} !important; box-shadow: 0 0 0 4px rgba(61,154,72,0.1); }
         .ag-tab:hover { color: ${T.ink}; }
         .ag-profile-page { color: ${T.ink}; }
-        .ag-profile-page .ag-table-wrap {
-          box-shadow: 0 4px 16px rgba(17,24,20,.04);
-        }
+        .ag-profile-page .ag-table-wrap { overflow-x: auto !important; }
 
         /* ── Table ───────────────────────────────────────────────────────── */
         .ag-table { border-collapse: collapse; }
         .ag-table thead th {
-          text-align: left; font-size: 11px; font-weight: 700; color: ${T.faint}; padding: 14px 18px 14px 0;
+          text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: ${T.faint}; padding: 13px 16px; white-space: nowrap;
           border-bottom: 1px solid ${T.rule}; background: ${T.canvas};
         }
         .ag-table tbody tr { animation: ag-fade-up 0.4s ${EASE} both; transition: background 0.2s ${EASE}; }
         .ag-table tbody tr:hover { background: ${T.g50}; }
         .ag-table tbody tr:hover .ag-row-actions { opacity: 1; }
-        .ag-table tbody td { padding: 14px 18px 14px 0; font-size: 13px; color: ${T.mid}; border-bottom: 1px solid ${T.rule}; vertical-align: middle; }
+        .ag-table tbody td { padding: 14px 16px; font-size: 13px; color: ${T.mid}; border-bottom: 1px solid ${T.rule}; vertical-align: middle; }
         .ag-table tbody tr:last-child td { border-bottom: none; }
         .ag-row-actions { display: inline-flex; gap: 5px; justify-content: flex-end; opacity: 0.55; transition: opacity 0.2s ${EASE}; }
         .ag-accent-cell { width: 4px; padding: 0 !important; border-bottom: none !important; }
@@ -1742,7 +1922,6 @@ const Profile = () => {
             content: attr(data-label); font-size: 10.5px; font-weight: 700; color: ${T.faint}; text-align: left; flex-shrink: 0;
           }
           .ag-row-actions { opacity: 1; }
-          .ag-member-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
         }
 
         @media (max-width: 480px) {
@@ -1750,15 +1929,69 @@ const Profile = () => {
           .ag-profile-toolbar { padding: 0 14px !important; }
           .ag-profile-actions { gap: 5px !important; }
           .ag-profile-actions .ag-btn { padding-left: 9px !important; padding-right: 9px !important; }
-          .ag-member-grid { grid-template-columns:1fr; padding:14px 16px 10px; }
-          .ag-member-cell { min-height:58px; }
-          .ag-member-identity { min-height:76px; }
         }
 
         @media (min-width: 640px) {
           .sm\\:grid-cols-2 { grid-template-columns: 1fr 1fr !important; }
           .sm\\:inline { display: inline !important; }
         }
+
+        /* ── Estrutura da página ─────────────────────────────────────────── */
+        .ag-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; align-items: start; }
+        .ag-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+        @media (min-width: 1024px) {
+          .ag-layout { grid-template-columns: 340px minmax(0, 1fr); gap: 28px; }
+          .ag-side { position: sticky; top: 84px; }
+        }
+        .ag-stack { display: flex; flex-direction: column; gap: 14px; }
+
+        .ag-page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+        .ag-page-title { margin: 0; font-family: ${FONT}; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; color: ${T.ink}; }
+        .ag-page-sub { margin: 4px 0 0; font-size: 13.5px; color: ${T.muted}; line-height: 1.5; }
+
+        .ag-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+        .ag-section-title { display: flex; align-items: center; gap: 8px; margin: 0; font-family: ${FONT}; font-size: 16px; font-weight: 700; color: ${T.ink}; }
+        .ag-section-sub { margin: 3px 0 0; font-size: 12px; color: ${T.faint}; }
+        .ag-count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; background: ${T.g50}; color: ${T.g700}; font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+        .ag-tabs { display: flex; gap: 6px; padding: 5px; margin-bottom: 20px; overflow-x: auto; background: ${T.white}; border: 1px solid ${T.rule}; border-radius: ${R.md}px; scrollbar-width: none; }
+        .ag-tabs::-webkit-scrollbar { display: none; }
+
+        /* ── Cartão de perfil ────────────────────────────────────────────── */
+        .ag-card { background: ${T.white}; border: 1px solid ${T.rule}; border-radius: ${R.md}px; overflow: hidden; }
+        .ag-profile-cover { height: 64px; background: ${T.g50}; border-bottom: 1px solid ${T.rule}; }
+        .ag-profile-head { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 0 20px; margin-top: -36px; }
+        .ag-profile-info { padding: 6px 20px 0; }
+        .ag-profile-foot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 14px 20px 20px; }
+        .ag-info-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid ${T.rule}; }
+        .ag-info-row:last-child { border-bottom: none; }
+        .ag-info-ico { display: flex; flex-shrink: 0; margin-top: 2px; color: ${T.faint}; }
+        .ag-info-label { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: ${T.faint}; }
+        .ag-info-value { margin-top: 2px; font-size: 13.5px; font-weight: 500; color: ${T.mid}; overflow-wrap: anywhere; }
+
+        /* ── Indicadores ─────────────────────────────────────────────────── */
+        .ag-stats { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: 1px; background: ${T.rule}; border: 1px solid ${T.rule}; border-radius: ${R.md}px; overflow: hidden; }
+        .ag-stat { min-width: 0; padding: 16px 12px; text-align: center; background: ${T.white}; }
+        .ag-stat-value { font-family: ${FONT}; font-size: 22px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+        .ag-stat-label { margin-top: 6px; font-size: 11px; font-weight: 500; color: ${T.faint}; line-height: 1.35; }
+        @media (max-width: 520px) { .ag-stats[data-n="4"] { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+        .ag-metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+        .ag-metric { display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 1px solid ${T.rule}; border-radius: ${R.md}px; background: ${T.white}; }
+        .ag-metric-label { font-size: 12.5px; font-weight: 500; color: ${T.muted}; line-height: 1.4; }
+        .ag-metric-value { font-family: ${FONT}; font-size: 28px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+
+        /* ── Sourcing: estado do agente ──────────────────────────────────── */
+        .ag-agent-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; max-width: 260px; text-align: left; }
+        .ag-agent-label { font-size: 11px; color: ${T.mid}; }
+        .ag-agent-note { font-size: 10px; color: ${T.faint}; line-height: 1.45; }
+        .ag-agent-matches { display: flex; flex-direction: column; gap: 4px; padding-top: 6px; margin-top: 2px; border-top: 1px solid ${T.rule}; }
+        .ag-link-btn { padding: 0; border: 0; background: transparent; font-size: 11px; font-weight: 700; }
+
+        /* ── Acessibilidade ──────────────────────────────────────────────── */
+        .ag-btn:focus-visible, .ag-tab:focus-visible, .ag-icon-btn:focus-visible, .ag-link-btn:focus-visible { outline: 2px solid ${T.g600}; outline-offset: 2px; }
+        @media (min-width: 721px) { .ag-table { min-width: 720px; } }
+
         @media (prefers-reduced-motion: reduce) {
           *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
         }

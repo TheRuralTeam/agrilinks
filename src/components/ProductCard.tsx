@@ -1,4 +1,4 @@
-import React, { useState, useRef, memo } from 'react'
+import React, { useState, useRef, useEffect, memo } from 'react'
 import { toast } from 'sonner'
 import {
   Heart, MessageCircle, MapPin, Send, ChevronLeft, ChevronRight,
@@ -345,18 +345,18 @@ interface ProductCardProps {
   onProductUpdate?: (product: Product) => void
   onOpenMap?: (product: Product) => void
   onOpenPreOrder?: (product: Product) => void
-  onAddToCart?: (product: Product) => void
+  openCommentsOnMount?: boolean
 }
 
 /* ─── Main component ───────────────────────────────────────────────────────── */
 export const ProductCard: React.FC<ProductCardProps> = memo(({
-  product, onProductUpdate, onOpenMap, onOpenPreOrder, onAddToCart
+  product, onProductUpdate, onOpenMap, onOpenPreOrder, openCommentsOnMount = false
 }) => {
   const { user } = useAuth()
   const { requireAct } = useCanAct()
   const navigate = useNavigate()
   const photoGalleryRef = useRef<HTMLDivElement>(null)
-  const [commentVisible, setCommentVisible] = useState(false)
+  const [commentVisible, setCommentVisible] = useState(openCommentsOnMount)
   const [comment, setComment] = useState('')
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
@@ -390,6 +390,31 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
       setCommentsLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (!openCommentsOnMount || commentsLoaded) return
+    let cancelled = false
+    setCommentsLoading(true)
+    void fetchProductComments(product.id, user?.id)
+      .then(comments => {
+        if (cancelled) return
+        onProductUpdate?.({ ...product, comments })
+        setCommentsLoaded(true)
+      })
+      .catch(() => {
+        if (!cancelled) toast.error('Não foi possível carregar os comentários.')
+      })
+      .finally(() => {
+        if (!cancelled) setCommentsLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [openCommentsOnMount, commentsLoaded, onProductUpdate, product, user?.id])
+
+  useEffect(() => {
+    if (openCommentsOnMount && commentsLoaded) {
+      document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [openCommentsOnMount, commentsLoaded])
 
   const toggleLike = async () => {
     if (!requireAct('dar like')) return
@@ -609,19 +634,6 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
             {product.quantity.toLocaleString()} {product.sale_unit || 'kg'} disponíveis
           </div>
 
-          {/* Buyer cart action: add the listing without starting a separate pre-order. */}
-          {onAddToCart && (
-            <button
-              type="button"
-              style={{ ...styles.buyBtn, marginBottom: 8 }}
-              onClick={() => onAddToCart(product)}
-              aria-label={`Adicionar ${product.product_type} ao carrinho`}
-            >
-              <ShoppingCart size={17} />
-              Adicionar ao carrinho
-            </button>
-          )}
-
           {/* Buy button */}
           {onOpenPreOrder && (
             <button
@@ -684,9 +696,9 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
           {/* Comments section */}
           {commentVisible && (
             commentsLoading ? (
-              <div style={{ ...styles.commentBox, color: T.faint, textAlign: 'center' }}>A carregar comentários...</div>
+              <div id="comments" style={{ ...styles.commentBox, color: T.faint, textAlign: 'center' }}>A carregar comentários...</div>
             ) : (
-            <div style={{ ...styles.commentBox, animation: 'pcSlideDown 0.25s ease' }}>
+            <div id="comments" style={{ ...styles.commentBox, animation: 'pcSlideDown 0.25s ease' }}>
               <style>{`
                 @keyframes pcSlideDown { from { opacity:0; transform:translateY(-8px) } to { opacity:1; transform:translateY(0) } }
               `}</style>
@@ -904,12 +916,6 @@ export const ProductCard: React.FC<ProductCardProps> = memo(({
             )}
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-              {onAddToCart && (
-                <button type="button" style={{ ...styles.buyBtn, flex: 1, minWidth: 180 }} onClick={() => { setDetailsOpen(false); onAddToCart(product) }}>
-                  <ShoppingCart size={17} />
-                  Adicionar ao carrinho
-                </button>
-              )}
               {onOpenPreOrder && (
                 <button type="button" style={{ ...styles.buyBtn, flex: 1, minWidth: 180 }} onClick={() => { setDetailsOpen(false); onOpenPreOrder(product) }}>
                   <ShoppingCart size={17} />

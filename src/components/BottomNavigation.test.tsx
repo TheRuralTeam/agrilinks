@@ -70,15 +70,16 @@ describe('BottomNavigation', () => {
     const homeButton = screen.getByRole('button', { name: /início/i })
     expect(homeButton).toHaveAttribute('aria-label', 'Início')
 
-    for (const label of [/Mensagens/, 'Carrinho', /Notificações|Alertas/, 'Perfil']) {
+    for (const label of [/Mensagens/, 'Compras', /Notificações|Alertas/, 'Perfil']) {
       expect(screen.getByRole('button', { name: label })).toBeVisible()
     }
     expect(screen.queryByRole('button', { name: 'Mercado' })).not.toBeInTheDocument()
     const navigation = screen.getByRole('navigation', { name: 'Navegação principal' })
     const profileButton = screen.getByRole('button', { name: 'Perfil' })
     expect(profileButton).toBeVisible()
-    expect(navigation.querySelectorAll('button')).toHaveLength(7)
-    expect(navigation.querySelectorAll('button').item(6)).toBe(profileButton)
+    expect(screen.queryByRole('button', { name: 'Criar ficha de recebimento' })).not.toBeInTheDocument()
+    expect(navigation.querySelectorAll('button')).toHaveLength(6)
+    expect(navigation.querySelectorAll('button').item(5)).toBe(profileButton)
     expect(navigation.querySelectorAll('[aria-current="page"]')).toHaveLength(1)
     expect(homeButton).toHaveAttribute('aria-current', 'page')
     expect(homeButton).toHaveClass('bg-primary/10', 'text-primary')
@@ -87,11 +88,11 @@ describe('BottomNavigation', () => {
     expect(navigation.querySelector('.truncate')).toBeNull()
   })
 
-  it('marks the receiving form action as current on its page', () => {
-    mockLocation.pathname = '/ficharecebimento'
+  it('marks the buyer purchases action as current on its page', () => {
+    mockLocation.pathname = '/minhas-compras'
     render(<BottomNavigation />)
 
-    expect(screen.getByRole('button', { name: 'Criar ficha de recebimento' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'Compras' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getAllByRole('button').filter((button) => button.getAttribute('aria-current') === 'page')).toHaveLength(1)
   })
 })

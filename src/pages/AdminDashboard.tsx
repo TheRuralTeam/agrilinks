@@ -33,8 +33,6 @@ import {
   Package,
   FileText,
   TrendingUp,
-  TrendingDown,
-  Minus,
   RefreshCw,
   BadgeCheck,
   ShieldCheck,
@@ -50,6 +48,7 @@ import {
   Settings2,
   KeyRound,
   Route as RouteIcon,
+  Landmark,
 } from "lucide-react";
 import {
   Dialog,
@@ -73,6 +72,8 @@ import WorkSessionTimer from "../components/admin/WorkSessionTimer";
 import MarketPricesManager from "../components/admin/MarketPricesManager";
 import FreightPricingSettings from "../components/admin/FreightPricingSettings";
 import AdminRouteDirectory from "../components/admin/AdminRouteDirectory";
+import AdminFinance from "./AdminFinance";
+import { MetricCard, SidebarItem } from "../components/admin/AdminUi";
 import { downloadFichaRecebimentoPdf } from "../lib/fichaRecebimentoPdf";
 import { downloadMarketplaceTransactionReceipt } from "../features/orders/transactionReceipts";
 
@@ -176,7 +177,7 @@ interface Ficha {
   updated_at?: string | null;
 }
 
-type TabType = "dashboard" | "products" | "users" | "transactions" | "notifications" | "orders" | "fichas" | "sourcing" | "market" | "prices" | "admins" | "referrals" | "deliveries" | "freight" | "routes";
+type TabType = "dashboard" | "products" | "users" | "transactions" | "notifications" | "orders" | "fichas" | "sourcing" | "market" | "prices" | "admins" | "referrals" | "deliveries" | "freight" | "routes" | "finance";
 
 interface SourcingRequest {
   id: string;
@@ -231,6 +232,7 @@ const TAB_TITLES: Record<TabType, string> = {
   deliveries: "Entregas",
   freight: "Configuração do Frete",
   routes: "Rotas da Aplicação",
+  finance: "Financeiro",
 };
 
 // --- Componentes Auxiliares ---
@@ -239,65 +241,6 @@ const Detail = ({ label, value, multiline = false }: { label: string; value: str
     <div className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#758A79]">{label}</div>
     <div className={multiline ? "mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-[#111714]" : "mt-1 break-words text-sm font-semibold text-[#111714]"}>{value}</div>
   </div>
-);
-
-const MetricCard = ({ title, value, trend, trendLabel = "30 dias", icon, color }: {
-  title: string;
-  value: number | string;
-  trend?: number | null;
-  trendLabel?: string;
-  icon: React.ReactNode;
-  color: string;
-}) => {
-  const TrendIcon = trend == null ? null : trend > 0 ? TrendingUp : trend < 0 ? TrendingDown : Minus;
-  return (
-    <div className="rounded-2xl p-3 sm:p-5 bg-white border border-gray-100 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs sm:text-sm font-medium text-gray-500 truncate">{title}</p>
-          <p className="text-xl sm:text-3xl font-bold text-gray-900 mt-1 tracking-tight">{value}</p>
-          {trend != null && TrendIcon && (
-            <p className={`text-xs sm:text-sm mt-1 flex items-center gap-1 font-semibold ${trend > 0 ? "text-emerald-600" : trend < 0 ? "text-red-600" : "text-gray-500"}`}>
-              <TrendIcon className="h-3 w-3" />
-              {trend >= 0 ? "+" : ""}{trend}% · {trendLabel}
-            </p>
-          )}
-          {trend == null && (
-            <p className="text-[11px] text-gray-400 mt-1">Sem histórico comparável</p>
-          )}
-        </div>
-        <div className={`p-2 sm:p-3 rounded-xl text-white flex-shrink-0 ${color}`}>
-          {icon}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/* ── Item de navegação vertical (sidebar) ── */
-const SidebarItem = ({ active, onClick, icon, children, badge }: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-  badge?: number;
-}) => (
-  <button
-    onClick={onClick}
-    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-      active
-        ? "bg-primary/10 text-primary"
-        : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-    }`}
-  >
-    <span className={`flex-shrink-0 ${active ? "text-primary" : "text-gray-400"}`}>{icon}</span>
-    <span className="flex-1 text-left truncate">{children}</span>
-    {badge !== undefined && badge > 0 && (
-      <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center flex-shrink-0">
-        {badge > 99 ? "99+" : badge}
-      </span>
-    )}
-  </button>
 );
 
 const COLORS = ['#22c55e', '#f59e0b', '#ef4444', '#3b82f6'];
@@ -330,7 +273,7 @@ const AdminDashboard = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const requestedTab = new URLSearchParams(location.search).get("tab");
-    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries", "freight", "routes"]);
+    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries", "freight", "routes", "finance"]);
     return requestedTab && supportedTabs.has(requestedTab as TabType) ? requestedTab as TabType : "dashboard";
   });
 
@@ -350,6 +293,8 @@ const AdminDashboard = () => {
   const [isSupportAgent, setIsSupportAgent] = useState(false);
   const [userPermissions, setUserPermissions] = useState<AdminPermission[]>([]);
   const [adminPermissionsLoaded, setAdminPermissionsLoaded] = useState(false);
+  const [canViewFinance, setCanViewFinance] = useState(false);
+  const [canManageFinanceViewers, setCanManageFinanceViewers] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -416,6 +361,29 @@ const AdminDashboard = () => {
     return isRootAdmin || userPermissions.includes(permission);
   }, [isRootAdmin, userPermissions]);
 
+  useEffect(() => {
+    let active = true;
+    if (!currentUserId) {
+      setCanViewFinance(false);
+      setCanManageFinanceViewers(false);
+      return;
+    }
+    void (async () => {
+      const { data, error } = await (supabase as any).rpc('get_admin_finance_access');
+      if (!active) return;
+      if (error) {
+        console.error('Não foi possível carregar o acesso financeiro:', error);
+        setCanViewFinance(false);
+        setCanManageFinanceViewers(false);
+        return;
+      }
+      const access = Array.isArray(data) ? data[0] : data;
+      setCanViewFinance(Boolean(access?.can_view));
+      setCanManageFinanceViewers(Boolean(access?.can_manage_viewers));
+    })();
+    return () => { active = false; };
+  }, [currentUserId]);
+
   const canOpenAdminTab = useCallback((tab: TabType) => {
     switch (tab) {
       case "products":
@@ -424,6 +392,8 @@ const AdminDashboard = () => {
         return hasPermission("manage_users");
       case "sourcing":
         return hasPermission("manage_sourcing");
+      case "finance":
+        return canViewFinance;
       case "routes":
       case "market":
       case "referrals":
@@ -438,12 +408,12 @@ const AdminDashboard = () => {
       default:
         return true;
     }
-  }, [hasPermission, isRootAdmin, isSupportAgent]);
+  }, [hasPermission, isRootAdmin, isSupportAgent, canViewFinance]);
 
   useEffect(() => {
     if (!currentUserId || !adminPermissionsLoaded) return;
     const requestedTab = new URLSearchParams(location.search).get("tab");
-    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries", "freight", "routes"]);
+    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries", "freight", "routes", "finance"]);
     if (!requestedTab || !supportedTabs.has(requestedTab as TabType)) return;
 
     const tab = requestedTab as TabType;
@@ -822,6 +792,7 @@ const AdminDashboard = () => {
         p_freight_price: freight,
       } as never);
       if (error) throw error;
+      if (data == null) throw new Error("O servidor não devolveu a aceitação da pré-compra.");
       const result = (Array.isArray(data) ? data[0] : data) as { id?: string; status?: string } | null;
       if (!result?.id) throw new Error("O servidor não confirmou a aceitação da pré-compra.");
       setOrders((previous) => previous.map((item) => item.id === order.id ? { ...item, status: result.status || "accepted" } : item));
@@ -1131,6 +1102,11 @@ const AdminDashboard = () => {
               Redefinir senhas
             </SidebarItem>
           )}
+          {canViewFinance && (
+            <SidebarItem active={activeTab === "finance"} onClick={() => { setActiveTab("finance"); setMenuOpen(false); }} icon={<Landmark className="h-4 w-4" />}>
+              Financeiro
+            </SidebarItem>
+          )}
           <SidebarItem active={activeTab === "transactions"} onClick={() => { setActiveTab("transactions"); setMenuOpen(false); }} icon={<DollarSign className="h-4 w-4" />}>
             Transações
           </SidebarItem>
@@ -1236,6 +1212,7 @@ const AdminDashboard = () => {
         )}
 
         {activeTab === "routes" && <AdminRouteDirectory />}
+        {activeTab === "finance" && canViewFinance && <AdminFinance canManageViewers={canManageFinanceViewers} />}
 
         {/* DASHBOARD */}
         {activeTab === "dashboard" && (

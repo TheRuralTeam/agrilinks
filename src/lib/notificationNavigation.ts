@@ -4,6 +4,19 @@ export interface AgriLinkNotificationTarget {
   metadata?: Record<string, unknown> | null;
 }
 
+export function getNotificationDisplayTitle(title: string, type: string): string {
+  const trimmedTitle = title.trim();
+  const normalizedTitle = trimmedTitle.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (trimmedTitle && normalizedTitle !== "nao") return trimmedTitle;
+
+  const normalizedType = type.toLowerCase();
+  if (normalizedType.includes("comment")) return "Novo comentário";
+  if (normalizedType.includes("message") || normalizedType === "chat") return "Nova mensagem";
+  if (normalizedType.includes("order")) return "Actualização de pedido";
+  if (normalizedType.includes("product")) return "Actualização de produto";
+  return "Notificação";
+}
+
 /**
  * Resolve a notification to an internal route. Explicit metadata paths are
  * accepted only when they are same-origin relative paths, never external URLs.
@@ -31,15 +44,20 @@ export function getNotificationTargetPath(notification: AgriLinkNotificationTarg
 
   const type = notification.type.toLowerCase();
   const conversationId = value("conversation_id", "conversationId");
+  const productId = value("product_id", "productId");
 
   if (type === "message" && conversationId) return `/messages/${encodeURIComponent(conversationId)}`;
   if (type === "message" || type === "chat") return "/listamensagens";
+  if (type === "product_approval") return "/admindashboard?tab=products";
+  if (type === "verification_admin") return "/admindashboard?tab=users";
   if (type.startsWith("pre_order") || type.includes("order")) {
     return "/perfil?tab=orders";
   }
+  if (productId && (type.includes("comment") || type.includes("reaction") || type.includes("interest") || type.includes("like") || type === "product")) {
+    const commentQuery = type.includes("comment") ? "?comments=1#comments" : "";
+    return `/produto/${encodeURIComponent(productId)}${commentQuery}`;
+  }
   if (type.includes("ficha")) return "/ficharecebimento";
-  if (type === "product_approval") return "/admindashboard?tab=products";
-  if (type === "verification_admin") return "/admindashboard?tab=users";
   if (type === "product" || type.includes("product")) return "/perfil?tab=products";
   if (type === "sourcing") return "/admindashboard?tab=sourcing";
   if (type.includes("sourcing")) return "/perfil?tab=sourcing";

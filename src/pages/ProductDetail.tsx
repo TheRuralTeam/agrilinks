@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Package } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import Loader from '../components/ui/Loader';
@@ -11,6 +11,7 @@ import { T } from '../lib/brand';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [product, setProduct] = useState<Product | null>(null);
@@ -76,7 +77,11 @@ const ProductDetail = () => {
             <Button className="mt-4" onClick={() => navigate('/app')}>Ir para o Feed</Button>
           </div>
         ) : (
-          <ProductCard product={product} onProductUpdate={setProduct} />
+          <ProductCard
+            product={product}
+            onProductUpdate={setProduct}
+            openCommentsOnMount={searchParams.get('comments') === '1'}
+          />
         )}
       </div>
     </main>

@@ -5,8 +5,8 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { ArrowLeft, Package, Calendar, DollarSign, Hash, MapPin, User, Upload, X } from 'lucide-react';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '../components/ui/select';
+import { ArrowLeft, Package, Calendar, DollarSign, Hash, MapPin, Navigation, User, Upload, X } from 'lucide-react';
 import { angolaProvinces } from '../data/angola-locations';
 import { useAuth } from '../contexts/AuthContext';
 import { useGuestGate } from '../contexts/GuestGateContext';
@@ -50,9 +50,40 @@ const PublishProduct = () => {
     logistics_access: 'sim'
   });
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'found' | 'error'>('idle');
+  const [locationMessage, setLocationMessage] = useState('Pode usar a sua localização actual ou ajustar o marcador no mapa.');
   const [identityDialogOpen, setIdentityDialogOpen] = useState(false);
 
   const imagePreviewUrlsRef = useRef<string[]>([]);
+
+  const detectCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationStatus('error');
+      setLocationMessage('Este navegador não disponibiliza geolocalização. Ajuste o marcador no mapa.');
+      return;
+    }
+    setLocationStatus('loading');
+    setLocationMessage('A localizar a posição actual…');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const next = { lat: position.coords.latitude, lng: position.coords.longitude };
+        setLocation(next);
+        setLocationStatus('found');
+        setLocationMessage('Localização actual encontrada. Pode ajustar o marcador se necessário.');
+      },
+      (error) => {
+        setLocationStatus('error');
+        setLocationMessage(error.code === error.PERMISSION_DENIED
+          ? 'Permissão de localização negada. Permita a localização nas definições do navegador ou ajuste o mapa.'
+          : 'Não foi possível obter a localização actual. Ajuste o marcador no mapa.');
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+    );
+  };
+
+  useEffect(() => {
+    detectCurrentLocation();
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -317,8 +348,7 @@ const PublishProduct = () => {
           className="border-[#2c863b] text-[#2c863b] hover:bg-[#2c863b] hover:text-white"
           onClick={() => navigate(-1)}
         >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          <span>Voltar</span>
+          Voltar
         </Button>
 
       </div>
@@ -344,36 +374,32 @@ const PublishProduct = () => {
     {/* Produto agrícola: catálogo agrupado, sem sugerir produtos não agrícolas */}
     <div className="space-y-2">
       <Label htmlFor="product_type">Produto agrícola *</Label>
-      <Input
-        id="product_type"
-        list="agricultural-product-suggestions"
-        aria-label="Produto agrícola obrigatório"
-        placeholder="Escreva ou selecione um produto agrícola"
-        value={formData.product_type}
-        onChange={(event) => {
-          const value = event.target.value;
-          const normalized = value.toLocaleLowerCase('pt');
-          const category = /ovo|codorniz|galinha.*ovo|pata.*ovo/.test(normalized)
-            ? 'ovos'
-            : /frango|galinha|pato|peru|carne/.test(normalized)
-              ? 'carnes'
-              : /leite|queijo|iogurte|manteiga|nata|requeij|coalhada|lácteo|lacteo/.test(normalized)
-                ? 'lacteos'
-                : '';
-          setFormData((prev) => ({
-            ...prev,
-            product_type: value,
-            ...(category ? { category } : {}),
-            ...(normalized.includes('ovo') ? { sale_unit: 'caixa' as const } : {}),
-          }));
-        }}
-        required
-      />
-      <datalist id="agricultural-product-suggestions">
-        {AGRICULTURAL_PRODUCT_GROUPS.flatMap((group) => group.products).map((product) => (
-          <option key={product} value={product} />
-        ))}
-      </datalist>
+      <Select value={formData.product_type} onValueChange={(value) => {
+        const normalized = value.toLocaleLowerCase('pt');
+        const category = /ovo|codorniz|galinha.*ovo|pata.*ovo/.test(normalized)
+          ? 'ovos'
+          : /frango|galinha|pato|peru|carne/.test(normalized)
+            ? 'carnes'
+            : /leite|queijo|iogurte|manteiga|nata|requeij|coalhada|lácteo|lacteo/.test(normalized)
+              ? 'lacteos'
+              : '';
+        setFormData((prev) => ({
+          ...prev,
+          product_type: value,
+          ...(category ? { category } : {}),
+          ...(normalized.includes('ovo') ? { sale_unit: 'caixa' as const } : {}),
+        }));
+      }}>
+        <SelectTrigger id="product_type" aria-label="Produto agrícola obrigatório"><SelectValue placeholder="Selecionar produto agrícola" /></SelectTrigger>
+        <SelectContent>
+          {AGRICULTURAL_PRODUCT_GROUPS.map((group) => (
+            <SelectGroup key={group.label}>
+              <SelectLabel>{group.label}</SelectLabel>
+              {group.products.map((product) => <SelectItem key={product} value={product}>{product}</SelectItem>)}
+            </SelectGroup>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
 
     {/* Categoria do produto (filtro do feed) */}
@@ -389,11 +415,7 @@ const PublishProduct = () => {
             <button
               type="button"
               key={c.id}
-              aria-pressed={active}
-              onClick={(event) => {
-                event.preventDefault();
-                setFormData((prev) => ({ ...prev, category: c.id }));
-              }}
+              onClick={() => setFormData((prev) => ({ ...prev, category: c.id }))}
               className="flex flex-col items-center justify-center gap-1 rounded-xl py-3 px-2 border transition-all"
               style={{
                 background: active ? c.color : '#fff',
@@ -604,13 +626,17 @@ const PublishProduct = () => {
     {/* Localização no mapa */}
     <div className="space-y-2 mt-4">
       <Label>Localização no Mapa</Label>
-      <p className="text-xs text-muted-foreground">
-        Clique no mapa para definir a localização exata do produto.
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">{locationMessage}</p>
+        <Button type="button" variant="outline" size="sm" onClick={detectCurrentLocation} disabled={locationStatus === 'loading'}>
+          <Navigation className="mr-2 h-4 w-4" />
+          {locationStatus === 'loading' ? 'Localizando…' : 'Usar localização actual'}
+        </Button>
+      </div>
       <div className="w-full rounded-lg overflow-hidden border border-border" style={{ height: 256 }}>
         <SimpleLeafletMap
-          center={{ lat: -8.839, lng: 13.234 }}
-          zoom={6}
+          center={location || { lat: -8.839, lng: 13.234 }}
+          zoom={location ? 15 : 6}
           height={256}
           onClick={(c) => setLocation(c)}
           markers={location ? [{ lat: location.lat, lng: location.lng, color: '#DC2626' }] : []}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import {
   Search, ShoppingCart, Bell, CalendarClock, LayoutDashboard,
@@ -18,7 +18,6 @@ import agrilinkLogo from '../assets/agrilink-logo.png'
 import { fetchActiveProducts } from '../features/products/productsService'
 import { isAvailableForImmediatePurchase } from '../features/products/purchaseTiming'
 import DailyProductPriceTicker from '../components/DailyProductPriceTicker'
-import { addBuyerCartItem } from '../features/marketplace/buyerCart'
 import { isNeutralPublicView, sanitizePublicProduct } from '../lib/publicData'
 import Loader from '../components/ui/Loader'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -75,6 +74,7 @@ const AppHome = () => {
   const [orderData, setOrderData] = useState({ quantity: 1, location: '' })
   const [deliveryCoordinates, setDeliveryCoordinates] = useState<{ latitude: number; longitude: number } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const preOrderIdempotencyKey = useRef<string | null>(null)
   const [activeCategory, setActiveCategory] = useState<string>('all')
   const [purchaseTab, setPurchaseTab] = useState<'future' | 'now'>('now')
   const [isOnline, setIsOnline] = useState(navigator.onLine)
@@ -206,45 +206,12 @@ const AppHome = () => {
   const handleOpenMap = (p: Product) => { setSelectedProduct(p); setMapModalOpen(true) }
   const handleOpenPreOrder = (p: Product) => {
     if (!requireAct('fazer uma pré-compra')) return
+    preOrderIdempotencyKey.current = crypto.randomUUID()
     setSelectedProduct(p); setOrderData({ quantity:1, location:'' }); setDeliveryCoordinates(null); setModalOpen(true)
   }
 
-  const handleAddToCart = (p: Product) => {
-    if (!requireAct('adicionar ao carrinho')) return
-    if (!user?.id || String(userProfile?.user_type ?? '').toLowerCase() !== 'comprador') {
-      toast.error('O carrinho de compras está disponível para contas de comprador.')
-      return
-    }
-    try {
-      const minimumQuantity = Math.max(1, Number(p.min_order_quantity || 1))
-      if (Number(p.quantity) < minimumQuantity) {
-        toast.error('O stock indicado é inferior à quantidade mínima de compra deste produto.')
-        return
-      }
-      addBuyerCartItem(user.id, {
-        product_id: p.id,
-        product_name: p.product_type,
-        seller_name: p.farmer_name,
-        unit: p.sale_unit || 'kg',
-        quantity: Math.max(1, Number(p.min_order_quantity || 1)),
-        unit_price: Number(p.price),
-        available_quantity: Number(p.quantity),
-        minimum_quantity: Number(p.min_order_quantity || 1),
-        package_weight_kg: p.package_weight_kg == null ? null : Number(p.package_weight_kg),
-        harvest_date: p.harvest_date || null,
-        province: p.province_id,
-        municipality: p.municipality_id,
-      })
-      toast.success('Produto adicionado ao carrinho', {
-        description: 'Pode continuar a escolher produtos e finalizar tudo num único checkout.',
-        action: { label: 'Ver carrinho', onClick: () => navigate('/carrinho') },
-      })
-    } catch {
-      toast.error('Não foi possível actualizar o carrinho neste dispositivo.')
-    }
-  }
-
   const handlePreOrderSubmit = async () => {
+    if (isSubmitting) return
     if (!selectedProduct || !user) return toast.error('Inicie sessão para continuar')
     if (!userProfile?.identity_document?.trim()) {
       setIdentityDialogOpen(true)
@@ -256,7 +223,8 @@ const AppHome = () => {
       const quantity = Number(orderData.quantity || 0)
       if (!Number.isFinite(quantity) || quantity <= 0) throw new Error('Informe uma quantidade válida.')
 
-      const idempotencyKey = crypto.randomUUID()
+      const idempotencyKey = preOrderIdempotencyKey.current ?? crypto.randomUUID()
+      preOrderIdempotencyKey.current = idempotencyKey
       const { data, error } = await supabase.rpc('create_marketplace_pre_order', {
         p_product_id: selectedProduct.id,
         p_quantity: quantity,
@@ -302,10 +270,12 @@ const AppHome = () => {
       if (!reservation) throw new Error('Não foi possível criar a reserva.')
 
       await savePreferredDeliveryLocation(user.id, orderData.location)
-      toast.success('Pré-compra registada. O local foi guardado e será confirmado antes de iniciar a logística.')
+      toast.success('Pedido individual enviado. Acompanhe a confirmação do fornecedor e finalize o pagamento na próxima etapa.')
       // O preço final, frete e pagamento são calculados pelo servidor após a aceitação do fornecedor.
       setModalOpen(false)
       setSelectedProduct(null)
+      preOrderIdempotencyKey.current = null
+      navigate(`/pagamento/${reservation.id}`)
     } catch (error: any) {
       console.error('[AgriLink] Erro ao criar pré-compra:', error)
       toast.error(error?.message || 'Não foi possível concluir a reserva.')
@@ -523,8 +493,7 @@ const AppHome = () => {
                   product={product}
                   onProductUpdate={handleProductUpdate}
                   onOpenMap={handleOpenMap}
-                  onOpenPreOrder={userProfile?.user_type === 'comprador' ? undefined : handleOpenPreOrder}
-                  onAddToCart={userProfile?.user_type === 'comprador' ? handleAddToCart : undefined}
+                  onOpenPreOrder={handleOpenPreOrder}
                 />
               </div>
             ))
@@ -611,7 +580,7 @@ const AppHome = () => {
               </div>
               <div>
                 <DialogTitle style={{ fontFamily:"'Plus Jakarta Sans', system-ui, sans-serif", fontSize:18, fontWeight:700, color: T.ink, margin:0 }}>
-                  Pré-Compra
+                  Confirmar pedido individual
                 </DialogTitle>
                 <p style={{ fontSize:12, color: T.faint, margin:0, marginTop:1 }}>
                   {selectedProduct?.product_type} · {selectedProduct?.farmer_name}
@@ -627,7 +596,7 @@ const AppHome = () => {
             <div style={{ display:'flex', gap:11, padding:'11px 14px', borderRadius:12, background: T.white, border:`1px solid ${T.rule}` }}>
               <Bell size={15} color={T.g500} style={{ flexShrink:0, marginTop:1 }}/>
               <p style={{ fontSize:12, color: T.muted, lineHeight:1.6, margin:0 }}>
-                A reserva bloqueia o stock por 15 minutos. O fornecedor confirma o pedido e, depois, o sistema calcula o frete e abre o pagamento.
+                Esta compra inclui apenas este produto. O stock é reservado por 15 minutos; após a confirmação do fornecedor, o sistema calcula o frete e apresenta os meios de pagamento disponíveis.
               </p>
             </div>
             {/* Quantity */}
@@ -726,7 +695,7 @@ const AppHome = () => {
                   A registar pré-compra...
                 </>
               ) : (
-                <><ShoppingCart size={15}/> Enviar pré-compra</>
+                <><ShoppingCart size={15}/> Enviar pedido</>
               )}
             </button>
           </div>

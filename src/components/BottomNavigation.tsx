@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Home, Map, Bell, MessageSquare, User, Plus, LayoutDashboard, Truck, ShoppingCart, Route, Search } from 'lucide-react'
+import { Home, Map, Bell, MessageSquare, User, Plus, LayoutDashboard, Truck, ShoppingBag, Route, Search } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../integrations/supabase/client'
-import { BUYER_CART_UPDATED_EVENT, getBuyerCartQuantity } from '../features/marketplace/buyerCart'
 import { useGuestGate } from '../contexts/GuestGateContext'
-import FloatingActionButton from './FloatingActionButton'
 
 const BottomNavigation = () => {
   const { t } = useTranslation()
@@ -16,7 +14,6 @@ const BottomNavigation = () => {
   const { isGuest } = useGuestGate()
   const [unreadNotifications, setUnreadNotifications] = useState<number | null>(null)
   const [unreadMessages, setUnreadMessages] = useState<number | null>(null)
-  const [buyerCartQuantity, setBuyerCartQuantity] = useState(0)
   const userType = String((userProfile as any)?.user_type ?? '').toLowerCase()
 
   useEffect(() => {
@@ -68,27 +65,9 @@ const BottomNavigation = () => {
     }
   }, [user?.id])
 
-  useEffect(() => {
-    if (!user?.id || userType !== 'comprador') {
-      setBuyerCartQuantity(0)
-      return
-    }
-    const refreshCartCount = (event?: Event) => {
-      const customEvent = event as CustomEvent<{ userId?: string }> | undefined
-      if (customEvent?.detail?.userId && customEvent.detail.userId !== user.id) return
-      setBuyerCartQuantity(getBuyerCartQuantity(user.id))
-    }
-    refreshCartCount()
-    window.addEventListener(BUYER_CART_UPDATED_EVENT, refreshCartCount)
-    window.addEventListener('storage', refreshCartCount)
-    return () => {
-      window.removeEventListener(BUYER_CART_UPDATED_EVENT, refreshCartCount)
-      window.removeEventListener('storage', refreshCartCount)
-    }
-  }, [user?.id, userType])
-
   const isDriver = userType === 'motorista'
   const isBuyer = userType === 'comprador'
+  const isSupplier = userType === 'agricultor' || userType === 'agente'
   const canSeeAdmin = isAdmin || isRootAdmin || isSuperRoot
 
   // A acção principal varia conforme o papel real do utilizador.
@@ -97,7 +76,7 @@ const BottomNavigation = () => {
     : isDriver
     ? { id: 'publish', icon: Truck, label: 'Cargas', path: '/cargas', isAction: true }
     : isBuyer
-      ? { id: 'publish', icon: ShoppingCart, label: 'Carrinho', path: '/carrinho', isAction: true, cartCount: buyerCartQuantity }
+      ? { id: 'publish', icon: ShoppingBag, label: 'Compras', path: '/minhas-compras', isAction: true }
       : canSeeAdmin
         ? { id: 'publish', icon: Route, label: 'Rotas', path: '/admindashboard?tab=routes', isAction: true }
         : { id: 'publish', icon: Plus, label: t('navigation.publish'), path: '/publicar-produto', isAction: true }
@@ -112,6 +91,7 @@ const BottomNavigation = () => {
     { id: 'nav-map', icon: Map, label: t('navigation.map'), path: '/mapa' },
     { id: 'nav-messages', icon: MessageSquare, label: t('navigation.messages'), path: '/listamensagens', badge: unreadMessages },
     publishItem,
+    ...(isSupplier ? [{ id: 'nav-supplier-orders', icon: ShoppingBag, label: 'Pedidos', path: '/pedidos-fornecedor', isAction: true }] : []),
     { id: 'nav-notifications', icon: Bell, label: t('navigation.notifications'), path: '/notificacoes', badge: unreadNotifications },
     { id: 'nav-profile', icon: User, label: t('navigation.profile'), path: '/perfil' },
   ]
@@ -180,7 +160,6 @@ const BottomNavigation = () => {
               </button>
             )
           })}
-          {!isGuest && isBuyer && <FloatingActionButton />}
           {navItems.filter((item) => item.id === 'nav-profile').map((item) => {
             const active = isActive(item)
             return (
