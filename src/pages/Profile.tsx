@@ -21,6 +21,7 @@ import { sanitizePublicProfile, isNeutralPublicView } from '../lib/publicData'
 import { getWalletBalance } from '../features/wallet/walletService'
 import type { WalletBalance } from '../features/wallet/walletDomain'
 import { WalletSummaryCard } from '../features/wallet/WalletSummaryCard'
+import { MarketplacePayoutStatus } from '../features/marketplace/MarketplacePayoutStatus'
 import { respondToPreOrder } from '../features/orders/adminPreOrderService'
 import agrilinkLogo from '../assets/agrilink-logo.png'
 import { downloadMarketplaceTransactionReceipt } from '../features/orders/transactionReceipts'
@@ -1016,6 +1017,7 @@ const Profile = () => {
   const isComprador = userProfile?.user_type === 'comprador'
   const isAgente = userProfile?.user_type === 'agente'
   const isAgricultor = userProfile?.user_type === 'agricultor'
+  const isMotorista = userProfile?.user_type === 'motorista'
 
   const tabs = [
     { id: 'products', label: isComprador ? t('profile.myFichas') : t('profile.myProducts'), icon: isComprador ? <ClipboardList size={15}/> : <Package size={15}/> },
@@ -1192,6 +1194,10 @@ const Profile = () => {
               loading={walletLoading}
               error={walletError}
             />
+          )}
+
+          {user && !isGuest && (isAgricultor || isMotorista) && (
+            <MarketplacePayoutStatus userId={user.id} />
           )}
 
           <div style={{ animation: `ag-fade-up 0.5s ${EASE} 0.06s both` }}>
