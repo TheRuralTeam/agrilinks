@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { supabase } from "../integrations/supabase/client";
+import { supabase, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "../integrations/supabase/client";
 
 export const ADMIN_BANK_ACCESS_TOKEN_KEY = "agrilink.admin-bank-access";
 
@@ -14,9 +14,9 @@ export async function adminBankRpc<T = unknown>(
   const session = sessionData.session;
   if (sessionError || !session) return { data: null as T | null, error: new Error("ADMIN_SESSION_REQUIRED") };
 
-  const gatedClient = createClient(supabase.supabaseUrl, supabase.supabaseKey, {
+  const gatedClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: {
-      fetch: async (input, init = {}) => {
+      fetch: async (input: RequestInfo | URL, init: RequestInit = {}) => {
         const headers = new Headers(init.headers);
         headers.set("x-client-info", `agrilink-admin-bank-gate:${token}`);
         return fetch(input, { ...init, headers });
