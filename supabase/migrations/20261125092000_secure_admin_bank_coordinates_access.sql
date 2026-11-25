@@ -42,7 +42,7 @@ begin
     raise exception 'ADMIN_BANK_ACCESS_REQUIRED' using errcode='42501';
   end if;
   v_headers := coalesce(nullif(current_setting('request.headers', true), '')::jsonb, '{}'::jsonb);
-  v_token := nullif(v_headers ->> 'x-admin-bank-access-token', '');
+  v_token := nullif(substring(coalesce(v_headers ->> 'x-client-info','') from 'agrilink-admin-bank-gate:([0-9a-f]{64})'), '');
   v_ip := coalesce(
     nullif(v_headers ->> 'cf-connecting-ip', ''),
     nullif(split_part(coalesce(v_headers ->> 'x-forwarded-for', ''), ',', 1), ''),
