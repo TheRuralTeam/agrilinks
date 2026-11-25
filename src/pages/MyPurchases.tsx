@@ -173,8 +173,8 @@ export default function MyPurchases() {
         })
       }
     } catch (error: any) {
-      setCheckout((current) => ({ ...current, [purchase.id]: { summary: null, recipients: [], loading: false, error: error?.message || 'Não foi possível consultar o pagamento.' } }))
-      toast({ title: 'Pagamento indisponível', description: error?.message || 'Não foi possível consultar as opções de pagamento.', variant: 'destructive' })
+      setCheckout((current) => ({ ...current, [purchase.id]: { summary: null, recipients: [], loading: false, error: 'Não foi possível consultar as opções de pagamento neste momento. Tenta novamente dentro de instantes.' } }))
+      toast({ title: 'Pagamento indisponível', description: 'Não foi possível consultar as opções de pagamento neste momento. Tenta novamente dentro de instantes.', variant: 'destructive' })
     }
   }
 
@@ -200,7 +200,7 @@ export default function MyPurchases() {
       toast({ title: 'Instruções de pagamento preparadas', description: 'Usa os dados apresentados e comunica a transferência quando terminares.' })
       await loadPurchases(true)
     } catch (error: any) {
-      toast({ title: 'Não foi possível preparar o pagamento', description: error?.message || 'Verifica se a compra continua elegível.', variant: 'destructive' })
+      toast({ title: 'Não foi possível preparar o pagamento', description: 'Não foi possível preparar o pagamento. Actualiza a compra e tenta novamente.', variant: 'destructive' })
     } finally {
       setBusyId(null)
     }
@@ -224,7 +224,7 @@ export default function MyPurchases() {
       })
       await loadPurchases(true)
     } catch (error: any) {
-      toast({ title: 'Não foi possível comunicar o pagamento', description: error?.message || 'Confirma a referência e tenta novamente.', variant: 'destructive' })
+      toast({ title: 'Não foi possível comunicar o pagamento', description: 'Não foi possível comunicar o pagamento. Confirma os dados e tenta novamente.', variant: 'destructive' })
     } finally {
       setBusyId(null)
     }
