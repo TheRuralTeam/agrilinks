@@ -48,11 +48,11 @@ begin
     nullif(split_part(coalesce(v_headers ->> 'x-forwarded-for', ''), ',', 1), ''),
     nullif(v_headers ->> 'x-real-ip', '')
   );
-  v_ua_hash := encode(sha256(convert_to(coalesce(v_headers ->> 'user-agent',''), 'UTF8')), 'hex');
+  v_ua_hash := encode(extensions.digest(convert_to(coalesce(v_headers ->> 'user-agent',''), 'UTF8'), 'sha256'), 'hex');
   if v_token is null or v_ip is null then
     raise exception 'ADMIN_BANK_ACCESS_REQUIRED' using errcode='42501';
   end if;
-  v_token_hash := encode(sha256(convert_to(v_token, 'UTF8')), 'hex');
+  v_token_hash := encode(extensions.digest(convert_to(v_token, 'UTF8'), 'sha256'), 'hex');
   if not exists (
     select 1 from public.admin_bank_access_challenges c
     where c.user_id = auth.uid()
