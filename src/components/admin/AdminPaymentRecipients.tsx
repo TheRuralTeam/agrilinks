@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Archive, CheckCircle2, CircleAlert, Landmark, Loader2, Pencil, Plus, RefreshCw, ShieldCheck, ToggleLeft, ToggleRight } from "lucide-react";
+import { Archive, CheckCircle2, CircleAlert, Landmark, Loader2, Pencil, Plus, RefreshCw, ShieldCheck, ToggleLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
