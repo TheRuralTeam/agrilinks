@@ -6,7 +6,9 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '../components/ui/select';
-import { ArrowLeft, Package, Calendar, DollarSign, Hash, MapPin, Navigation, User, Upload, X } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../components/ui/command';
+import { ArrowLeft, Check, ChevronsUpDown, Package, Calendar, DollarSign, Hash, MapPin, Navigation, User, Upload, X } from 'lucide-react';
 import { angolaProvinces } from '../data/angola-locations';
 import { useAuth } from '../contexts/AuthContext';
 import { useGuestGate } from '../contexts/GuestGateContext';
@@ -50,6 +52,7 @@ const PublishProduct = () => {
     logistics_access: 'sim'
   });
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [openProductPicker, setOpenProductPicker] = useState(false);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'found' | 'error'>('idle');
   const [locationMessage, setLocationMessage] = useState('Pode usar a sua localização actual ou ajustar o marcador no mapa.');
   const [identityDialogOpen, setIdentityDialogOpen] = useState(false);
@@ -337,20 +340,15 @@ const PublishProduct = () => {
       />
       <div className="min-h-screen bg-[#F7F9F7] p-4">
       <div className="max-w-2xl mx-auto">
-       <div className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-md shadow-sm z-50 p-4 flex justify-between items-center border-b border-[#C8E6CA]">
-      <div className="flex items-center gap-2">
-          <img src={agrilinkLogo} alt="AgriLink" className="h-11 w-auto object-contain" />
-          </div>
-        <h1 className="font-semibold text-lg text-[#111714]">Publicar Produto</h1>
-        <Button
-          variant="outline"
-          size="sm"
-          className="border-[#2c863b] text-[#2c863b] hover:bg-[#2c863b] hover:text-white"
-          onClick={() => navigate(-1)}
-        >
-          Voltar
-        </Button>
-
+       <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-[#C8E6CA] bg-white/95 px-3 py-2 backdrop-blur-md shadow-sm sm:px-4">
+        <button type="button" aria-label="Voltar" title="Voltar" onClick={() => navigate(-1)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#C8E6CA] text-[#2c863b] hover:bg-[#F1F7F2]">
+          <ArrowLeft size={18} />
+        </button>
+        <div className="flex min-w-0 items-center gap-2">
+          <img src={agrilinkLogo} alt="AgriLink" className="h-8 w-auto object-contain" />
+          <h1 className="truncate text-sm font-bold text-[#111714] sm:text-base">Publicar Produto</h1>
+        </div>
+        <div className="w-9" aria-hidden="true" />
       </div>
 
 <Card className="shadow-md border border-[#E5EDE6] mt-20 bg-white rounded-2xl">
@@ -373,33 +371,53 @@ const PublishProduct = () => {
   >
     {/* Produto agrícola: catálogo agrupado, sem sugerir produtos não agrícolas */}
     <div className="space-y-2">
-      <Label htmlFor="product_type">Produto agrícola *</Label>
-      <Select value={formData.product_type} onValueChange={(value) => {
-        const normalized = value.toLocaleLowerCase('pt');
-        const category = /ovo|codorniz|galinha.*ovo|pata.*ovo/.test(normalized)
-          ? 'ovos'
-          : /frango|galinha|pato|peru|carne/.test(normalized)
-            ? 'carnes'
-            : /leite|queijo|iogurte|manteiga|nata|requeij|coalhada|lácteo|lacteo/.test(normalized)
-              ? 'lacteos'
-              : '';
-        setFormData((prev) => ({
-          ...prev,
-          product_type: value,
-          ...(category ? { category } : {}),
-          ...(normalized.includes('ovo') ? { sale_unit: 'caixa' as const } : {}),
-        }));
-      }}>
-        <SelectTrigger id="product_type" aria-label="Produto agrícola obrigatório"><SelectValue placeholder="Selecionar produto agrícola" /></SelectTrigger>
-        <SelectContent>
-          {AGRICULTURAL_PRODUCT_GROUPS.map((group) => (
-            <SelectGroup key={group.label}>
-              <SelectLabel>{group.label}</SelectLabel>
-              {group.products.map((product) => <SelectItem key={product} value={product}>{product}</SelectItem>)}
-            </SelectGroup>
-          ))}
-        </SelectContent>
-      </Select>
+      <Label>Produto agrícola *</Label>
+      <Popover open={openProductPicker} onOpenChange={setOpenProductPicker}>
+        <PopoverTrigger asChild>
+          <Button type="button" variant="outline" role="combobox" aria-expanded={openProductPicker} className="h-12 w-full justify-between text-left font-normal">
+            <span className="truncate">{formData.product_type || 'Pesquisar ou selecionar produto agrícola'}</span>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-60" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-[280px] p-0" style={{ zIndex: 1200 }}>
+          <Command>
+            <CommandInput placeholder="Digite o nome do produto..." aria-label="Pesquisar produto agrícola" />
+            <CommandList>
+              <CommandEmpty>Nenhum produto encontrado no catálogo.</CommandEmpty>
+              {AGRICULTURAL_PRODUCT_GROUPS.map((group) => (
+                <CommandGroup key={group.label} heading={group.label}>
+                  {group.products.map((product) => (
+                    <CommandItem
+                      key={product}
+                      value={product}
+                      onSelect={() => {
+                        const normalized = product.toLocaleLowerCase('pt');
+                        const category = /ovo|codorniz|galinha.*ovo|pata.*ovo/.test(normalized)
+                          ? 'ovos'
+                          : /frango|galinha|pato|peru|carne/.test(normalized)
+                            ? 'carnes'
+                            : /leite|queijo|iogurte|manteiga|nata|requeij|coalhada|lácteo|lacteo/.test(normalized)
+                              ? 'lacteos'
+                              : '';
+                        setFormData((prev) => ({
+                          ...prev,
+                          product_type: product,
+                          ...(category ? { category } : {}),
+                          ...(normalized.includes('ovo') ? { sale_unit: 'caixa' as const } : {}),
+                        }));
+                        setOpenProductPicker(false);
+                      }}
+                    >
+                      <Check className={`mr-2 h-4 w-4 ${formData.product_type === product ? 'opacity-100' : 'opacity-0'}`} />
+                      {product}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ))}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
     </div>
 
     {/* Categoria do produto (filtro do feed) */}

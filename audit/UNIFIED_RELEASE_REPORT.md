@@ -20,6 +20,9 @@
 - Destinos de comentários redirecionam para o produto e abrem os comentários.
 - Página de compras individual em `/pagamento/:purchaseId`; `/carrinho` redireciona para o marketplace.
 - Publicação automática da localização actual ao abrir o formulário de produto, com ajuste fino no mapa.
+- Seletor pesquisável de produto restaurado na publicação; permite digitar o nome e selecionar o item do catálogo.
+- Botão voltar compacto restaurado no cabeçalho fixo da publicação.
+- Página `/pedidos-fornecedor` dedicada à aceitação/rejeição de pedidos pelo fornecedor, também disponível na navegação inferior.
 - Fornecedor continua a poder aceitar ou rejeitar a pré-compra.
 - Negociação de frete limitada ao motorista e ao comprador.
 - Motoristas com e-mail verificado e capacidade suficiente recebem cargas compatíveis.
