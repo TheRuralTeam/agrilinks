@@ -30,6 +30,7 @@ const ConversationsList = lazy(() => import("./pages/ConversationsList"));
 const Support = lazy(() => import("./pages/Support"));
 const PublishProduct = lazy(() => import("./pages/PublishProduct"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminPaymentMethods = lazy(() => import("./pages/AdminPaymentMethods"));
 const AdminOrderTrash = lazy(() => import("./components/admin/AdminOrderTrash"));
 const FichaRecebimento = lazy(() => import("./pages/FichaRecebimento"));
 const CriarContratoFuturos = lazy(() => import("./pages/CriarContratoFuturos"));
@@ -363,6 +364,14 @@ const AppRoutes = () => {
           element={
             <PermissionRoute permissions={['view_analytics']}>
               <AdminDashboard />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="/admindashboard/coordenadas-bancarias"
+          element={
+            <PermissionRoute permissions={["manage_admins"]} allowRootAdmins>
+              <AdminPaymentMethods />
             </PermissionRoute>
           }
         />
