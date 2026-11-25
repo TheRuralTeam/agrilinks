@@ -1112,7 +1112,7 @@ const AdminDashboard = () => {
             </SidebarItem>
           )}
           {(isRootAdmin || hasPermission("manage_admins")) && (
-            <SidebarItem active={location.pathname === "/admindashboard/coordenadas-bancarias" || activeTab === "paymentMethods"} onClick={() => { navigate("/admindashboard/coordenadas-bancarias"); setMenuOpen(false); }} icon={<Landmark className="h-4 w-4" />}>
+            <SidebarItem active={location.pathname === "/admindashboard/secure/618d05c1aa66aeeae977dcb843bc15fc3d70bc74b700a1eac5a0afa8c2fee997" || activeTab === "paymentMethods"} onClick={() => { navigate("/admindashboard/secure/618d05c1aa66aeeae977dcb843bc15fc3d70bc74b700a1eac5a0afa8c2fee997"); setMenuOpen(false); }} icon={<Landmark className="h-4 w-4" />}>
               Coordenadas bancárias
             </SidebarItem>
           )}
