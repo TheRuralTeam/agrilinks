@@ -1112,8 +1112,8 @@ const AdminDashboard = () => {
             </SidebarItem>
           )}
           {(isRootAdmin || hasPermission("manage_admins")) && (
-            <SidebarItem active={activeTab === "paymentMethods"} onClick={() => { setActiveTab("paymentMethods"); setMenuOpen(false); }} icon={<Landmark className="h-4 w-4" />}>
-              Métodos de pagamento
+            <SidebarItem active={location.pathname === "/admindashboard/coordenadas-bancarias" || activeTab === "paymentMethods"} onClick={() => { navigate("/admindashboard/coordenadas-bancarias"); setMenuOpen(false); }} icon={<Landmark className="h-4 w-4" />}>
+              Coordenadas bancárias
             </SidebarItem>
           )}
           <SidebarItem active={activeTab === "transactions"} onClick={() => { setActiveTab("transactions"); setMenuOpen(false); }} icon={<DollarSign className="h-4 w-4" />}>
