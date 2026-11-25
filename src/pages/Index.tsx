@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, CreditCard, MapPin, Menu, Navigation, Play, ShieldCheck, Smartphone, Sprout, X } from "lucide-react";
+import { ArrowRight, Check, CreditCard, MapPin, Menu, Navigation, Play, ShieldCheck, Smartphone, Sprout, Truck, X } from "lucide-react";
 
 import { FONT, R, T } from "../lib/brand";
 import DailyProductPriceTicker from "../components/DailyProductPriceTicker";
@@ -25,12 +25,18 @@ const APP_STORE_URL = "";
 const FEED_CACHE_KEY = "agrilink:marketplace:feed";
 
 const NAV_LINKS = [
+  { href: "#como-funciona", label: "Como funciona" },
   { href: "#mercado", label: "Mercado" },
   { href: "#operacoes", label: "Operações" },
   { href: "#rastreio", label: "Rastreio" },
   { href: "#parceiros", label: "Parceiros" },
-  { href: "#app", label: "App" },
   { href: "#faq", label: "Perguntas" },
+];
+
+const HOW_STEPS = [
+  { icon: Sprout, title: "Encontre e negoceie", text: "Explore publicações de fornecedores para entrega imediata ou reserve uma colheita futura." },
+  { icon: ShieldCheck, title: "Pague em garantia", text: "O valor fica retido e só é libertado ao fornecedor depois de a entrega ser confirmada." },
+  { icon: Truck, title: "Acompanhe a entrega", text: "Veja localização, estado da rota e previsão de chegada num único lugar." },
 ];
 
 const OPERATIONS_GALLERY = [
@@ -53,7 +59,7 @@ const FAQ_ITEMS = [
   { question: "A minha informação está protegida?", answer: "Dados públicos são separados dos dados privados da conta, pagamentos e contactos administrativos." },
 ];
 
-// Atraso escalonado para as animações de entrada do hero.
+// Atraso escalonado para as animações de entrada.
 const delay = (seconds: number) => ({ "--d": `${seconds}s` } as React.CSSProperties);
 
 function StoreButton({ href, icon, small, name }: { href: string; icon: React.ReactNode; small: string; name: string }) {
@@ -89,6 +95,7 @@ export default function AgriLinkLanding() {
   const rootRef = React.useRef<HTMLElement>(null);
   const [ready, setReady] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const [scrolled, setScrolled] = React.useState(false);
   const [featuredProducts, setFeaturedProducts] = React.useState<ProductCardProduct[]>(readCachedFeed);
   const [feedLoaded, setFeedLoaded] = React.useState(() => readCachedFeed().length > 0);
   const goToRegister = () => navigate("/cadastro");
@@ -159,6 +166,14 @@ export default function AgriLinkLanding() {
     return () => io.disconnect();
   }, [featuredProducts.length, feedLoaded]);
 
+  // Sombra subtil no menu depois de sair do topo.
+  React.useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   // Menu móvel: fecha com a tecla Esc.
   React.useEffect(() => {
     if (!menuOpen) return undefined;
@@ -192,27 +207,31 @@ export default function AgriLinkLanding() {
         @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
         :where(.al) a { color: inherit; text-decoration: none; }
         :where(.al) button { font: inherit; cursor: pointer; }
-        .al { margin: 0; font-family: ${FONT}; color: var(--ink); background: var(--canvas); overflow-x: clip; }
+        .al { --shadow-sm: 0 1px 2px rgba(17,24,20,.05); --shadow-md: 0 1px 2px rgba(17,24,20,.04), 0 12px 28px -8px rgba(17,24,20,.12); margin: 0; font-family: ${FONT}; color: var(--ink); background: var(--canvas); overflow-x: clip; -webkit-font-smoothing: antialiased; }
         .al :focus-visible { outline: 3px solid var(--green); outline-offset: 3px; }
         .app-panel :focus-visible, footer :focus-visible { outline-color: #fff; }
         .al section[id] { scroll-margin-top: 128px; }
 
         .wrap { width: min(1160px, calc(100% - 48px)); margin: 0 auto; }
-        .disp { font-weight: 800; letter-spacing: -.035em; }
+        .disp { font-weight: 800; letter-spacing: -.04em; }
         .kick { display: inline-flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--green-700); }
+        .idx { display: inline-grid; place-items: center; min-width: 28px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--green-50); color: var(--green-700); font-size: 11px; font-weight: 800; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
 
         /* Botões */
-        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 0 22px; border: 1px solid transparent; border-radius: var(--radius-card); font-size: 15px; font-weight: 700; white-space: nowrap; transition: background .18s ease, border-color .18s ease, color .18s ease; }
-        .btn-primary { background: var(--green); color: #fff; }
-        .btn-primary:hover { background: var(--green-dark); }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 0 22px; border: 1px solid transparent; border-radius: var(--radius-card); font-size: 15px; font-weight: 700; white-space: nowrap; transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease, box-shadow .18s ease; }
+        .btn svg { transition: transform .18s ease; }
+        .btn:hover svg:last-child { transform: translateX(3px); }
+        .btn:active { transform: scale(.98); }
+        .btn-primary { background: var(--green); color: #fff; box-shadow: var(--shadow-sm); }
+        .btn-primary:hover { background: var(--green-dark); box-shadow: var(--shadow-md); transform: translateY(-1px); }
         .btn-ghost { background: var(--white); color: var(--ink); border-color: var(--line); }
-        .btn-ghost:hover { border-color: var(--green); color: var(--green-700); }
+        .btn-ghost:hover { border-color: var(--ink); transform: translateY(-1px); }
         .btn-sm { min-height: 42px; padding: 0 18px; font-size: 14px; }
 
-        /* Topo: ticker e menu num único bloco fixo (NOVO, plano) */
+        /* Topo: ticker + menu num único bloco fixo */
         .chrome { position: sticky; top: 0; z-index: 30; }
-        .live-ticker-bar { height: 52px; background: var(--green-700); color: #fff; }
-        .live-ticker-bar .wrap { display: flex; align-items: center; height: 52px; }
+        .live-ticker-bar { height: 44px; background: var(--green-dark); color: #fff; }
+        .live-ticker-bar .wrap { display: flex; align-items: center; height: 44px; }
         .live-ticker-bar .daily-price-ticker { color: #fff; }
         .live-ticker-bar .daily-price-heading { color: #fff; }
         .live-ticker-bar .daily-price-heading > svg,
@@ -224,133 +243,124 @@ export default function AgriLinkLanding() {
         .live-ticker-bar .daily-price-live i { background: #fff; }
         .live-ticker-bar .daily-price-fallback { background: rgba(255,255,255,.16); color: #fff; }
 
-        .top { position: relative; background: var(--white); }
+        .top { position: relative; background: rgba(255,255,255,.88); -webkit-backdrop-filter: saturate(180%) blur(14px); backdrop-filter: saturate(180%) blur(14px); transition: box-shadow .25s ease; }
+        .top.scrolled { box-shadow: 0 10px 24px -12px rgba(17,24,20,.14); }
         .top-in { height: 68px; display: flex; align-items: center; gap: 28px; }
         .top-logo { display: flex; align-items: center; }
-        .top-logo img { display: block; width: 128px; height: auto; transition: transform .2s ease; }
-        .top-logo:hover img { transform: scale(1.04); }
+        .top-logo img { display: block; width: 124px; height: auto; }
         .top-links { margin-left: auto; display: flex; gap: 2px; }
-        .top-links a { position: relative; display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border-radius: var(--radius-card); font-size: 14px; font-weight: 600; color: var(--muted); transition: color .15s ease; }
-        .top-links a::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 5px; height: 2px; background: var(--green); transform: scaleX(0); transform-origin: left; transition: transform .2s ease; }
-        .top-links a:hover { color: var(--green-700); }
-        .top-links a:hover::after { transform: scaleX(1); }
+        .top-links a { position: relative; display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border-radius: var(--radius-card); font-size: 14px; font-weight: 600; color: var(--muted); transition: color .15s ease, background .15s ease; }
+        .top-links a:hover { color: var(--ink); background: var(--canvas); }
         .top-actions { display: flex; align-items: center; gap: 8px; }
-        .top .btn:hover { transform: translateY(-2px); }
-        .top .btn { transition: background .18s ease, transform .18s ease; }
-        .burger { display: none; width: 42px; height: 42px; align-items: center; justify-content: center; border: 2px solid var(--ink); border-radius: var(--radius-card); background: var(--white); color: var(--ink); }
+        .burger { display: none; width: 42px; height: 42px; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--white); color: var(--ink); }
 
-        /* Secções (original) */
-        .sec { padding: 96px 0; }
+        /* Secções */
+        .sec { padding: 112px 0; }
         .sec-white { background: var(--white); }
-        .sec-head { max-width: 620px; margin-bottom: 44px; }
-        .h2 { margin: 12px 0 0; font-size: clamp(30px, 3.6vw, 42px); line-height: 1.12; letter-spacing: -.035em; color: var(--ink); }
+        .sec-head { max-width: 640px; margin-bottom: 48px; }
+        .h2 { margin: 14px 0 0; font-size: clamp(30px, 3.6vw, 44px); line-height: 1.1; letter-spacing: -.04em; color: var(--ink); }
         .lead { margin: 16px 0 0; font-size: 17px; line-height: 1.65; font-weight: 500; color: var(--muted); }
 
-        /* Hero (NOVO, plano e animado) */
-        .hero { position: relative; overflow: hidden; padding: 72px 0 96px; }
-        .hero-grid { position: relative; z-index: 1; display: grid; grid-template-columns: 1.1fr .9fr; gap: 64px; align-items: center; }
-        .hero h1 { margin: 16px 0 0; font-size: clamp(40px, 5vw, 64px); line-height: 1.06; letter-spacing: -.045em; color: var(--ink); }
+        /* Hero */
+        .hero { position: relative; overflow: hidden; padding: 88px 0 112px; background: var(--white); }
+        .hero::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; background-image: radial-gradient(circle, var(--line) 1.2px, transparent 1.2px); background-size: 26px 26px; -webkit-mask-image: radial-gradient(ellipse 70% 80% at 78% 40%, #000 0%, transparent 72%); mask-image: radial-gradient(ellipse 70% 80% at 78% 40%, #000 0%, transparent 72%); }
+        .hero-grid { position: relative; z-index: 1; display: grid; grid-template-columns: 1.1fr .9fr; gap: 72px; align-items: center; }
+        .hero h1 { margin: 0; font-size: clamp(42px, 5.4vw, 68px); line-height: 1.04; letter-spacing: -.05em; color: var(--ink); }
         .hero h1 .accent { color: var(--green); }
-        .hero-copy { max-width: 520px; margin: 22px 0 0; font-size: 17px; line-height: 1.7; font-weight: 500; color: var(--muted); }
-        .hero-actions { margin-top: 32px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .hero .btn { border-width: 2px; transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease; }
-        .hero .btn:hover { transform: translateY(-2px); }
-        .hero .btn:active { transform: translateY(0) scale(.98); }
-        .hero .btn svg { transition: transform .18s ease; }
-        .hero .btn:hover svg:last-child { transform: translateX(3px); }
-        .hero .btn-ghost { border-color: var(--ink); }
-        .hero .btn-ghost:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
-        .payment-options { margin-top: 24px; }
-        .payment-label { display: block; margin-bottom: 10px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+        .hero-copy { max-width: 520px; margin: 24px 0 0; font-size: 18px; line-height: 1.65; font-weight: 500; color: var(--muted); }
+        .hero-actions { margin-top: 34px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .hero .btn { min-height: 52px; padding: 0 26px; }
+
+        .proof { margin: 28px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px 22px; list-style: none; }
+        .proof li { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
+        .proof li span { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--green-50); color: var(--green-700); }
+
+        .payment-options { margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--line); max-width: 520px; }
+        .payment-label { display: block; margin-bottom: 12px; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
         .payment-brands { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-        .payment-brand { display: inline-flex; align-items: center; gap: 9px; min-height: 42px; padding: 7px 13px; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--white); color: var(--ink); transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
-        .payment-brand:hover { transform: translateY(-3px); border-color: var(--green); box-shadow: 0 8px 18px rgba(17,24,20,.08); }
-        .payment-brand-mark { display: grid; width: 26px; height: 26px; place-items: center; border-radius: 8px; color: #fff; }
-        .payment-brand:hover .payment-brand-mark { transform: rotate(-8deg) scale(1.08); }
+        .payment-brand { display: inline-flex; align-items: center; gap: 9px; min-height: 42px; padding: 7px 14px 7px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--white); color: var(--ink); transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+        .payment-brand:hover { transform: translateY(-2px); border-color: var(--green); box-shadow: var(--shadow-md); }
+        .payment-brand-mark { display: grid; width: 26px; height: 26px; place-items: center; border-radius: 50%; color: #fff; }
         .payment-brand-mark.emis { background: #d33b32; }
         .payment-brand-mark.unitel { background: #e85c25; }
         .payment-brand strong { font-size: 12px; font-weight: 800; }
-        .payment-note { margin: 9px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+        .payment-note { margin: 10px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 
-        .shape { position: absolute; pointer-events: none; z-index: 0; }
-        .shape.s1 { top: -90px; right: -70px; width: 320px; height: 320px; border-radius: 50%; background: var(--green-50); }
-        .shape.s2 { bottom: 48px; left: -36px; width: 110px; height: 110px; border-radius: 50%; background: var(--green-light); opacity: .22; }
-        .shape.s3 { top: 18%; left: 47%; width: 56px; height: 56px; border: 3px solid var(--green); border-radius: 14px; opacity: .5; }
-        .shape.s4 { bottom: 14%; right: 38%; width: 18px; height: 18px; border-radius: 50%; background: var(--green); opacity: .6; }
+        .shape { position: absolute; pointer-events: none; z-index: 0; border-radius: 50%; }
+        .shape.s1 { top: -120px; right: -90px; width: 380px; height: 380px; background: var(--green-50); }
+        .shape.s2 { bottom: -50px; left: -40px; width: 140px; height: 140px; background: var(--green-light); opacity: .16; }
 
         .hero-visual { position: relative; display: flex; justify-content: center; padding: 24px 0; }
-        .hero-visual::before { content: ""; position: absolute; top: 50%; left: 50%; width: min(100%, 340px); aspect-ratio: 1; border-radius: 50%; background: var(--green-50); transform: translate(-50%, -50%); }
+        .hero-visual::before { content: ""; position: absolute; top: 50%; left: 50%; width: min(100%, 360px); aspect-ratio: 1; border-radius: 50%; background: var(--green-50); transform: translate(-50%, -50%); }
         .hero-visual .phone-frame { position: relative; }
-        .chip { position: absolute; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--white); border: 2px solid var(--ink); border-radius: 999px; font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; }
-        .chip svg { color: var(--green); }
-        .chip.a { top: 14%; left: -6%; }
-        .chip.b { bottom: 12%; right: -4%; }
-        .dot { position: relative; width: 10px; height: 10px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+        .chip { position: absolute; z-index: 2; display: inline-flex; align-items: center; gap: 9px; padding: 10px 16px 10px 10px; background: var(--white); border: 1px solid var(--line); border-radius: 999px; box-shadow: var(--shadow-md); font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+        .chip i { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--green-50); color: var(--green-700); }
+        .chip.a { top: 14%; left: -8%; }
+        .chip.b { bottom: 12%; right: -6%; }
+        .dot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
 
-        .phone-frame { margin: 0 auto; width: min(100%, 300px); padding: 10px; background: var(--white); border: 0; border-radius: 32px; box-shadow: none; }
-        .phone-frame img { display: block; width: 100%; height: auto; border-radius: 22px; }
+        .phone-frame { margin: 0 auto; width: min(100%, 300px); padding: 10px; background: var(--white); border: 1px solid var(--line); border-radius: 36px; box-shadow: var(--shadow-md); }
+        .phone-frame img { display: block; width: 100%; height: auto; border-radius: 26px; }
 
-        /* Mercado (original) */
-        .featured-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 32px; }
+        /* Como funciona */
+        .how { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; counter-reset: step; }
+        .how-card { position: relative; padding: 32px 28px 30px; background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-card); transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; }
+        .how-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--green); }
+        .how-ico { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 12px; background: var(--green-50); color: var(--green-700); transition: background .2s ease, color .2s ease; }
+        .how-card:hover .how-ico { background: var(--green); color: #fff; }
+        .how-n { position: absolute; top: 28px; right: 28px; font-size: 13px; font-weight: 800; letter-spacing: .06em; color: var(--muted); opacity: .5; font-variant-numeric: tabular-nums; }
+        .how-card h3 { margin: 22px 0 0; font-size: 19px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+        .how-card p { margin: 10px 0 0; font-size: 15px; line-height: 1.65; font-weight: 500; color: var(--muted); }
+
+        /* Mercado */
+        .featured-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 40px; }
         .featured-heading .sec-head { margin-bottom: 0; }
         .featured-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
-        .featured-product-card { min-width: 0; }
-        .featured-empty { padding: 40px 24px; text-align: center; border: 1px dashed var(--line); border-radius: var(--radius-card); background: var(--white); color: var(--muted); font-size: 15px; font-weight: 500; }
+        .featured-product-card { min-width: 0; transition: transform .22s ease; }
+        .featured-product-card:hover { transform: translateY(-6px); }
+        .featured-empty { padding: 48px 24px; text-align: center; border: 1px dashed var(--line); border-radius: var(--radius-card); background: var(--canvas); color: var(--muted); font-size: 15px; font-weight: 500; }
 
-        /* Operações: fotos quadradas pequenas a deslizar na horizontal */
-        .strip { --count: 3; --gap: 20px; --tile: calc((100cqw - var(--gap) * (var(--count) - 1)) / var(--count)); container-type: inline-size; width: 100%; padding: 14px 0; overflow: hidden; }
-        .strip-track { display: flex; width: max-content; animation: strip-move 36s linear infinite; }
+        /* Operações: fotos quadradas a deslizar na horizontal, com esbatido nas pontas */
+        .strip { --count: 3; --gap: 20px; --tile: calc((100cqw - var(--gap) * (var(--count) - 1)) / var(--count)); container-type: inline-size; width: 100%; padding: 14px 0; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 56px, #000 calc(100% - 56px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 56px, #000 calc(100% - 56px), transparent 100%); }
+        .strip-track { display: flex; width: max-content; animation: strip-move 40s linear infinite; }
         .strip:hover .strip-track { animation-play-state: paused; }
-        .tile { position: relative; flex: 0 0 var(--tile); width: var(--tile); aspect-ratio: 1; margin-right: var(--gap); overflow: hidden; border-radius: var(--radius-card); background: #17231b; transition: scale .25s ease; animation: tile-bob 4s ease-in-out infinite; animation-delay: calc(var(--i) * -.8s); }
-        .tile img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
-        .tile:hover { scale: 1.04; }
-        .tile:hover img { transform: scale(1.08); }
-        .tile span { position: absolute; right: 0; bottom: 0; left: 0; padding: 8px 10px; background: rgba(23,35,27,.88); color: #fff; font-size: 12px; line-height: 1.3; font-weight: 700; }
+        .tile { position: relative; flex: 0 0 var(--tile); width: var(--tile); aspect-ratio: 1; margin-right: var(--gap); overflow: hidden; border-radius: var(--radius-card); background: #17231b; transition: scale .25s ease; }
+        .tile img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .45s ease; }
+        .tile:hover { scale: 1.03; }
+        .tile:hover img { transform: scale(1.07); }
+        .tile::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgba(14,22,17,.78) 100%); pointer-events: none; }
+        .tile span { position: absolute; z-index: 1; right: 0; bottom: 0; left: 0; padding: 14px 14px; color: #fff; font-size: 13px; line-height: 1.3; font-weight: 700; }
         @keyframes strip-move { to { transform: translateX(-50%); } }
-        @keyframes tile-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
         @media (prefers-reduced-motion: reduce) {
-          .strip { overflow-x: auto; }
+          .strip { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
           .strip-track { animation: none; }
-          .tile { animation: none; }
           .tile[aria-hidden="true"] { display: none; }
         }
 
-        /* Extras animados */
-        .featured-product-card { transition: transform .22s ease; }
-        .featured-product-card:hover { transform: translateY(-6px); }
+        /* Rastreio */
+        .track { display: grid; grid-template-columns: 1.1fr .9fr; gap: 72px; align-items: center; }
         .track-visual { position: relative; display: flex; justify-content: center; }
-        .track-visual::before { content: ""; position: absolute; top: 50%; left: 50%; width: min(100%, 340px); aspect-ratio: 1; border-radius: 50%; background: var(--green-50); transform: translate(-50%, -50%); }
-        .pin { position: absolute; z-index: 2; top: 8%; right: 8%; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--green); color: #fff; }
-        .track-points li { transition: padding-left .2s ease, color .2s ease; }
-        .track-points li:hover { padding-left: 8px; color: var(--green-700); }
-        .partners img { transition: transform .2s ease; }
-        .partners img:hover { transform: scale(1.08); }
-        .app-panel { position: relative; overflow: hidden; }
+        .track-visual::before { content: ""; position: absolute; top: 50%; left: 50%; width: min(100%, 360px); aspect-ratio: 1; border-radius: 50%; background: var(--green-50); transform: translate(-50%, -50%); }
+        .pin { position: absolute; z-index: 2; top: 8%; right: 8%; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--green); color: #fff; box-shadow: var(--shadow-md); }
+        .track-points { margin: 32px 0 0; padding: 0; max-width: 500px; list-style: none; display: grid; gap: 12px; }
+        .track-points li { display: flex; align-items: center; gap: 16px; padding: 14px 18px; background: var(--canvas); border: 1px solid var(--line); border-radius: var(--radius-card); font-size: 15px; font-weight: 600; transition: transform .2s ease, border-color .2s ease, background .2s ease; }
+        .track-points li:hover { transform: translateX(6px); border-color: var(--green); background: var(--white); }
+        .track-points li span { display: grid; place-items: center; width: 38px; height: 38px; flex-shrink: 0; border-radius: 10px; background: var(--green-50); color: var(--green-700); }
+
+        /* Parceiros */
+        .partners { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 24px 72px; padding: 44px 32px; background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-card); }
+        .partners img { display: block; height: 52px; width: auto; max-width: 220px; object-fit: contain; transition: transform .2s ease; }
+        .partners img:hover { transform: scale(1.06); }
+
+        /* App */
+        .app-panel { position: relative; overflow: hidden; display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; padding: 64px; background: var(--green-dark); color: #fff; border-radius: calc(var(--radius-card) + 6px); }
         .app-panel > * { position: relative; z-index: 1; }
-        .app-panel::before, .app-panel::after { content: ""; position: absolute; z-index: 0; border-radius: 50%; background: #fff; opacity: .07; pointer-events: none; }
-        .app-panel::before { top: -110px; right: -70px; width: 320px; height: 320px; }
-        .app-panel::after { bottom: -80px; left: 36%; width: 200px; height: 200px; }
-        .faq-item { transition: border-color .2s ease; }
-        .faq-item:hover, .faq-item[open] { border-color: var(--ink); }
-        .faq-item summary::after { transition: background .2s ease, color .2s ease, transform .25s ease; }
-        .faq-item[open] summary::after { transform: translateY(-50%) rotate(180deg); }
-        .kick .dot { margin-right: 0; }
-
-        /* Rastreio (original) */
-        .track { display: grid; grid-template-columns: 1.1fr .9fr; gap: 64px; align-items: center; }
-        .track-points { margin: 32px 0 0; padding: 0; max-width: 480px; list-style: none; border-top: 1px solid var(--line); }
-        .track-points li { display: flex; align-items: center; gap: 14px; min-height: 56px; border-bottom: 1px solid var(--line); font-size: 15px; font-weight: 600; }
-        .track-points svg { color: var(--green); flex-shrink: 0; }
-
-        /* Parceiros (original) */
-        .partners { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 24px 72px; padding: 40px 32px; background: var(--white); border: 1px solid var(--line); border-radius: var(--radius-card); }
-        .partners img { display: block; height: 52px; width: auto; max-width: 220px; object-fit: contain; }
-
-        /* App (original) */
-        .app-panel { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; padding: 56px; background: var(--green-700); color: #fff; border-radius: var(--radius-card); }
+        .app-panel::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; background-image: radial-gradient(circle, rgba(255,255,255,.16) 1.2px, transparent 1.2px); background-size: 26px 26px; -webkit-mask-image: radial-gradient(ellipse 60% 90% at 100% 0%, #000, transparent 75%); mask-image: radial-gradient(ellipse 60% 90% at 100% 0%, #000, transparent 75%); }
+        .app-panel::after { content: ""; position: absolute; z-index: 0; bottom: -120px; left: 34%; width: 280px; height: 280px; border-radius: 50%; background: var(--green); opacity: .35; pointer-events: none; }
         .app-panel .kick { color: #fff; opacity: .9; }
-        .app-panel h2 { margin: 12px 0 0; font-size: clamp(30px, 3.6vw, 42px); line-height: 1.1; }
-        .app-panel p { margin: 16px 0 0; max-width: 460px; font-size: 17px; line-height: 1.65; font-weight: 500; color: rgba(255,255,255,.92); }
+        .app-panel .idx { background: rgba(255,255,255,.14); color: #fff; }
+        .app-panel h2 { margin: 14px 0 0; font-size: clamp(30px, 3.6vw, 44px); line-height: 1.1; }
+        .app-panel p { margin: 16px 0 0; max-width: 460px; font-size: 17px; line-height: 1.65; font-weight: 500; color: rgba(255,255,255,.88); }
         .stores { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; justify-self: end; width: min(100%, 300px); }
         .store { display: inline-flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; padding: 8px 22px 8px 14px; background: #fff; color: var(--ink); border-radius: var(--radius-card); transition: transform .15s ease; }
         a.store:hover { transform: translateY(-2px); }
@@ -362,17 +372,21 @@ export default function AgriLinkLanding() {
         .store.off .store-ico { background: #fff; color: var(--ink); }
         .store.off .store-txt small { color: rgba(255,255,255,.85); }
 
-        /* FAQ (original) */
-        .faq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
-        .faq-item { background: var(--canvas); border: 1px solid var(--line); border-radius: var(--radius-card); overflow: hidden; }
-        .faq-item summary { position: relative; min-height: 64px; display: flex; align-items: center; padding: 18px 56px 18px 20px; color: var(--ink); font-size: 15px; font-weight: 700; cursor: pointer; list-style: none; }
+        /* FAQ */
+        .faq-layout { display: grid; grid-template-columns: .8fr 1.2fr; gap: 72px; align-items: start; }
+        .faq-layout .sec-head { position: sticky; top: 160px; margin-bottom: 0; }
+        .faq-list { display: grid; gap: 10px; }
+        .faq-item { background: var(--canvas); border: 1px solid var(--line); border-radius: var(--radius-card); overflow: hidden; transition: border-color .2s ease, background .2s ease; }
+        .faq-item:hover { border-color: var(--green-light); }
+        .faq-item[open] { background: var(--white); border-color: var(--ink); }
+        .faq-item summary { position: relative; min-height: 64px; display: flex; align-items: center; padding: 18px 60px 18px 22px; color: var(--ink); font-size: 15px; font-weight: 700; cursor: pointer; list-style: none; }
         .faq-item summary::-webkit-details-marker { display: none; }
-        .faq-item summary::after { content: '+'; position: absolute; right: 18px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--radius-card); background: var(--green-50); color: var(--green-700); font-size: 18px; }
-        .faq-item[open] summary::after { content: '−'; background: var(--green); color: #fff; }
-        .faq-item p { margin: 0; padding: 0 20px 20px; color: var(--muted); font-size: 15px; line-height: 1.7; font-weight: 500; }
+        .faq-item summary::after { content: '+'; position: absolute; right: 18px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--white); border: 1px solid var(--line); color: var(--ink); font-size: 18px; line-height: 1; transition: background .2s ease, color .2s ease, transform .25s ease; }
+        .faq-item[open] summary::after { content: '−'; background: var(--green); border-color: var(--green); color: #fff; transform: translateY(-50%) rotate(180deg); }
+        .faq-item p { margin: 0; padding: 0 22px 22px; color: var(--muted); font-size: 15px; line-height: 1.7; font-weight: 500; }
 
-        /* Rodapé (original) */
-        footer { padding: 56px 0 28px; background: #17231b; color: #fff; }
+        /* Rodapé */
+        footer { padding: 64px 0 28px; background: #17231b; color: #fff; }
         .foot { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 36px; font-size: 14px; line-height: 1.7; font-weight: 500; }
         .foot img { display: block; width: 124px; margin-bottom: 16px; }
         .foot strong { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.78); }
@@ -382,68 +396,63 @@ export default function AgriLinkLanding() {
         .foot a { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
         .foot-legal { grid-column: 1 / -1; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.16); font-size: 13px; color: rgba(255,255,255,.78); }
 
-        /* Animações do hero + revelação ao scroll (só com movimento permitido) */
+        /* Animações (só com movimento permitido) */
         @keyframes rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
         @keyframes rv { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
         @keyframes pop { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
         @keyframes float-b { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(10px); } }
         @keyframes drift { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(14px, -16px); } }
-        @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes rv-l { from { opacity: 0; transform: translateX(-34px); } to { opacity: 1; transform: none; } }
         @keyframes rv-r { from { opacity: 0; transform: translateX(34px); } to { opacity: 1; transform: none; } }
-        @keyframes rv-z { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+        @keyframes rv-z { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
         @keyframes pin-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
         @keyframes faq-open { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
-        @keyframes ping { 0% { transform: scale(1); opacity: .6; } 80%, 100% { transform: scale(2.6); opacity: 0; } }
+        @keyframes ping { 0% { transform: scale(1); opacity: .6; } 80%, 100% { transform: scale(2.8); opacity: 0; } }
 
         @media (prefers-reduced-motion: no-preference) {
           .js .rv { opacity: 0; }
-          .js .rv.in { opacity: 1; animation: rv .5s cubic-bezier(.2,.7,.2,1) var(--d, 0s) backwards; }
+          .js .rv.in { opacity: 1; animation: rv .55s cubic-bezier(.2,.7,.2,1) var(--d, 0s) backwards; }
+          .js .rv.in.l { animation-name: rv-l; }
+          .js .rv.in.r { animation-name: rv-r; }
+          .js .rv.in.z { animation-name: rv-z; }
 
           .fx { animation: rise .7s cubic-bezier(.2,.7,.2,1) var(--d, 0s) both; }
-          .hero-visual .phone-frame { animation: rise .8s cubic-bezier(.2,.7,.2,1) .25s both, float 6s ease-in-out 1.1s infinite; }
+          .hero-visual .phone-frame { animation: rise .8s cubic-bezier(.2,.7,.2,1) .25s both, float 7s ease-in-out 1.1s infinite; }
           .chip.a { animation: pop .5s cubic-bezier(.3,1.4,.5,1) .9s both, float 5s ease-in-out 1.4s infinite; }
           .chip.b { animation: pop .5s cubic-bezier(.3,1.4,.5,1) 1.1s both, float-b 5.5s ease-in-out 1.6s infinite; }
           .payment-brand:first-child { animation: pop .5s cubic-bezier(.3,1.4,.5,1) .55s both; }
           .payment-brand:last-child { animation: pop .5s cubic-bezier(.3,1.4,.5,1) .7s both; }
           .shape.s1 { animation: drift 14s ease-in-out infinite; }
           .shape.s2 { animation: drift 10s ease-in-out infinite reverse; }
-          .shape.s3 { animation: spin 18s linear infinite; }
-          .shape.s4 { animation: float 4s ease-in-out infinite; }
-          .js .rv.in.l { animation-name: rv-l; }
-          .js .rv.in.r { animation-name: rv-r; }
-          .js .rv.in.z { animation-name: rv-z; }
-          .track-visual .phone-frame { animation: float 6s ease-in-out infinite; }
+          .track-visual .phone-frame { animation: float 7s ease-in-out infinite; }
           .pin { animation: pin-bounce 2.2s ease-in-out infinite; }
-          .partners img { animation: float 5s ease-in-out infinite; }
-          .app-panel::before { animation: drift 16s ease-in-out infinite; }
           .app-panel::after { animation: drift 12s ease-in-out infinite reverse; }
           .faq-item[open] p { animation: faq-open .3s ease both; }
           .dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--green); animation: ping 1.8s ease-out infinite; }
         }
 
         @media (max-width: 920px) {
-          .live-ticker-bar, .live-ticker-bar .wrap { height: 48px; }
+          .live-ticker-bar, .live-ticker-bar .wrap { height: 44px; }
           .top-in { gap: 12px; height: 64px; }
           .top-actions { margin-left: auto; }
           .burger { display: inline-flex; }
-          .top-links { display: none; position: absolute; top: 100%; left: 0; right: 0; margin: 0; padding: 8px 24px 16px; flex-direction: column; gap: 0; background: var(--white); }
+          .top-links { display: none; position: absolute; top: 100%; left: 0; right: 0; margin: 0; padding: 8px 24px 16px; flex-direction: column; gap: 0; background: var(--white); box-shadow: 0 16px 24px -12px rgba(17,24,20,.16); }
           .top-links.open { display: flex; }
           .top-links a { min-height: 48px; font-size: 16px; }
-          .top-links a::after { display: none; }
           .al section[id] { scroll-margin-top: 116px; }
 
-          .sec { padding: 72px 0; }
-          .hero { padding: 48px 0 72px; }
-          .hero-grid, .track { grid-template-columns: 1fr; gap: 48px; }
+          .sec { padding: 80px 0; }
+          .hero { padding: 56px 0 80px; }
+          .hero-grid, .track { grid-template-columns: 1fr; gap: 56px; }
           .hero-visual, .track .track-visual { order: 2; }
-          .faq-grid { grid-template-columns: 1fr; }
-          .app-panel { grid-template-columns: 1fr; padding: 40px 28px; gap: 28px; }
+          .how { grid-template-columns: 1fr; }
+          .faq-layout { grid-template-columns: 1fr; gap: 36px; }
+          .faq-layout .sec-head { position: static; }
+          .app-panel { grid-template-columns: 1fr; padding: 44px 28px; gap: 28px; }
           .stores { justify-self: start; }
           .foot { grid-template-columns: 1fr 1fr; }
           .foot > :first-child { grid-column: 1 / -1; }
-          .shape.s3 { display: none; }
         }
 
         /* Fotos: duas visíveis em ecrãs pequenos */
@@ -453,16 +462,16 @@ export default function AgriLinkLanding() {
 
         @media (max-width: 520px) {
           .wrap { width: min(100% - 32px, 1160px); }
-          .live-ticker-bar { height: auto; min-height: 56px; }
-          .live-ticker-bar .wrap { height: auto; min-height: 56px; }
+          .live-ticker-bar { height: auto; min-height: 52px; }
+          .live-ticker-bar .wrap { height: auto; min-height: 52px; }
           .top-logo img { width: 112px; }
           .top-links { padding: 8px 16px 16px; }
           .hero h1 { font-size: clamp(36px, 11vw, 46px); }
           .hero-actions { flex-direction: column; align-items: stretch; }
-          .chip { font-size: 12px; padding: 8px 12px; }
+          .chip { font-size: 12px; padding: 8px 12px 8px 8px; }
           .chip.a { left: 0; }
           .chip.b { right: 0; }
-          .shape.s1 { width: 220px; height: 220px; }
+          .shape.s1 { width: 240px; height: 240px; }
           .featured-heading { flex-direction: column; align-items: flex-start; }
           .featured-grid { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 12px; padding-bottom: 8px; scrollbar-width: none; }
           .featured-grid::-webkit-scrollbar { display: none; }
@@ -480,7 +489,7 @@ export default function AgriLinkLanding() {
           </div>
         </div>
 
-        <header className="top">
+        <header className={`top ${scrolled ? "scrolled" : ""}`}>
           <div className="wrap top-in">
             <a className="top-logo" href="#top" aria-label="AgriLink"><img src={agrilinkLogo} alt="AgriLink" /></a>
             <nav id="menu-principal" className={`top-links ${menuOpen ? "open" : ""}`} aria-label="Principal" onClick={() => setMenuOpen(false)}>
@@ -509,8 +518,6 @@ export default function AgriLinkLanding() {
       <section className="hero" id="top">
         <span className="shape s1" aria-hidden="true" />
         <span className="shape s2" aria-hidden="true" />
-        <span className="shape s3" aria-hidden="true" />
-        <span className="shape s4" aria-hidden="true" />
         <div className="wrap hero-grid">
           <div>
             <h1 className="disp fx" style={delay(0)}>
@@ -526,15 +533,20 @@ export default function AgriLinkLanding() {
               </button>
               <a className="btn btn-ghost" href="#mercado">Explorar publicações</a>
             </div>
+            <ul className="proof fx" style={delay(0.25)} aria-label="Vantagens">
+              <li><span aria-hidden="true"><Check size={12} strokeWidth={3} /></span>Pagamento em garantia</li>
+              <li><span aria-hidden="true"><Check size={12} strokeWidth={3} /></span>Rastreio de cargas</li>
+              <li><span aria-hidden="true"><Check size={12} strokeWidth={3} /></span>Conta grátis</li>
+            </ul>
             <div className="payment-options fx" style={delay(0.3)} aria-label="Opções de pagamento previstas">
               <span className="payment-label">Opções de pagamento</span>
               <div className="payment-brands">
                 <span className="payment-brand">
-                  <span className="payment-brand-mark emis" aria-hidden="true"><CreditCard size={15} /></span>
+                  <span className="payment-brand-mark emis" aria-hidden="true"><CreditCard size={14} /></span>
                   <strong>EMIS GPO</strong>
                 </span>
                 <span className="payment-brand">
-                  <span className="payment-brand-mark unitel" aria-hidden="true"><Smartphone size={15} /></span>
+                  <span className="payment-brand-mark unitel" aria-hidden="true"><Smartphone size={14} /></span>
                   <strong>Unitel Money</strong>
                 </span>
               </div>
@@ -546,8 +558,30 @@ export default function AgriLinkLanding() {
             <div className="phone-frame">
               <img src={appPreviewImage} alt="Prévia da aplicação móvel AgriLink" />
             </div>
-            <span className="chip a" aria-hidden="true"><Sprout size={16} /> Rede de produtores</span>
-            <span className="chip b" aria-hidden="true"><Navigation size={16} /> Operações no campo</span>
+          </div>
+        </div>
+      </section>
+
+      {/* COMO FUNCIONA */}
+      <section className="sec" id="como-funciona" aria-labelledby="como-title">
+        <div className="wrap">
+          <div className="sec-head rv">
+            <span className="kick"><i className="idx">01</i>Como funciona</span>
+            <h2 className="h2 disp" id="como-title">Do campo ao comprador, em três passos.</h2>
+            <p className="lead">Negociação, pagamento e entrega ligados na mesma plataforma.</p>
+          </div>
+          <div className="how">
+            {HOW_STEPS.map((step, i) => {
+              const Icon = step.icon;
+              return (
+                <article className="how-card rv" key={step.title} style={delay(i * 0.1)}>
+                  <span className="how-n" aria-hidden="true">0{i + 1}</span>
+                  <span className="how-ico" aria-hidden="true"><Icon size={22} /></span>
+                  <h3>{step.title}</h3>
+                  <p>{step.text}</p>
+                </article>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -557,7 +591,7 @@ export default function AgriLinkLanding() {
         <div className="wrap">
           <div className="featured-heading rv">
             <div className="sec-head">
-              <span className="kick"><span className="dot" aria-hidden="true" />Mercado ao vivo</span>
+              <span className="kick"><i className="idx">02</i><span className="dot" aria-hidden="true" />Mercado ao vivo</span>
               <h2 className="h2 disp" id="mercado-title">Publicações em destaque</h2>
               <p className="lead">As publicações mais recentes de fornecedores com stock disponível.</p>
             </div>
@@ -587,7 +621,7 @@ export default function AgriLinkLanding() {
       <section className="sec" id="operacoes" aria-labelledby="operacoes-title">
         <div className="wrap">
           <div className="sec-head rv">
-            <span className="kick">AgriLink no terreno</span>
+            <span className="kick"><i className="idx">03</i>AgriLink no terreno</span>
             <h2 className="h2 disp" id="operacoes-title">A acompanhar de perto a produção local.</h2>
             <p className="lead">Conheça algumas das operações e visitas da nossa equipa junto dos produtores.</p>
           </div>
@@ -600,7 +634,7 @@ export default function AgriLinkLanding() {
                   <figure
                     className="tile"
                     key={`${photo.src}-${index}`}
-                    style={{ "--i": index % OPERATIONS_GALLERY.length, margin: 0, marginRight: "var(--gap)" } as React.CSSProperties}
+                    style={{ margin: 0, marginRight: "var(--gap)" } as React.CSSProperties}
                     aria-hidden={isCopy || undefined}
                   >
                     <img src={photo.src} alt={isCopy ? "" : photo.alt} loading={index === 0 ? "eager" : "lazy"} />
@@ -617,13 +651,13 @@ export default function AgriLinkLanding() {
       <section className="sec sec-white" id="rastreio" aria-labelledby="tracking-title">
         <div className="wrap track">
           <div className="rv l">
-            <span className="kick">Rastreio de cargas</span>
+            <span className="kick"><i className="idx">04</i>Rastreio de cargas</span>
             <h2 className="h2 disp" id="tracking-title">Saiba onde está a sua entrega.</h2>
             <p className="lead">Acompanhe a rota e consulte os dados da carga no mapa, do envio à recepção.</p>
             <ul className="track-points">
-              <li><MapPin size={20} aria-hidden="true" /> Localização da carga no mapa</li>
-              <li><Navigation size={20} aria-hidden="true" /> Distância e previsão da rota</li>
-              <li><ShieldCheck size={20} aria-hidden="true" /> Informação acessível durante a entrega</li>
+              <li><span aria-hidden="true"><MapPin size={20} /></span>Localização da carga no mapa</li>
+              <li><span aria-hidden="true"><Navigation size={20} /></span>Distância e previsão da rota</li>
+              <li><span aria-hidden="true"><ShieldCheck size={20} /></span>Informação acessível durante a entrega</li>
             </ul>
           </div>
           <div className="track-visual rv r" style={delay(0.1)}>
@@ -643,7 +677,7 @@ export default function AgriLinkLanding() {
       <section className="sec" id="parceiros" aria-labelledby="parceiros-title">
         <div className="wrap">
           <div className="sec-head rv">
-            <span className="kick">A rede</span>
+            <span className="kick"><i className="idx">05</i>A rede</span>
             <h2 className="h2 disp" id="parceiros-title">Já a negociar na AgriLink.</h2>
           </div>
           <div className="partners rv z" aria-label="Parceiros AgriLink">
@@ -653,11 +687,11 @@ export default function AgriLinkLanding() {
       </section>
 
       {/* APP */}
-      <section id="app" aria-labelledby="app-title" style={{ paddingBottom: 96 }}>
+      <section id="app" aria-labelledby="app-title" style={{ paddingBottom: 112 }}>
         <div className="wrap">
           <div className="app-panel rv z">
             <div>
-              <span className="kick">App AgriLink</span>
+              <span className="kick"><i className="idx">06</i>App AgriLink</span>
               <h2 className="disp" id="app-title">Leve o mercado no bolso.</h2>
               <p>Negocie, pague em garantia e acompanhe cada entrega no telemóvel, onde estiver.</p>
             </div>
@@ -670,15 +704,16 @@ export default function AgriLinkLanding() {
       </section>
 
       {/* FAQ */}
-      <section className="sec sec-white" id="faq" aria-labelledby="faq-title" style={{ borderBottom: 0 }}>
-        <div className="wrap">
-          <div className="sec-head rv">
-            <span className="kick">Perguntas frequentes</span>
+      <section className="sec sec-white" id="faq" aria-labelledby="faq-title">
+        <div className="wrap faq-layout">
+          <div className="sec-head rv l">
+            <span className="kick"><i className="idx">07</i>Perguntas frequentes</span>
             <h2 className="h2 disp" id="faq-title">Tudo o que precisa de saber.</h2>
+            <p className="lead">Não encontra o que procura? Escreva-nos para contacto@agrilink.ao.</p>
           </div>
-          <div className="faq-grid">
+          <div className="faq-list">
             {FAQ_ITEMS.map((item, i) => (
-              <details className="faq-item rv" key={item.question} style={delay((i % 2) * 0.08)}>
+              <details className="faq-item rv" key={item.question} style={delay((i % 3) * 0.06)}>
                 <summary>{item.question}</summary>
                 <p>{item.answer}</p>
               </details>

@@ -3,6 +3,9 @@
 ## Estado geral
 
 - Merge dos conflitos críticos concluído na branch `reunificar`.
+- Commit de entrega: `df13605` na `reunificar`.
+- Merge de produção: `24a292b` na `main`.
+- Push remoto concluído para `origin/reunificar` e `origin/main`.
 - App compilada com sucesso em produção.
 - Type-check estrito passou.
 - ESLint passou sem warnings finais.
@@ -34,7 +37,7 @@
 
 ## Migrações pendentes no Supabase
 
-Ainda não foi aplicado SQL remoto. Aplicar, em ordem:
+A aplicação automática de SQL remoto não foi confirmada: o Supabase CLI via `npx` não disponibilizou binário compatível para `linux-x64`. Aplicar, assim que o CLI autorizado estiver disponível, em ordem:
 
 1. `20261124090000_notify_product_comments.sql`
 2. `20261124120000_enable_recipient_notifications.sql`
@@ -55,6 +58,6 @@ Ainda não foi aplicado SQL remoto. Aplicar, em ordem:
 ## Deploy
 
 - Build de produção concluído.
-- Vercel CLI não estava disponível no ambiente no momento da auditoria.
-- Supabase CLI não estava disponível no ambiente no momento da auditoria.
-- O push para `origin/reunificar` e o deploy automático só devem prosseguir após commit local válido e credenciais remotas disponíveis.
+- Push para `origin/reunificar` e `origin/main` concluído.
+- Deploy automático fica dependente da integração da plataforma (por exemplo Vercel) ligada à branch `main`.
+- Supabase CLI não conseguiu executar neste ambiente: o pacote temporário não forneceu binário para `linux-x64`.
