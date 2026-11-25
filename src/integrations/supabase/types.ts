@@ -4355,6 +4355,18 @@ export type Database = {
         }
         Returns: string
       }
+      admin_list_payment_recipient_audit: {
+        Args: { p_limit?: number; p_recipient_id?: string | null }
+        Returns: {
+          action: string
+          actor_id: string
+          actor_name: string
+          details: Json
+          event_type: string
+          id: string
+          occurred_at: string
+        }[]
+      }
       admin_list_payment_recipients: {
         Args: Record<PropertyKey, never>
         Returns: {
