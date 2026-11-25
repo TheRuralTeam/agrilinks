@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://agrilink.ao",
+  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Vary": "Origin",
@@ -49,7 +49,7 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     const origin = req.headers.get("origin") ?? "";
     if (origin !== "https://agrilink.ao" && origin !== "https://www.agrilink.ao") return new Response(null, { status: 403 });
-    return new Response(null, { status: 204, headers: { ...corsHeaders, "Access-Control-Allow-Origin": origin } });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
   if (req.method !== "POST") return json({ error: "Método não permitido." }, 405);
   const origin = req.headers.get("origin") ?? "";
@@ -88,7 +88,7 @@ Deno.serve(async (req: Request) => {
       });
       if (rateError || rateAllowed !== true) return json({ error: "Limite de pedidos atingido. Tenta novamente mais tarde." }, 429);
 
-      const codes = [randomCode(), randomCode()];
+      await service.from("admin_bank_access_challenges").update({ status: "expired" }).eq("user_id", userData.user.id).eq("status", "pending");\n      await service.from("admin_bank_access_challenges").delete().lt("expires_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());\n      const codes = [randomCode(), randomCode()];
       const challengeId = crypto.randomUUID();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
       const [claudioHash, moisesHash] = await Promise.all([
@@ -104,7 +104,7 @@ Deno.serve(async (req: Request) => {
         moises_code_hash: moisesHash,
         expires_at: expiresAt,
       });
-      if (insertError) throw new Error("Não foi possível iniciar a verificação de segurança.");
+      if (insertError) throw new Error("Não foi possível iniciar a verificação de segurança.");\n      await service.from("audit_logs").insert({ user_id: userData.user.id, action: "admin_bank_access.requested", event_type: "ADMIN_BANK_ACCESS_REQUESTED", details: { challenge_id: challengeId, ip_address: ip, user_agent_hash: userAgentHash, recipients: ADMIN_EMAILS.map((item) => item.email) } });
 
       const messages = ADMIN_EMAILS.map((recipient, index) => ({
         dedupe_key: `admin-bank-gate:${challengeId}:${recipient.key}`,
