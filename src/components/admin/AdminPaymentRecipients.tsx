@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Archive, CheckCircle2, CircleAlert, Landmark, Loader2, Pencil, Plus, RefreshCw, ShieldCheck, ToggleLeft } from "lucide-react";
+import { Archive, CheckCircle2, CircleAlert, History, Landmark, Loader2, Pencil, Plus, RefreshCw, ShieldCheck, ToggleLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -29,6 +29,16 @@ interface PaymentRecipient {
   archived_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface RecipientAuditEvent {
+  id: string;
+  actor_id: string;
+  actor_name: string;
+  action: string;
+  event_type: string;
+  occurred_at: string;
+  details: Record<string, unknown> | null;
 }
 
 interface RecipientForm {
@@ -66,6 +76,7 @@ const formatDate = (value: string | null) =>
 
 const AdminPaymentRecipients = () => {
   const [recipients, setRecipients] = useState<PaymentRecipient[]>([]);
+  const [auditEvents, setAuditEvents] = useState<RecipientAuditEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -74,14 +85,22 @@ const AdminPaymentRecipients = () => {
 
   const loadRecipients = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await (supabase as any).rpc("admin_list_payment_recipients");
-    if (error) {
+    const [recipientsResult, auditResult] = await Promise.all([
+      (supabase as any).rpc("admin_list_payment_recipients"),
+      (supabase as any).rpc("admin_list_payment_recipient_audit", { p_recipient_id: null, p_limit: 50 }),
+    ]);
+    if (recipientsResult.error) {
       toast.error("Não foi possível carregar as coordenadas bancárias.");
-      console.error("admin_list_payment_recipients:", error);
+      console.error("admin_list_payment_recipients:", recipientsResult.error);
       setLoading(false);
       return;
     }
-    setRecipients((data ?? []) as PaymentRecipient[]);
+    setRecipients((recipientsResult.data ?? []) as PaymentRecipient[]);
+    if (auditResult.error) {
+      console.error("admin_list_payment_recipient_audit:", auditResult.error);
+    } else {
+      setAuditEvents((auditResult.data ?? []) as RecipientAuditEvent[]);
+    }
     setLoading(false);
   }, []);
 
@@ -252,6 +271,33 @@ const AdminPaymentRecipients = () => {
         <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
         <p>Uma conta só aparece no checkout quando está verificada e ativa. O comprovativo submetido pelo comprador não confirma automaticamente a entrada do dinheiro.</p>
       </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base"><History className="h-4 w-4" /> Histórico de alterações</CardTitle>
+          <p className="text-sm text-muted-foreground">Registo de criação, edição, verificação, ativação, desativação e arquivo das contas.</p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {auditEvents.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Ainda não existem alterações administrativas registadas.</p>
+          ) : auditEvents.map((event) => (
+            <div key={event.id} className="flex flex-col gap-1 border-b pb-3 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">{({
+                  "payment_recipient.created": "Conta adicionada",
+                  "payment_recipient.updated": "Coordenadas editadas",
+                  "payment_recipient.verified": "Conta verificada",
+                  "payment_recipient.activated": "Conta ativada",
+                  "payment_recipient.deactivated": "Conta desativada",
+                  "payment_recipient.archived": "Conta arquivada",
+                } as Record<string, string>)[event.action] ?? event.action}</p>
+                <p className="text-xs text-muted-foreground">Por {event.actor_name}</p>
+              </div>
+              <p className="shrink-0 text-xs text-muted-foreground">{formatDate(event.occurred_at)}</p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
