@@ -38,7 +38,7 @@ type CheckoutState = {
   loading: boolean
   error: string | null
 }
-type PaymentDraft = { intentId: string; recipientName: string; accountIdentifier: string; channel: string; accountHolder: string; instructions: string | null }
+type PaymentDraft = { intentId: string; recipientName: string; accountIdentifier: string; channel: string; bankName: string | null; accountHolder: string; instructions: string | null }
 
 const money = (amount: number, currency = 'AOA') =>
   new Intl.NumberFormat('pt-AO', { style: 'currency', currency, maximumFractionDigits: 2 }).format(amount)
@@ -185,16 +185,16 @@ export default function MyPurchases() {
     setBusyId(purchase.id)
     try {
       const intent = await createAuthorizedRecipientPaymentIntent(purchase.id, recipientId)
-      const recipient = state.recipients.find((item) => item.id === recipientId)
       setPaymentDrafts((current) => ({
         ...current,
         [purchase.id]: {
           intentId: intent.intent_id,
           recipientName: intent.recipient_name,
           accountIdentifier: intent.account_identifier,
-          channel: recipient?.channel || 'Canal autorizado',
-          accountHolder: recipient?.account_holder || intent.recipient_name,
-          instructions: recipient?.instructions || null,
+          channel: intent.channel || 'Canal autorizado',
+          bankName: intent.bank_name,
+          accountHolder: intent.account_holder || intent.recipient_name,
+          instructions: intent.instructions,
         },
       }))
       toast({ title: 'Instruções de pagamento preparadas', description: 'Usa os dados apresentados e comunica a transferência quando terminares.' })
@@ -315,7 +315,7 @@ export default function MyPurchases() {
                               <Label>Escolhe o método e destinatário autorizado</Label>
                               <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={selectedRecipients[purchase.id] || ''} onChange={(event) => setSelectedRecipients((current) => ({ ...current, [purchase.id]: event.target.value }))}>
                                 <option value="">Seleccionar opção</option>
-                                {state.recipients.map((recipient) => <option key={recipient.id} value={recipient.id}>{recipient.display_name} · {recipient.channel.replace(/_/g, ' ')}</option>)}
+                                {state.recipients.map((recipient) => <option key={recipient.id} value={recipient.id}>{recipient.display_name} · {recipient.bank_name ? recipient.bank_name + ' · ' : ''}{recipient.channel.replace(/_/g, ' ')}</option>)}
                               </select>
                               <Button onClick={() => void createPayment(purchase)} disabled={!selectedRecipients[purchase.id] || busyId === purchase.id || Boolean(paymentDrafts[purchase.id])}>{busyId === purchase.id ? 'A preparar…' : paymentDrafts[purchase.id] ? 'Instruções já geradas' : 'Gerar instruções seguras'}</Button>
                             </div>
@@ -327,7 +327,7 @@ export default function MyPurchases() {
 
                   {draft && (
                     <div className="space-y-3 rounded-lg border p-4">
-                      <div><p className="font-semibold">Instruções de pagamento</p><p className="text-sm text-muted-foreground">Método: {draft.channel.replace(/_/g, ' ')}</p><p className="mt-1 text-sm">Destinatário: <strong>{draft.recipientName}</strong></p><p className="text-sm">Titular: <strong>{draft.accountHolder}</strong></p><p className="mt-1 break-all font-mono text-sm">{draft.accountIdentifier}</p>{draft.instructions && <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{draft.instructions}</p>}</div>
+                      <div><p className="font-semibold">Instruções de pagamento</p><p className="text-sm text-muted-foreground">Método: {draft.channel.replace(/_/g, ' ')}</p><p className="mt-1 text-sm">Destinatário: <strong>{draft.recipientName}</strong></p>{draft.bankName && <p className="text-sm">Banco: <strong>{draft.bankName}</strong></p>}<p className="text-sm">Titular: <strong>{draft.accountHolder}</strong></p><p className="mt-1 break-all font-mono text-sm">{draft.accountIdentifier}</p>{draft.instructions && <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{draft.instructions}</p>}</div>
                       <p className="text-sm text-muted-foreground">Confirma o nome e os dados no canal de pagamento escolhido. Depois da transferência, regista a referência abaixo. A compra só será marcada como paga após validação.</p>
                       <div><Label>Referência real da transferência</Label><Input value={proofReferences[purchase.id] || ''} onChange={(event) => setProofReferences((current) => ({ ...current, [purchase.id]: event.target.value }))} placeholder="Referência / comprovativo da operação" /></div>
                       <div><Label>Nota opcional</Label><Textarea value={proofNotes[purchase.id] || ''} onChange={(event) => setProofNotes((current) => ({ ...current, [purchase.id]: event.target.value }))} placeholder="Informação adicional para a validação" rows={2} /></div>
