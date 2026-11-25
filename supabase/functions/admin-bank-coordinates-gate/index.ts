@@ -84,7 +84,9 @@ Deno.serve(async (req: Request) => {
       });
       if (rateError || rateAllowed !== true) return json({ error: "Limite de pedidos atingido. Tenta novamente mais tarde." }, 429);
 
-      await service.from("admin_bank_access_challenges").update({ status: "expired" }).eq("user_id", userData.user.id).eq("status", "pending");\n      await service.from("admin_bank_access_challenges").delete().lt("expires_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());\n      const codes = [randomCode(), randomCode()];
+      await service.from("admin_bank_access_challenges").update({ status: "expired" }).eq("user_id", userData.user.id).eq("status", "pending");
+      await service.from("admin_bank_access_challenges").delete().lt("expires_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+      const codes = [randomCode(), randomCode()];
       const challengeId = crypto.randomUUID();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
       const [claudioHash, moisesHash] = await Promise.all([
@@ -100,7 +102,8 @@ Deno.serve(async (req: Request) => {
         moises_code_hash: moisesHash,
         expires_at: expiresAt,
       });
-      if (insertError) throw new Error("Não foi possível iniciar a verificação de segurança.");\n      await service.from("audit_logs").insert({ user_id: userData.user.id, action: "admin_bank_access.requested", event_type: "ADMIN_BANK_ACCESS_REQUESTED", details: { challenge_id: challengeId, ip_address: ip, user_agent_hash: userAgentHash, recipients: ADMIN_EMAILS.map((item) => item.email) } });
+      if (insertError) throw new Error("Não foi possível iniciar a verificação de segurança.");
+      await service.from("audit_logs").insert({ user_id: userData.user.id, action: "admin_bank_access.requested", event_type: "ADMIN_BANK_ACCESS_REQUESTED", details: { challenge_id: challengeId, ip_address: ip, user_agent_hash: userAgentHash, recipients: ADMIN_EMAILS.map((item) => item.email) } });
 
       const messages = ADMIN_EMAILS.map((recipient, index) => ({
         dedupe_key: `admin-bank-gate:${challengeId}:${recipient.key}`,
