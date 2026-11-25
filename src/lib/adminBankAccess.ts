@@ -15,7 +15,7 @@ export async function adminBankRpc<T = unknown>(
   if (sessionError || !session) return { data: null as T | null, error: new Error("ADMIN_SESSION_REQUIRED") };
 
   const gatedClient = createClient(supabase.supabaseUrl, supabase.supabaseKey, {
-    global: { headers: { "x-client-info": `agrilink-admin-bank-gate:${token}` } },
+    global: {\n      fetch: async (input, init = {}) => {\n        const headers = new Headers(init.headers);\n        headers.set("x-client-info", `agrilink-admin-bank-gate:${token}`);\n        return fetch(input, { ...init, headers });\n      },\n    },
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
   const { error: setSessionError } = await gatedClient.auth.setSession({
