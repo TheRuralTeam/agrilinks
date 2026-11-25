@@ -1110,11 +1110,11 @@ const AdminDashboard = () => {
             <SidebarItem active={activeTab === "finance"} onClick={() => { setActiveTab("finance"); setMenuOpen(false); }} icon={<Landmark className="h-4 w-4" />}>
               Financeiro
             </SidebarItem>
+          )}
           {(isRootAdmin || hasPermission("manage_admins")) && (
             <SidebarItem active={activeTab === "paymentMethods"} onClick={() => { setActiveTab("paymentMethods"); setMenuOpen(false); }} icon={<Landmark className="h-4 w-4" />}>
               Métodos de pagamento
             </SidebarItem>
-          )}
           )}
           <SidebarItem active={activeTab === "transactions"} onClick={() => { setActiveTab("transactions"); setMenuOpen(false); }} icon={<DollarSign className="h-4 w-4" />}>
             Transações
