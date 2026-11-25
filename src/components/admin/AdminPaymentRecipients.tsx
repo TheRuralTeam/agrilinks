@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
-import { supabase } from "../../integrations/supabase/client";
+import { adminBankRpc } from "../../lib/adminBankAccess";
 
 type PaymentChannel = "bank_transfer" | "multicaixa_express" | "unitel_money" | "afrimoney" | "paypay";
 
@@ -86,7 +86,7 @@ const AdminPaymentRecipients = () => {
   const loadRecipients = useCallback(async () => {
     setLoading(true);
     const [recipientsResult, auditResult] = await Promise.all([
-      (supabase as any).rpc("admin_list_payment_recipients"),
+      adminBankRpc("admin_list_payment_recipients"),
       (supabase as any).rpc("admin_list_payment_recipient_audit", { p_recipient_id: null, p_limit: 50 }),
     ]);
     if (recipientsResult.error) {
