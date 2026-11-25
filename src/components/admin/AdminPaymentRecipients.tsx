@@ -87,7 +87,7 @@ const AdminPaymentRecipients = () => {
     setLoading(true);
     const [recipientsResult, auditResult] = await Promise.all([
       adminBankRpc("admin_list_payment_recipients"),
-      (supabase as any).rpc("admin_list_payment_recipient_audit", { p_recipient_id: null, p_limit: 50 }),
+      adminBankRpc("admin_list_payment_recipient_audit", { p_recipient_id: null, p_limit: 50 }),
     ]);
     if (recipientsResult.error) {
       toast.error("Não foi possível carregar as coordenadas bancárias.");
@@ -154,8 +154,8 @@ const AdminPaymentRecipients = () => {
       p_sort_order: sortOrder,
     };
     const { error } = editing
-      ? await (supabase as any).rpc("admin_update_payment_recipient", { p_recipient_id: editing.id, ...args })
-      : await (supabase as any).rpc("admin_create_payment_recipient", args);
+      ? await adminBankRpc("admin_update_payment_recipient", { p_recipient_id: editing.id, ...args })
+      : await adminBankRpc("admin_create_payment_recipient", args);
     setSaving(false);
     if (error) {
       console.error("save payment recipient:", error);
@@ -181,7 +181,7 @@ const AdminPaymentRecipients = () => {
     const args = action === "activate" || action === "deactivate"
       ? { p_recipient_id: recipient.id, p_active: action === "activate" }
       : { p_recipient_id: recipient.id };
-    const { error } = await (supabase as any).rpc(rpc, args);
+    const { error } = await adminBankRpc(rpc, args);
     if (error) {
       console.error(rpc, error);
       toast.error(error.message?.includes("RECIPIENT_MUST_BE_VERIFIED")
