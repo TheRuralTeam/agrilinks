@@ -368,7 +368,7 @@ const AppRoutes = () => {
           }
         />
         <Route
-          path="/admindashboard/coordenadas-bancarias"
+          path="/admindashboard/secure/618d05c1aa66aeeae977dcb843bc15fc3d70bc74b700a1eac5a0afa8c2fee997"
           element={
             <PermissionRoute permissions={["manage_admins"]} allowRootAdmins>
               <AdminPaymentMethods />
