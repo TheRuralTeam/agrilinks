@@ -25,11 +25,7 @@ const randomToken = () => {
   crypto.getRandomValues(bytes);
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 };
-const getClientIp = (req: Request) =>
-  req.headers.get("cf-connecting-ip")?.trim()
-  || req.headers.get("x-real-ip")?.trim()
-  || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-  || "";
+const getClientIp = (req: Request) => req.headers.get("cf-connecting-ip")?.trim() || "";
 const constantTimeEqual = (a: string, b: string) => {
   if (a.length !== b.length) return false;
   let result = 0;
@@ -174,12 +170,12 @@ Deno.serve(async (req: Request) => {
       const accessToken = randomToken();
       const accessTokenHash = await sha256(accessToken);
       const accessExpiresAt = new Date(Date.now() + 20 * 60 * 1000).toISOString();
-      const { error: grantError } = await service.from("admin_bank_access_challenges").update({
+      const { data: granted, error: grantError } = await service.from("admin_bank_access_challenges").update({
         status: "approved",
         access_token_hash: accessTokenHash,
         access_expires_at: accessExpiresAt,
-      }).eq("id", challengeId).eq("status", "pending");
-      if (grantError) throw new Error("Não foi possível conceder a sessão protegida.");
+      }).eq("id", challengeId).eq("status", "pending").select("id").maybeSingle();
+      if (grantError || !granted) throw new Error("O pedido já foi concluído ou alterado. Inicia uma nova verificação.");
       return json({ success: true, fully_authorized: true, access_token: accessToken, expires_at: accessExpiresAt });
     }
 
