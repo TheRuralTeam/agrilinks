@@ -73,6 +73,7 @@ import MarketPricesManager from "../components/admin/MarketPricesManager";
 import FreightPricingSettings from "../components/admin/FreightPricingSettings";
 import AdminRouteDirectory from "../components/admin/AdminRouteDirectory";
 import AdminFinance from "./AdminFinance";
+import AdminPaymentRecipients from "../components/admin/AdminPaymentRecipients";
 import { MetricCard, SidebarItem } from "../components/admin/AdminUi";
 import { downloadFichaRecebimentoPdf } from "../lib/fichaRecebimentoPdf";
 import { downloadMarketplaceTransactionReceipt } from "../features/orders/transactionReceipts";
@@ -177,7 +178,7 @@ interface Ficha {
   updated_at?: string | null;
 }
 
-type TabType = "dashboard" | "products" | "users" | "transactions" | "notifications" | "orders" | "fichas" | "sourcing" | "market" | "prices" | "admins" | "referrals" | "deliveries" | "freight" | "routes" | "finance";
+type TabType = "dashboard" | "products" | "users" | "transactions" | "notifications" | "orders" | "fichas" | "sourcing" | "market" | "prices" | "admins" | "referrals" | "deliveries" | "freight" | "routes" | "finance" | "paymentMethods";
 
 interface SourcingRequest {
   id: string;
@@ -233,6 +234,7 @@ const TAB_TITLES: Record<TabType, string> = {
   freight: "Configuração do Frete",
   routes: "Rotas da Aplicação",
   finance: "Financeiro",
+  paymentMethods: "Métodos de pagamento",
 };
 
 // --- Componentes Auxiliares ---
@@ -273,7 +275,7 @@ const AdminDashboard = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const requestedTab = new URLSearchParams(location.search).get("tab");
-    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries", "freight", "routes", "finance"]);
+    const supportedTabs = new Set<TabType>(["dashboard", "products", "users", "transactions", "notifications", "orders", "fichas", "sourcing", "market", "prices", "admins", "referrals", "deliveries", "freight", "routes", "finance", "paymentMethods"]);
     return requestedTab && supportedTabs.has(requestedTab as TabType) ? requestedTab as TabType : "dashboard";
   });
 
@@ -394,6 +396,8 @@ const AdminDashboard = () => {
         return hasPermission("manage_sourcing");
       case "finance":
         return canViewFinance;
+      case "paymentMethods":
+        return isRootAdmin || hasPermission("manage_admins");
       case "routes":
       case "market":
       case "referrals":
@@ -1106,6 +1110,11 @@ const AdminDashboard = () => {
             <SidebarItem active={activeTab === "finance"} onClick={() => { setActiveTab("finance"); setMenuOpen(false); }} icon={<Landmark className="h-4 w-4" />}>
               Financeiro
             </SidebarItem>
+          {(isRootAdmin || hasPermission("manage_admins")) && (
+            <SidebarItem active={activeTab === "paymentMethods"} onClick={() => { setActiveTab("paymentMethods"); setMenuOpen(false); }} icon={<Landmark className="h-4 w-4" />}>
+              Métodos de pagamento
+            </SidebarItem>
+          )}
           )}
           <SidebarItem active={activeTab === "transactions"} onClick={() => { setActiveTab("transactions"); setMenuOpen(false); }} icon={<DollarSign className="h-4 w-4" />}>
             Transações
@@ -1213,6 +1222,7 @@ const AdminDashboard = () => {
 
         {activeTab === "routes" && <AdminRouteDirectory />}
         {activeTab === "finance" && canViewFinance && <AdminFinance canManageViewers={canManageFinanceViewers} />}
+        {activeTab === "paymentMethods" && (isRootAdmin || hasPermission("manage_admins")) && <AdminPaymentRecipients />}
 
         {/* DASHBOARD */}
         {activeTab === "dashboard" && (
