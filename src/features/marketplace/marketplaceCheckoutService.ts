@@ -65,6 +65,7 @@ export interface AuthorizedPaymentRecipient {
   id: string
   display_name: string
   channel: 'bank_transfer' | 'multicaixa_express' | 'unitel_money' | 'afrimoney' | 'paypay'
+  bank_name: string | null
   account_identifier: string
   account_holder: string
   instructions: string | null
