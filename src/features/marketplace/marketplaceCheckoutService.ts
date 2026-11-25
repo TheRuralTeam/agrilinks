@@ -87,7 +87,7 @@ export async function createAuthorizedRecipientPaymentIntent(
   const { data, error } = await supabase.rpc('create_authorized_recipient_payment_intent', {
     p_pre_order_id: preOrderId,
     p_recipient_id: recipientId,
-    p_idempotency_key: crypto.randomUUID(),
+    p_idempotency_key: getMarketplacePaymentIdempotencyKey(preOrderId, 'agrilink_authorized_recipient'),
   })
   if (error) throw error
   return (Array.isArray(data) ? data[0] : data) as {
@@ -99,6 +99,10 @@ export async function createAuthorizedRecipientPaymentIntent(
     recipient_id: string
     recipient_name: string
     account_identifier: string
+    channel: string
+    bank_name: string | null
+    account_holder: string
+    instructions: string | null
   }
 }
 
