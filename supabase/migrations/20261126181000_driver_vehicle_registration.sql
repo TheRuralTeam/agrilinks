@@ -49,6 +49,7 @@ CREATE POLICY "Drivers can register own vehicles"
     )
   );
 
+REVOKE ALL ON public.driver_vehicles FROM anon;
 GRANT SELECT, INSERT ON public.driver_vehicles TO authenticated;
 
 ALTER TABLE public.freight_loads
@@ -144,6 +145,8 @@ BEGIN
 END;
 $function$;
 
+REVOKE ALL ON FUNCTION public.protect_driver_license_review_fields() FROM PUBLIC, anon, authenticated;
+
 DROP TRIGGER IF EXISTS trg_protect_driver_license_review_fields ON public.driver_licenses;
 CREATE TRIGGER trg_protect_driver_license_review_fields
   BEFORE UPDATE ON public.driver_licenses
@@ -164,6 +167,8 @@ END;
 $function$;
 
 DROP TRIGGER IF EXISTS trg_driver_license_updated_at ON public.driver_licenses;
+REVOKE ALL ON FUNCTION public.set_driver_license_updated_at() FROM PUBLIC, anon, authenticated;
+
 CREATE TRIGGER trg_driver_license_updated_at
   BEFORE UPDATE ON public.driver_licenses
   FOR EACH ROW EXECUTE FUNCTION public.set_driver_license_updated_at();
@@ -419,7 +424,7 @@ BEGIN
   UPDATE public.freight_loads
   SET driver_id = actor_id, vehicle_id = v_vehicle.id, status = 'accepted',
     accepted_at = now()
-  WHERE id = p_freight_load_id AND status = 'open' AND driver_id IS NULL
+  WHERE id = p_freight_load_id AND status IN ('available', 'open', 'agendado') AND driver_id IS NULL
     AND weight_kg > 0 AND weight_kg <= v_vehicle.capacity_kg
   RETURNING id INTO accepted_id;
 

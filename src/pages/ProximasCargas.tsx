@@ -1830,12 +1830,12 @@ const ProximasCargas = () => {
                           </select>
                         </div>
                         {quotePriceMethod === 'suggested' ? (
-                          <p style={{ margin: 0, fontSize: 11, color: T.muted, lineHeight: 1.5 }}>O preço será calculado com base na rota, distância, peso e tarifas activas. A AgriLink retém 10% do frete e o teu líquido será 90% após a liquidação. Se quiseres negociar outro valor, escolhe “Apresentar o meu preço”.</p>
+                          <p style={{ margin: 0, fontSize: 11, color: T.muted, lineHeight: 1.5 }}>O preço será calculado com base na rota, distância, peso e tarifas activas. A AgriLink retém 8% do frete e o teu líquido será 92% após a liquidação. Se quiseres negociar outro valor, escolhe “Apresentar o meu preço”.</p>
                         ) : (
                           <div style={{ display: 'grid', gap: 5 }}>
                             <label htmlFor={`manual-price-${load.id}`} style={{ fontSize: 12, fontWeight: 800, color: T.ink }}>Valor da tua proposta (Kz)</label>
                             <input id={`manual-price-${load.id}`} type="number" min="0.01" max="1000000000000" step="0.01" inputMode="decimal" value={manualQuotePrice} onChange={(event) => setManualQuotePrice(event.target.value)} placeholder="Ex.: 25 000" style={formInputStyle} />
-                            {Number(manualQuotePrice) > 0 && <p style={{ margin: 0, fontSize: 11, color: T.muted }}>Comissão AgriLink (10%): {money(Number(manualQuotePrice) * 0.1, load.currency)} · líquido estimado: {money(Number(manualQuotePrice) * 0.9, load.currency)}.</p>}
+                            {Number(manualQuotePrice) > 0 && <p style={{ margin: 0, fontSize: 11, color: T.muted }}>Comissão AgriLink (8%): {money(Number(manualQuotePrice) * 0.08, load.currency)} · líquido estimado: {money(Number(manualQuotePrice) * 0.92, load.currency)}.</p>}
                           </div>
                         )}
                         <p style={{ margin: 0, fontSize: 11, color: T.muted, lineHeight: 1.5 }}>A proposta será enviada ao comprador. O pagamento só será liberado depois da aprovação dele.</p>
