@@ -146,7 +146,6 @@ const AdminFreightOperations: React.FC = () => {
 
   useEffect(() => {
     const channel = supabase.channel("admin-freight-operations")
-      .on("postgres_changes", { event: "*", schema: "public", table: "freight_loads" }, () => void fetchData(true))
       .on("postgres_changes", { event: "*", schema: "public", table: "freight_load_events" }, () => void fetchData(true))
       .on("postgres_changes", { event: "*", schema: "public", table: "freight_load_locations" }, () => void fetchData(true))
       .subscribe();
