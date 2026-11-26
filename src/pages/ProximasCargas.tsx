@@ -813,6 +813,9 @@ const ProximasCargas = () => {
       }
 
       const route = await calculateFreightRoute(originPoint, destinationPoint);
+      if (route.originSnapDistanceKm > 25 || route.destinationSnapDistanceKm > 25) {
+        throw new Error('A estrada mais próxima está a mais de 25 km de um dos pontos GPS. Corrija a localização da recolha ou do destino antes de enviar a proposta.');
+      }
       const { error } = await supabase.rpc('submit_freight_quote' as never, {
         p_freight_load_id: load.id,
         p_price_method: quotePriceMethod,
