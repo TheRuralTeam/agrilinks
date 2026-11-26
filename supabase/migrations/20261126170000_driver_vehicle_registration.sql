@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS public.driver_vehicles (
   model text NOT NULL CHECK (length(btrim(model)) BETWEEN 1 AND 100),
   plate_number text NOT NULL CHECK (length(regexp_replace(upper(btrim(plate_number)), '[^A-Z0-9]', '', 'g')) BETWEEN 5 AND 12),
   color text NOT NULL CHECK (length(btrim(color)) BETWEEN 2 AND 40),
-  manufacture_year integer CHECK (manufacture_year BETWEEN 1950 AND EXTRACT(YEAR FROM now())::integer + 1),
+  manufacture_year integer CHECK (manufacture_year BETWEEN 1950 AND 2100),
   capacity_kg numeric(12,2) NOT NULL CHECK (capacity_kg > 0 AND capacity_kg <= 1000000),
   condition_notes text NOT NULL CHECK (length(btrim(condition_notes)) BETWEEN 10 AND 1000),
   brakes_ok boolean NOT NULL,
