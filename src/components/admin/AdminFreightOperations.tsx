@@ -152,15 +152,15 @@ const AdminFreightOperations: React.FC = () => {
     return () => { void supabase.removeChannel(channel); };
   }, [fetchData]);
 
-  const personById = useMemo(() => new Map(people.map(person => [person.id, person])), [people]);
-  const vehicleById = useMemo(() => new Map(vehicles.map(vehicle => [vehicle.id, vehicle])), [vehicles]);
-  const orderById = useMemo(() => new Map(preOrders.map(order => [order.id, order])), [preOrders]);
+  const personById = useMemo(() => new Map<string, Person>(people.map(person => [person.id, person] as const)), [people]);
+  const vehicleById = useMemo(() => new Map<string, Vehicle>(vehicles.map(vehicle => [vehicle.id, vehicle] as const)), [vehicles]);
+  const orderById = useMemo(() => new Map<string, PreOrder>(preOrders.map(order => [order.id, order] as const)), [preOrders]);
   const latestLocationByLoad = useMemo(() => {
     const map = new Map<string, Location>();
     locations.forEach(point => { if (!map.has(point.freight_load_id)) map.set(point.freight_load_id, point); });
     return map;
   }, [locations]);
-  const settlementByLoad = useMemo(() => new Map(settlements.map(item => [item.freight_load_id, item])), [settlements]);
+  const settlementByLoad = useMemo(() => new Map<string, Settlement>(settlements.map(item => [item.freight_load_id, item] as const)), [settlements]);
   const visibleLoads = useMemo(() => {
     const term = query.trim().toLocaleLowerCase("pt-AO");
     return loads.filter(load => {
