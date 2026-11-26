@@ -155,7 +155,7 @@ const formInputStyle: React.CSSProperties = {
 
 const ProximasCargas = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const { requireAct } = useCanAct();
   const [loads, setLoads] = useState<FreightLoad[]>([]);
   const [loading, setLoading] = useState(true);
@@ -164,6 +164,8 @@ const ProximasCargas = () => {
   const [quotePriceMethod, setQuotePriceMethod] = useState<'suggested' | 'manual'>('suggested');
   const [driverVehicles, setDriverVehicles] = useState<DriverVehicle[]>([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
+  const [driverLicenseReady, setDriverLicenseReady] = useState(false);
+  const [driverLicenseChecked, setDriverLicenseChecked] = useState(false);
   const [vehicleDraftLoadId, setVehicleDraftLoadId] = useState<string | null>(null);
   const [vehicleDraftAction, setVehicleDraftAction] = useState<'accept' | 'quote' | null>(null);
   const [showNewVehicle, setShowNewVehicle] = useState(false);
@@ -335,6 +337,36 @@ const ProximasCargas = () => {
   useEffect(() => {
     void fetchLoads();
   }, [fetchLoads, user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || userProfile?.user_type !== 'motorista') {
+      setDriverLicenseReady(false);
+      setDriverLicenseChecked(true);
+      return;
+    }
+    let active = true;
+    setDriverLicenseChecked(false);
+    void supabase
+      .from('driver_licenses')
+      .select('verification_status, issued_at, expires_at')
+      .eq('driver_id', user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!active) return;
+        const today = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Africa/Luanda',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }).format(new Date());
+        setDriverLicenseReady(!error && Boolean(data) &&
+          data!.verification_status !== 'rejected' &&
+          data!.issued_at <= today &&
+          data!.expires_at >= today);
+        setDriverLicenseChecked(true);
+      });
+    return () => { active = false; };
+  }, [user?.id, userProfile?.user_type]);
 
   useEffect(() => {
     if (!user?.id) {
@@ -1020,6 +1052,18 @@ const ProximasCargas = () => {
           {createOpen ? 'Fechar' : 'Publicar carga'}
         </button>
       </header>
+
+      {driverLicenseChecked && userProfile?.user_type === 'motorista' && !driverLicenseReady && (
+        <div style={{ margin: '12px 16px 0', padding: '13px 14px', border: '1px solid #F59E0B55', borderRadius: 12, background: '#FFFBEB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ minWidth: 0 }}>
+            <strong style={{ display: 'block', color: '#92400E', fontSize: 13 }}>Carta de condução em falta ou inválida</strong>
+            <span style={{ color: '#92400E', fontSize: 11 }}>Actualiza os dados da tua carta no perfil para poderes aceitar cargas e propor fretes.</span>
+          </div>
+          <button type="button" onClick={() => navigate('/perfil')} style={{ border: 0, borderRadius: 9, background: '#92400E', color: '#FFFFFF', padding: '9px 12px', fontSize: 12, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            Completar perfil
+          </button>
+        </div>
+      )}
 
       <div
         style={{
