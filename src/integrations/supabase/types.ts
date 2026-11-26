@@ -4220,6 +4220,56 @@ export type Database = {
           },
         ]
       }
+      driver_licenses: {
+        Row: {
+          created_at: string
+          driver_id: string
+          expires_at: string
+          issued_at: string
+          issuing_authority: string
+          license_categories: string[]
+          license_number: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          updated_at: string
+          verification_status: string
+        }
+        Insert: {
+          created_at?: string
+          driver_id: string
+          expires_at: string
+          issued_at: string
+          issuing_authority: string
+          license_categories?: string[]
+          license_number: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          updated_at?: string
+          verification_status?: string
+        }
+        Update: {
+          created_at?: string
+          driver_id?: string
+          expires_at?: string
+          issued_at?: string
+          issuing_authority?: string
+          license_categories?: string[]
+          license_number?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          updated_at?: string
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_licenses_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wallets: {
         Row: {
           available_balance: number
