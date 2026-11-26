@@ -291,5 +291,7 @@ BEGIN
 END;
 $function$;
 
+REVOKE ALL ON FUNCTION public.submit_freight_quote(uuid,text,numeric,numeric,integer,uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.accept_freight_load(uuid,uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.submit_freight_quote(uuid,text,numeric,numeric,integer,uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.accept_freight_load(uuid,uuid) TO authenticated;
