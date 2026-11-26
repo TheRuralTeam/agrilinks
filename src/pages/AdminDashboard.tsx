@@ -66,7 +66,7 @@ import {
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import agrilinkLogo from "../assets/agrilink-logo.png";
 import AdminManagement from "../components/admin/AdminManagement";
-import DeliveryTracking from "../components/admin/DeliveryTracking";
+import AdminFreightOperations from "../components/admin/AdminFreightOperations";
 import SourcingOperations from "../components/admin/SourcingOperations";
 import WorkSessionTimer from "../components/admin/WorkSessionTimer";
 import MarketPricesManager from "../components/admin/MarketPricesManager";
@@ -2720,7 +2720,7 @@ const AdminDashboard = () => {
 
         {/* DELIVERIES TAB */}
         {activeTab === "deliveries" && currentUserId && (
-          <DeliveryTracking currentUserId={currentUserId} />
+          <AdminFreightOperations />
         )}
       </main>
       </div>
