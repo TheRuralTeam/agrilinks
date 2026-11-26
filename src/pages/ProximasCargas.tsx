@@ -829,6 +829,10 @@ const ProximasCargas = () => {
 
   const accept = async (load: FreightLoad) => {
     if (!requireAct('aceitar uma carga')) return;
+    setVehicleDraftLoadId(load.id);
+    setVehicleDraftAction('accept');
+    setShowNewVehicle(false);
+    return;
     const selectedVehicle = driverVehicles.find((vehicle) => vehicle.id === selectedVehicleId && vehicle.is_active);
     if (!selectedVehicle || selectedVehicle.capacity_kg < load.weight_kg ||
       !selectedVehicle.brakes_ok || !selectedVehicle.tires_ok || !selectedVehicle.lights_ok ||
@@ -860,7 +864,7 @@ const ProximasCargas = () => {
     setSavingVehicle(true);
     try {
       let vehicleId = selectedVehicleId;
-      if (showNewVehicle) {
+      if (showNewVehicle || driverVehicles.length === 0) {
         const plate = vehicleDraft.plate_number.trim().toUpperCase();
         const capacityKg = Number(vehicleDraft.capacity_kg);
         if (!vehicleDraft.vehicle_type.trim() || !vehicleDraft.make.trim() ||
@@ -1333,8 +1337,9 @@ const ProximasCargas = () => {
 
         {!loading &&
           visible.map((load) => {
-            const capacityUnavailable = !capacity || !Number.isFinite(Number(capacity)) || Number(capacity) <= 0;
-            const tooHeavy = capacityUnavailable || load.weight_kg > Number(capacity);
+            const selectedVehicle = driverVehicles.find((vehicle) => vehicle.id === selectedVehicleId && vehicle.is_active);
+            const capacityUnavailable = !selectedVehicle;
+            const tooHeavy = Boolean(selectedVehicle && load.weight_kg > Number(selectedVehicle.capacity_kg));
             const isAssignedDriver = load.driver_id === user?.id;
             const latestDriverLocation = driverLocations[load.id];
             const hasCoordinates =
@@ -1719,10 +1724,10 @@ const ProximasCargas = () => {
                         <button
                           type="button"
                           disabled={busyId === load.id || tooHeavy}
-                          onClick={() => { setQuoteDraftLoadId(load.id); setQuotePriceMethod('suggested'); setManualQuotePrice('') }}
+                          onClick={() => { setQuoteDraftLoadId(load.id); setQuotePriceMethod('suggested'); setManualQuotePrice(''); setVehicleDraftLoadId(load.id); setVehicleDraftAction('quote'); setShowNewVehicle(false); }}
                           style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: 'none', background: tooHeavy ? T.rule : T.green, color: tooHeavy ? T.muted : T.white, fontFamily: FONT, fontSize: 14, fontWeight: 800, cursor: tooHeavy ? 'not-allowed' : 'pointer' }}
                         >
-                          {capacityUnavailable ? 'Regista a capacidade do veículo' : tooHeavy ? 'Carga acima da tua capacidade' : load.driver_quote_status === 'rejected' ? 'Rever preço e enviar proposta' : 'Propor preço do transporte'}
+                          {capacityUnavailable ? 'Regista ou selecciona o veículo' : tooHeavy ? 'Capacidade insuficiente' : load.driver_quote_status === 'rejected' ? 'Rever preço e enviar proposta' : 'Propor preço do transporte'}
                         </button>
                       </>
                     ) : (
