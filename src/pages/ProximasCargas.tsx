@@ -155,7 +155,7 @@ const formInputStyle: React.CSSProperties = {
 
 const ProximasCargas = () => {
   const navigate = useNavigate();
-  const { user, userProfile } = useAuth();
+  const { user } = useAuth();
   const { requireAct } = useCanAct();
   const [loads, setLoads] = useState<FreightLoad[]>([]);
   const [loading, setLoading] = useState(true);
@@ -227,8 +227,6 @@ const ProximasCargas = () => {
   const pendingLocationRef = useRef<Record<string, FreightLoadLocation>>({});
   const onlineFlushHandlerRef = useRef<(() => void) | null>(null);
   const locationRetryNoticeShown = useRef(false);
-
-  const capacity = (userProfile as any)?.load_capacity_kg as number | null | undefined;
 
   // The route-repair search must query the geocoder, not only filter previously saved places.
   useEffect(() => {
