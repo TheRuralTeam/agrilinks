@@ -807,9 +807,9 @@ const ProximasCargas = () => {
         p_snapped_origin_lng: route.snappedOrigin[1],
         p_snapped_destination_lat: route.snappedDestination[0],
         p_snapped_destination_lng: route.snappedDestination[1],
+        p_driver_commitment_confirmed: true,
       } as never);
       if (error) throw error;
-      setDriverDailyLoadStatus('limit_reached');
       toast.success('Proposta enviada ao comprador. O pagamento só será liberado depois da aprovação do preço.');
       setQuoteDraftLoadId(null);
       setManualQuotePrice('');
@@ -1001,6 +1001,7 @@ const ProximasCargas = () => {
         const { error } = await supabase.rpc('accept_freight_load' as never, {
           p_freight_load_id: load.id,
           p_vehicle_id: vehicleId,
+          p_driver_commitment_confirmed: true,
         } as never);
         setBusyId(null);
         if (error) throw error;
