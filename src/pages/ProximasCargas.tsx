@@ -832,31 +832,6 @@ const ProximasCargas = () => {
     setVehicleDraftLoadId(load.id);
     setVehicleDraftAction('accept');
     setShowNewVehicle(false);
-    return;
-    const selectedVehicle = driverVehicles.find((vehicle) => vehicle.id === selectedVehicleId && vehicle.is_active);
-    if (!selectedVehicle || selectedVehicle.capacity_kg < load.weight_kg ||
-      !selectedVehicle.brakes_ok || !selectedVehicle.tires_ok || !selectedVehicle.lights_ok ||
-      selectedVehicle.body_condition === 'needs_attention') {
-      setVehicleDraftLoadId(load.id);
-      setVehicleDraftAction('accept');
-      return;
-    }
-    if (capacity && load.weight_kg > capacity) {
-      toast.error(`Carga acima da sua capacidade (${capacity} kg).`);
-      return;
-    }
-    setBusyId(load.id);
-    const { error } = await supabase.rpc('accept_freight_load' as never, {
-      p_freight_load_id: load.id,
-      p_vehicle_id: selectedVehicle.id,
-    } as never);
-    setBusyId(null);
-    if (error) {
-      toast.error(error.message || 'Não foi possível aceitar esta carga.');
-      return;
-    }
-    toast.success('Carga aceite. Boa viagem!');
-    fetchLoads();
   };
 
   const confirmVehicleForLoad = async () => {
