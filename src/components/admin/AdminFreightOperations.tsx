@@ -28,6 +28,7 @@ type Load = {
   currency: string;
   status: string;
   accepted_at: string | null;
+  driver_commitment_confirmed_at: string | null;
   in_transit_at: string | null;
   delivered_at: string | null;
   created_at: string;
@@ -103,7 +104,7 @@ const AdminFreightOperations: React.FC = () => {
     if (silent) setRefreshing(true); else setLoading(true);
     try {
       const loadResult = await (supabase as any).from("freight_loads")
-        .select("id,driver_id,vehicle_id,product_name,weight_kg,origin_label,origin_lat,origin_lng,destination_label,destination_lat,destination_lng,pickup_date,offered_price,currency,status,accepted_at,in_transit_at,delivered_at,created_at,updated_at,pre_order_id,driver_offered_price,driver_quote_status,route_distance_km,route_duration_minutes,supplier_id,buyer_id,supplier_handover_confirmed_at,driver_pickup_confirmed_at,driver_delivery_confirmed_at,buyer_receipt_confirmed_at,driver_arrived_at")
+        .select("id,driver_id,vehicle_id,product_name,weight_kg,origin_label,origin_lat,origin_lng,destination_label,destination_lat,destination_lng,pickup_date,offered_price,currency,status,accepted_at,driver_commitment_confirmed_at,in_transit_at,delivered_at,created_at,updated_at,pre_order_id,driver_offered_price,driver_quote_status,route_distance_km,route_duration_minutes,supplier_id,buyer_id,supplier_handover_confirmed_at,driver_pickup_confirmed_at,driver_delivery_confirmed_at,buyer_receipt_confirmed_at,driver_arrived_at")
         .order("created_at", { ascending: false }).limit(250);
       if (loadResult.error) throw loadResult.error;
       const rows = (loadResult.data || []) as Load[];
@@ -306,6 +307,7 @@ const AdminFreightOperations: React.FC = () => {
             <section className="space-y-2 rounded-lg border p-3">
               <h3 className="font-semibold text-sm">Controlo de entrega e confirmações</h3>
               {[
+                ["Motorista assumiu compromisso de entrega", selected.driver_commitment_confirmed_at],
                 ["Motorista chegou à recolha", selected.driver_arrived_at],
                 ["Motorista confirmou recolha", selected.driver_pickup_confirmed_at],
                 ["Fornecedor confirmou entrega ao motorista", selected.supplier_handover_confirmed_at],
