@@ -101,6 +101,23 @@ export default function SupplierOrders() {
     void loadOrders();
   }, [loadOrders]);
 
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`supplier-preorders-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'pre_orders' },
+        () => { void loadOrders(); },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [user?.id, loadOrders]);
+
   const respond = async (order: SupplierOrder, status: 'accepted' | 'rejected') => {
     if (busyId) return;
     setBusyId(order.id);
