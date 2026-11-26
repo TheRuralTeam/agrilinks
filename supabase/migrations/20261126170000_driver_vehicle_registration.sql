@@ -258,6 +258,7 @@ BEGIN
   SELECT dv.* INTO v_vehicle
   FROM public.driver_vehicles AS dv
   WHERE dv.id = p_vehicle_id AND dv.driver_id = actor_id AND dv.is_active = true
+    AND dv.verification_status <> 'rejected'
   FOR SHARE;
 
   IF NOT FOUND THEN
