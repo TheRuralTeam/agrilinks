@@ -37,7 +37,9 @@ BEGIN
   END IF;
 
   IF auth.uid() IS DISTINCT FROM OLD.driver_id
+    OR NEW.id IS DISTINCT FROM OLD.id
     OR NEW.driver_id IS DISTINCT FROM OLD.driver_id
+    OR NEW.created_at IS DISTINCT FROM OLD.created_at
     OR NEW.is_active IS DISTINCT FROM OLD.is_active
     OR NEW.verification_status IS DISTINCT FROM OLD.verification_status THEN
     RAISE EXCEPTION 'Drivers cannot change vehicle ownership, activation or administrative review fields'
