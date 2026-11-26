@@ -138,8 +138,7 @@ BEGIN
     RAISE EXCEPTION 'This freight load is no longer available' USING ERRCODE = '40001';
   END IF;
 
-  IF v_load.weight_kg > v_vehicle.capacity_kg
-    OR (v_capacity IS NOT NULL AND v_load.weight_kg > v_capacity) THEN
+  IF v_load.weight_kg > v_vehicle.capacity_kg THEN
     RAISE EXCEPTION 'Freight load exceeds the selected vehicle or driver capacity' USING ERRCODE = '22023';
   END IF;
 
@@ -271,7 +270,6 @@ BEGIN
     accepted_at = now()
   WHERE id = p_freight_load_id AND status = 'open' AND driver_id IS NULL
     AND weight_kg > 0 AND weight_kg <= v_vehicle.capacity_kg
-    AND (registered_capacity IS NULL OR weight_kg <= registered_capacity)
   RETURNING id INTO accepted_id;
 
   IF accepted_id IS NULL THEN
