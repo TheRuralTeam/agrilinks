@@ -975,7 +975,18 @@ const ProximasCargas = () => {
       if (chosen && (!chosen.maintenance_valid_until || chosen.maintenance_valid_until < todayAngola ||
         !chosen.inspection_valid_until || chosen.inspection_valid_until < todayAngola ||
         !chosen.insurance_valid_until || chosen.insurance_valid_until < todayAngola)) {
-        toast.error('O veículo precisa de manutenção preventiva, inspecção e seguro válidos.');
+        if (!showNewVehicle) {
+          setEditingVehicleId(chosen.id);
+          setVehicleDraft({ vehicle_type: chosen.vehicle_type, make: chosen.make, model: chosen.model,
+            plate_number: chosen.plate_number, color: chosen.color, manufacture_year: chosen.manufacture_year?.toString() || '',
+            capacity_kg: String(chosen.capacity_kg), condition_notes: chosen.condition_notes, brakes_ok: chosen.brakes_ok,
+            tires_ok: chosen.tires_ok, lights_ok: chosen.lights_ok, body_condition: chosen.body_condition,
+            registration_document_number: chosen.registration_document_number || '',
+            inspection_valid_until: chosen.inspection_valid_until || '', insurance_valid_until: chosen.insurance_valid_until || '',
+            maintenance_valid_until: chosen.maintenance_valid_until || '' });
+          setShowNewVehicle(true);
+        }
+        toast.error('Actualize a manutenção preventiva, a inspecção e o seguro do veículo antes de aceitar esta carga.');
         return;
       }
       const selectedCapacity = Number(chosen?.capacity_kg ?? vehicleDraft.capacity_kg);
@@ -2027,7 +2038,7 @@ const ProximasCargas = () => {
             </label>
             <p style={{ margin: 0, color: T.muted, fontSize: 11, lineHeight: 1.5 }}>Os dados do veículo ficam associados à operação. O registo pendente de revisão administrativa não substitui a verificação dos documentos originais.</p>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" disabled={savingVehicle} onClick={() => { setVehicleDraftLoadId(null); setVehicleDraftAction(null); }} style={{ flex: 1, padding: 11, border: `1px solid ${T.rule}`, borderRadius: 12, background: T.white, color: T.mid, fontWeight: 800 }}>Cancelar</button>
+              <button type="button" disabled={savingVehicle} onClick={() => { setVehicleDraftLoadId(null); setVehicleDraftAction(null); setEditingVehicleId(null); setDeliveryCommitmentAccepted(false); }} style={{ flex: 1, padding: 11, border: `1px solid ${T.rule}`, borderRadius: 12, background: T.white, color: T.mid, fontWeight: 800 }}>Cancelar</button>
               <button type="button" disabled={savingVehicle} onClick={() => void confirmVehicleForLoad()} style={{ flex: 1, padding: 11, border: 0, borderRadius: 12, background: T.green, color: T.white, fontWeight: 800, opacity: savingVehicle ? .6 : 1 }}>{savingVehicle ? 'A guardar…' : editingVehicleId ? 'Guardar actualizações' : vehicleDraftAction === 'accept' ? 'Guardar e aceitar carga' : 'Confirmar veículo'}</button>
             </div>
           </section>
