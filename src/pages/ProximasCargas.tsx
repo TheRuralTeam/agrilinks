@@ -681,7 +681,7 @@ const ProximasCargas = () => {
       setVehicleDraftAction('quote');
       return;
     }
-    const todayAngola = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Luanda' }).format(new Date());
+    const todayAngola = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Luanda', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
     if (!selectedVehicle.maintenance_valid_until || selectedVehicle.maintenance_valid_until < todayAngola ||
       !selectedVehicle.inspection_valid_until || selectedVehicle.inspection_valid_until < todayAngola ||
       !selectedVehicle.insurance_valid_until || selectedVehicle.insurance_valid_until < todayAngola) {
@@ -916,7 +916,7 @@ const ProximasCargas = () => {
       if (showNewVehicle || driverVehicles.length === 0) {
         const plate = vehicleDraft.plate_number.trim().toUpperCase();
         const capacityKg = Number(vehicleDraft.capacity_kg);
-        const todayAngola = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Luanda' }).format(new Date());
+        const todayAngola = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Luanda', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
         if (!vehicleDraft.vehicle_type.trim() || !vehicleDraft.make.trim() ||
           !vehicleDraft.model.trim() || !plate || !vehicleDraft.color.trim() ||
           !Number.isFinite(capacityKg) || capacityKg <= 0 ||
@@ -967,7 +967,7 @@ const ProximasCargas = () => {
         toast.error('Selecione um veículo ou registe um novo veículo.');
         return;
       }
-      const todayAngola = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Luanda' }).format(new Date());
+      const todayAngola = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Luanda', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
       if (chosen && (!chosen.brakes_ok || !chosen.tires_ok || !chosen.lights_ok || chosen.body_condition === 'needs_attention')) {
         toast.error('O veículo selecionado não cumpre os requisitos mínimos de segurança.');
         return;
