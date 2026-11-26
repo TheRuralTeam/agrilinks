@@ -34,15 +34,6 @@ CREATE POLICY "Drivers can view own vehicles"
   ON public.driver_vehicles FOR SELECT TO authenticated
   USING (driver_id = (SELECT auth.uid()) OR public.is_agrilink_admin());
 DROP POLICY IF EXISTS "Drivers can register own vehicles" ON public.driver_vehicles;
-CREATE POLICY "Drivers can register own vehicles"
-  ON public.driver_vehicles FOR INSERT TO authenticated
-  WITH CHECK (
-    driver_id = (SELECT auth.uid())
-    AND EXISTS (
-      SELECT 1 FROM public.users u
-      WHERE u.id = (SELECT auth.uid()) AND u.user_type::text = 'motorista'
-    )
-  );
 -- Drivers can register and read their vehicles, but cannot self-approve or alter review state.
 DROP POLICY IF EXISTS "Drivers can update own vehicles" ON public.driver_vehicles;
 DROP POLICY IF EXISTS "Drivers can register own vehicles" ON public.driver_vehicles;
@@ -121,6 +112,7 @@ BEGIN
   WHERE dv.id = p_vehicle_id
     AND dv.driver_id = v_actor_id
     AND dv.is_active = true
+    AND dv.verification_status <> 'rejected'
   FOR SHARE;
 
   IF NOT FOUND THEN
