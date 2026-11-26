@@ -452,6 +452,15 @@ const Profile = () => {
     province_id: userProfile?.province_id || '',
     municipality_id: userProfile?.municipality_id || '',
   })
+  const [driverLicenseData, setDriverLicenseData] = useState({
+    license_number: '',
+    license_categories: '',
+    issued_at: '',
+    expires_at: '',
+    issuing_authority: '',
+    verification_status: 'pending_review',
+  })
+  const [driverLicenseLoading, setDriverLicenseLoading] = useState(false)
 
   const publicProfile = isNeutralPublicView(user) ? sanitizePublicProfile(userProfile || profileData) : userProfile || profileData
   const profileDisplayName = getProfileDisplayName((publicProfile as any) || profileData)
@@ -921,6 +930,40 @@ const Profile = () => {
     }
   }, [userProfile, user])
 
+  useEffect(() => {
+    let active = true
+    const loadDriverLicense = async () => {
+      if (!user?.id || userProfile?.user_type !== 'motorista' || isGuest) {
+        setDriverLicenseData({ license_number: '', license_categories: '', issued_at: '', expires_at: '', issuing_authority: '', verification_status: 'pending_review' })
+        return
+      }
+      setDriverLicenseLoading(true)
+      const { data, error } = await supabase
+        .from('driver_licenses')
+        .select('license_number, license_categories, issued_at, expires_at, issuing_authority, verification_status')
+        .eq('driver_id', user.id)
+        .maybeSingle()
+      if (!active) return
+      if (error) {
+        toast({ title: 'Não foi possível carregar os dados da carta', description: error.message, variant: 'destructive' })
+      } else if (data) {
+        setDriverLicenseData({
+          license_number: data.license_number || '',
+          license_categories: (data.license_categories || []).join(', '),
+          issued_at: data.issued_at || '',
+          expires_at: data.expires_at || '',
+          issuing_authority: data.issuing_authority || '',
+          verification_status: data.verification_status || 'pending_review',
+        })
+      } else {
+        setDriverLicenseData({ license_number: '', license_categories: '', issued_at: '', expires_at: '', issuing_authority: '', verification_status: 'pending_review' })
+      }
+      setDriverLicenseLoading(false)
+    }
+    void loadDriverLicense()
+    return () => { active = false }
+  }, [user?.id, userProfile?.user_type, isGuest])
+
   const updateProfile = async () => {
     if (!user) {
       requireAuth('editar o teu perfil')
@@ -935,6 +978,32 @@ const Profile = () => {
         updated_at: new Date().toISOString(),
       }).eq('id', user.id)
       if (error) throw error
+
+      if (userProfile?.user_type === 'motorista') {
+        const categories = driverLicenseData.license_categories
+          .split(',')
+          .map((category) => category.trim().toUpperCase())
+          .filter(Boolean)
+        if (!driverLicenseData.license_number.trim() || categories.length === 0 ||
+          !driverLicenseData.issued_at || !driverLicenseData.expires_at ||
+          !driverLicenseData.issuing_authority.trim()) {
+          toast({ title: 'Preencha todos os dados da carta de condução.', variant: 'destructive' })
+          return
+        }
+        if (driverLicenseData.expires_at <= driverLicenseData.issued_at) {
+          toast({ title: 'A validade da carta deve ser posterior à data de emissão.', variant: 'destructive' })
+          return
+        }
+        const { error: licenseError } = await supabase.from('driver_licenses').upsert({
+          driver_id: user.id,
+          license_number: driverLicenseData.license_number.trim(),
+          license_categories: [...new Set(categories)],
+          issued_at: driverLicenseData.issued_at,
+          expires_at: driverLicenseData.expires_at,
+          issuing_authority: driverLicenseData.issuing_authority.trim(),
+        }, { onConflict: 'driver_id' })
+        if (licenseError) throw licenseError
+      }
       toast({ title: 'Perfil actualizado com sucesso.' })
       setEditMode(false)
     } catch (error: any) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }) }
@@ -1285,6 +1354,23 @@ const Profile = () => {
                   <InfoRow icon={<Phone size={14} strokeWidth={1.6}/>} label={t('profile.phone')} value={profileData.phone} />
                   <InfoRow icon={<MapPin size={14} strokeWidth={1.6}/>} label="Localização" value={locationLabel} />
                 </div>
+                {user?.id === userProfile?.id && userProfile?.user_type === 'motorista' && (
+                  <div style={{ margin: '0 18px 16px', padding: '14px', border: `1px solid ${T.rule}`, borderRadius: R.md, background: T.subtle }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+                      <strong style={{ fontSize: 13, color: T.ink }}>Carta de condução</strong>
+                      <StatusPill status={driverLicenseData.verification_status} />
+                    </div>
+                    {driverLicenseLoading ? <p style={{ fontSize: 12, color: T.muted }}>A carregar os dados da carta…</p> : (
+                      <>
+                        <InfoRow icon={<FileSignature size={14}/>} label="Número da carta" value={driverLicenseData.license_number} />
+                        <InfoRow icon={<BadgeCheck size={14}/>} label="Categorias" value={driverLicenseData.license_categories} />
+                        <InfoRow icon={<Calendar size={14}/>} label="Data de emissão" value={driverLicenseData.issued_at} />
+                        <InfoRow icon={<Calendar size={14}/>} label="Validade" value={driverLicenseData.expires_at} />
+                        <InfoRow icon={<FileSignature size={14}/>} label="Entidade emissora" value={driverLicenseData.issuing_authority} />
+                      </>
+                    )}
+                  </div>
+                )}
                 <div className="ag-profile-foot">
                   <Btn variant="secondary" onClick={() => guardAction('editar o teu perfil', () => setEditMode(true))} style={{ gridColumn: '1 / -1' }}>
                     <Edit size={13} strokeWidth={1.75}/> {t('profile.editProfile')}
@@ -1302,6 +1388,22 @@ const Profile = () => {
                 <Input label={t('profile.fullName')} value={profileData.full_name} onChange={(e: any) => setProfileData(p => ({ ...p, full_name: e.target.value }))} />
                 <Input label={t('profile.phone')} value={profileData.phone} onChange={(e: any) => setProfileData(p => ({ ...p, phone: e.target.value }))} />
                 <Input label={t('profile.email')} type="email" value={profileData.email} onChange={(e: any) => setProfileData(p => ({ ...p, email: e.target.value }))} />
+                {userProfile?.user_type === 'motorista' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14, border: `1px solid ${T.rule}`, borderRadius: R.md, background: T.subtle }}>
+                    <div>
+                      <strong style={{ display: 'block', fontSize: 13, color: T.ink }}>Carta de condução</strong>
+                      <span style={{ fontSize: 11, color: T.muted }}>Estes dados ficam guardados nas tuas informações pessoais e são privados.</span>
+                    </div>
+                    <Input label="Número da carta" value={driverLicenseData.license_number} onChange={(e: any) => setDriverLicenseData(p => ({ ...p, license_number: e.target.value }))} required />
+                    <Input label="Categorias (separadas por vírgula)" value={driverLicenseData.license_categories} onChange={(e: any) => setDriverLicenseData(p => ({ ...p, license_categories: e.target.value }))} placeholder="Ex.: A, B, C" required />
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
+                      <Input label="Data de emissão" type="date" value={driverLicenseData.issued_at} onChange={(e: any) => setDriverLicenseData(p => ({ ...p, issued_at: e.target.value }))} required />
+                      <Input label="Data de validade" type="date" value={driverLicenseData.expires_at} onChange={(e: any) => setDriverLicenseData(p => ({ ...p, expires_at: e.target.value }))} required />
+                    </div>
+                    <Input label="Entidade emissora" value={driverLicenseData.issuing_authority} onChange={(e: any) => setDriverLicenseData(p => ({ ...p, issuing_authority: e.target.value }))} placeholder="Ex.: Direcção de Trânsito e Segurança Rodoviária" required />
+                    <span style={{ fontSize: 11, color: T.muted }}>Estado: {driverLicenseData.verification_status === 'approved' ? 'Verificada' : driverLicenseData.verification_status === 'rejected' ? 'Requer correcção' : 'Pendente de verificação'}</span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: 8 }}>
                   <Btn variant="primary" onClick={updateProfile} style={{ flex: 1 }}>{t('common.save')}</Btn>
                   <Btn variant="outline" onClick={() => setEditMode(false)} style={{ flex: 1 }}>{t('common.cancel')}</Btn>
