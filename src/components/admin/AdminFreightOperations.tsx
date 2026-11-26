@@ -54,7 +54,7 @@ type Vehicle = {
   inspection_valid_until: string | null; insurance_valid_until: string | null; maintenance_valid_until: string | null;
 };
 type LoadEvent = { id: number; freight_load_id: string; actor_id: string; event_type: string; created_at: string };
-type Location = { id: number; freight_load_id: string; driver_id: string; latitude: number; longitude: number; recorded_at: string };
+type Location = { freight_load_id: string; latitude: number; longitude: number; recorded_at: string; accuracy_m: number | null; speed_mps: number | null; heading_deg: number | null };
 type PreOrder = { id: string; payment_status: string | null; requested_delivery_date: string | null; location: string | null };
 type Settlement = { id: string; freight_load_id: string; gross_amount: number; agrilink_commission: number; driver_amount: number; status: string; paid_at: string | null };
 
@@ -116,7 +116,7 @@ const AdminFreightOperations: React.FC = () => {
         userIds.length ? (supabase as any).from("users").select("id,full_name,phone,email").in("id", userIds) : Promise.resolve({ data: [], error: null }),
         vehicleIds.length ? (supabase as any).from("driver_vehicles").select("id,driver_id,vehicle_type,make,model,plate_number,capacity_kg,brakes_ok,tires_ok,lights_ok,body_condition,verification_status,is_active,inspection_valid_until,insurance_valid_until,maintenance_valid_until").in("id", vehicleIds) : Promise.resolve({ data: [], error: null }),
         loadIds.length ? (supabase as any).from("freight_load_events").select("id,freight_load_id,actor_id,event_type,created_at").in("freight_load_id", loadIds).order("created_at", { ascending: false }) : Promise.resolve({ data: [], error: null }),
-        loadIds.length ? (supabase as any).from("freight_tracking_locations").select("id,freight_load_id,driver_id,latitude,longitude,recorded_at").in("freight_load_id", loadIds).order("recorded_at", { ascending: false }) : Promise.resolve({ data: [], error: null }),
+        loadIds.length ? (supabase as any).from("freight_load_locations").select("freight_load_id,latitude,longitude,recorded_at,accuracy_m,speed_mps,heading_deg").in("freight_load_id", loadIds).order("recorded_at", { ascending: false }) : Promise.resolve({ data: [], error: null }),
         preOrderIds.length ? (supabase as any).from("pre_orders").select("id,payment_status,requested_delivery_date,location").in("id", preOrderIds) : Promise.resolve({ data: [], error: null }),
         loadIds.length ? (supabase as any).from("freight_settlements").select("id,freight_load_id,gross_amount,agrilink_commission,driver_amount,status,paid_at").in("freight_load_id", loadIds) : Promise.resolve({ data: [], error: null }),
       ]);
@@ -147,7 +147,7 @@ const AdminFreightOperations: React.FC = () => {
     const channel = supabase.channel("admin-freight-operations")
       .on("postgres_changes", { event: "*", schema: "public", table: "freight_loads" }, () => void fetchData(true))
       .on("postgres_changes", { event: "*", schema: "public", table: "freight_load_events" }, () => void fetchData(true))
-      .on("postgres_changes", { event: "*", schema: "public", table: "freight_tracking_locations" }, () => void fetchData(true))
+      .on("postgres_changes", { event: "*", schema: "public", table: "freight_load_locations" }, () => void fetchData(true))
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [fetchData]);
