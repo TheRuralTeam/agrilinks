@@ -1804,7 +1804,7 @@ const ProximasCargas = () => {
                   </section>
                 ) : tab === 'disponiveis' ? (
                   <button
-                    disabled={busyId === load.id || dailyLimitBlocked}
+                    disabled={busyId === load.id}
                     onClick={() => void accept(load)}
                     style={{
                       marginTop: 14,
@@ -1812,8 +1812,8 @@ const ProximasCargas = () => {
                       padding: '12px 16px',
                       borderRadius: 12,
                       border: 'none',
-                      background: tooHeavy || dailyLimitBlocked ? T.rule : T.green,
-                      color: tooHeavy || dailyLimitBlocked ? T.muted : T.white,
+                      background: tooHeavy ? T.rule : T.green,
+                      color: tooHeavy ? T.muted : T.white,
                       fontFamily: FONT,
                       fontSize: 14,
                       fontWeight: 800,
