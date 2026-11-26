@@ -401,7 +401,7 @@ const AdminDashboard = () => {
       case "admins":
         return isRootAdmin || hasPermission("manage_admins");
       case "deliveries":
-        return isSupportAgent || hasPermission("manage_orders");
+        return hasPermission("manage_orders");
       case "orders":
       case "freight":
         return hasPermission("manage_orders");
@@ -1082,7 +1082,7 @@ const AdminDashboard = () => {
           <SidebarItem active={activeTab === "dashboard"} onClick={() => { setActiveTab("dashboard"); setMenuOpen(false); }} icon={<Activity className="h-4 w-4" />}>
             Dashboard
           </SidebarItem>
-          {(isSupportAgent || hasPermission("manage_orders")) && (
+          {hasPermission("manage_orders") && (
             <SidebarItem active={activeTab === "orders"} onClick={() => { setActiveTab("orders"); setMenuOpen(false); }} icon={<ShoppingCart className="h-4 w-4" />}>
               Pedidos
             </SidebarItem>
