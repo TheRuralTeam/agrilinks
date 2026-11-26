@@ -44,6 +44,7 @@ const TYPE_LABELS: Record<string, string> = {
   reaction: 'Reacção',
   message: 'Mensagem',
   product: 'Produto',
+  pre_order_received: 'Pré-compra recebida',
   pre_order_accepted: 'Pré-compra',
   system: 'Sistema',
   referral: 'Indicação',

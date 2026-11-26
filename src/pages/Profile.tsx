@@ -563,6 +563,23 @@ const Profile = () => {
     }
   }, [user?.id, clearProfileLoadError, reportProfileLoadError])
 
+  React.useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`profile-supplier-preorders-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'pre_orders' },
+        () => { void fetchReceivedOrders(); },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [user?.id, fetchReceivedOrders])
+
   const refreshAgentStatuses = React.useCallback(async (requests: SourcingRequest[]) => {
     if (!user?.id || requests.length === 0) return
     try {
