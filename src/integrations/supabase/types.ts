@@ -5335,6 +5335,10 @@ export type Database = {
           p_route_distance_km: number
           p_route_duration_minutes: number
           p_vehicle_id: string
+          p_snapped_origin_lat: number
+          p_snapped_origin_lng: number
+          p_snapped_destination_lat: number
+          p_snapped_destination_lng: number
         }
         Returns: {
           driver_id: string

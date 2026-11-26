@@ -820,6 +820,10 @@ const ProximasCargas = () => {
         p_route_distance_km: route.distanceKm,
         p_route_duration_minutes: route.durationMinutes,
         p_vehicle_id: selectedVehicle.id,
+        p_snapped_origin_lat: route.snappedOrigin[0],
+        p_snapped_origin_lng: route.snappedOrigin[1],
+        p_snapped_destination_lat: route.snappedDestination[0],
+        p_snapped_destination_lng: route.snappedDestination[1],
       } as never);
       if (error) throw error;
       setDriverDailyLoadStatus('limit_reached');
