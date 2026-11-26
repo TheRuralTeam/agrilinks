@@ -142,7 +142,7 @@ BEGIN
   END IF;
   IF v_license.verification_status = 'rejected'
     OR v_license.issued_at > current_date
-    OR v_license.expires_at <= current_date THEN
+    OR v_license.expires_at < current_date THEN
     RAISE EXCEPTION 'Your driving licence is rejected, not yet valid or expired'
       USING ERRCODE = '42501';
   END IF;
@@ -307,7 +307,7 @@ BEGIN
   END IF;
   IF v_license.verification_status = 'rejected'
     OR v_license.issued_at > current_date
-    OR v_license.expires_at <= current_date THEN
+    OR v_license.expires_at < current_date THEN
     RAISE EXCEPTION 'Your driving licence is rejected, not yet valid or expired'
       USING ERRCODE = '42501';
   END IF;
