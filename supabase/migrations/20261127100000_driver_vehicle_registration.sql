@@ -43,13 +43,22 @@ CREATE POLICY "Drivers can register own vehicles"
       WHERE u.id = (SELECT auth.uid()) AND u.user_type::text = 'motorista'
     )
   );
+-- Drivers can register and read their vehicles, but cannot self-approve or alter review state.
 DROP POLICY IF EXISTS "Drivers can update own vehicles" ON public.driver_vehicles;
-CREATE POLICY "Drivers can update own vehicles"
-  ON public.driver_vehicles FOR UPDATE TO authenticated
-  USING (driver_id = (SELECT auth.uid()) OR public.is_agrilink_admin())
-  WITH CHECK (driver_id = (SELECT auth.uid()) OR public.is_agrilink_admin());
+DROP POLICY IF EXISTS "Drivers can register own vehicles" ON public.driver_vehicles;
+CREATE POLICY "Drivers can register own vehicles"
+  ON public.driver_vehicles FOR INSERT TO authenticated
+  WITH CHECK (
+    driver_id = (SELECT auth.uid())
+    AND verification_status = 'pending_review'
+    AND is_active = true
+    AND EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = (SELECT auth.uid()) AND u.user_type::text = 'motorista'
+    )
+  );
 
-GRANT SELECT, INSERT, UPDATE ON public.driver_vehicles TO authenticated;
+GRANT SELECT, INSERT ON public.driver_vehicles TO authenticated;
 
 ALTER TABLE public.freight_loads
   ADD COLUMN IF NOT EXISTS vehicle_id uuid REFERENCES public.driver_vehicles(id) ON DELETE SET NULL;
@@ -79,7 +88,6 @@ AS $function$
 DECLARE
   v_actor_id uuid := auth.uid();
   v_user_type text;
-  v_capacity numeric;
   v_email_verified boolean;
   v_vehicle public.driver_vehicles%ROWTYPE;
   v_base_fare numeric;
@@ -244,8 +252,8 @@ DECLARE
 BEGIN
   IF actor_id IS NULL THEN RAISE EXCEPTION 'Authentication required' USING ERRCODE = '42501'; END IF;
 
-  SELECT u.user_type::text, u.load_capacity_kg
-    INTO registered_user_type, registered_capacity
+  SELECT u.user_type::text
+    INTO registered_user_type
   FROM public.users AS u WHERE u.id = actor_id FOR SHARE;
 
   IF NOT FOUND OR registered_user_type <> 'motorista' THEN
