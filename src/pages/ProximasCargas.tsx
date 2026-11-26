@@ -1931,10 +1931,10 @@ const ProximasCargas = () => {
           <section style={{ width: 'min(100%, 620px)', maxHeight: '90vh', overflowY: 'auto', background: T.white, borderRadius: 18, padding: 20, boxShadow: '0 24px 80px rgba(0,0,0,.24)', display: 'grid', gap: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
               <div>
-                <h2 id="driver-vehicle-title" style={{ margin: 0, color: T.ink, fontSize: 18, fontWeight: 900 }}>Identificação do veículo</h2>
+                <h2 id="driver-vehicle-title" style={{ margin: 0, color: T.ink, fontSize: 18, fontWeight: 900 }}>{editingVehicleId ? 'Actualizar veículo e manutenção' : 'Identificação do veículo'}</h2>
                 <p style={{ margin: '5px 0 0', color: T.muted, fontSize: 12, lineHeight: 1.5 }}>A AgriLink associa estes dados à carga para manter o registo do veículo utilizado na operação.</p>
               </div>
-              <button type="button" aria-label="Fechar" onClick={() => { setVehicleDraftLoadId(null); setVehicleDraftAction(null); }} style={{ border: 0, background: 'transparent', color: T.muted, fontSize: 22, cursor: 'pointer' }}>×</button>
+              <button type="button" aria-label="Fechar" onClick={() => { setVehicleDraftLoadId(null); setVehicleDraftAction(null); setEditingVehicleId(null); setDeliveryCommitmentAccepted(false); }} style={{ border: 0, background: 'transparent', color: T.muted, fontSize: 22, cursor: 'pointer' }}>×</button>
             </div>
             {!showNewVehicle && driverVehicles.length > 0 && (
               <div style={{ display: 'grid', gap: 6 }}>
@@ -1943,7 +1943,10 @@ const ProximasCargas = () => {
                   <option value="">Seleccione um veículo</option>
                   {driverVehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.vehicle_type} · {vehicle.make} {vehicle.model} · {vehicle.plate_number} · {vehicle.capacity_kg} kg</option>)}
                 </select>
-                <button type="button" onClick={() => setShowNewVehicle(true)} style={{ justifySelf: 'start', border: 0, background: 'transparent', color: T.green, fontWeight: 800, cursor: 'pointer' }}>+ Registar outro veículo</button>
+                <button type="button" onClick={() => { setEditingVehicleId(null); setShowNewVehicle(true); setVehicleDraft({ vehicle_type: 'Camião', make: '', model: '', plate_number: '', color: '', manufacture_year: '', capacity_kg: '', condition_notes: '', brakes_ok: false, tires_ok: false, lights_ok: false, body_condition: 'good', registration_document_number: '', inspection_valid_until: '', insurance_valid_until: '', maintenance_valid_until: '' }); }} style={{ justifySelf: 'start', border: 0, background: 'transparent', color: T.green, fontWeight: 800, cursor: 'pointer' }}>+ Registar outro veículo</button>
+                {selectedVehicleId && driverVehicles.some(vehicle => vehicle.id === selectedVehicleId) && (
+                  <button type="button" onClick={() => { const vehicle = driverVehicles.find(item => item.id === selectedVehicleId)!; setEditingVehicleId(vehicle.id); setVehicleDraft({ vehicle_type: vehicle.vehicle_type, make: vehicle.make, model: vehicle.model, plate_number: vehicle.plate_number, color: vehicle.color, manufacture_year: vehicle.manufacture_year?.toString() || '', capacity_kg: String(vehicle.capacity_kg), condition_notes: vehicle.condition_notes, brakes_ok: vehicle.brakes_ok, tires_ok: vehicle.tires_ok, lights_ok: vehicle.lights_ok, body_condition: vehicle.body_condition, registration_document_number: vehicle.registration_document_number || '', inspection_valid_until: vehicle.inspection_valid_until || '', insurance_valid_until: vehicle.insurance_valid_until || '', maintenance_valid_until: vehicle.maintenance_valid_until || '' }); setShowNewVehicle(true); }} style={{ justifySelf: 'start', border: 0, background: 'transparent', color: T.green, fontWeight: 800, cursor: 'pointer' }}>Actualizar manutenção e documentos do veículo seleccionado</button>
+                )}
               </div>
             )}
             {(showNewVehicle || driverVehicles.length === 0) && (
@@ -1989,20 +1992,28 @@ const ProximasCargas = () => {
                   </select>
                 </div>
                 <div style={{ display: 'grid', gap: 5 }}>
-                  <label style={{ fontSize: 12, fontWeight: 800 }}>Inspecção válida até</label>
-                  <input type="date" value={vehicleDraft.inspection_valid_until} onChange={(e) => setVehicleDraft(v => ({...v,inspection_valid_until:e.target.value}))} style={formInputStyle} />
+                  <label style={{ fontSize: 12, fontWeight: 800 }}>Inspecção válida até *</label>
+                  <input required type="date" value={vehicleDraft.inspection_valid_until} onChange={(e) => setVehicleDraft(v => ({...v,inspection_valid_until:e.target.value}))} style={formInputStyle} />
                 </div>
                 <div style={{ display: 'grid', gap: 5 }}>
-                  <label style={{ fontSize: 12, fontWeight: 800 }}>Seguro válido até</label>
-                  <input type="date" value={vehicleDraft.insurance_valid_until} onChange={(e) => setVehicleDraft(v => ({...v,insurance_valid_until:e.target.value}))} style={formInputStyle} />
+                  <label style={{ fontSize: 12, fontWeight: 800 }}>Seguro válido até *</label>
+                  <input required type="date" value={vehicleDraft.insurance_valid_until} onChange={(e) => setVehicleDraft(v => ({...v,insurance_valid_until:e.target.value}))} style={formInputStyle} />
                 </div>
-                {driverVehicles.length > 0 && <button type="button" onClick={() => setShowNewVehicle(false)} style={{ justifySelf: 'start', border: 0, background: 'transparent', color: T.green, fontWeight: 800, cursor: 'pointer' }}>Voltar aos veículos registados</button>}
+                <div style={{ display: 'grid', gap: 5 }}>
+                  <label style={{ fontSize: 12, fontWeight: 800 }}>Manutenção preventiva válida até *</label>
+                  <input required type="date" value={vehicleDraft.maintenance_valid_until} onChange={(e) => setVehicleDraft(v => ({...v,maintenance_valid_until:e.target.value}))} style={formInputStyle} />
+                </div>
+                {driverVehicles.length > 0 && <button type="button" onClick={() => { setShowNewVehicle(false); setEditingVehicleId(null); }} style={{ justifySelf: 'start', border: 0, background: 'transparent', color: T.green, fontWeight: 800, cursor: 'pointer' }}>Voltar aos veículos registados</button>}
               </div>
             )}
-            <p style={{ margin: 0, color: T.muted, fontSize: 11, lineHeight: 1.5 }}>Os dados serão guardados no seu perfil de motorista e associados à carga. O registo ficará pendente de revisão administrativa; esta etapa não valida os documentos originais.</p>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: 10, border: `1px solid ${T.rule}`, borderRadius: 10, background: T.canvas, fontSize: 11, lineHeight: 1.5, color: T.ink }}>
+              <input type="checkbox" checked={deliveryCommitmentAccepted} onChange={(event) => setDeliveryCommitmentAccepted(event.target.checked)} style={{ marginTop: 2 }} />
+              <span>Comprometo-me a cumprir esta entrega e as restantes que aceitar. Declaro que o veículo será utilizado apenas com manutenção preventiva, inspecção, seguro e condições de segurança válidas.</span>
+            </label>
+            <p style={{ margin: 0, color: T.muted, fontSize: 11, lineHeight: 1.5 }}>Os dados do veículo ficam associados à operação. O registo pendente de revisão administrativa não substitui a verificação dos documentos originais.</p>
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="button" disabled={savingVehicle} onClick={() => { setVehicleDraftLoadId(null); setVehicleDraftAction(null); }} style={{ flex: 1, padding: 11, border: `1px solid ${T.rule}`, borderRadius: 12, background: T.white, color: T.mid, fontWeight: 800 }}>Cancelar</button>
-              <button type="button" disabled={savingVehicle} onClick={() => void confirmVehicleForLoad()} style={{ flex: 1, padding: 11, border: 0, borderRadius: 12, background: T.green, color: T.white, fontWeight: 800, opacity: savingVehicle ? .6 : 1 }}>{savingVehicle ? 'A guardar…' : vehicleDraftAction === 'accept' ? 'Guardar e aceitar carga' : 'Confirmar veículo'}</button>
+              <button type="button" disabled={savingVehicle} onClick={() => void confirmVehicleForLoad()} style={{ flex: 1, padding: 11, border: 0, borderRadius: 12, background: T.green, color: T.white, fontWeight: 800, opacity: savingVehicle ? .6 : 1 }}>{savingVehicle ? 'A guardar…' : editingVehicleId ? 'Guardar actualizações' : vehicleDraftAction === 'accept' ? 'Guardar e aceitar carga' : 'Confirmar veículo'}</button>
             </div>
           </section>
         </div>
