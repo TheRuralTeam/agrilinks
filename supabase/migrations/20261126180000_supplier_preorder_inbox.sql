@@ -7,7 +7,8 @@ ON public.pre_orders
 FOR SELECT
 TO authenticated
 USING (
-  EXISTS (
+  pre_orders.deleted_at IS NULL
+  AND EXISTS (
     SELECT 1
     FROM public.products AS product
     WHERE product.id = pre_orders.product_id
