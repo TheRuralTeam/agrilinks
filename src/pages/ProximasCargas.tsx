@@ -166,6 +166,7 @@ const ProximasCargas = () => {
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [driverLicenseReady, setDriverLicenseReady] = useState(false);
   const [driverLicenseChecked, setDriverLicenseChecked] = useState(false);
+  const [driverDailyLoadStatus, setDriverDailyLoadStatus] = useState<'checking' | 'available' | 'limit_reached' | 'error'>('checking');
   const [vehicleDraftLoadId, setVehicleDraftLoadId] = useState<string | null>(null);
   const [vehicleDraftAction, setVehicleDraftAction] = useState<'accept' | 'quote' | null>(null);
   const [showNewVehicle, setShowNewVehicle] = useState(false);
@@ -365,6 +366,47 @@ const ProximasCargas = () => {
           data!.expires_at >= today);
         setDriverLicenseChecked(true);
       });
+    return () => { active = false; };
+  }, [user?.id, userProfile?.user_type]);
+
+  useEffect(() => {
+    if (!user?.id || userProfile?.user_type !== 'motorista') {
+      setDriverDailyLoadStatus('available');
+      return;
+    }
+
+    let active = true;
+    setDriverDailyLoadStatus('checking');
+    void supabase
+      .from('freight_loads')
+      .select('accepted_at')
+      .eq('driver_id', user.id)
+      .not('accepted_at', 'is', null)
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          console.warn('[AgriLink] Não foi possível verificar o limite diário de cargas.', error);
+          setDriverDailyLoadStatus('error');
+          return;
+        }
+
+        const todayInAngola = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Africa/Luanda',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }).format(new Date());
+        const hasLoadToday = (data || []).some((load) => load.accepted_at &&
+          new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Africa/Luanda',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          }).format(new Date(load.accepted_at)) === todayInAngola);
+
+        setDriverDailyLoadStatus(hasLoadToday ? 'limit_reached' : 'available');
+      });
+
     return () => { active = false; };
   }, [user?.id, userProfile?.user_type]);
 
@@ -652,6 +694,12 @@ const ProximasCargas = () => {
   const submitQuote = async (load: FreightLoad) => {
     if (!requireAct('propor o preço de uma carga')) return;
     if (!user?.id || load.created_by === user.id) return;
+    if (driverDailyLoadStatus !== 'available' && load.driver_id !== user.id) {
+      toast.error(driverDailyLoadStatus === 'limit_reached'
+        ? 'Já assumiste uma carga hoje. Poderás aceitar outra amanhã (hora de Angola).'
+        : 'Não foi possível confirmar a tua disponibilidade diária. Actualiza a lista e tenta novamente.');
+      return;
+    }
     const selectedVehicle = driverVehicles.find((vehicle) => vehicle.id === selectedVehicleId && vehicle.is_active);
     if (!selectedVehicle) {
       setVehicleDraftLoadId(load.id);
@@ -774,6 +822,7 @@ const ProximasCargas = () => {
         p_vehicle_id: selectedVehicle.id,
       } as never);
       if (error) throw error;
+      setDriverDailyLoadStatus('limit_reached');
       toast.success('Proposta enviada ao comprador. O pagamento só será liberado depois da aprovação do preço.');
       setQuoteDraftLoadId(null);
       setManualQuotePrice('');
@@ -859,6 +908,12 @@ const ProximasCargas = () => {
 
   const accept = async (load: FreightLoad) => {
     if (!requireAct('aceitar uma carga')) return;
+    if (driverDailyLoadStatus !== 'available') {
+      toast.error(driverDailyLoadStatus === 'limit_reached'
+        ? 'Já assumiste uma carga hoje. Poderás aceitar outra amanhã (hora de Angola).'
+        : 'Não foi possível confirmar a tua disponibilidade diária. Actualiza a lista e tenta novamente.');
+      return;
+    }
     setVehicleDraftLoadId(load.id);
     setVehicleDraftAction('accept');
     setShowNewVehicle(false);
@@ -866,6 +921,13 @@ const ProximasCargas = () => {
 
   const confirmVehicleForLoad = async () => {
     if (!vehicleDraftLoadId || !vehicleDraftAction || !user?.id) return;
+    const targetLoad = loads.find((load) => load.id === vehicleDraftLoadId);
+    if (driverDailyLoadStatus !== 'available' && targetLoad?.driver_id !== user.id) {
+      toast.error(driverDailyLoadStatus === 'limit_reached'
+        ? 'Já assumiste uma carga hoje. Poderás aceitar outra amanhã (hora de Angola).'
+        : 'Não foi possível confirmar a tua disponibilidade diária. Actualiza a lista e tenta novamente.');
+      return;
+    }
     setSavingVehicle(true);
     try {
       let vehicleId = selectedVehicleId;
@@ -936,6 +998,7 @@ const ProximasCargas = () => {
         } as never);
         setBusyId(null);
         if (error) throw error;
+        setDriverDailyLoadStatus('limit_reached');
         toast.success('Carga aceite com o veículo registado.');
         await fetchLoads();
       } else {
@@ -972,6 +1035,7 @@ const ProximasCargas = () => {
   };
 
   const selectedVehicleSummary = driverVehicles.find((vehicle) => vehicle.id === selectedVehicleId && vehicle.is_active);
+  const dailyLimitBlocked = driverDailyLoadStatus !== 'available';
 
   const visible = loads.filter((load) => {
     if (tab === 'minhas') return load.driver_id === user?.id || load.created_by === user?.id;
@@ -1749,11 +1813,11 @@ const ProximasCargas = () => {
                         )}
                         <button
                           type="button"
-                          disabled={busyId === load.id}
+                          disabled={busyId === load.id || dailyLimitBlocked}
                           onClick={() => { setQuoteDraftLoadId(load.id); setQuotePriceMethod('suggested'); setManualQuotePrice(''); setVehicleDraftLoadId(load.id); setVehicleDraftAction('quote'); setShowNewVehicle(false); }}
-                          style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: 'none', background: tooHeavy ? T.rule : T.green, color: tooHeavy ? T.muted : T.white, fontFamily: FONT, fontSize: 14, fontWeight: 800, cursor: 'pointer' }}
+                          style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: 'none', background: tooHeavy || dailyLimitBlocked ? T.rule : T.green, color: tooHeavy || dailyLimitBlocked ? T.muted : T.white, fontFamily: FONT, fontSize: 14, fontWeight: 800, cursor: dailyLimitBlocked ? 'not-allowed' : 'pointer' }}
                         >
-                          {capacityUnavailable ? 'Regista ou selecciona o veículo' : tooHeavy ? 'Capacidade insuficiente' : load.driver_quote_status === 'rejected' ? 'Rever preço e enviar proposta' : 'Propor preço do transporte'}
+                          {driverDailyLoadStatus === 'limit_reached' ? 'Limite diário atingido' : driverDailyLoadStatus === 'checking' ? 'A verificar limite diário…' : driverDailyLoadStatus === 'error' ? 'Disponibilidade não verificada' : capacityUnavailable ? 'Regista ou selecciona o veículo' : tooHeavy ? 'Capacidade insuficiente' : load.driver_quote_status === 'rejected' ? 'Rever preço e enviar proposta' : 'Propor preço do transporte'}
                         </button>
                       </>
                     ) : (
@@ -1786,7 +1850,7 @@ const ProximasCargas = () => {
                   </section>
                 ) : tab === 'disponiveis' ? (
                   <button
-                    disabled={busyId === load.id}
+                    disabled={busyId === load.id || dailyLimitBlocked}
                     onClick={() => void accept(load)}
                     style={{
                       marginTop: 14,
@@ -1794,8 +1858,8 @@ const ProximasCargas = () => {
                       padding: '12px 16px',
                       borderRadius: 12,
                       border: 'none',
-                      background: tooHeavy ? T.rule : T.green,
-                      color: tooHeavy ? T.muted : T.white,
+                      background: tooHeavy || dailyLimitBlocked ? T.rule : T.green,
+                      color: tooHeavy || dailyLimitBlocked ? T.muted : T.white,
                       fontFamily: FONT,
                       fontSize: 14,
                       fontWeight: 800,
@@ -1804,11 +1868,17 @@ const ProximasCargas = () => {
                   >
                     {busyId === load.id
                       ? 'A aceitar…'
-                      : capacityUnavailable
-                        ? 'Regista ou selecciona o veículo'
-                        : tooHeavy
-                          ? 'Capacidade insuficiente'
-                          : 'Aceitar carga'}
+                      : driverDailyLoadStatus === 'limit_reached'
+                        ? 'Limite diário atingido'
+                        : driverDailyLoadStatus === 'checking'
+                          ? 'A verificar limite diário…'
+                          : driverDailyLoadStatus === 'error'
+                            ? 'Disponibilidade não verificada'
+                            : capacityUnavailable
+                              ? 'Regista ou selecciona o veículo'
+                              : tooHeavy
+                                ? 'Capacidade insuficiente'
+                                : 'Aceitar carga'}
                   </button>
                 ) : isAssignedDriver && load.status === 'accepted' && load.pre_order_id && load.driver_quote_status !== 'approved' ? (
                   <section role="status" style={{ display: 'grid', gap: 5, marginTop: 14, padding: 12, border: `1px solid ${T.gold}`, borderRadius: 12, background: T.goldBg }}>
