@@ -78,6 +78,7 @@ interface DriverVehicle {
   registration_document_number: string | null;
   inspection_valid_until: string | null;
   insurance_valid_until: string | null;
+  maintenance_valid_until: string | null;
   verification_status: 'pending_review' | 'approved' | 'rejected';
   is_active: boolean;
 }
@@ -98,6 +99,7 @@ interface DriverVehicleDraft {
   registration_document_number: string;
   inspection_valid_until: string;
   insurance_valid_until: string;
+  maintenance_valid_until: string;
 }
 
 interface RouteLocationSuggestion {
@@ -166,7 +168,8 @@ const ProximasCargas = () => {
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [driverLicenseReady, setDriverLicenseReady] = useState(false);
   const [driverLicenseChecked, setDriverLicenseChecked] = useState(false);
-  const [driverDailyLoadStatus, setDriverDailyLoadStatus] = useState<'checking' | 'available' | 'limit_reached' | 'error'>('checking');
+  const [deliveryCommitmentAccepted, setDeliveryCommitmentAccepted] = useState(false);
+  const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
   const [vehicleDraftLoadId, setVehicleDraftLoadId] = useState<string | null>(null);
   const [vehicleDraftAction, setVehicleDraftAction] = useState<'accept' | 'quote' | null>(null);
   const [showNewVehicle, setShowNewVehicle] = useState(false);
@@ -187,6 +190,7 @@ const ProximasCargas = () => {
     registration_document_number: '',
     inspection_valid_until: '',
     insurance_valid_until: '',
+    maintenance_valid_until: '',
   });
   const [manualQuotePrice, setManualQuotePrice] = useState('');
   const [tab, setTab] = useState<'disponiveis' | 'minhas'>('disponiveis');
@@ -369,46 +373,6 @@ const ProximasCargas = () => {
     return () => { active = false; };
   }, [user?.id, userProfile?.user_type]);
 
-  useEffect(() => {
-    if (!user?.id || userProfile?.user_type !== 'motorista') {
-      setDriverDailyLoadStatus('available');
-      return;
-    }
-
-    let active = true;
-    setDriverDailyLoadStatus('checking');
-    void supabase
-      .from('freight_loads')
-      .select('accepted_at')
-      .eq('driver_id', user.id)
-      .not('accepted_at', 'is', null)
-      .then(({ data, error }) => {
-        if (!active) return;
-        if (error) {
-          console.warn('[AgriLink] Não foi possível verificar o limite diário de cargas.', error);
-          setDriverDailyLoadStatus('error');
-          return;
-        }
-
-        const todayInAngola = new Intl.DateTimeFormat('en-CA', {
-          timeZone: 'Africa/Luanda',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-        }).format(new Date());
-        const hasLoadToday = (data || []).some((load) => load.accepted_at &&
-          new Intl.DateTimeFormat('en-CA', {
-            timeZone: 'Africa/Luanda',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          }).format(new Date(load.accepted_at)) === todayInAngola);
-
-        setDriverDailyLoadStatus(hasLoadToday ? 'limit_reached' : 'available');
-      });
-
-    return () => { active = false; };
-  }, [user?.id, userProfile?.user_type]);
 
   useEffect(() => {
     if (!user?.id) {
@@ -694,12 +658,11 @@ const ProximasCargas = () => {
   const submitQuote = async (load: FreightLoad) => {
     if (!requireAct('propor o preço de uma carga')) return;
     if (!user?.id || load.created_by === user.id) return;
-    if (driverDailyLoadStatus !== 'available' && load.driver_id !== user.id) {
-      toast.error(driverDailyLoadStatus === 'limit_reached'
-        ? 'Já assumiste uma carga hoje. Poderás aceitar outra amanhã (hora de Angola).'
-        : 'Não foi possível confirmar a tua disponibilidade diária. Actualiza a lista e tenta novamente.');
+    if (!deliveryCommitmentAccepted) {
+      toast.error('Confirma que tens disponibilidade para cumprir esta entrega e as restantes que aceitares.');
       return;
     }
+
     const selectedVehicle = driverVehicles.find((vehicle) => vehicle.id === selectedVehicleId && vehicle.is_active);
     if (!selectedVehicle) {
       setVehicleDraftLoadId(load.id);
@@ -716,6 +679,23 @@ const ProximasCargas = () => {
       toast.error('Este veículo não está em condições de segurança para transporte.');
       setVehicleDraftLoadId(load.id);
       setVehicleDraftAction('quote');
+      return;
+    }
+    const todayAngola = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Luanda', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    if (!selectedVehicle.maintenance_valid_until || selectedVehicle.maintenance_valid_until < todayAngola ||
+      !selectedVehicle.inspection_valid_until || selectedVehicle.inspection_valid_until < todayAngola ||
+      !selectedVehicle.insurance_valid_until || selectedVehicle.insurance_valid_until < todayAngola) {
+      toast.error('Actualize a manutenção preventiva, a inspecção e o seguro do veículo antes de propor esta entrega.');
+      setVehicleDraftLoadId(load.id);
+      setVehicleDraftAction('quote');
+      setEditingVehicleId(selectedVehicle.id);
+      setVehicleDraft({ vehicle_type: selectedVehicle.vehicle_type, make: selectedVehicle.make, model: selectedVehicle.model,
+        plate_number: selectedVehicle.plate_number, color: selectedVehicle.color, manufacture_year: selectedVehicle.manufacture_year?.toString() || '',
+        capacity_kg: String(selectedVehicle.capacity_kg), condition_notes: selectedVehicle.condition_notes, brakes_ok: selectedVehicle.brakes_ok,
+        tires_ok: selectedVehicle.tires_ok, lights_ok: selectedVehicle.lights_ok, body_condition: selectedVehicle.body_condition,
+        registration_document_number: selectedVehicle.registration_document_number || '', inspection_valid_until: selectedVehicle.inspection_valid_until || '',
+        insurance_valid_until: selectedVehicle.insurance_valid_until || '', maintenance_valid_until: selectedVehicle.maintenance_valid_until || '' });
+      setShowNewVehicle(true);
       return;
     }
     if (quotePriceMethod === 'manual' && (!Number.isFinite(Number(manualQuotePrice)) || Number(manualQuotePrice) <= 0)) {
@@ -827,9 +807,9 @@ const ProximasCargas = () => {
         p_snapped_origin_lng: route.snappedOrigin[1],
         p_snapped_destination_lat: route.snappedDestination[0],
         p_snapped_destination_lng: route.snappedDestination[1],
+        p_driver_commitment_confirmed: true,
       } as never);
       if (error) throw error;
-      setDriverDailyLoadStatus('limit_reached');
       toast.success('Proposta enviada ao comprador. O pagamento só será liberado depois da aprovação do preço.');
       setQuoteDraftLoadId(null);
       setManualQuotePrice('');
@@ -915,12 +895,9 @@ const ProximasCargas = () => {
 
   const accept = async (load: FreightLoad) => {
     if (!requireAct('aceitar uma carga')) return;
-    if (driverDailyLoadStatus !== 'available') {
-      toast.error(driverDailyLoadStatus === 'limit_reached'
-        ? 'Já assumiste uma carga hoje. Poderás aceitar outra amanhã (hora de Angola).'
-        : 'Não foi possível confirmar a tua disponibilidade diária. Actualiza a lista e tenta novamente.');
-      return;
-    }
+
+    setDeliveryCommitmentAccepted(false);
+    setEditingVehicleId(null);
     setVehicleDraftLoadId(load.id);
     setVehicleDraftAction('accept');
     setShowNewVehicle(false);
@@ -928,24 +905,26 @@ const ProximasCargas = () => {
 
   const confirmVehicleForLoad = async () => {
     if (!vehicleDraftLoadId || !vehicleDraftAction || !user?.id) return;
-    const targetLoad = loads.find((load) => load.id === vehicleDraftLoadId);
-    if (driverDailyLoadStatus !== 'available' && targetLoad?.driver_id !== user.id) {
-      toast.error(driverDailyLoadStatus === 'limit_reached'
-        ? 'Já assumiste uma carga hoje. Poderás aceitar outra amanhã (hora de Angola).'
-        : 'Não foi possível confirmar a tua disponibilidade diária. Actualiza a lista e tenta novamente.');
+    if (!deliveryCommitmentAccepted) {
+      toast.error('Confirma que tens disponibilidade para cumprir todas as entregas que aceitares.');
       return;
     }
     setSavingVehicle(true);
     try {
       let vehicleId = selectedVehicleId;
+      let savedVehicle: DriverVehicle | null = null;
       if (showNewVehicle || driverVehicles.length === 0) {
         const plate = vehicleDraft.plate_number.trim().toUpperCase();
         const capacityKg = Number(vehicleDraft.capacity_kg);
+        const todayAngola = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Luanda', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
         if (!vehicleDraft.vehicle_type.trim() || !vehicleDraft.make.trim() ||
           !vehicleDraft.model.trim() || !plate || !vehicleDraft.color.trim() ||
           !Number.isFinite(capacityKg) || capacityKg <= 0 ||
-          vehicleDraft.condition_notes.trim().length < 10) {
-          toast.error('Preencha os dados obrigatórios do veículo e descreva as condições com pelo menos 10 caracteres.');
+          vehicleDraft.condition_notes.trim().length < 10 ||
+          !vehicleDraft.maintenance_valid_until || vehicleDraft.maintenance_valid_until < todayAngola ||
+          !vehicleDraft.inspection_valid_until || vehicleDraft.inspection_valid_until < todayAngola ||
+          !vehicleDraft.insurance_valid_until || vehicleDraft.insurance_valid_until < todayAngola) {
+          toast.error('Preencha os dados do veículo e indique manutenção preventiva, inspecção e seguro válidos.');
           return;
         }
         if (!vehicleDraft.brakes_ok || !vehicleDraft.tires_ok || !vehicleDraft.lights_ok ||
@@ -953,8 +932,7 @@ const ProximasCargas = () => {
           toast.error('O veículo não pode ser usado enquanto travões, pneus, iluminação ou carroçaria apresentarem problemas.');
           return;
         }
-        const { data, error } = await supabase.from('driver_vehicles').insert({
-          driver_id: user.id,
+        const vehiclePayload = {
           vehicle_type: vehicleDraft.vehicle_type.trim(),
           make: vehicleDraft.make.trim(),
           model: vehicleDraft.model.trim(),
@@ -968,29 +946,50 @@ const ProximasCargas = () => {
           lights_ok: vehicleDraft.lights_ok,
           body_condition: vehicleDraft.body_condition,
           registration_document_number: vehicleDraft.registration_document_number.trim() || null,
-          inspection_valid_until: vehicleDraft.inspection_valid_until || null,
-          insurance_valid_until: vehicleDraft.insurance_valid_until || null,
-        }).select('*').single();
-        if (error) throw error;
-        const created = data as DriverVehicle;
-        vehicleId = created.id;
-        setDriverVehicles((previous) => [created, ...previous]);
-        setSelectedVehicleId(created.id);
+          inspection_valid_until: vehicleDraft.inspection_valid_until,
+          insurance_valid_until: vehicleDraft.insurance_valid_until,
+          maintenance_valid_until: vehicleDraft.maintenance_valid_until,
+        };
+        const vehicleResult = editingVehicleId
+          ? await (supabase as any).from('driver_vehicles').update(vehiclePayload).eq('id', editingVehicleId).eq('driver_id', user.id).select('*').single()
+          : await supabase.from('driver_vehicles').insert({ driver_id: user.id, ...vehiclePayload }).select('*').single();
+        if (vehicleResult.error) throw vehicleResult.error;
+        savedVehicle = vehicleResult.data as DriverVehicle;
+        vehicleId = savedVehicle.id;
+        setDriverVehicles((previous) => editingVehicleId
+          ? previous.map((vehicle) => vehicle.id === savedVehicle!.id ? savedVehicle! : vehicle)
+          : [savedVehicle!, ...previous]);
+        setSelectedVehicleId(savedVehicle.id);
       }
-      const chosen = driverVehicles.find((vehicle) => vehicle.id === vehicleId) ||
+      const chosen = savedVehicle || driverVehicles.find((vehicle) => vehicle.id === vehicleId) ||
         (vehicleId ? ({ ...vehicleDraft, id: vehicleId, capacity_kg: Number(vehicleDraft.capacity_kg) } as unknown as DriverVehicle) : null);
       if (!vehicleId || (!showNewVehicle && !chosen)) {
         toast.error('Selecione um veículo ou registe um novo veículo.');
         return;
       }
-      if (!showNewVehicle && chosen &&
-        (!chosen.brakes_ok || !chosen.tires_ok || !chosen.lights_ok || chosen.body_condition === 'needs_attention')) {
+      const todayAngola = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Luanda', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+      if (chosen && (!chosen.brakes_ok || !chosen.tires_ok || !chosen.lights_ok || chosen.body_condition === 'needs_attention')) {
         toast.error('O veículo selecionado não cumpre os requisitos mínimos de segurança.');
         return;
       }
-      const selectedCapacity = showNewVehicle || driverVehicles.length === 0
-        ? Number(vehicleDraft.capacity_kg)
-        : Number(chosen?.capacity_kg);
+      if (chosen && (!chosen.maintenance_valid_until || chosen.maintenance_valid_until < todayAngola ||
+        !chosen.inspection_valid_until || chosen.inspection_valid_until < todayAngola ||
+        !chosen.insurance_valid_until || chosen.insurance_valid_until < todayAngola)) {
+        if (!showNewVehicle) {
+          setEditingVehicleId(chosen.id);
+          setVehicleDraft({ vehicle_type: chosen.vehicle_type, make: chosen.make, model: chosen.model,
+            plate_number: chosen.plate_number, color: chosen.color, manufacture_year: chosen.manufacture_year?.toString() || '',
+            capacity_kg: String(chosen.capacity_kg), condition_notes: chosen.condition_notes, brakes_ok: chosen.brakes_ok,
+            tires_ok: chosen.tires_ok, lights_ok: chosen.lights_ok, body_condition: chosen.body_condition,
+            registration_document_number: chosen.registration_document_number || '',
+            inspection_valid_until: chosen.inspection_valid_until || '', insurance_valid_until: chosen.insurance_valid_until || '',
+            maintenance_valid_until: chosen.maintenance_valid_until || '' });
+          setShowNewVehicle(true);
+        }
+        toast.error('Actualize a manutenção preventiva, a inspecção e o seguro do veículo antes de aceitar esta carga.');
+        return;
+      }
+      const selectedCapacity = Number(chosen?.capacity_kg ?? vehicleDraft.capacity_kg);
       if (selectedCapacity < (loads.find((load) => load.id === vehicleDraftLoadId)?.weight_kg || 0)) {
         toast.error('A capacidade do veículo é inferior ao peso desta carga.');
         return;
@@ -1002,10 +1001,10 @@ const ProximasCargas = () => {
         const { error } = await supabase.rpc('accept_freight_load' as never, {
           p_freight_load_id: load.id,
           p_vehicle_id: vehicleId,
+          p_driver_commitment_confirmed: true,
         } as never);
         setBusyId(null);
         if (error) throw error;
-        setDriverDailyLoadStatus('limit_reached');
         toast.success('Carga aceite com o veículo registado.');
         await fetchLoads();
       } else {
@@ -1014,6 +1013,8 @@ const ProximasCargas = () => {
       setVehicleDraftLoadId(null);
       setVehicleDraftAction(null);
       setShowNewVehicle(false);
+      setEditingVehicleId(null);
+      setDeliveryCommitmentAccepted(false);
     } catch (error: any) {
       setBusyId(null);
       toast.error(error?.message || 'Não foi possível guardar os dados do veículo.');
@@ -1042,7 +1043,7 @@ const ProximasCargas = () => {
   };
 
   const selectedVehicleSummary = driverVehicles.find((vehicle) => vehicle.id === selectedVehicleId && vehicle.is_active);
-  const dailyLimitBlocked = driverDailyLoadStatus !== 'available';
+  const activeDriverCommitments = loads.filter((load) => load.driver_id === user?.id && !['delivered', 'cancelled'].includes(load.status)).length;
 
   const visible = loads.filter((load) => {
     if (tab === 'minhas') return load.driver_id === user?.id || load.created_by === user?.id;
@@ -1820,11 +1821,11 @@ const ProximasCargas = () => {
                         )}
                         <button
                           type="button"
-                          disabled={busyId === load.id || dailyLimitBlocked}
-                          onClick={() => { setQuoteDraftLoadId(load.id); setQuotePriceMethod('suggested'); setManualQuotePrice(''); setVehicleDraftLoadId(load.id); setVehicleDraftAction('quote'); setShowNewVehicle(false); }}
-                          style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: 'none', background: tooHeavy || dailyLimitBlocked ? T.rule : T.green, color: tooHeavy || dailyLimitBlocked ? T.muted : T.white, fontFamily: FONT, fontSize: 14, fontWeight: 800, cursor: dailyLimitBlocked ? 'not-allowed' : 'pointer' }}
+                          disabled={busyId === load.id}
+                          onClick={() => { setDeliveryCommitmentAccepted(false); setEditingVehicleId(null); setQuoteDraftLoadId(load.id); setQuotePriceMethod('suggested'); setManualQuotePrice(''); setVehicleDraftLoadId(load.id); setVehicleDraftAction('quote'); setShowNewVehicle(false); }}
+                          style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: 'none', background: tooHeavy ? T.rule : T.green, color: tooHeavy ? T.muted : T.white, fontFamily: FONT, fontSize: 14, fontWeight: 800, cursor: 'pointer' }}
                         >
-                          {driverDailyLoadStatus === 'limit_reached' ? 'Limite diário atingido' : driverDailyLoadStatus === 'checking' ? 'A verificar limite diário…' : driverDailyLoadStatus === 'error' ? 'Disponibilidade não verificada' : capacityUnavailable ? 'Regista ou selecciona o veículo' : tooHeavy ? 'Capacidade insuficiente' : load.driver_quote_status === 'rejected' ? 'Rever preço e enviar proposta' : 'Propor preço do transporte'}
+                          {capacityUnavailable ? 'Regista ou selecciona o veículo' : tooHeavy ? 'Capacidade insuficiente' : load.driver_quote_status === 'rejected' ? 'Rever preço e enviar proposta' : 'Propor preço do transporte'}
                         </button>
                       </>
                     ) : (
@@ -1845,10 +1846,15 @@ const ProximasCargas = () => {
                             {Number(manualQuotePrice) > 0 && <p style={{ margin: 0, fontSize: 11, color: T.muted }}>Comissão AgriLink (8%): {money(Number(manualQuotePrice) * 0.08, load.currency)} · líquido estimado: {money(Number(manualQuotePrice) * 0.92, load.currency)}.</p>}
                           </div>
                         )}
+                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: 10, border: `1px solid ${T.rule}`, borderRadius: 10, background: T.white, fontSize: 11, lineHeight: 1.5, color: T.ink }}>
+                          <input type="checkbox" checked={deliveryCommitmentAccepted} onChange={(event) => setDeliveryCommitmentAccepted(event.target.checked)} style={{ marginTop: 2 }} />
+                          <span>Confirmo que tenho disponibilidade para cumprir esta entrega e todas as que aceitar. Comprometo-me a utilizar apenas veículos com manutenção, inspecção, seguro e condições de segurança válidas.</span>
+                        </label>
+                        {activeDriverCommitments > 0 && <p style={{ margin: 0, padding: 9, borderRadius: 9, background: T.goldBg, color: T.ink, fontSize: 11 }}>Já tens {activeDriverCommitments} entrega(s) atribuída(s) por concluir. Confirma a tua disponibilidade antes de assumir mais esta.</p>}
                         <p style={{ margin: 0, fontSize: 11, color: T.muted, lineHeight: 1.5 }}>A proposta será enviada ao comprador. O pagamento só será liberado depois da aprovação dele.</p>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button type="button" onClick={() => setQuoteDraftLoadId(null)} style={{ flex: 1, padding: 10, border: `1px solid ${T.rule}`, borderRadius: 12, background: T.white, color: T.mid, fontFamily: FONT, fontWeight: 800 }}>Cancelar</button>
-                          <button type="button" disabled={busyId === load.id || (quotePriceMethod === 'manual' && (!Number.isFinite(Number(manualQuotePrice)) || Number(manualQuotePrice) <= 0))} onClick={() => void submitQuote(load)} style={{ flex: 1, padding: 10, border: 'none', borderRadius: 12, background: T.green, color: T.white, fontFamily: FONT, fontWeight: 800, opacity: busyId === load.id ? 0.6 : 1 }}>
+                          <button type="button" disabled={busyId === load.id || !deliveryCommitmentAccepted || (quotePriceMethod === 'manual' && (!Number.isFinite(Number(manualQuotePrice)) || Number(manualQuotePrice) <= 0))} onClick={() => void submitQuote(load)} style={{ flex: 1, padding: 10, border: 'none', borderRadius: 12, background: T.green, color: T.white, fontFamily: FONT, fontWeight: 800, opacity: busyId === load.id ? 0.6 : 1 }}>
                             {busyId === load.id ? 'A calcular e enviar…' : 'Enviar proposta'}
                           </button>
                         </div>
@@ -1857,7 +1863,7 @@ const ProximasCargas = () => {
                   </section>
                 ) : tab === 'disponiveis' ? (
                   <button
-                    disabled={busyId === load.id || dailyLimitBlocked}
+                    disabled={busyId === load.id}
                     onClick={() => void accept(load)}
                     style={{
                       marginTop: 14,
@@ -1865,27 +1871,15 @@ const ProximasCargas = () => {
                       padding: '12px 16px',
                       borderRadius: 12,
                       border: 'none',
-                      background: tooHeavy || dailyLimitBlocked ? T.rule : T.green,
-                      color: tooHeavy || dailyLimitBlocked ? T.muted : T.white,
+                      background: tooHeavy ? T.rule : T.green,
+                      color: tooHeavy ? T.muted : T.white,
                       fontFamily: FONT,
                       fontSize: 14,
                       fontWeight: 800,
                       cursor: 'pointer',
                     }}
                   >
-                    {busyId === load.id
-                      ? 'A aceitar…'
-                      : driverDailyLoadStatus === 'limit_reached'
-                        ? 'Limite diário atingido'
-                        : driverDailyLoadStatus === 'checking'
-                          ? 'A verificar limite diário…'
-                          : driverDailyLoadStatus === 'error'
-                            ? 'Disponibilidade não verificada'
-                            : capacityUnavailable
-                              ? 'Regista ou selecciona o veículo'
-                              : tooHeavy
-                                ? 'Capacidade insuficiente'
-                                : 'Aceitar carga'}
+                    {busyId === load.id ? 'A aceitar…' : capacityUnavailable ? 'Regista ou selecciona o veículo' : tooHeavy ? 'Capacidade insuficiente' : 'Aceitar carga'}
                   </button>
                 ) : isAssignedDriver && load.status === 'accepted' && load.pre_order_id && load.driver_quote_status !== 'approved' ? (
                   <section role="status" style={{ display: 'grid', gap: 5, marginTop: 14, padding: 12, border: `1px solid ${T.gold}`, borderRadius: 12, background: T.goldBg }}>
@@ -1966,10 +1960,10 @@ const ProximasCargas = () => {
           <section style={{ width: 'min(100%, 620px)', maxHeight: '90vh', overflowY: 'auto', background: T.white, borderRadius: 18, padding: 20, boxShadow: '0 24px 80px rgba(0,0,0,.24)', display: 'grid', gap: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
               <div>
-                <h2 id="driver-vehicle-title" style={{ margin: 0, color: T.ink, fontSize: 18, fontWeight: 900 }}>Identificação do veículo</h2>
+                <h2 id="driver-vehicle-title" style={{ margin: 0, color: T.ink, fontSize: 18, fontWeight: 900 }}>{editingVehicleId ? 'Actualizar veículo e manutenção' : 'Identificação do veículo'}</h2>
                 <p style={{ margin: '5px 0 0', color: T.muted, fontSize: 12, lineHeight: 1.5 }}>A AgriLink associa estes dados à carga para manter o registo do veículo utilizado na operação.</p>
               </div>
-              <button type="button" aria-label="Fechar" onClick={() => { setVehicleDraftLoadId(null); setVehicleDraftAction(null); }} style={{ border: 0, background: 'transparent', color: T.muted, fontSize: 22, cursor: 'pointer' }}>×</button>
+              <button type="button" aria-label="Fechar" onClick={() => { setVehicleDraftLoadId(null); setVehicleDraftAction(null); setEditingVehicleId(null); setDeliveryCommitmentAccepted(false); }} style={{ border: 0, background: 'transparent', color: T.muted, fontSize: 22, cursor: 'pointer' }}>×</button>
             </div>
             {!showNewVehicle && driverVehicles.length > 0 && (
               <div style={{ display: 'grid', gap: 6 }}>
@@ -1978,7 +1972,10 @@ const ProximasCargas = () => {
                   <option value="">Seleccione um veículo</option>
                   {driverVehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.vehicle_type} · {vehicle.make} {vehicle.model} · {vehicle.plate_number} · {vehicle.capacity_kg} kg</option>)}
                 </select>
-                <button type="button" onClick={() => setShowNewVehicle(true)} style={{ justifySelf: 'start', border: 0, background: 'transparent', color: T.green, fontWeight: 800, cursor: 'pointer' }}>+ Registar outro veículo</button>
+                <button type="button" onClick={() => { setEditingVehicleId(null); setShowNewVehicle(true); setVehicleDraft({ vehicle_type: 'Camião', make: '', model: '', plate_number: '', color: '', manufacture_year: '', capacity_kg: '', condition_notes: '', brakes_ok: false, tires_ok: false, lights_ok: false, body_condition: 'good', registration_document_number: '', inspection_valid_until: '', insurance_valid_until: '', maintenance_valid_until: '' }); }} style={{ justifySelf: 'start', border: 0, background: 'transparent', color: T.green, fontWeight: 800, cursor: 'pointer' }}>+ Registar outro veículo</button>
+                {selectedVehicleId && driverVehicles.some(vehicle => vehicle.id === selectedVehicleId) && (
+                  <button type="button" onClick={() => { const vehicle = driverVehicles.find(item => item.id === selectedVehicleId)!; setEditingVehicleId(vehicle.id); setVehicleDraft({ vehicle_type: vehicle.vehicle_type, make: vehicle.make, model: vehicle.model, plate_number: vehicle.plate_number, color: vehicle.color, manufacture_year: vehicle.manufacture_year?.toString() || '', capacity_kg: String(vehicle.capacity_kg), condition_notes: vehicle.condition_notes, brakes_ok: vehicle.brakes_ok, tires_ok: vehicle.tires_ok, lights_ok: vehicle.lights_ok, body_condition: vehicle.body_condition, registration_document_number: vehicle.registration_document_number || '', inspection_valid_until: vehicle.inspection_valid_until || '', insurance_valid_until: vehicle.insurance_valid_until || '', maintenance_valid_until: vehicle.maintenance_valid_until || '' }); setShowNewVehicle(true); }} style={{ justifySelf: 'start', border: 0, background: 'transparent', color: T.green, fontWeight: 800, cursor: 'pointer' }}>Actualizar manutenção e documentos do veículo seleccionado</button>
+                )}
               </div>
             )}
             {(showNewVehicle || driverVehicles.length === 0) && (
@@ -2024,20 +2021,29 @@ const ProximasCargas = () => {
                   </select>
                 </div>
                 <div style={{ display: 'grid', gap: 5 }}>
-                  <label style={{ fontSize: 12, fontWeight: 800 }}>Inspecção válida até</label>
-                  <input type="date" value={vehicleDraft.inspection_valid_until} onChange={(e) => setVehicleDraft(v => ({...v,inspection_valid_until:e.target.value}))} style={formInputStyle} />
+                  <label style={{ fontSize: 12, fontWeight: 800 }}>Inspecção válida até *</label>
+                  <input required type="date" value={vehicleDraft.inspection_valid_until} onChange={(e) => setVehicleDraft(v => ({...v,inspection_valid_until:e.target.value}))} style={formInputStyle} />
                 </div>
                 <div style={{ display: 'grid', gap: 5 }}>
-                  <label style={{ fontSize: 12, fontWeight: 800 }}>Seguro válido até</label>
-                  <input type="date" value={vehicleDraft.insurance_valid_until} onChange={(e) => setVehicleDraft(v => ({...v,insurance_valid_until:e.target.value}))} style={formInputStyle} />
+                  <label style={{ fontSize: 12, fontWeight: 800 }}>Seguro válido até *</label>
+                  <input required type="date" value={vehicleDraft.insurance_valid_until} onChange={(e) => setVehicleDraft(v => ({...v,insurance_valid_until:e.target.value}))} style={formInputStyle} />
                 </div>
-                {driverVehicles.length > 0 && <button type="button" onClick={() => setShowNewVehicle(false)} style={{ justifySelf: 'start', border: 0, background: 'transparent', color: T.green, fontWeight: 800, cursor: 'pointer' }}>Voltar aos veículos registados</button>}
+                <div style={{ display: 'grid', gap: 5 }}>
+                  <label style={{ fontSize: 12, fontWeight: 800 }}>Manutenção preventiva válida até *</label>
+                  <input required type="date" value={vehicleDraft.maintenance_valid_until} onChange={(e) => setVehicleDraft(v => ({...v,maintenance_valid_until:e.target.value}))} style={formInputStyle} />
+                </div>
+                {driverVehicles.length > 0 && <button type="button" onClick={() => { setShowNewVehicle(false); setEditingVehicleId(null); }} style={{ justifySelf: 'start', border: 0, background: 'transparent', color: T.green, fontWeight: 800, cursor: 'pointer' }}>Voltar aos veículos registados</button>}
               </div>
             )}
-            <p style={{ margin: 0, color: T.muted, fontSize: 11, lineHeight: 1.5 }}>Os dados serão guardados no seu perfil de motorista e associados à carga. O registo ficará pendente de revisão administrativa; esta etapa não valida os documentos originais.</p>
+            {activeDriverCommitments > 0 && <p style={{ margin: 0, padding: 10, borderRadius: 10, background: T.goldBg, color: T.ink, fontSize: 11 }}>Tens actualmente {activeDriverCommitments} entrega(s) atribuída(s) por concluir. Considera estes compromissos antes de aceitar outra carga.</p>}
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: 10, border: `1px solid ${T.rule}`, borderRadius: 10, background: T.canvas, fontSize: 11, lineHeight: 1.5, color: T.ink }}>
+              <input type="checkbox" checked={deliveryCommitmentAccepted} onChange={(event) => setDeliveryCommitmentAccepted(event.target.checked)} style={{ marginTop: 2 }} />
+              <span>Comprometo-me a cumprir esta entrega e as restantes que aceitar. Declaro que o veículo será utilizado apenas com manutenção preventiva, inspecção, seguro e condições de segurança válidas.</span>
+            </label>
+            <p style={{ margin: 0, color: T.muted, fontSize: 11, lineHeight: 1.5 }}>Os dados do veículo ficam associados à operação. O registo pendente de revisão administrativa não substitui a verificação dos documentos originais.</p>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" disabled={savingVehicle} onClick={() => { setVehicleDraftLoadId(null); setVehicleDraftAction(null); }} style={{ flex: 1, padding: 11, border: `1px solid ${T.rule}`, borderRadius: 12, background: T.white, color: T.mid, fontWeight: 800 }}>Cancelar</button>
-              <button type="button" disabled={savingVehicle} onClick={() => void confirmVehicleForLoad()} style={{ flex: 1, padding: 11, border: 0, borderRadius: 12, background: T.green, color: T.white, fontWeight: 800, opacity: savingVehicle ? .6 : 1 }}>{savingVehicle ? 'A guardar…' : vehicleDraftAction === 'accept' ? 'Guardar e aceitar carga' : 'Confirmar veículo'}</button>
+              <button type="button" disabled={savingVehicle} onClick={() => { setVehicleDraftLoadId(null); setVehicleDraftAction(null); setEditingVehicleId(null); setDeliveryCommitmentAccepted(false); }} style={{ flex: 1, padding: 11, border: `1px solid ${T.rule}`, borderRadius: 12, background: T.white, color: T.mid, fontWeight: 800 }}>Cancelar</button>
+              <button type="button" disabled={savingVehicle} onClick={() => void confirmVehicleForLoad()} style={{ flex: 1, padding: 11, border: 0, borderRadius: 12, background: T.green, color: T.white, fontWeight: 800, opacity: savingVehicle ? .6 : 1 }}>{savingVehicle ? 'A guardar…' : editingVehicleId ? 'Guardar actualizações' : vehicleDraftAction === 'accept' ? 'Guardar e aceitar carga' : 'Confirmar veículo'}</button>
             </div>
           </section>
         </div>

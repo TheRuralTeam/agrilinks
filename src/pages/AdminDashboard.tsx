@@ -66,7 +66,7 @@ import {
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import agrilinkLogo from "../assets/agrilink-logo.png";
 import AdminManagement from "../components/admin/AdminManagement";
-import DeliveryTracking from "../components/admin/DeliveryTracking";
+import AdminFreightOperations from "../components/admin/AdminFreightOperations";
 import SourcingOperations from "../components/admin/SourcingOperations";
 import WorkSessionTimer from "../components/admin/WorkSessionTimer";
 import MarketPricesManager from "../components/admin/MarketPricesManager";
@@ -229,7 +229,7 @@ const TAB_TITLES: Record<TabType, string> = {
   prices: "Preços de Mercado",
   admins: "Administradores",
   referrals: "Indicações",
-  deliveries: "Entregas",
+  deliveries: "Controlo de Entregas",
   freight: "Configuração do Frete",
   routes: "Rotas da Aplicação",
   finance: "Financeiro",
@@ -401,7 +401,7 @@ const AdminDashboard = () => {
       case "admins":
         return isRootAdmin || hasPermission("manage_admins");
       case "deliveries":
-        return isSupportAgent || hasPermission("manage_orders");
+        return hasPermission("manage_orders");
       case "orders":
       case "freight":
         return hasPermission("manage_orders");
@@ -1082,7 +1082,7 @@ const AdminDashboard = () => {
           <SidebarItem active={activeTab === "dashboard"} onClick={() => { setActiveTab("dashboard"); setMenuOpen(false); }} icon={<Activity className="h-4 w-4" />}>
             Dashboard
           </SidebarItem>
-          {(isSupportAgent || hasPermission("manage_orders")) && (
+          {hasPermission("manage_orders") && (
             <SidebarItem active={activeTab === "orders"} onClick={() => { setActiveTab("orders"); setMenuOpen(false); }} icon={<ShoppingCart className="h-4 w-4" />}>
               Pedidos
             </SidebarItem>
@@ -2720,7 +2720,7 @@ const AdminDashboard = () => {
 
         {/* DELIVERIES TAB */}
         {activeTab === "deliveries" && currentUserId && (
-          <DeliveryTracking currentUserId={currentUserId} />
+          <AdminFreightOperations />
         )}
       </main>
       </div>
