@@ -98,8 +98,8 @@ BEGIN
     RAISE EXCEPTION 'Authentication required' USING ERRCODE = '42501';
   END IF;
 
-  SELECT u.user_type::text, u.load_capacity_kg, u.email_verified
-    INTO v_user_type, v_capacity, v_email_verified
+  SELECT u.user_type::text, u.email_verified
+    INTO v_user_type, v_email_verified
   FROM public.users AS u
   WHERE u.id = v_actor_id;
 
@@ -122,6 +122,10 @@ BEGIN
   IF v_vehicle.capacity_kg < 1 THEN
     RAISE EXCEPTION 'The selected vehicle has no valid load capacity' USING ERRCODE = '22023';
   END IF;
+  IF NOT v_vehicle.brakes_ok OR NOT v_vehicle.tires_ok OR NOT v_vehicle.lights_ok
+    OR v_vehicle.body_condition = 'needs_attention' THEN
+    RAISE EXCEPTION 'The selected vehicle does not meet minimum safety requirements' USING ERRCODE = '22023';
+  END IF;
 
   SELECT fl.* INTO v_load
   FROM public.freight_loads AS fl
@@ -139,7 +143,7 @@ BEGIN
   END IF;
 
   IF v_load.weight_kg > v_vehicle.capacity_kg THEN
-    RAISE EXCEPTION 'Freight load exceeds the selected vehicle or driver capacity' USING ERRCODE = '22023';
+    RAISE EXCEPTION 'Freight load exceeds the selected vehicle capacity' USING ERRCODE = '22023';
   END IF;
 
   IF p_route_distance_km IS NULL OR p_route_distance_km <= 0 OR p_route_distance_km > 100000
@@ -240,7 +244,6 @@ DECLARE
   accepted_id uuid;
   v_vehicle public.driver_vehicles%ROWTYPE;
   registered_user_type text;
-  registered_capacity numeric;
 BEGIN
   IF actor_id IS NULL THEN RAISE EXCEPTION 'Authentication required' USING ERRCODE = '42501'; END IF;
 
@@ -263,6 +266,10 @@ BEGIN
 
   IF v_vehicle.capacity_kg <= 0 THEN
     RAISE EXCEPTION 'A valid vehicle capacity is required' USING ERRCODE = '22023';
+  END IF;
+  IF NOT v_vehicle.brakes_ok OR NOT v_vehicle.tires_ok OR NOT v_vehicle.lights_ok
+    OR v_vehicle.body_condition = 'needs_attention' THEN
+    RAISE EXCEPTION 'The selected vehicle does not meet minimum safety requirements' USING ERRCODE = '22023';
   END IF;
 
   UPDATE public.freight_loads
