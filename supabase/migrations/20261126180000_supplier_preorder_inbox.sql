@@ -97,3 +97,57 @@ BEGIN
   END IF;
 END;
 $$;
+
+-- Backfill pending requests created before this migration so they are visible
+-- and actionable immediately after deployment.
+DO $backfill$
+DECLARE
+  v_order record;
+BEGIN
+  FOR v_order IN
+    SELECT
+      po.id,
+      po.product_id,
+      po.user_id AS buyer_id,
+      po.quantity,
+      po.status,
+      product.user_id AS supplier_id,
+      product.product_type,
+      buyer.full_name AS buyer_name
+    FROM public.pre_orders AS po
+    JOIN public.products AS product ON product.id = po.product_id
+    LEFT JOIN public.users AS buyer ON buyer.id = po.user_id
+    WHERE po.status IN ('pending', 'aguardando')
+      AND po.deleted_at IS NULL
+      AND product.user_id IS NOT NULL
+      AND product.user_id <> po.user_id
+      AND NOT EXISTS (
+        SELECT 1
+        FROM public.notifications AS notification
+        WHERE notification.user_id = product.user_id
+          AND notification.type = 'pre_order_received'
+          AND notification.metadata->>'pre_order_id' = po.id::text
+      )
+  LOOP
+    PERFORM public.create_notification(
+      v_order.supplier_id,
+      'pre_order_received',
+      'Pré-compra pendente',
+      format(
+        '%s solicitou %s kg de %s. Abre os pedidos recebidos para aceitar ou rejeitar a pré-compra.',
+        COALESCE(NULLIF(btrim(v_order.buyer_name), ''), 'Um comprador'),
+        to_char(v_order.quantity, 'FM999G999G999G990D00'),
+        COALESCE(v_order.product_type, 'um dos teus produtos')
+      ),
+      jsonb_build_object(
+        'pre_order_id', v_order.id,
+        'product_id', v_order.product_id,
+        'buyer_id', v_order.buyer_id,
+        'quantity', v_order.quantity,
+        'status', v_order.status,
+        'path', '/pedidos-fornecedor'
+      )
+    );
+  END LOOP;
+END;
+$backfill$;
