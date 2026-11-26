@@ -424,6 +424,10 @@ BEGIN
 END;
 $function$;
 
+-- Remove legacy overloads that do not require a vehicle or driving licence.
+DROP FUNCTION IF EXISTS public.submit_freight_quote(uuid,text,numeric,numeric,integer);
+DROP FUNCTION IF EXISTS public.accept_freight_load(uuid);
+
 REVOKE ALL ON FUNCTION public.submit_freight_quote(uuid,text,numeric,numeric,integer,uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.accept_freight_load(uuid,uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.submit_freight_quote(uuid,text,numeric,numeric,integer,uuid) TO authenticated;
