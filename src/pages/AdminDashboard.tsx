@@ -229,7 +229,7 @@ const TAB_TITLES: Record<TabType, string> = {
   prices: "Preços de Mercado",
   admins: "Administradores",
   referrals: "Indicações",
-  deliveries: "Entregas",
+  deliveries: "Controlo de Entregas",
   freight: "Configuração do Frete",
   routes: "Rotas da Aplicação",
   finance: "Financeiro",
