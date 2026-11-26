@@ -7,6 +7,9 @@ DROP FUNCTION IF EXISTS public.enforce_one_driver_freight_load_per_day();
 ALTER TABLE public.driver_vehicles
   ADD COLUMN IF NOT EXISTS maintenance_valid_until date;
 
+ALTER TABLE public.freight_loads
+  ADD COLUMN IF NOT EXISTS driver_commitment_confirmed_at timestamptz;
+
 -- Drivers may update their own vehicle data so they can keep maintenance and compliance dates current.
 DROP POLICY IF EXISTS "Drivers can update own vehicles" ON public.driver_vehicles;
 CREATE POLICY "Drivers can update own vehicles"
@@ -54,7 +57,7 @@ CREATE TRIGGER trg_protect_driver_vehicle_admin_fields
 
 REVOKE ALL ON FUNCTION public.protect_driver_vehicle_admin_fields() FROM PUBLIC, anon, authenticated;
 
-CREATE OR REPLACE FUNCTION public.submit_freight_quote(p_freight_load_id uuid, p_price_method text, p_manual_price numeric, p_route_distance_km numeric, p_route_duration_minutes integer, p_vehicle_id uuid, p_snapped_origin_lat double precision, p_snapped_origin_lng double precision, p_snapped_destination_lat double precision, p_snapped_destination_lng double precision)
+CREATE OR REPLACE FUNCTION public.submit_freight_quote(p_freight_load_id uuid, p_price_method text, p_manual_price numeric, p_route_distance_km numeric, p_route_duration_minutes integer, p_vehicle_id uuid, p_snapped_origin_lat double precision, p_snapped_origin_lng double precision, p_snapped_destination_lat double precision, p_snapped_destination_lng double precision, p_driver_commitment_confirmed boolean)
  RETURNS TABLE(id uuid, status text, driver_id uuid, driver_offered_price numeric, driver_price_method text, driver_quote_status text, route_distance_km numeric, route_duration_minutes integer)
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -84,6 +87,10 @@ DECLARE
 BEGIN
   IF v_actor_id IS NULL THEN
     RAISE EXCEPTION 'Authentication required' USING ERRCODE = '42501';
+  END IF;
+  IF p_driver_commitment_confirmed IS DISTINCT FROM TRUE THEN
+    RAISE EXCEPTION 'Confirm your availability and delivery commitments before submitting this freight quote'
+      USING ERRCODE = '42501';
   END IF;
 
   SELECT u.user_type::text, u.email_verified
@@ -258,6 +265,7 @@ BEGIN
     driver_quote_status = 'pending_buyer_approval',
     route_distance_km = p_route_distance_km,
     route_duration_minutes = p_route_duration_minutes,
+    driver_commitment_confirmed_at = now(),
     updated_at = now()
   WHERE fl.id = p_freight_load_id
   RETURNING fl.* INTO v_load;
@@ -277,7 +285,8 @@ $function$;
 
 CREATE OR REPLACE FUNCTION public.accept_freight_load(
   p_freight_load_id uuid,
-  p_vehicle_id uuid
+  p_vehicle_id uuid,
+  p_driver_commitment_confirmed boolean
 )
 RETURNS uuid
 LANGUAGE plpgsql
@@ -292,6 +301,10 @@ DECLARE
   registered_user_type text;
 BEGIN
   IF actor_id IS NULL THEN RAISE EXCEPTION 'Authentication required' USING ERRCODE = '42501'; END IF;
+  IF p_driver_commitment_confirmed IS DISTINCT FROM TRUE THEN
+    RAISE EXCEPTION 'Confirm your availability and delivery commitments before accepting this freight load'
+      USING ERRCODE = '42501';
+  END IF;
 
   SELECT u.user_type::text
     INTO registered_user_type
@@ -345,7 +358,7 @@ BEGIN
 
   UPDATE public.freight_loads
   SET driver_id = actor_id, vehicle_id = v_vehicle.id, status = 'accepted',
-    accepted_at = now()
+    accepted_at = now(), driver_commitment_confirmed_at = now()
   WHERE id = p_freight_load_id AND status IN ('available', 'open', 'agendado') AND driver_id IS NULL
     AND weight_kg > 0 AND weight_kg <= v_vehicle.capacity_kg
   RETURNING id INTO accepted_id;
@@ -360,3 +373,12 @@ BEGIN
   RETURN accepted_id;
 END;
 $function$;
+
+-- Remove previous RPC signatures so the commitment cannot be bypassed by calling the old overloads.
+DROP FUNCTION IF EXISTS public.submit_freight_quote(uuid,text,numeric,numeric,integer,uuid,double precision,double precision,double precision,double precision);
+DROP FUNCTION IF EXISTS public.accept_freight_load(uuid,uuid);
+
+REVOKE ALL ON FUNCTION public.submit_freight_quote(uuid,text,numeric,numeric,integer,uuid,double precision,double precision,double precision,double precision,boolean) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.submit_freight_quote(uuid,text,numeric,numeric,integer,uuid,double precision,double precision,double precision,double precision,boolean) TO authenticated;
+REVOKE ALL ON FUNCTION public.accept_freight_load(uuid,uuid,boolean) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.accept_freight_load(uuid,uuid,boolean) TO authenticated;
