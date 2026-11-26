@@ -210,8 +210,7 @@ BEGIN
     v_load.driver_offered_price, v_load.driver_price_method,
     v_load.driver_quote_status, v_load.route_distance_km, v_load.route_duration_minutes;
 END;
-$function$
-
+$function$;
 
 -- Remove the legacy signature so clients cannot bypass the snapped-coordinate checks.
 DROP FUNCTION IF EXISTS public.submit_freight_quote(uuid,text,numeric,numeric,integer,uuid);
