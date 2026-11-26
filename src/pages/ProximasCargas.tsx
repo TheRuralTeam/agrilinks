@@ -78,6 +78,7 @@ interface DriverVehicle {
   registration_document_number: string | null;
   inspection_valid_until: string | null;
   insurance_valid_until: string | null;
+  maintenance_valid_until: string | null;
   verification_status: 'pending_review' | 'approved' | 'rejected';
   is_active: boolean;
 }
@@ -98,6 +99,7 @@ interface DriverVehicleDraft {
   registration_document_number: string;
   inspection_valid_until: string;
   insurance_valid_until: string;
+  maintenance_valid_until: string;
 }
 
 interface RouteLocationSuggestion {
@@ -188,6 +190,7 @@ const ProximasCargas = () => {
     registration_document_number: '',
     inspection_valid_until: '',
     insurance_valid_until: '',
+    maintenance_valid_until: '',
   });
   const [manualQuotePrice, setManualQuotePrice] = useState('');
   const [tab, setTab] = useState<'disponiveis' | 'minhas'>('disponiveis');
@@ -655,6 +658,10 @@ const ProximasCargas = () => {
   const submitQuote = async (load: FreightLoad) => {
     if (!requireAct('propor o preço de uma carga')) return;
     if (!user?.id || load.created_by === user.id) return;
+    if (!deliveryCommitmentAccepted) {
+      toast.error('Confirma que tens disponibilidade para cumprir esta entrega e as restantes que aceitares.');
+      return;
+    }
 
     const selectedVehicle = driverVehicles.find((vehicle) => vehicle.id === selectedVehicleId && vehicle.is_active);
     if (!selectedVehicle) {
@@ -672,6 +679,23 @@ const ProximasCargas = () => {
       toast.error('Este veículo não está em condições de segurança para transporte.');
       setVehicleDraftLoadId(load.id);
       setVehicleDraftAction('quote');
+      return;
+    }
+    const todayAngola = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Luanda' }).format(new Date());
+    if (!selectedVehicle.maintenance_valid_until || selectedVehicle.maintenance_valid_until < todayAngola ||
+      !selectedVehicle.inspection_valid_until || selectedVehicle.inspection_valid_until < todayAngola ||
+      !selectedVehicle.insurance_valid_until || selectedVehicle.insurance_valid_until < todayAngola) {
+      toast.error('Actualize a manutenção preventiva, a inspecção e o seguro do veículo antes de propor esta entrega.');
+      setVehicleDraftLoadId(load.id);
+      setVehicleDraftAction('quote');
+      setEditingVehicleId(selectedVehicle.id);
+      setVehicleDraft({ vehicle_type: selectedVehicle.vehicle_type, make: selectedVehicle.make, model: selectedVehicle.model,
+        plate_number: selectedVehicle.plate_number, color: selectedVehicle.color, manufacture_year: selectedVehicle.manufacture_year?.toString() || '',
+        capacity_kg: String(selectedVehicle.capacity_kg), condition_notes: selectedVehicle.condition_notes, brakes_ok: selectedVehicle.brakes_ok,
+        tires_ok: selectedVehicle.tires_ok, lights_ok: selectedVehicle.lights_ok, body_condition: selectedVehicle.body_condition,
+        registration_document_number: selectedVehicle.registration_document_number || '', inspection_valid_until: selectedVehicle.inspection_valid_until || '',
+        insurance_valid_until: selectedVehicle.insurance_valid_until || '', maintenance_valid_until: selectedVehicle.maintenance_valid_until || '' });
+      setShowNewVehicle(true);
       return;
     }
     if (quotePriceMethod === 'manual' && (!Number.isFinite(Number(manualQuotePrice)) || Number(manualQuotePrice) <= 0)) {
@@ -872,6 +896,8 @@ const ProximasCargas = () => {
   const accept = async (load: FreightLoad) => {
     if (!requireAct('aceitar uma carga')) return;
 
+    setDeliveryCommitmentAccepted(false);
+    setEditingVehicleId(null);
     setVehicleDraftLoadId(load.id);
     setVehicleDraftAction('accept');
     setShowNewVehicle(false);
@@ -1768,7 +1794,7 @@ const ProximasCargas = () => {
                         <button
                           type="button"
                           disabled={busyId === load.id}
-                          onClick={() => { setQuoteDraftLoadId(load.id); setQuotePriceMethod('suggested'); setManualQuotePrice(''); setVehicleDraftLoadId(load.id); setVehicleDraftAction('quote'); setShowNewVehicle(false); }}
+                          onClick={() => { setDeliveryCommitmentAccepted(false); setEditingVehicleId(null); setQuoteDraftLoadId(load.id); setQuotePriceMethod('suggested'); setManualQuotePrice(''); setVehicleDraftLoadId(load.id); setVehicleDraftAction('quote'); setShowNewVehicle(false); }}
                           style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: 'none', background: tooHeavy ? T.rule : T.green, color: tooHeavy ? T.muted : T.white, fontFamily: FONT, fontSize: 14, fontWeight: 800, cursor: 'pointer' }}
                         >
                           {capacityUnavailable ? 'Regista ou selecciona o veículo' : tooHeavy ? 'Capacidade insuficiente' : load.driver_quote_status === 'rejected' ? 'Rever preço e enviar proposta' : 'Propor preço do transporte'}
@@ -1792,10 +1818,14 @@ const ProximasCargas = () => {
                             {Number(manualQuotePrice) > 0 && <p style={{ margin: 0, fontSize: 11, color: T.muted }}>Comissão AgriLink (8%): {money(Number(manualQuotePrice) * 0.08, load.currency)} · líquido estimado: {money(Number(manualQuotePrice) * 0.92, load.currency)}.</p>}
                           </div>
                         )}
+                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: 10, border: `1px solid ${T.rule}`, borderRadius: 10, background: T.white, fontSize: 11, lineHeight: 1.5, color: T.ink }}>
+                          <input type="checkbox" checked={deliveryCommitmentAccepted} onChange={(event) => setDeliveryCommitmentAccepted(event.target.checked)} style={{ marginTop: 2 }} />
+                          <span>Confirmo que tenho disponibilidade para cumprir esta entrega e todas as que aceitar. Comprometo-me a utilizar apenas veículos com manutenção, inspecção, seguro e condições de segurança válidas.</span>
+                        </label>
                         <p style={{ margin: 0, fontSize: 11, color: T.muted, lineHeight: 1.5 }}>A proposta será enviada ao comprador. O pagamento só será liberado depois da aprovação dele.</p>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button type="button" onClick={() => setQuoteDraftLoadId(null)} style={{ flex: 1, padding: 10, border: `1px solid ${T.rule}`, borderRadius: 12, background: T.white, color: T.mid, fontFamily: FONT, fontWeight: 800 }}>Cancelar</button>
-                          <button type="button" disabled={busyId === load.id || (quotePriceMethod === 'manual' && (!Number.isFinite(Number(manualQuotePrice)) || Number(manualQuotePrice) <= 0))} onClick={() => void submitQuote(load)} style={{ flex: 1, padding: 10, border: 'none', borderRadius: 12, background: T.green, color: T.white, fontFamily: FONT, fontWeight: 800, opacity: busyId === load.id ? 0.6 : 1 }}>
+                          <button type="button" disabled={busyId === load.id || !deliveryCommitmentAccepted || (quotePriceMethod === 'manual' && (!Number.isFinite(Number(manualQuotePrice)) || Number(manualQuotePrice) <= 0))} onClick={() => void submitQuote(load)} style={{ flex: 1, padding: 10, border: 'none', borderRadius: 12, background: T.green, color: T.white, fontFamily: FONT, fontWeight: 800, opacity: busyId === load.id ? 0.6 : 1 }}>
                             {busyId === load.id ? 'A calcular e enviar…' : 'Enviar proposta'}
                           </button>
                         </div>
