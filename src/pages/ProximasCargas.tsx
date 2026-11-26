@@ -1849,6 +1849,7 @@ const ProximasCargas = () => {
                           <input type="checkbox" checked={deliveryCommitmentAccepted} onChange={(event) => setDeliveryCommitmentAccepted(event.target.checked)} style={{ marginTop: 2 }} />
                           <span>Confirmo que tenho disponibilidade para cumprir esta entrega e todas as que aceitar. Comprometo-me a utilizar apenas veículos com manutenção, inspecção, seguro e condições de segurança válidas.</span>
                         </label>
+                        {activeDriverCommitments > 0 && <p style={{ margin: 0, padding: 9, borderRadius: 9, background: T.goldBg, color: T.ink, fontSize: 11 }}>Já tens {activeDriverCommitments} entrega(s) atribuída(s) por concluir. Confirma a tua disponibilidade antes de assumir mais esta.</p>}
                         <p style={{ margin: 0, fontSize: 11, color: T.muted, lineHeight: 1.5 }}>A proposta será enviada ao comprador. O pagamento só será liberado depois da aprovação dele.</p>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button type="button" onClick={() => setQuoteDraftLoadId(null)} style={{ flex: 1, padding: 10, border: `1px solid ${T.rule}`, borderRadius: 12, background: T.white, color: T.mid, fontFamily: FONT, fontWeight: 800 }}>Cancelar</button>
