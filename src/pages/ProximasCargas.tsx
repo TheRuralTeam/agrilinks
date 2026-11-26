@@ -1846,7 +1846,7 @@ const ProximasCargas = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
               <div>
                 <h2 id="driver-vehicle-title" style={{ margin: 0, color: T.ink, fontSize: 18, fontWeight: 900 }}>Identificação do veículo</h2>
-                <p style={{ margin: '5px 0 0', color: T.muted, fontSize: 12, lineHeight: 1.5 }}>A AgriLink associa estes dados à carga e apresenta-os ao comprador antes da aprovação do transporte.</p>
+                <p style={{ margin: '5px 0 0', color: T.muted, fontSize: 12, lineHeight: 1.5 }}>A AgriLink associa estes dados à carga para manter o registo do veículo utilizado na operação.</p>
               </div>
               <button type="button" aria-label="Fechar" onClick={() => { setVehicleDraftLoadId(null); setVehicleDraftAction(null); }} style={{ border: 0, background: 'transparent', color: T.muted, fontSize: 22, cursor: 'pointer' }}>×</button>
             </div>
