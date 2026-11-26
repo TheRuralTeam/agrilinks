@@ -884,7 +884,14 @@ const ProximasCargas = () => {
         toast.error('Selecione um veículo ou registe um novo veículo.');
         return;
       }
-      const selectedCapacity = showNewVehicle ? Number(vehicleDraft.capacity_kg) : Number(chosen?.capacity_kg);
+      if (!showNewVehicle && chosen &&
+        (!chosen.brakes_ok || !chosen.tires_ok || !chosen.lights_ok || chosen.body_condition === 'needs_attention')) {
+        toast.error('O veículo selecionado não cumpre os requisitos mínimos de segurança.');
+        return;
+      }
+      const selectedCapacity = showNewVehicle || driverVehicles.length === 0
+        ? Number(vehicleDraft.capacity_kg)
+        : Number(chosen?.capacity_kg);
       if (selectedCapacity < (loads.find((load) => load.id === vehicleDraftLoadId)?.weight_kg || 0)) {
         toast.error('A capacidade do veículo é inferior ao peso desta carga.');
         return;
@@ -1698,9 +1705,9 @@ const ProximasCargas = () => {
                         )}
                         <button
                           type="button"
-                          disabled={busyId === load.id || tooHeavy}
+                          disabled={busyId === load.id}
                           onClick={() => { setQuoteDraftLoadId(load.id); setQuotePriceMethod('suggested'); setManualQuotePrice(''); setVehicleDraftLoadId(load.id); setVehicleDraftAction('quote'); setShowNewVehicle(false); }}
-                          style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: 'none', background: tooHeavy ? T.rule : T.green, color: tooHeavy ? T.muted : T.white, fontFamily: FONT, fontSize: 14, fontWeight: 800, cursor: tooHeavy ? 'not-allowed' : 'pointer' }}
+                          style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: 'none', background: tooHeavy ? T.rule : T.green, color: tooHeavy ? T.muted : T.white, fontFamily: FONT, fontSize: 14, fontWeight: 800, cursor: 'pointer' }}
                         >
                           {capacityUnavailable ? 'Regista ou selecciona o veículo' : tooHeavy ? 'Capacidade insuficiente' : load.driver_quote_status === 'rejected' ? 'Rever preço e enviar proposta' : 'Propor preço do transporte'}
                         </button>
@@ -1735,7 +1742,7 @@ const ProximasCargas = () => {
                   </section>
                 ) : tab === 'disponiveis' ? (
                   <button
-                    disabled={busyId === load.id || tooHeavy}
+                    disabled={busyId === load.id}
                     onClick={() => void accept(load)}
                     style={{
                       marginTop: 14,
@@ -1748,7 +1755,7 @@ const ProximasCargas = () => {
                       fontFamily: FONT,
                       fontSize: 14,
                       fontWeight: 800,
-                      cursor: tooHeavy ? 'not-allowed' : 'pointer',
+                      cursor: 'pointer',
                     }}
                   >
                     {busyId === load.id
