@@ -943,6 +943,7 @@ export type Database = {
           created_by: string
           currency: string
           delivered_at: string | null
+          driver_commitment_confirmed_at: string | null
           destination_label: string
           destination_lat: number | null
           destination_lng: number | null
@@ -977,6 +978,7 @@ export type Database = {
           created_by: string
           currency?: string
           delivered_at?: string | null
+          driver_commitment_confirmed_at?: string | null
           destination_label: string
           destination_lat?: number | null
           destination_lng?: number | null
@@ -1011,6 +1013,7 @@ export type Database = {
           created_by?: string
           currency?: string
           delivered_at?: string | null
+          driver_commitment_confirmed_at?: string | null
           destination_label?: string
           destination_lat?: number | null
           destination_lng?: number | null
@@ -4461,7 +4464,7 @@ export type Database = {
     }
     Functions: {
       accept_freight_load: {
-        Args: { p_freight_load_id: string; p_vehicle_id: string }
+        Args: { p_freight_load_id: string; p_vehicle_id: string; p_driver_commitment_confirmed: boolean }
         Returns: string
       }
       accept_p2p_match: { Args: { p_match_id: string }; Returns: string }
@@ -5342,6 +5345,7 @@ export type Database = {
           p_snapped_origin_lng: number
           p_snapped_destination_lat: number
           p_snapped_destination_lng: number
+          p_driver_commitment_confirmed: boolean
         }
         Returns: {
           driver_id: string
