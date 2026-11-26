@@ -23,6 +23,9 @@ SET search_path TO ''
 AS $function$
 BEGIN
   IF auth.uid() IS NULL THEN
+    IF coalesce(auth.role(), '') = 'service_role' THEN
+      RETURN NEW;
+    END IF;
     RAISE EXCEPTION 'Authentication required' USING ERRCODE = '42501';
   END IF;
 
