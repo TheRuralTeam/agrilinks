@@ -941,6 +941,8 @@ const ProximasCargas = () => {
     await fetchLoads();
   };
 
+  const selectedVehicleSummary = driverVehicles.find((vehicle) => vehicle.id === selectedVehicleId && vehicle.is_active);
+
   const visible = loads.filter((load) => {
     if (tab === 'minhas') return load.driver_id === user?.id || load.created_by === user?.id;
     return (
@@ -992,9 +994,9 @@ const ProximasCargas = () => {
             Próximas Cargas
           </h1>
           <p style={{ margin: 0, fontSize: 12, color: T.muted, fontWeight: 600 }}>
-            {capacity
-              ? `Capacidade: ${new Intl.NumberFormat('pt-AO').format(capacity)} kg`
-              : 'Fretes disponíveis na AgriLink'}
+            {selectedVehicleSummary
+              ? `Veículo: ${selectedVehicleSummary.make} ${selectedVehicleSummary.model} · ${new Intl.NumberFormat('pt-AO').format(selectedVehicleSummary.capacity_kg)} kg`
+              : 'Registe um veículo para começar a aceitar cargas'}
           </p>
         </div>
         <button
@@ -1761,7 +1763,7 @@ const ProximasCargas = () => {
                     {busyId === load.id
                       ? 'A aceitar…'
                       : capacityUnavailable
-                        ? 'Regista a capacidade do veículo'
+                        ? 'Regista ou selecciona o veículo'
                         : tooHeavy
                           ? 'Capacidade insuficiente'
                           : 'Aceitar carga'}
@@ -1913,7 +1915,7 @@ const ProximasCargas = () => {
                 {driverVehicles.length > 0 && <button type="button" onClick={() => setShowNewVehicle(false)} style={{ justifySelf: 'start', border: 0, background: 'transparent', color: T.green, fontWeight: 800, cursor: 'pointer' }}>Voltar aos veículos registados</button>}
               </div>
             )}
-            <p style={{ margin: 0, color: T.muted, fontSize: 11, lineHeight: 1.5 }}>Os dados serão guardados no seu perfil de motorista. O veículo ficará identificado como pendente de revisão administrativa; esta versão não substitui a validação dos documentos originais.</p>
+            <p style={{ margin: 0, color: T.muted, fontSize: 11, lineHeight: 1.5 }}>Os dados serão guardados no seu perfil de motorista e associados à carga. O registo ficará pendente de revisão administrativa; esta etapa não valida os documentos originais.</p>
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="button" disabled={savingVehicle} onClick={() => { setVehicleDraftLoadId(null); setVehicleDraftAction(null); }} style={{ flex: 1, padding: 11, border: `1px solid ${T.rule}`, borderRadius: 12, background: T.white, color: T.mid, fontWeight: 800 }}>Cancelar</button>
               <button type="button" disabled={savingVehicle} onClick={() => void confirmVehicleForLoad()} style={{ flex: 1, padding: 11, border: 0, borderRadius: 12, background: T.green, color: T.white, fontWeight: 800, opacity: savingVehicle ? .6 : 1 }}>{savingVehicle ? 'A guardar…' : vehicleDraftAction === 'accept' ? 'Guardar e aceitar carga' : 'Confirmar veículo'}</button>
