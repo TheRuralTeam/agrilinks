@@ -59,6 +59,29 @@ CREATE INDEX IF NOT EXISTS freight_loads_vehicle_id_idx ON public.freight_loads(
 REVOKE ALL ON FUNCTION public.submit_freight_quote(uuid,text,numeric,numeric,integer) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.accept_freight_load(uuid) FROM PUBLIC, anon, authenticated;
 
+-- Licence details must exist before the freight RPCs are defined and become callable.
+CREATE TABLE IF NOT EXISTS public.driver_licenses (
+  driver_id uuid PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+  license_number text NOT NULL,
+  license_categories text[] NOT NULL DEFAULT '{}',
+  issued_at date NOT NULL,
+  expires_at date NOT NULL,
+  issuing_authority text NOT NULL,
+  verification_status text NOT NULL DEFAULT 'pending_review'
+    CHECK (verification_status IN ('pending_review', 'approved', 'rejected')),
+  reviewed_at timestamptz,
+  reviewed_by uuid REFERENCES auth.users(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT driver_licenses_number_nonempty CHECK (length(btrim(license_number)) BETWEEN 3 AND 80),
+  CONSTRAINT driver_licenses_categories_nonempty CHECK (cardinality(license_categories) > 0),
+  CONSTRAINT driver_licenses_dates_valid CHECK (expires_at > issued_at),
+  CONSTRAINT driver_licenses_authority_nonempty CHECK (length(btrim(issuing_authority)) BETWEEN 2 AND 160)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS driver_licenses_number_normalized_uidx
+  ON public.driver_licenses (upper(regexp_replace(license_number, '[[:space:]-]', '', 'g')));
+
 CREATE OR REPLACE FUNCTION public.submit_freight_quote(
   p_freight_load_id uuid,
   p_price_method text,
@@ -81,6 +104,7 @@ DECLARE
   v_user_type text;
   v_email_verified boolean;
   v_vehicle public.driver_vehicles%ROWTYPE;
+  v_license public.driver_licenses%ROWTYPE;
   v_base_fare numeric;
   v_rate_per_km numeric;
   v_rate_per_100kg numeric;
@@ -105,6 +129,22 @@ BEGIN
 
   IF v_user_type IS DISTINCT FROM 'motorista' OR v_email_verified IS DISTINCT FROM TRUE THEN
     RAISE EXCEPTION 'Only a verified driver can submit a delivery price' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT dl.* INTO v_license
+  FROM public.driver_licenses AS dl
+  WHERE dl.driver_id = v_actor_id
+  FOR SHARE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Complete your driving licence details in your personal profile before accepting freight'
+      USING ERRCODE = '42501';
+  END IF;
+  IF v_license.verification_status = 'rejected'
+    OR v_license.issued_at > current_date
+    OR v_license.expires_at <= current_date THEN
+    RAISE EXCEPTION 'Your driving licence is rejected, not yet valid or expired'
+      USING ERRCODE = '42501';
   END IF;
 
   SELECT dv.* INTO v_vehicle
@@ -243,6 +283,7 @@ DECLARE
   actor_id uuid := auth.uid();
   accepted_id uuid;
   v_vehicle public.driver_vehicles%ROWTYPE;
+  v_license public.driver_licenses%ROWTYPE;
   registered_user_type text;
 BEGIN
   IF actor_id IS NULL THEN RAISE EXCEPTION 'Authentication required' USING ERRCODE = '42501'; END IF;
@@ -253,6 +294,22 @@ BEGIN
 
   IF NOT FOUND OR registered_user_type <> 'motorista' THEN
     RAISE EXCEPTION 'Only a registered driver can accept freight loads' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT dl.* INTO v_license
+  FROM public.driver_licenses AS dl
+  WHERE dl.driver_id = actor_id
+  FOR SHARE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Complete your driving licence details in your personal profile before accepting freight'
+      USING ERRCODE = '42501';
+  END IF;
+  IF v_license.verification_status = 'rejected'
+    OR v_license.issued_at > current_date
+    OR v_license.expires_at <= current_date THEN
+    RAISE EXCEPTION 'Your driving licence is rejected, not yet valid or expired'
+      USING ERRCODE = '42501';
   END IF;
 
   SELECT dv.* INTO v_vehicle
