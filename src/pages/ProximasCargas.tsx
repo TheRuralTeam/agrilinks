@@ -1042,6 +1042,7 @@ const ProximasCargas = () => {
   };
 
   const selectedVehicleSummary = driverVehicles.find((vehicle) => vehicle.id === selectedVehicleId && vehicle.is_active);
+  const activeDriverCommitments = loads.filter((load) => load.driver_id === user?.id && !['delivered', 'cancelled'].includes(load.status)).length;
 
   const visible = loads.filter((load) => {
     if (tab === 'minhas') return load.driver_id === user?.id || load.created_by === user?.id;
@@ -2032,6 +2033,7 @@ const ProximasCargas = () => {
                 {driverVehicles.length > 0 && <button type="button" onClick={() => { setShowNewVehicle(false); setEditingVehicleId(null); }} style={{ justifySelf: 'start', border: 0, background: 'transparent', color: T.green, fontWeight: 800, cursor: 'pointer' }}>Voltar aos veículos registados</button>}
               </div>
             )}
+            {activeDriverCommitments > 0 && <p style={{ margin: 0, padding: 10, borderRadius: 10, background: T.goldBg, color: T.ink, fontSize: 11 }}>Tens actualmente {activeDriverCommitments} entrega(s) atribuída(s) por concluir. Considera estes compromissos antes de aceitar outra carga.</p>}
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: 10, border: `1px solid ${T.rule}`, borderRadius: 10, background: T.canvas, fontSize: 11, lineHeight: 1.5, color: T.ink }}>
               <input type="checkbox" checked={deliveryCommitmentAccepted} onChange={(event) => setDeliveryCommitmentAccepted(event.target.checked)} style={{ marginTop: 2 }} />
               <span>Comprometo-me a cumprir esta entrega e as restantes que aceitar. Declaro que o veículo será utilizado apenas com manutenção preventiva, inspecção, seguro e condições de segurança válidas.</span>
