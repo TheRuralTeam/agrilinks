@@ -35,6 +35,7 @@ import Loader from '../components/ui/Loader';
 
 interface FreightLoad {
   id: string;
+  vehicle_id?: string | null;
   qr_token: string;
   pre_order_id: string | null;
   created_by: string;
@@ -57,6 +58,46 @@ interface FreightLoad {
   destination_lat: number | null;
   destination_lng: number | null;
   in_transit_at: string | null;
+}
+
+interface DriverVehicle {
+  id: string;
+  driver_id: string;
+  vehicle_type: string;
+  make: string;
+  model: string;
+  plate_number: string;
+  color: string;
+  manufacture_year: number | null;
+  capacity_kg: number;
+  condition_notes: string;
+  brakes_ok: boolean;
+  tires_ok: boolean;
+  lights_ok: boolean;
+  body_condition: 'good' | 'fair' | 'needs_attention';
+  registration_document_number: string | null;
+  inspection_valid_until: string | null;
+  insurance_valid_until: string | null;
+  verification_status: 'pending_review' | 'approved' | 'rejected';
+  is_active: boolean;
+}
+
+interface DriverVehicleDraft {
+  vehicle_type: string;
+  make: string;
+  model: string;
+  plate_number: string;
+  color: string;
+  manufacture_year: string;
+  capacity_kg: string;
+  condition_notes: string;
+  brakes_ok: boolean;
+  tires_ok: boolean;
+  lights_ok: boolean;
+  body_condition: 'good' | 'fair' | 'needs_attention';
+  registration_document_number: string;
+  inspection_valid_until: string;
+  insurance_valid_until: string;
 }
 
 interface RouteLocationSuggestion {
@@ -121,6 +162,32 @@ const ProximasCargas = () => {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [quoteDraftLoadId, setQuoteDraftLoadId] = useState<string | null>(null);
   const [quotePriceMethod, setQuotePriceMethod] = useState<'suggested' | 'manual'>('suggested');
+  const [driverVehicles, setDriverVehicles] = useState<DriverVehicle[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState('');
+  const [driverLicenseReady, setDriverLicenseReady] = useState(false);
+  const [driverLicenseChecked, setDriverLicenseChecked] = useState(false);
+  const [driverDailyLoadStatus, setDriverDailyLoadStatus] = useState<'checking' | 'available' | 'limit_reached' | 'error'>('checking');
+  const [vehicleDraftLoadId, setVehicleDraftLoadId] = useState<string | null>(null);
+  const [vehicleDraftAction, setVehicleDraftAction] = useState<'accept' | 'quote' | null>(null);
+  const [showNewVehicle, setShowNewVehicle] = useState(false);
+  const [savingVehicle, setSavingVehicle] = useState(false);
+  const [vehicleDraft, setVehicleDraft] = useState<DriverVehicleDraft>({
+    vehicle_type: 'Camião',
+    make: '',
+    model: '',
+    plate_number: '',
+    color: '',
+    manufacture_year: '',
+    capacity_kg: '',
+    condition_notes: '',
+    brakes_ok: false,
+    tires_ok: false,
+    lights_ok: false,
+    body_condition: 'good',
+    registration_document_number: '',
+    inspection_valid_until: '',
+    insurance_valid_until: '',
+  });
   const [manualQuotePrice, setManualQuotePrice] = useState('');
   const [tab, setTab] = useState<'disponiveis' | 'minhas'>('disponiveis');
   const [createOpen, setCreateOpen] = useState(false);
@@ -163,8 +230,6 @@ const ProximasCargas = () => {
   const pendingLocationRef = useRef<Record<string, FreightLoadLocation>>({});
   const onlineFlushHandlerRef = useRef<(() => void) | null>(null);
   const locationRetryNoticeShown = useRef(false);
-
-  const capacity = (userProfile as any)?.load_capacity_kg as number | null | undefined;
 
   // The route-repair search must query the geocoder, not only filter previously saved places.
   useEffect(() => {
@@ -273,6 +338,103 @@ const ProximasCargas = () => {
   useEffect(() => {
     void fetchLoads();
   }, [fetchLoads, user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || userProfile?.user_type !== 'motorista') {
+      setDriverLicenseReady(false);
+      setDriverLicenseChecked(true);
+      return;
+    }
+    let active = true;
+    setDriverLicenseChecked(false);
+    void supabase
+      .from('driver_licenses')
+      .select('verification_status, issued_at, expires_at')
+      .eq('driver_id', user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!active) return;
+        const today = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Africa/Luanda',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }).format(new Date());
+        setDriverLicenseReady(!error && Boolean(data) &&
+          data!.verification_status !== 'rejected' &&
+          data!.issued_at <= today &&
+          data!.expires_at >= today);
+        setDriverLicenseChecked(true);
+      });
+    return () => { active = false; };
+  }, [user?.id, userProfile?.user_type]);
+
+  useEffect(() => {
+    if (!user?.id || userProfile?.user_type !== 'motorista') {
+      setDriverDailyLoadStatus('available');
+      return;
+    }
+
+    let active = true;
+    setDriverDailyLoadStatus('checking');
+    void supabase
+      .from('freight_loads')
+      .select('accepted_at')
+      .eq('driver_id', user.id)
+      .not('accepted_at', 'is', null)
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          console.warn('[AgriLink] Não foi possível verificar o limite diário de cargas.', error);
+          setDriverDailyLoadStatus('error');
+          return;
+        }
+
+        const todayInAngola = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Africa/Luanda',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }).format(new Date());
+        const hasLoadToday = (data || []).some((load) => load.accepted_at &&
+          new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Africa/Luanda',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          }).format(new Date(load.accepted_at)) === todayInAngola);
+
+        setDriverDailyLoadStatus(hasLoadToday ? 'limit_reached' : 'available');
+      });
+
+    return () => { active = false; };
+  }, [user?.id, userProfile?.user_type]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setDriverVehicles([]);
+      setSelectedVehicleId('');
+      return;
+    }
+    let active = true;
+    void supabase
+      .from('driver_vehicles')
+      .select('*')
+      .eq('driver_id', user.id)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          console.warn('[AgriLink] Não foi possível carregar os veículos do motorista.', error);
+          return;
+        }
+        const rows = (data || []) as DriverVehicle[];
+        setDriverVehicles(rows);
+        setSelectedVehicleId((current) => current || rows[0]?.id || '');
+      });
+    return () => { active = false; };
+  }, [user?.id]);
 
   const handlePointSelection = (coordinate: FreightCoordinate) => {
     const coordinateLabel = formatCoordinateLabel(coordinate);
@@ -532,6 +694,30 @@ const ProximasCargas = () => {
   const submitQuote = async (load: FreightLoad) => {
     if (!requireAct('propor o preço de uma carga')) return;
     if (!user?.id || load.created_by === user.id) return;
+    if (driverDailyLoadStatus !== 'available' && load.driver_id !== user.id) {
+      toast.error(driverDailyLoadStatus === 'limit_reached'
+        ? 'Já assumiste uma carga hoje. Poderás aceitar outra amanhã (hora de Angola).'
+        : 'Não foi possível confirmar a tua disponibilidade diária. Actualiza a lista e tenta novamente.');
+      return;
+    }
+    const selectedVehicle = driverVehicles.find((vehicle) => vehicle.id === selectedVehicleId && vehicle.is_active);
+    if (!selectedVehicle) {
+      setVehicleDraftLoadId(load.id);
+      setVehicleDraftAction('quote');
+      return;
+    }
+    if (selectedVehicle.capacity_kg < load.weight_kg) {
+      toast.error('A capacidade do veículo selecionado é insuficiente para esta carga.');
+      setVehicleDraftLoadId(load.id);
+      setVehicleDraftAction('quote');
+      return;
+    }
+    if (!selectedVehicle.brakes_ok || !selectedVehicle.tires_ok || !selectedVehicle.lights_ok || selectedVehicle.body_condition === 'needs_attention') {
+      toast.error('Este veículo não está em condições de segurança para transporte.');
+      setVehicleDraftLoadId(load.id);
+      setVehicleDraftAction('quote');
+      return;
+    }
     if (quotePriceMethod === 'manual' && (!Number.isFinite(Number(manualQuotePrice)) || Number(manualQuotePrice) <= 0)) {
       toast.error('Introduza um preço de transporte válido em Kz.');
       return;
@@ -627,14 +813,16 @@ const ProximasCargas = () => {
       }
 
       const route = await calculateFreightRoute(originPoint, destinationPoint);
-      const { error } = await supabase.rpc('submit_freight_quote', {
+      const { error } = await supabase.rpc('submit_freight_quote' as never, {
         p_freight_load_id: load.id,
         p_price_method: quotePriceMethod,
         p_manual_price: quotePriceMethod === 'manual' ? Number(manualQuotePrice) : null as unknown as number,
         p_route_distance_km: route.distanceKm,
         p_route_duration_minutes: route.durationMinutes,
-      });
+        p_vehicle_id: selectedVehicle.id,
+      } as never);
       if (error) throw error;
+      setDriverDailyLoadStatus('limit_reached');
       toast.success('Proposta enviada ao comprador. O pagamento só será liberado depois da aprovação do preço.');
       setQuoteDraftLoadId(null);
       setManualQuotePrice('');
@@ -720,19 +908,111 @@ const ProximasCargas = () => {
 
   const accept = async (load: FreightLoad) => {
     if (!requireAct('aceitar uma carga')) return;
-    if (capacity && load.weight_kg > capacity) {
-      toast.error(`Carga acima da sua capacidade (${capacity} kg).`);
+    if (driverDailyLoadStatus !== 'available') {
+      toast.error(driverDailyLoadStatus === 'limit_reached'
+        ? 'Já assumiste uma carga hoje. Poderás aceitar outra amanhã (hora de Angola).'
+        : 'Não foi possível confirmar a tua disponibilidade diária. Actualiza a lista e tenta novamente.');
       return;
     }
-    setBusyId(load.id);
-    const { error } = await supabase.rpc('accept_freight_load', { p_freight_load_id: load.id });
-    setBusyId(null);
-    if (error) {
-      toast.error(error.message || 'Não foi possível aceitar esta carga.');
+    setVehicleDraftLoadId(load.id);
+    setVehicleDraftAction('accept');
+    setShowNewVehicle(false);
+  };
+
+  const confirmVehicleForLoad = async () => {
+    if (!vehicleDraftLoadId || !vehicleDraftAction || !user?.id) return;
+    const targetLoad = loads.find((load) => load.id === vehicleDraftLoadId);
+    if (driverDailyLoadStatus !== 'available' && targetLoad?.driver_id !== user.id) {
+      toast.error(driverDailyLoadStatus === 'limit_reached'
+        ? 'Já assumiste uma carga hoje. Poderás aceitar outra amanhã (hora de Angola).'
+        : 'Não foi possível confirmar a tua disponibilidade diária. Actualiza a lista e tenta novamente.');
       return;
     }
-    toast.success('Carga aceite. Boa viagem!');
-    fetchLoads();
+    setSavingVehicle(true);
+    try {
+      let vehicleId = selectedVehicleId;
+      if (showNewVehicle || driverVehicles.length === 0) {
+        const plate = vehicleDraft.plate_number.trim().toUpperCase();
+        const capacityKg = Number(vehicleDraft.capacity_kg);
+        if (!vehicleDraft.vehicle_type.trim() || !vehicleDraft.make.trim() ||
+          !vehicleDraft.model.trim() || !plate || !vehicleDraft.color.trim() ||
+          !Number.isFinite(capacityKg) || capacityKg <= 0 ||
+          vehicleDraft.condition_notes.trim().length < 10) {
+          toast.error('Preencha os dados obrigatórios do veículo e descreva as condições com pelo menos 10 caracteres.');
+          return;
+        }
+        if (!vehicleDraft.brakes_ok || !vehicleDraft.tires_ok || !vehicleDraft.lights_ok ||
+          vehicleDraft.body_condition === 'needs_attention') {
+          toast.error('O veículo não pode ser usado enquanto travões, pneus, iluminação ou carroçaria apresentarem problemas.');
+          return;
+        }
+        const { data, error } = await supabase.from('driver_vehicles').insert({
+          driver_id: user.id,
+          vehicle_type: vehicleDraft.vehicle_type.trim(),
+          make: vehicleDraft.make.trim(),
+          model: vehicleDraft.model.trim(),
+          plate_number: plate,
+          color: vehicleDraft.color.trim(),
+          manufacture_year: vehicleDraft.manufacture_year ? Number(vehicleDraft.manufacture_year) : null,
+          capacity_kg: capacityKg,
+          condition_notes: vehicleDraft.condition_notes.trim(),
+          brakes_ok: vehicleDraft.brakes_ok,
+          tires_ok: vehicleDraft.tires_ok,
+          lights_ok: vehicleDraft.lights_ok,
+          body_condition: vehicleDraft.body_condition,
+          registration_document_number: vehicleDraft.registration_document_number.trim() || null,
+          inspection_valid_until: vehicleDraft.inspection_valid_until || null,
+          insurance_valid_until: vehicleDraft.insurance_valid_until || null,
+        }).select('*').single();
+        if (error) throw error;
+        const created = data as DriverVehicle;
+        vehicleId = created.id;
+        setDriverVehicles((previous) => [created, ...previous]);
+        setSelectedVehicleId(created.id);
+      }
+      const chosen = driverVehicles.find((vehicle) => vehicle.id === vehicleId) ||
+        (vehicleId ? ({ ...vehicleDraft, id: vehicleId, capacity_kg: Number(vehicleDraft.capacity_kg) } as unknown as DriverVehicle) : null);
+      if (!vehicleId || (!showNewVehicle && !chosen)) {
+        toast.error('Selecione um veículo ou registe um novo veículo.');
+        return;
+      }
+      if (!showNewVehicle && chosen &&
+        (!chosen.brakes_ok || !chosen.tires_ok || !chosen.lights_ok || chosen.body_condition === 'needs_attention')) {
+        toast.error('O veículo selecionado não cumpre os requisitos mínimos de segurança.');
+        return;
+      }
+      const selectedCapacity = showNewVehicle || driverVehicles.length === 0
+        ? Number(vehicleDraft.capacity_kg)
+        : Number(chosen?.capacity_kg);
+      if (selectedCapacity < (loads.find((load) => load.id === vehicleDraftLoadId)?.weight_kg || 0)) {
+        toast.error('A capacidade do veículo é inferior ao peso desta carga.');
+        return;
+      }
+      if (vehicleDraftAction === 'accept') {
+        const load = loads.find((item) => item.id === vehicleDraftLoadId);
+        if (!load) throw new Error('Carga já não encontrada. Atualize a lista e tente novamente.');
+        setBusyId(load.id);
+        const { error } = await supabase.rpc('accept_freight_load' as never, {
+          p_freight_load_id: load.id,
+          p_vehicle_id: vehicleId,
+        } as never);
+        setBusyId(null);
+        if (error) throw error;
+        setDriverDailyLoadStatus('limit_reached');
+        toast.success('Carga aceite com o veículo registado.');
+        await fetchLoads();
+      } else {
+        toast.success('Veículo associado ao seu perfil. Já pode enviar a proposta de transporte.');
+      }
+      setVehicleDraftLoadId(null);
+      setVehicleDraftAction(null);
+      setShowNewVehicle(false);
+    } catch (error: any) {
+      setBusyId(null);
+      toast.error(error?.message || 'Não foi possível guardar os dados do veículo.');
+    } finally {
+      setSavingVehicle(false);
+    }
   };
 
   const advance = async (load: FreightLoad) => {
@@ -753,6 +1033,9 @@ const ProximasCargas = () => {
     if (nextStatus === 'in_transit') startLocationSharing({ ...load, status: 'in_transit' });
     await fetchLoads();
   };
+
+  const selectedVehicleSummary = driverVehicles.find((vehicle) => vehicle.id === selectedVehicleId && vehicle.is_active);
+  const dailyLimitBlocked = driverDailyLoadStatus !== 'available';
 
   const visible = loads.filter((load) => {
     if (tab === 'minhas') return load.driver_id === user?.id || load.created_by === user?.id;
@@ -805,9 +1088,9 @@ const ProximasCargas = () => {
             Próximas Cargas
           </h1>
           <p style={{ margin: 0, fontSize: 12, color: T.muted, fontWeight: 600 }}>
-            {capacity
-              ? `Capacidade: ${new Intl.NumberFormat('pt-AO').format(capacity)} kg`
-              : 'Fretes disponíveis na AgriLink'}
+            {selectedVehicleSummary
+              ? `Veículo: ${selectedVehicleSummary.make} ${selectedVehicleSummary.model} · ${new Intl.NumberFormat('pt-AO').format(selectedVehicleSummary.capacity_kg)} kg`
+              : 'Registe um veículo para começar a aceitar cargas'}
           </p>
         </div>
         <button
@@ -833,6 +1116,18 @@ const ProximasCargas = () => {
           {createOpen ? 'Fechar' : 'Publicar carga'}
         </button>
       </header>
+
+      {driverLicenseChecked && userProfile?.user_type === 'motorista' && !driverLicenseReady && (
+        <div style={{ margin: '12px 16px 0', padding: '13px 14px', border: '1px solid #F59E0B55', borderRadius: 12, background: '#FFFBEB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ minWidth: 0 }}>
+            <strong style={{ display: 'block', color: '#92400E', fontSize: 13 }}>Carta de condução em falta ou inválida</strong>
+            <span style={{ color: '#92400E', fontSize: 11 }}>Actualiza os dados da tua carta no perfil para poderes aceitar cargas e propor fretes.</span>
+          </div>
+          <button type="button" onClick={() => navigate('/perfil')} style={{ border: 0, borderRadius: 9, background: '#92400E', color: '#FFFFFF', padding: '9px 12px', fontSize: 12, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            Completar perfil
+          </button>
+        </div>
+      )}
 
       <div
         style={{
@@ -1132,8 +1427,9 @@ const ProximasCargas = () => {
 
         {!loading &&
           visible.map((load) => {
-            const capacityUnavailable = !capacity || !Number.isFinite(Number(capacity)) || Number(capacity) <= 0;
-            const tooHeavy = capacityUnavailable || load.weight_kg > Number(capacity);
+            const selectedVehicle = driverVehicles.find((vehicle) => vehicle.id === selectedVehicleId && vehicle.is_active);
+            const capacityUnavailable = !selectedVehicle;
+            const tooHeavy = Boolean(selectedVehicle && load.weight_kg > Number(selectedVehicle.capacity_kg));
             const isAssignedDriver = load.driver_id === user?.id;
             const latestDriverLocation = driverLocations[load.id];
             const hasCoordinates =
@@ -1517,11 +1813,11 @@ const ProximasCargas = () => {
                         )}
                         <button
                           type="button"
-                          disabled={busyId === load.id || tooHeavy}
-                          onClick={() => { setQuoteDraftLoadId(load.id); setQuotePriceMethod('suggested'); setManualQuotePrice('') }}
-                          style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: 'none', background: tooHeavy ? T.rule : T.green, color: tooHeavy ? T.muted : T.white, fontFamily: FONT, fontSize: 14, fontWeight: 800, cursor: tooHeavy ? 'not-allowed' : 'pointer' }}
+                          disabled={busyId === load.id || dailyLimitBlocked}
+                          onClick={() => { setQuoteDraftLoadId(load.id); setQuotePriceMethod('suggested'); setManualQuotePrice(''); setVehicleDraftLoadId(load.id); setVehicleDraftAction('quote'); setShowNewVehicle(false); }}
+                          style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: 'none', background: tooHeavy || dailyLimitBlocked ? T.rule : T.green, color: tooHeavy || dailyLimitBlocked ? T.muted : T.white, fontFamily: FONT, fontSize: 14, fontWeight: 800, cursor: dailyLimitBlocked ? 'not-allowed' : 'pointer' }}
                         >
-                          {capacityUnavailable ? 'Regista a capacidade do veículo' : tooHeavy ? 'Carga acima da tua capacidade' : load.driver_quote_status === 'rejected' ? 'Rever preço e enviar proposta' : 'Propor preço do transporte'}
+                          {driverDailyLoadStatus === 'limit_reached' ? 'Limite diário atingido' : driverDailyLoadStatus === 'checking' ? 'A verificar limite diário…' : driverDailyLoadStatus === 'error' ? 'Disponibilidade não verificada' : capacityUnavailable ? 'Regista ou selecciona o veículo' : tooHeavy ? 'Capacidade insuficiente' : load.driver_quote_status === 'rejected' ? 'Rever preço e enviar proposta' : 'Propor preço do transporte'}
                         </button>
                       </>
                     ) : (
@@ -1534,12 +1830,12 @@ const ProximasCargas = () => {
                           </select>
                         </div>
                         {quotePriceMethod === 'suggested' ? (
-                          <p style={{ margin: 0, fontSize: 11, color: T.muted, lineHeight: 1.5 }}>O preço será calculado com base na rota, distância, peso e tarifas activas. A AgriLink retém 10% do frete e o teu líquido será 90% após a liquidação. Se quiseres negociar outro valor, escolhe “Apresentar o meu preço”.</p>
+                          <p style={{ margin: 0, fontSize: 11, color: T.muted, lineHeight: 1.5 }}>O preço será calculado com base na rota, distância, peso e tarifas activas. A AgriLink retém 8% do frete e o teu líquido será 92% após a liquidação. Se quiseres negociar outro valor, escolhe “Apresentar o meu preço”.</p>
                         ) : (
                           <div style={{ display: 'grid', gap: 5 }}>
                             <label htmlFor={`manual-price-${load.id}`} style={{ fontSize: 12, fontWeight: 800, color: T.ink }}>Valor da tua proposta (Kz)</label>
                             <input id={`manual-price-${load.id}`} type="number" min="0.01" max="1000000000000" step="0.01" inputMode="decimal" value={manualQuotePrice} onChange={(event) => setManualQuotePrice(event.target.value)} placeholder="Ex.: 25 000" style={formInputStyle} />
-                            {Number(manualQuotePrice) > 0 && <p style={{ margin: 0, fontSize: 11, color: T.muted }}>Comissão AgriLink (10%): {money(Number(manualQuotePrice) * 0.1, load.currency)} · líquido estimado: {money(Number(manualQuotePrice) * 0.9, load.currency)}.</p>}
+                            {Number(manualQuotePrice) > 0 && <p style={{ margin: 0, fontSize: 11, color: T.muted }}>Comissão AgriLink (8%): {money(Number(manualQuotePrice) * 0.08, load.currency)} · líquido estimado: {money(Number(manualQuotePrice) * 0.92, load.currency)}.</p>}
                           </div>
                         )}
                         <p style={{ margin: 0, fontSize: 11, color: T.muted, lineHeight: 1.5 }}>A proposta será enviada ao comprador. O pagamento só será liberado depois da aprovação dele.</p>
@@ -1554,7 +1850,7 @@ const ProximasCargas = () => {
                   </section>
                 ) : tab === 'disponiveis' ? (
                   <button
-                    disabled={busyId === load.id || tooHeavy}
+                    disabled={busyId === load.id || dailyLimitBlocked}
                     onClick={() => void accept(load)}
                     style={{
                       marginTop: 14,
@@ -1562,21 +1858,27 @@ const ProximasCargas = () => {
                       padding: '12px 16px',
                       borderRadius: 12,
                       border: 'none',
-                      background: tooHeavy ? T.rule : T.green,
-                      color: tooHeavy ? T.muted : T.white,
+                      background: tooHeavy || dailyLimitBlocked ? T.rule : T.green,
+                      color: tooHeavy || dailyLimitBlocked ? T.muted : T.white,
                       fontFamily: FONT,
                       fontSize: 14,
                       fontWeight: 800,
-                      cursor: tooHeavy ? 'not-allowed' : 'pointer',
+                      cursor: 'pointer',
                     }}
                   >
                     {busyId === load.id
                       ? 'A aceitar…'
-                      : capacityUnavailable
-                        ? 'Regista a capacidade do veículo'
-                        : tooHeavy
-                          ? 'Capacidade insuficiente'
-                          : 'Aceitar carga'}
+                      : driverDailyLoadStatus === 'limit_reached'
+                        ? 'Limite diário atingido'
+                        : driverDailyLoadStatus === 'checking'
+                          ? 'A verificar limite diário…'
+                          : driverDailyLoadStatus === 'error'
+                            ? 'Disponibilidade não verificada'
+                            : capacityUnavailable
+                              ? 'Regista ou selecciona o veículo'
+                              : tooHeavy
+                                ? 'Capacidade insuficiente'
+                                : 'Aceitar carga'}
                   </button>
                 ) : isAssignedDriver && load.status === 'accepted' && load.pre_order_id && load.driver_quote_status !== 'approved' ? (
                   <section role="status" style={{ display: 'grid', gap: 5, marginTop: 14, padding: 12, border: `1px solid ${T.gold}`, borderRadius: 12, background: T.goldBg }}>
@@ -1652,6 +1954,87 @@ const ProximasCargas = () => {
             );
           })}
       </main>
+      {vehicleDraftLoadId && (
+        <div role="dialog" aria-modal="true" aria-labelledby="driver-vehicle-title" style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(15,23,42,.58)', display: 'grid', placeItems: 'center', padding: 16 }}>
+          <section style={{ width: 'min(100%, 620px)', maxHeight: '90vh', overflowY: 'auto', background: T.white, borderRadius: 18, padding: 20, boxShadow: '0 24px 80px rgba(0,0,0,.24)', display: 'grid', gap: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+              <div>
+                <h2 id="driver-vehicle-title" style={{ margin: 0, color: T.ink, fontSize: 18, fontWeight: 900 }}>Identificação do veículo</h2>
+                <p style={{ margin: '5px 0 0', color: T.muted, fontSize: 12, lineHeight: 1.5 }}>A AgriLink associa estes dados à carga para manter o registo do veículo utilizado na operação.</p>
+              </div>
+              <button type="button" aria-label="Fechar" onClick={() => { setVehicleDraftLoadId(null); setVehicleDraftAction(null); }} style={{ border: 0, background: 'transparent', color: T.muted, fontSize: 22, cursor: 'pointer' }}>×</button>
+            </div>
+            {!showNewVehicle && driverVehicles.length > 0 && (
+              <div style={{ display: 'grid', gap: 6 }}>
+                <label style={{ fontSize: 12, fontWeight: 800, color: T.ink }}>Usar veículo já registado</label>
+                <select value={selectedVehicleId} onChange={(event) => setSelectedVehicleId(event.target.value)} style={formInputStyle}>
+                  <option value="">Seleccione um veículo</option>
+                  {driverVehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.vehicle_type} · {vehicle.make} {vehicle.model} · {vehicle.plate_number} · {vehicle.capacity_kg} kg</option>)}
+                </select>
+                <button type="button" onClick={() => setShowNewVehicle(true)} style={{ justifySelf: 'start', border: 0, background: 'transparent', color: T.green, fontWeight: 800, cursor: 'pointer' }}>+ Registar outro veículo</button>
+              </div>
+            )}
+            {(showNewVehicle || driverVehicles.length === 0) && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10 }}>
+                <div style={{ display: 'grid', gap: 5 }}>
+                  <label style={{ fontSize: 12, fontWeight: 800 }}>Tipo de veículo *</label>
+                  <select value={vehicleDraft.vehicle_type} onChange={(e) => setVehicleDraft(v => ({...v, vehicle_type:e.target.value}))} style={formInputStyle}>
+                    {['Camião','Camião basculante','Carrinha','Camião frigorífico','Tractor com reboque','Reboque','Outro'].map(type => <option key={type}>{type}</option>)}
+                  </select>
+                </div>
+                {([
+                  ['make','Marca *','Ex.: Toyota'],
+                  ['model','Modelo *','Ex.: Dyna'],
+                  ['plate_number','Matrícula *','Ex.: LD-00-00-XX'],
+                  ['color','Cor *','Ex.: Branco'],
+                  ['manufacture_year','Ano de fabrico','Ex.: 2018'],
+                  ['capacity_kg','Capacidade (kg) *','Ex.: 5000'],
+                  ['registration_document_number','N.º do documento do veículo','Opcional'],
+                ] as const).map(([key,label,placeholder]) => (
+                  <div key={key} style={{ display: 'grid', gap: 5 }}>
+                    <label style={{ fontSize: 12, fontWeight: 800, color: T.ink }}>{label}</label>
+                    <input type={key === 'manufacture_year' ? 'number' : 'text'} min={key === 'manufacture_year' ? 1950 : undefined} max={key === 'manufacture_year' ? new Date().getFullYear()+1 : undefined} value={vehicleDraft[key]} onChange={(e) => setVehicleDraft(v => ({...v,[key]:e.target.value}))} placeholder={placeholder} style={formInputStyle} />
+                  </div>
+                ))}
+                <div style={{ display: 'grid', gap: 5, gridColumn: '1 / -1' }}>
+                  <label style={{ fontSize: 12, fontWeight: 800, color: T.ink }}>Condições gerais do veículo *</label>
+                  <textarea value={vehicleDraft.condition_notes} onChange={(e) => setVehicleDraft(v => ({...v,condition_notes:e.target.value}))} rows={3} placeholder="Descreva o estado mecânico, conservação, eventuais danos e condições para transportar a carga." style={{...formInputStyle, resize:'vertical'}} />
+                </div>
+                <div style={{ display: 'grid', gap: 8, gridColumn: '1 / -1', padding: 12, border: `1px solid ${T.rule}`, borderRadius: 12 }}>
+                  <strong style={{ fontSize: 12, color: T.ink }}>Verificação de segurança (obrigatória)</strong>
+                  {([
+                    ['brakes_ok','Travões em boas condições'],
+                    ['tires_ok','Pneus em boas condições'],
+                    ['lights_ok','Luzes e sinalização funcionais'],
+                  ] as const).map(([key,label]) => (
+                    <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: T.ink }}>
+                      <input type="checkbox" checked={vehicleDraft[key]} onChange={(e) => setVehicleDraft(v => ({...v,[key]:e.target.checked}))} /> {label}
+                    </label>
+                  ))}
+                  <label style={{ fontSize: 12, fontWeight: 800 }}>Estado da carroçaria</label>
+                  <select value={vehicleDraft.body_condition} onChange={(e) => setVehicleDraft(v => ({...v,body_condition:e.target.value as DriverVehicleDraft['body_condition']}))} style={formInputStyle}>
+                    <option value="good">Bom</option><option value="fair">Razoável</option><option value="needs_attention">Precisa de reparação</option>
+                  </select>
+                </div>
+                <div style={{ display: 'grid', gap: 5 }}>
+                  <label style={{ fontSize: 12, fontWeight: 800 }}>Inspecção válida até</label>
+                  <input type="date" value={vehicleDraft.inspection_valid_until} onChange={(e) => setVehicleDraft(v => ({...v,inspection_valid_until:e.target.value}))} style={formInputStyle} />
+                </div>
+                <div style={{ display: 'grid', gap: 5 }}>
+                  <label style={{ fontSize: 12, fontWeight: 800 }}>Seguro válido até</label>
+                  <input type="date" value={vehicleDraft.insurance_valid_until} onChange={(e) => setVehicleDraft(v => ({...v,insurance_valid_until:e.target.value}))} style={formInputStyle} />
+                </div>
+                {driverVehicles.length > 0 && <button type="button" onClick={() => setShowNewVehicle(false)} style={{ justifySelf: 'start', border: 0, background: 'transparent', color: T.green, fontWeight: 800, cursor: 'pointer' }}>Voltar aos veículos registados</button>}
+              </div>
+            )}
+            <p style={{ margin: 0, color: T.muted, fontSize: 11, lineHeight: 1.5 }}>Os dados serão guardados no seu perfil de motorista e associados à carga. O registo ficará pendente de revisão administrativa; esta etapa não valida os documentos originais.</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" disabled={savingVehicle} onClick={() => { setVehicleDraftLoadId(null); setVehicleDraftAction(null); }} style={{ flex: 1, padding: 11, border: `1px solid ${T.rule}`, borderRadius: 12, background: T.white, color: T.mid, fontWeight: 800 }}>Cancelar</button>
+              <button type="button" disabled={savingVehicle} onClick={() => void confirmVehicleForLoad()} style={{ flex: 1, padding: 11, border: 0, borderRadius: 12, background: T.green, color: T.white, fontWeight: 800, opacity: savingVehicle ? .6 : 1 }}>{savingVehicle ? 'A guardar…' : vehicleDraftAction === 'accept' ? 'Guardar e aceitar carga' : 'Confirmar veículo'}</button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 };

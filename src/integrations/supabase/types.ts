@@ -947,6 +947,7 @@ export type Database = {
           destination_lat: number | null
           destination_lng: number | null
           driver_id: string | null
+          vehicle_id: string | null
           driver_offered_price: number | null
           driver_price_method: string | null
           driver_quote_status: string
@@ -980,6 +981,7 @@ export type Database = {
           destination_lat?: number | null
           destination_lng?: number | null
           driver_id?: string | null
+          vehicle_id?: string | null
           driver_offered_price?: number | null
           driver_price_method?: string | null
           driver_quote_status?: string
@@ -1013,6 +1015,7 @@ export type Database = {
           destination_lat?: number | null
           destination_lng?: number | null
           driver_id?: string | null
+          vehicle_id?: string | null
           driver_offered_price?: number | null
           driver_price_method?: string | null
           driver_quote_status?: string
@@ -1090,6 +1093,93 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_loads_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "driver_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      driver_vehicles: {
+        Row: {
+          body_condition: string
+          brakes_ok: boolean
+          capacity_kg: number
+          color: string
+          condition_notes: string
+          created_at: string
+          driver_id: string
+          id: string
+          insurance_valid_until: string | null
+          inspection_valid_until: string | null
+          is_active: boolean
+          lights_ok: boolean
+          make: string
+          model: string
+          manufacture_year: number | null
+          plate_number: string
+          registration_document_number: string | null
+          tires_ok: boolean
+          updated_at: string
+          vehicle_type: string
+          verification_status: string
+        }
+        Insert: {
+          body_condition: string
+          brakes_ok: boolean
+          capacity_kg: number
+          color: string
+          condition_notes: string
+          created_at?: string
+          driver_id: string
+          id?: string
+          insurance_valid_until?: string | null
+          inspection_valid_until?: string | null
+          is_active?: boolean
+          lights_ok: boolean
+          make: string
+          model: string
+          manufacture_year?: number | null
+          plate_number: string
+          registration_document_number?: string | null
+          tires_ok: boolean
+          updated_at?: string
+          vehicle_type: string
+          verification_status?: string
+        }
+        Update: {
+          body_condition?: string
+          brakes_ok?: boolean
+          capacity_kg?: number
+          color?: string
+          condition_notes?: string
+          created_at?: string
+          driver_id?: string
+          id?: string
+          insurance_valid_until?: string | null
+          inspection_valid_until?: string | null
+          is_active?: boolean
+          lights_ok?: boolean
+          make?: string
+          model?: string
+          manufacture_year?: number | null
+          plate_number?: string
+          registration_document_number?: string | null
+          tires_ok?: boolean
+          updated_at?: string
+          vehicle_type?: string
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_vehicles_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -4130,6 +4220,56 @@ export type Database = {
           },
         ]
       }
+      driver_licenses: {
+        Row: {
+          created_at: string
+          driver_id: string
+          expires_at: string
+          issued_at: string
+          issuing_authority: string
+          license_categories: string[]
+          license_number: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          updated_at: string
+          verification_status: string
+        }
+        Insert: {
+          created_at?: string
+          driver_id: string
+          expires_at: string
+          issued_at: string
+          issuing_authority: string
+          license_categories?: string[]
+          license_number: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          updated_at?: string
+          verification_status?: string
+        }
+        Update: {
+          created_at?: string
+          driver_id?: string
+          expires_at?: string
+          issued_at?: string
+          issuing_authority?: string
+          license_categories?: string[]
+          license_number?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          updated_at?: string
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_licenses_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wallets: {
         Row: {
           available_balance: number
@@ -4318,13 +4458,8 @@ export type Database = {
     }
     Functions: {
       accept_freight_load: {
-        Args: { p_freight_load_id: string }
-        Returns: {
-          accepted_at: string
-          driver_id: string
-          id: string
-          status: string
-        }[]
+        Args: { p_freight_load_id: string; p_vehicle_id: string }
+        Returns: string
       }
       accept_p2p_match: { Args: { p_match_id: string }; Returns: string }
       admin_add_p2p_beneficiary_account: {
@@ -5199,6 +5334,7 @@ export type Database = {
           p_price_method: string
           p_route_distance_km: number
           p_route_duration_minutes: number
+          p_vehicle_id: string
         }
         Returns: {
           driver_id: string
