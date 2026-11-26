@@ -905,7 +905,6 @@ const ProximasCargas = () => {
 
   const confirmVehicleForLoad = async () => {
     if (!vehicleDraftLoadId || !vehicleDraftAction || !user?.id) return;
-    const targetLoad = loads.find((load) => load.id === vehicleDraftLoadId);
     if (!deliveryCommitmentAccepted) {
       toast.error('Confirma que tens disponibilidade para cumprir todas as entregas que aceitares.');
       return;
@@ -913,14 +912,19 @@ const ProximasCargas = () => {
     setSavingVehicle(true);
     try {
       let vehicleId = selectedVehicleId;
+      let savedVehicle: DriverVehicle | null = null;
       if (showNewVehicle || driverVehicles.length === 0) {
         const plate = vehicleDraft.plate_number.trim().toUpperCase();
         const capacityKg = Number(vehicleDraft.capacity_kg);
+        const todayAngola = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Luanda' }).format(new Date());
         if (!vehicleDraft.vehicle_type.trim() || !vehicleDraft.make.trim() ||
           !vehicleDraft.model.trim() || !plate || !vehicleDraft.color.trim() ||
           !Number.isFinite(capacityKg) || capacityKg <= 0 ||
-          vehicleDraft.condition_notes.trim().length < 10) {
-          toast.error('Preencha os dados obrigatórios do veículo e descreva as condições com pelo menos 10 caracteres.');
+          vehicleDraft.condition_notes.trim().length < 10 ||
+          !vehicleDraft.maintenance_valid_until || vehicleDraft.maintenance_valid_until < todayAngola ||
+          !vehicleDraft.inspection_valid_until || vehicleDraft.inspection_valid_until < todayAngola ||
+          !vehicleDraft.insurance_valid_until || vehicleDraft.insurance_valid_until < todayAngola) {
+          toast.error('Preencha os dados do veículo e indique manutenção preventiva, inspecção e seguro válidos.');
           return;
         }
         if (!vehicleDraft.brakes_ok || !vehicleDraft.tires_ok || !vehicleDraft.lights_ok ||
@@ -928,8 +932,7 @@ const ProximasCargas = () => {
           toast.error('O veículo não pode ser usado enquanto travões, pneus, iluminação ou carroçaria apresentarem problemas.');
           return;
         }
-        const { data, error } = await supabase.from('driver_vehicles').insert({
-          driver_id: user.id,
+        const vehiclePayload = {
           vehicle_type: vehicleDraft.vehicle_type.trim(),
           make: vehicleDraft.make.trim(),
           model: vehicleDraft.model.trim(),
@@ -943,29 +946,39 @@ const ProximasCargas = () => {
           lights_ok: vehicleDraft.lights_ok,
           body_condition: vehicleDraft.body_condition,
           registration_document_number: vehicleDraft.registration_document_number.trim() || null,
-          inspection_valid_until: vehicleDraft.inspection_valid_until || null,
-          insurance_valid_until: vehicleDraft.insurance_valid_until || null,
-        }).select('*').single();
-        if (error) throw error;
-        const created = data as DriverVehicle;
-        vehicleId = created.id;
-        setDriverVehicles((previous) => [created, ...previous]);
-        setSelectedVehicleId(created.id);
+          inspection_valid_until: vehicleDraft.inspection_valid_until,
+          insurance_valid_until: vehicleDraft.insurance_valid_until,
+          maintenance_valid_until: vehicleDraft.maintenance_valid_until,
+        };
+        const vehicleResult = editingVehicleId
+          ? await (supabase as any).from('driver_vehicles').update(vehiclePayload).eq('id', editingVehicleId).eq('driver_id', user.id).select('*').single()
+          : await supabase.from('driver_vehicles').insert({ driver_id: user.id, ...vehiclePayload }).select('*').single();
+        if (vehicleResult.error) throw vehicleResult.error;
+        savedVehicle = vehicleResult.data as DriverVehicle;
+        vehicleId = savedVehicle.id;
+        setDriverVehicles((previous) => editingVehicleId
+          ? previous.map((vehicle) => vehicle.id === savedVehicle!.id ? savedVehicle! : vehicle)
+          : [savedVehicle!, ...previous]);
+        setSelectedVehicleId(savedVehicle.id);
       }
-      const chosen = driverVehicles.find((vehicle) => vehicle.id === vehicleId) ||
+      const chosen = savedVehicle || driverVehicles.find((vehicle) => vehicle.id === vehicleId) ||
         (vehicleId ? ({ ...vehicleDraft, id: vehicleId, capacity_kg: Number(vehicleDraft.capacity_kg) } as unknown as DriverVehicle) : null);
       if (!vehicleId || (!showNewVehicle && !chosen)) {
         toast.error('Selecione um veículo ou registe um novo veículo.');
         return;
       }
-      if (!showNewVehicle && chosen &&
-        (!chosen.brakes_ok || !chosen.tires_ok || !chosen.lights_ok || chosen.body_condition === 'needs_attention')) {
+      const todayAngola = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Luanda' }).format(new Date());
+      if (chosen && (!chosen.brakes_ok || !chosen.tires_ok || !chosen.lights_ok || chosen.body_condition === 'needs_attention')) {
         toast.error('O veículo selecionado não cumpre os requisitos mínimos de segurança.');
         return;
       }
-      const selectedCapacity = showNewVehicle || driverVehicles.length === 0
-        ? Number(vehicleDraft.capacity_kg)
-        : Number(chosen?.capacity_kg);
+      if (chosen && (!chosen.maintenance_valid_until || chosen.maintenance_valid_until < todayAngola ||
+        !chosen.inspection_valid_until || chosen.inspection_valid_until < todayAngola ||
+        !chosen.insurance_valid_until || chosen.insurance_valid_until < todayAngola)) {
+        toast.error('O veículo precisa de manutenção preventiva, inspecção e seguro válidos.');
+        return;
+      }
+      const selectedCapacity = Number(chosen?.capacity_kg ?? vehicleDraft.capacity_kg);
       if (selectedCapacity < (loads.find((load) => load.id === vehicleDraftLoadId)?.weight_kg || 0)) {
         toast.error('A capacidade do veículo é inferior ao peso desta carga.');
         return;
@@ -988,6 +1001,8 @@ const ProximasCargas = () => {
       setVehicleDraftLoadId(null);
       setVehicleDraftAction(null);
       setShowNewVehicle(false);
+      setEditingVehicleId(null);
+      setDeliveryCommitmentAccepted(false);
     } catch (error: any) {
       setBusyId(null);
       toast.error(error?.message || 'Não foi possível guardar os dados do veículo.');
