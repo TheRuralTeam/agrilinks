@@ -4,6 +4,10 @@ export interface FreightRoute {
   coordinates: FreightCoordinate[];
   distanceKm: number;
   durationMinutes: number;
+  snappedOrigin: FreightCoordinate;
+  snappedDestination: FreightCoordinate;
+  originSnapDistanceKm: number;
+  destinationSnapDistanceKm: number;
 }
 
 export interface DestinationWeather {
@@ -18,6 +22,10 @@ export interface DestinationWeather {
 
 interface OsrmResponse {
   code?: string;
+  waypoints?: Array<{
+    location?: [number, number];
+    distance?: number;
+  }>;
   routes?: Array<{
     distance?: number;
     duration?: number;
@@ -54,7 +62,13 @@ export async function calculateFreightRoute(
   const payload = (await response.json()) as OsrmResponse;
   const route = payload.routes?.[0];
   const geometry = route?.geometry?.coordinates;
-  if (payload.code !== 'Ok' || !route || !geometry?.length) {
+  const originWaypoint = payload.waypoints?.[0];
+  const destinationWaypoint = payload.waypoints?.[1];
+  const originLocation = originWaypoint?.location;
+  const destinationLocation = destinationWaypoint?.location;
+  if (payload.code !== 'Ok' || !route || !geometry?.length ||
+      !originLocation || !destinationLocation ||
+      !Number.isFinite(originWaypoint?.distance) || !Number.isFinite(destinationWaypoint?.distance)) {
     throw new Error('Não foi encontrada uma rota por estrada para estes pontos.');
   }
 
@@ -62,6 +76,10 @@ export async function calculateFreightRoute(
     coordinates: geometry.map(([longitude, latitude]) => [latitude, longitude]),
     distanceKm: (route.distance ?? 0) / 1000,
     durationMinutes: Math.max(1, Math.round((route.duration ?? 0) / 60)),
+    snappedOrigin: [originLocation[1], originLocation[0]],
+    snappedDestination: [destinationLocation[1], destinationLocation[0]],
+    originSnapDistanceKm: (originWaypoint.distance ?? 0) / 1000,
+    destinationSnapDistanceKm: (destinationWaypoint.distance ?? 0) / 1000,
   };
 }
 

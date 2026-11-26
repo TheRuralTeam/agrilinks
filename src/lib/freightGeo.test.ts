@@ -12,6 +12,10 @@ describe('freightGeo', () => {
         ok: true,
         json: async () => ({
           code: 'Ok',
+          waypoints: [
+            { location: [13.241, -8.811], distance: 120 },
+            { location: [13.219, -8.889], distance: 180 },
+          ],
           routes: [
             {
               distance: 14_970,
@@ -41,6 +45,10 @@ describe('freightGeo', () => {
     ]);
     expect(route.distanceKm).toBe(14.97);
     expect(route.durationMinutes).toBe(22);
+    expect(route.snappedOrigin).toEqual([-8.811, 13.241]);
+    expect(route.snappedDestination).toEqual([-8.889, 13.219]);
+    expect(route.originSnapDistanceKm).toBe(0.12);
+    expect(route.destinationSnapDistanceKm).toBe(0.18);
   });
 
   it('returns the forecast for the requested pickup date', async () => {

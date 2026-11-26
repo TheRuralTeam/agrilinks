@@ -813,6 +813,9 @@ const ProximasCargas = () => {
       }
 
       const route = await calculateFreightRoute(originPoint, destinationPoint);
+      if (route.originSnapDistanceKm > 25 || route.destinationSnapDistanceKm > 25) {
+        throw new Error('A estrada mais próxima está a mais de 25 km de um dos pontos GPS. Corrija a localização da recolha ou do destino antes de enviar a proposta.');
+      }
       const { error } = await supabase.rpc('submit_freight_quote' as never, {
         p_freight_load_id: load.id,
         p_price_method: quotePriceMethod,
@@ -820,6 +823,10 @@ const ProximasCargas = () => {
         p_route_distance_km: route.distanceKm,
         p_route_duration_minutes: route.durationMinutes,
         p_vehicle_id: selectedVehicle.id,
+        p_snapped_origin_lat: route.snappedOrigin[0],
+        p_snapped_origin_lng: route.snappedOrigin[1],
+        p_snapped_destination_lat: route.snappedDestination[0],
+        p_snapped_destination_lng: route.snappedDestination[1],
       } as never);
       if (error) throw error;
       setDriverDailyLoadStatus('limit_reached');
