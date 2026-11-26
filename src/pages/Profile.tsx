@@ -241,6 +241,7 @@ const StatusPill = ({ status }: { status: string }) => {
     removed:    { bg: '#FEF2F2', color: '#DC2626',  label: 'Removido' },
     pending:    { bg: 'rgba(44, 134, 59, 0.06)', color: '#2c863b', label: 'Pendente' },
     pending_review: { bg: '#FFF7ED', color: '#C2410C', label: 'Pendente de verificação' },
+    approved:   { bg: T.g50,     color: T.g600,    label: 'Verificada' },
     accepted:   { bg: T.g50,     color: T.g600,    label: 'Aceite' },
     rejected:   { bg: '#FEF2F2', color: '#DC2626',  label: 'Rejeitado' },
     expired:    { bg: '#FEF2F2', color: '#DC2626',  label: 'Expirado' },
@@ -971,21 +972,21 @@ const Profile = () => {
       return
     }
     try {
-      if (userProfile?.user_type === 'motorista') {
-        const categories = driverLicenseData.license_categories
-          .split(',')
-          .map((category) => category.trim().toUpperCase())
-          .filter(Boolean)
-        if (!driverLicenseData.license_number.trim() || categories.length === 0 ||
-          !driverLicenseData.issued_at || !driverLicenseData.expires_at ||
-          !driverLicenseData.issuing_authority.trim()) {
-          toast({ title: 'Preencha todos os dados da carta de condução.', variant: 'destructive' })
-          return
-        }
-        if (driverLicenseData.expires_at <= driverLicenseData.issued_at) {
-          toast({ title: 'A validade da carta deve ser posterior à data de emissão.', variant: 'destructive' })
-          return
-        }
+      const categories = driverLicenseData.license_categories
+        .split(',')
+        .map((category) => category.trim().toUpperCase())
+        .filter(Boolean)
+      if (userProfile?.user_type === 'motorista' && (
+        !driverLicenseData.license_number.trim() || categories.length === 0 ||
+        !driverLicenseData.issued_at || !driverLicenseData.expires_at ||
+        !driverLicenseData.issuing_authority.trim()
+      )) {
+        toast({ title: 'Preencha todos os dados da carta de condução.', variant: 'destructive' })
+        return
+      }
+      if (userProfile?.user_type === 'motorista' && driverLicenseData.expires_at <= driverLicenseData.issued_at) {
+        toast({ title: 'A validade da carta deve ser posterior à data de emissão.', variant: 'destructive' })
+        return
       }
       const { error } = await supabase.from('users').update({
         full_name: profileData.full_name,
@@ -997,20 +998,6 @@ const Profile = () => {
       if (error) throw error
 
       if (userProfile?.user_type === 'motorista') {
-        const categories = driverLicenseData.license_categories
-          .split(',')
-          .map((category) => category.trim().toUpperCase())
-          .filter(Boolean)
-        if (!driverLicenseData.license_number.trim() || categories.length === 0 ||
-          !driverLicenseData.issued_at || !driverLicenseData.expires_at ||
-          !driverLicenseData.issuing_authority.trim()) {
-          toast({ title: 'Preencha todos os dados da carta de condução.', variant: 'destructive' })
-          return
-        }
-        if (driverLicenseData.expires_at <= driverLicenseData.issued_at) {
-          toast({ title: 'A validade da carta deve ser posterior à data de emissão.', variant: 'destructive' })
-          return
-        }
         const { error: licenseError } = await supabase.from('driver_licenses').upsert({
           driver_id: user.id,
           license_number: driverLicenseData.license_number.trim(),
