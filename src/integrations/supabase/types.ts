@@ -1118,6 +1118,7 @@ export type Database = {
           inspection_valid_until: string | null
           is_active: boolean
           lights_ok: boolean
+          maintenance_valid_until: string | null
           make: string
           model: string
           manufacture_year: number | null
@@ -1141,6 +1142,7 @@ export type Database = {
           inspection_valid_until?: string | null
           is_active?: boolean
           lights_ok: boolean
+          maintenance_valid_until: string | null
           make: string
           model: string
           manufacture_year?: number | null
@@ -1164,6 +1166,7 @@ export type Database = {
           inspection_valid_until?: string | null
           is_active?: boolean
           lights_ok?: boolean
+          maintenance_valid_until?: string | null
           make?: string
           model?: string
           manufacture_year?: number | null
