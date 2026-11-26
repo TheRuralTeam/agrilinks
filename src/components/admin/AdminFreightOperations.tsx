@@ -186,6 +186,8 @@ const AdminFreightOperations: React.FC = () => {
   const relatedOrder = (load: Load) => load.pre_order_id ? orderById.get(load.pre_order_id) : null;
   const selectedVehicle = selected?.vehicle_id ? vehicleById.get(selected.vehicle_id) : null;
   const selectedDriver = selected?.driver_id ? personById.get(selected.driver_id) : null;
+  const selectedSupplier = selected?.supplier_id ? personById.get(selected.supplier_id) : null;
+  const selectedBuyer = selected?.buyer_id ? personById.get(selected.buyer_id) : null;
   const selectedOrder = selected ? relatedOrder(selected) : null;
   const selectedSettlement = selected ? settlementByLoad.get(selected.id) : null;
   const selectedLocation = selected ? currentLocation(selected.id) : null;
@@ -284,6 +286,8 @@ const AdminFreightOperations: React.FC = () => {
             </DialogHeader>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Motorista</p><p className="font-semibold">{selectedDriver?.full_name || "Por atribuir"}</p><p className="text-xs text-muted-foreground">{selectedDriver?.phone || selectedDriver?.email || "Contacto não disponível"}</p></div>
+              <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Fornecedor</p><p className="font-semibold">{selectedSupplier?.full_name || "Não identificado"}</p><p className="text-xs text-muted-foreground">{selectedSupplier?.phone || "Contacto não disponível"}</p></div>
+              <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Comprador</p><p className="font-semibold">{selectedBuyer?.full_name || "Não identificado"}</p><p className="text-xs text-muted-foreground">{selectedBuyer?.phone || "Contacto não disponível"}</p></div>
               <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Veículo</p><p className="font-semibold">{selectedVehicle ? `${selectedVehicle.make} ${selectedVehicle.model} · ${selectedVehicle.plate_number}` : "Não associado"}</p><p className="text-xs text-muted-foreground">{selectedVehicle ? `${selectedVehicle.vehicle_type} · capacidade ${selectedVehicle.capacity_kg} kg` : "—"}</p></div>
               <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Origem</p><p className="font-medium">{selected.origin_label}</p>{selected.origin_lat != null && selected.origin_lng != null && <a className="text-xs text-primary underline" href={mapUrl(selected.origin_lat,selected.origin_lng)} target="_blank" rel="noreferrer">Abrir origem no mapa</a>}</div>
               <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Destino</p><p className="font-medium">{selected.destination_label}</p>{selected.destination_lat != null && selected.destination_lng != null && <a className="text-xs text-primary underline" href={mapUrl(selected.destination_lat,selected.destination_lng)} target="_blank" rel="noreferrer">Abrir destino no mapa</a>}</div>
