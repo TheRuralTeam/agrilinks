@@ -1107,8 +1107,6 @@ const AdminDashboard = () => {
               Financeiro
             </SidebarItem>
           )}
-          {(isRootAdmin || hasPermission("manage_admins")) && (
-          )}
           <SidebarItem active={activeTab === "transactions"} onClick={() => { setActiveTab("transactions"); setMenuOpen(false); }} icon={<DollarSign className="h-4 w-4" />}>
             Transações
           </SidebarItem>
