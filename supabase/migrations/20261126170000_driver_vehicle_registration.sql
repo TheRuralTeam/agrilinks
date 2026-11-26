@@ -122,13 +122,23 @@ SECURITY DEFINER
 SET search_path TO ''
 AS $function$
 BEGIN
-  IF NOT public.is_agrilink_admin() AND (
-    NEW.verification_status IS DISTINCT FROM OLD.verification_status
-    OR NEW.reviewed_at IS DISTINCT FROM OLD.reviewed_at
-    OR NEW.reviewed_by IS DISTINCT FROM OLD.reviewed_by
-  ) THEN
-    RAISE EXCEPTION 'Only an authorized administrator can change driver licence verification state'
-      USING ERRCODE = '42501';
+  IF NOT public.is_agrilink_admin() THEN
+    IF NEW.verification_status IS DISTINCT FROM OLD.verification_status
+      OR NEW.reviewed_at IS DISTINCT FROM OLD.reviewed_at
+      OR NEW.reviewed_by IS DISTINCT FROM OLD.reviewed_by THEN
+      RAISE EXCEPTION 'Only an authorized administrator can change driver licence verification state'
+        USING ERRCODE = '42501';
+    END IF;
+
+    IF NEW.license_number IS DISTINCT FROM OLD.license_number
+      OR NEW.license_categories IS DISTINCT FROM OLD.license_categories
+      OR NEW.issued_at IS DISTINCT FROM OLD.issued_at
+      OR NEW.expires_at IS DISTINCT FROM OLD.expires_at
+      OR NEW.issuing_authority IS DISTINCT FROM OLD.issuing_authority THEN
+      NEW.verification_status := 'pending_review';
+      NEW.reviewed_at := NULL;
+      NEW.reviewed_by := NULL;
+    END IF;
   END IF;
   RETURN NEW;
 END;
