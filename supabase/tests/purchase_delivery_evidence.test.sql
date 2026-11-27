@@ -16,11 +16,11 @@ declare
   v_evidence jsonb;
   v_event_count integer;
 begin
-  insert into public.users (id, user_type, email_verified) values
-    (v_driver, 'motorista', true),
-    (v_buyer, 'comprador', true),
-    (v_supplier, 'agricultor', true),
-    (v_other, 'comprador', true);
+  insert into public.users (id, full_name, user_type, email_verified) values
+    (v_driver, 'Driver Evidence Test', 'motorista', true),
+    (v_buyer, 'Buyer Evidence Test', 'comprador', true),
+    (v_supplier, 'Supplier Evidence Test', 'agricultor', true),
+    (v_other, 'Other Evidence Test', 'comprador', true);
 
   insert into public.pre_orders (id, status, payment_status)
   values
