@@ -21,8 +21,8 @@ interface OutboxRow {
   heading_deg: number | null;
 }
 
-function nullableNonNegative(value: number | null): number | null {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0
+function nullableInRange(value: number | null, maximum: number): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= maximum
     ? value
     : null;
 }
@@ -68,8 +68,8 @@ export async function persistLocationSamples(
         );
 
         for (const loadId of loadIds) {
-          await database.runAsync(
-            "INSERT OR IGNORE INTO gps_outbox (" +
+          const result = await database.runAsync(
+            "INSERT OR IGNORE INTO gps_outbox ("
               "id, freight_load_id, client_event_id, device_sequence, captured_at, " +
               "latitude, longitude, accuracy_m, speed_mps, heading_deg, created_at" +
               ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -80,8 +80,8 @@ export async function persistLocationSamples(
             capturedAt,
             latitude,
             longitude,
-            nullableNonNegative(accuracy),
-            nullableNonNegative(speed),
+            nullableInRange(accuracy, 100_000),
+            nullableInRange(speed, 100),
             typeof heading === "number" &&
               Number.isFinite(heading) &&
               heading >= 0 &&
@@ -90,7 +90,7 @@ export async function persistLocationSamples(
               : null,
             new Date().toISOString(),
           );
-          inserted += 1;
+          inserted += result.changes;
         }
       }
     });
@@ -100,7 +100,6 @@ export async function persistLocationSamples(
 }
 
 async function recordSyncFailure(
-  database: Awaited<ReturnType<typeof getTrackingDatabase>>,
   rows: OutboxRow[],
   message: string,
 ): Promise<void> {
@@ -162,7 +161,7 @@ export async function flushLocationOutbox(): Promise<number> {
       });
 
       if (error) {
-        await recordSyncFailure(database, rows, error.message || "Falha de sincronização");
+        await recordSyncFailure(rows, error.message || "Falha de sincronização");
         break;
       }
 
