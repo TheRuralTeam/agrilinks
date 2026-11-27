@@ -334,7 +334,7 @@ const ProximasCargas = () => {
   const fetchLoads = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('freight_loads')
         .select('id,created_by,driver_id,contract_id,order_id,product_id,product_name,weight_kg,origin_label,origin_lat,origin_lng,destination_label,destination_lat,destination_lng,pickup_date,offered_price,currency,status,notes,accepted_at,in_transit_at,delivered_at,created_at,updated_at,pre_order_id,driver_offered_price,driver_price_method,driver_quote_status,buyer_quote_approved,supplier_quote_approved,route_distance_km,route_duration_minutes,supplier_id,buyer_id,supplier_handover_confirmed_at,driver_pickup_confirmed_at,driver_delivery_confirmed_at,buyer_receipt_confirmed_at,driver_arrived_at,vehicle_id,driver_commitment_confirmed_at')
         .order('pickup_date', { ascending: true, nullsFirst: false })
