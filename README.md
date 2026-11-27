@@ -12,7 +12,7 @@ Este README é o ponto central de acompanhamento técnico e operacional do proje
 | Gestão operacional de entregas no Admin | Integrada em `main` | Executar validação funcional com perfis e permissões reais |
 | Compromisso do motorista e manutenção do veículo | Integrado em `main` | Validar cenários de aceitação, compromissos simultâneos e validade da manutenção |
 | Validação de distância/rota rural | Correcções integradas em `main` | Repetir testes com coordenadas rurais reais e casos-limite |
-| Tracking GPS do motorista para comprador e Admin | Em desenvolvimento numa branch própria | Não considerar concluído nem publicado em produção até merge, deployment e testes |
+| Tracking GPS do motorista para comprador e Admin | Em desenvolvimento numa branch própria | Requisitos offline detalhados; falta revisão técnica e validação E2E em Android |
 | Deployment de produção da versão mais recente | Pendente de confirmação | A equipa proprietária da Vercel precisa executar/autorizar a publicação |
 
 ## Tarefas prioritárias — executar por ordem
@@ -53,24 +53,41 @@ Responsável: pessoa/equipa que administra o projecto Vercel `agrilink` na equip
 
 **Atenção:** um Preview com estado `Ready` não actualiza automaticamente o domínio de produção. O Preview anteriormente partilhado para tracking pertence à branch `feat/buyer-live-tracking-supplier-handover-receipt` e não substitui o deployment da `main`.
 
-### P1 — Tracking GPS e comprovativo de entrega
+### P1 — Tracking GPS durante a entrega (prioridade da sessão de 27-11-2026)
 
-Branch de trabalho identificada: `feat/buyer-live-tracking-supplier-handover-receipt`.
+**Objectivo:** depois de o motorista confirmar que recebeu/recolheu a carga, o comprador deve acompanhar no mapa a localização do motorista associado àquela entrega. O Admin deve conseguir acompanhar a operação dentro das suas permissões. O comportamento tem de ser explícito mesmo quando o motorista fica sem cobertura ou o GPS deixa de fornecer posições.
 
-- [ ] Rever o diff completo da branch face à `main`; identificar dependências, migrations, variáveis de ambiente e alterações de permissões.
-- [ ] Garantir que o comprador só acompanha o motorista associado à sua entrega e apenas no período autorizado do transporte.
-- [ ] Iniciar/activar o tracking no evento correcto de recolha/entrega da carga, com registo temporal e associação inequívoca à entrega.
-- [ ] Confirmar que o Admin tem acesso ao painel operacional e às localizações autorizadas.
-- [ ] Implementar e validar persistência local/armazenamento temporário de posições quando o dispositivo fica sem rede, com sincronização posterior e ordenação por timestamp.
-- [ ] Definir claramente o comportamento quando o GPS está desligado, a aplicação está em segundo plano, o dispositivo fica offline ou não tem permissões de localização.
-- [ ] Exibir no mapa a última posição conhecida e a hora da última actualização; nunca apresentar uma posição antiga como localização em tempo real.
-- [ ] Tratar perda de sinal, posições duplicadas, posições fora de ordem, baixa precisão, bateria reduzida e encerramento/reabertura da aplicação.
-- [ ] Validar autenticação, autorização por entrega, retenção de dados e protecção das coordenadas.
-- [ ] Validar o comprovativo de entrega e a transição de estado apenas após confirmação autorizada.
-- [ ] Executar testes em dispositivos Android reais, com rede estável, rede intermitente, modo avião e GPS desligado.
-- [ ] Só depois de revisão, testes e migrations validadas, abrir PR para `main`, integrar e publicar em Production.
+Branch de trabalho identificada: `feat/buyer-live-tracking-supplier-handover-receipt`. O Preview anteriormente partilhado foi reportado como `Ready`; não é prova de merge, publicação em Production ou validação funcional.
 
-**Referência de Preview conhecida:** [Preview do tracking](https://agrilink-76dhddwya-agrilink-s-projects.vercel.app/). O Preview foi reportado como `Ready`; isso não comprova que a branch esteja integrada na `main` ou publicada em produção.
+**Regras funcionais obrigatórias**
+- [ ] A aceitação da carga não inicia a partilha de localização com o comprador.
+- [ ] A confirmação autorizada de recolha activa o tracking da entrega no backend, com timestamp e associação inequívoca à carga.
+- [ ] Se ainda não houver coordenadas, o mapa apresenta “A aguardar primeira localização”.
+- [ ] Durante o transporte, o comprador acompanha apenas a entrega a que está associado; o Admin acompanha as entregas autorizadas.
+- [ ] O mapa apresenta a última posição recebida e a hora da actualização. Nunca apresenta uma posição antiga como se fosse actual.
+- [ ] Ao concluir/cancelar a entrega, o tracking termina e novas posições deixam de ser aceites para essa entrega.
+
+**Sem cobertura, sincronização e recuperação**
+- [ ] O dispositivo do motorista guarda temporariamente posições numa fila local limitada e protegida quando não há rede.
+- [ ] Cada ponto preserva identificador idempotente, entrega, timestamp de captura, coordenadas e precisão quando disponível; o servidor regista também a hora de recepção.
+- [ ] Quando a rede regressa, os pontos são sincronizados sem duplicação e ordenados pelos timestamps originais.
+- [ ] O mapa mostra “Sem actualização” e a hora da última posição recebida enquanto não chegam novos pontos.
+- [ ] Uma posição antiga sincronizada não faz o marcador actual retroceder nem é apresentada como localização em tempo real.
+- [ ] Encerramento/reinício da aplicação recupera a fila segura e reconcilia o estado da entrega.
+- [ ] GPS desligado, permissão revogada, segundo plano e bateria reduzida produzem estados claros; nunca são inventadas coordenadas.
+
+**Segurança e testes de aceitação**
+- [ ] Aplicar autorização no backend/RLS/RPC: comprador só consulta as suas entregas; motorista só as atribuídas; Admin só com permissão operacional.
+- [ ] Validar duplicados, pontos fora de ordem, baixa precisão, saltos geográficos e timestamps inválidos.
+- [ ] Testar em Android real: recolha, ecrã bloqueado/segundo plano, perda de rede, modo avião, recuperação de rede, GPS desligado, permissões revogadas e reinício.
+- [ ] Testar ponta a ponta desde a confirmação de recolha até à conclusão, incluindo comprador, motorista e Admin.
+- [ ] Rever consumo de bateria/dados, limites da fila local, retenção de coordenadas e logs.
+- [ ] Rever o diff e migrations da branch antes de abrir PR para `main`; integrar e publicar só depois de QA.
+- [ ] Registar PR, commit SHA, migrations aplicadas, evidência Android e deployment Production.
+
+**Limite operacional:** um dispositivo sem cobertura não consegue transmitir localização em tempo real. O requisito offline é guardar os pontos localmente com segurança e sincronizá-los quando a ligação regressar; durante a interrupção, comprador e Admin têm de ver a última posição recebida identificada como desactualizada.
+
+**Critério de conclusão:** tracking só passa a concluído depois de a recolha activar o tracking no servidor, as permissões por entrega estarem verificadas, o fluxo offline sincronizar correctamente, os testes Android/E2E passarem e a publicação no ambiente pretendido estar confirmada.
 
 ### P1 — Entregas, motoristas e manutenção do veículo
 
@@ -126,7 +143,6 @@ Uma tarefa só passa a **Concluída** quando:
 - GitHub: [TheRuralTeam/agrilinks](https://github.com/TheRuralTeam/agrilinks)
 - Branch principal: `main`
 - Pull Request da caixa de entrada de pré-compras: [#79](https://github.com/TheRuralTeam/agrilinks/pull/79)
-
 
 ## Documentação técnica e operacional completa
 
