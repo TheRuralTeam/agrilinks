@@ -415,11 +415,17 @@ const AppRoutes = () => {
         <Route
           path="/cargas/scan/:token"
           element={
-            <RoleRoute allowedRole="motorista">
-              <AppLayout>
-                <FreightLoadScan />
-              </AppLayout>
-            </RoleRoute>
+            <ProtectedRoute>
+              <FreightLoadScan />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cargas/scan-id/:loadId"
+          element={
+            <ProtectedRoute>
+              <FreightLoadScan />
+            </ProtectedRoute>
           }
         />
         <Route
