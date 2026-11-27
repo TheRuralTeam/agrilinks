@@ -21,6 +21,7 @@ import { sanitizePublicProfile, isNeutralPublicView } from '../lib/publicData'
 import { getWalletBalance } from '../features/wallet/walletService'
 import type { WalletBalance } from '../features/wallet/walletDomain'
 import { WalletSummaryCard } from '../features/wallet/WalletSummaryCard'
+import { MarketplacePayoutStatus } from '../features/marketplace/MarketplacePayoutStatus'
 import { respondToPreOrder } from '../features/orders/adminPreOrderService'
 import agrilinkLogo from '../assets/agrilink-logo.png'
 import { downloadMarketplaceTransactionReceipt } from '../features/orders/transactionReceipts'
@@ -1423,6 +1424,9 @@ const Profile = () => {
               loading={walletLoading}
               error={walletError}
             />
+          )}
+          {user && !isGuest && (isAgricultor || userProfile?.user_type === 'motorista') && (
+            <MarketplacePayoutStatus userId={user.id} />
           )}
 
           <div style={{ animation: `ag-fade-up 0.5s ${EASE} 0.06s both` }}>
