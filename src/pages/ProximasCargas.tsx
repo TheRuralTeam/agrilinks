@@ -233,11 +233,13 @@ const ProximasCargas = () => {
   const [routeSetupSearchingPlaces, setRouteSetupSearchingPlaces] = useState(false);
   const locationWatchId = useRef<number | null>(null);
   const onlineFlushHandlerRef = useRef<(() => void) | null>(null);
+  const activeTrackingLoadIdsRef = useRef<string[]>([]);
   const lastLocationWriteAt = useRef(0);
   const locationRetryNoticeShown = useRef(false);
 
   useEffect(() => () => {
     if (locationWatchId.current != null && navigator.geolocation) navigator.geolocation.clearWatch(locationWatchId.current);
+    activeTrackingLoadIdsRef.current = [];
     if (onlineFlushHandlerRef.current) window.removeEventListener('online', onlineFlushHandlerRef.current);
   }, []);
 
@@ -558,10 +560,7 @@ const ProximasCargas = () => {
   }, [relevantTransitIds]);
 
   const flushQueuedFreightLocations = () => {
-    const activeIds = loads
-      .filter((item) => item.driver_id === user?.id && item.status === 'in_transit')
-      .map((item) => item.id);
-    void Promise.all(activeIds.map((id) => flushFreightLocationQueue(id)));
+    void Promise.all(activeTrackingLoadIdsRef.current.map((id) => flushFreightLocationQueue(id)));
   };
 
   const stopLocationSharing = () => {
@@ -569,6 +568,7 @@ const ProximasCargas = () => {
       navigator.geolocation.clearWatch(locationWatchId.current);
     }
     locationWatchId.current = null;
+    activeTrackingLoadIdsRef.current = [];
     if (onlineFlushHandlerRef.current) { window.removeEventListener('online', onlineFlushHandlerRef.current); onlineFlushHandlerRef.current = null; }
     setSharingLocationFor(null);
   };
@@ -592,12 +592,11 @@ const ProximasCargas = () => {
       load,
       ...loads.filter((item) => item.driver_id === user?.id && item.status === 'in_transit' && item.id !== load.id),
     ];
+    activeTrackingLoadIdsRef.current = trackingLoads.map((item) => item.id);
 
     const persistLocation = async (location: Omit<FreightLoadLocation, 'freight_load_id'>) => {
       try {
-        for (const activeLoad of trackingLoads) {
-          await enqueueFreightLocationSample(activeLoad.id, location);
-        }
+        await Promise.all(trackingLoads.map((activeLoad) => enqueueFreightLocationSample(activeLoad.id, location)));
         if (navigator.onLine) {
           const results = await Promise.all(
             trackingLoads.map((activeLoad) => flushFreightLocationQueue(activeLoad.id))
