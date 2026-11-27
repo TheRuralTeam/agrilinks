@@ -3,7 +3,6 @@ import agrilinkLogo from '../assets/agrilink-logo.png';
 
 export interface FreightPdfLoad {
   id: string;
-  qr_token: string;
   client_name?: string | null;
   product_name: string;
   weight_kg: number;
@@ -64,7 +63,7 @@ export const downloadFreightLoadPdf = async (load: FreightPdfLoad) => {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const scanUrl = `${window.location.origin}/cargas/scan/${encodeURIComponent(load.qr_token)}`;
+  const scanUrl = `${window.location.origin}/cargas/scan-id/${encodeURIComponent(load.id)}`;
   const safeClient = load.client_name?.trim() || 'Cliente não identificado';
 
   // Brand header
@@ -93,7 +92,7 @@ export const downloadFreightLoadPdf = async (load: FreightPdfLoad) => {
   doc.setFont('helvetica', 'normal');
   doc.text(doc.splitTextToSize(safeClient, 100), 20, 49);
 
-  // QR is a capability token, never the load payload.
+  // QR carries only the load ID; the scan RPC authorizes the authenticated participant.
   try {
     const qrDataUrl = await toDataUrl(
       `https://api.qrserver.com/v1/create-qr-code/?size=300x300&ecc=H&margin=12&data=${encodeURIComponent(scanUrl)}`,
@@ -185,7 +184,7 @@ export const downloadFreightLoadPdf = async (load: FreightPdfLoad) => {
 
   doc.setTextColor(...MUTED);
   doc.setFont('helvetica', 'normal');
-  doc.text('O QR não contém os dados da carga. O acesso é validado pela AgriLink.', 20, pageHeight - 9);
+  doc.text('O QR contém apenas o ID da carga. Os detalhes exigem sessão autorizada na AgriLink.', 20, pageHeight - 9);
   doc.text(`Gerado em ${new Date().toLocaleString('pt-AO')}`, pageWidth - 20, pageHeight - 9, { align: 'right' });
 
   const safeName = load.product_name.toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'carga';
