@@ -57,6 +57,16 @@ begin
     raise exception 'freight discovery and participant access rules are incomplete';
   end if;
 
+  if to_regprocedure('public.get_freight_load_qr_details_by_id(uuid)') is null
+     or not has_function_privilege('authenticated', 'public.get_freight_load_qr_details_by_id(uuid)', 'EXECUTE')
+     or has_function_privilege('anon', 'public.get_freight_load_qr_details_by_id(uuid)', 'EXECUTE') then
+    raise exception 'participant-only QR lookup by load ID is required';
+  end if;
+
+  if position('qr_token' in pg_get_function_result('public.get_freight_load_qr_details_by_id(uuid)'::regprocedure)) > 0 then
+    raise exception 'QR lookup by ID must not return the capability token';
+  end if;
+
   if has_function_privilege('anon', 'public.get_freight_load_qr_details(text)', 'EXECUTE') then
     raise exception 'anonymous users must not execute the QR details RPC';
   end if;
