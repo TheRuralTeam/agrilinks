@@ -12,7 +12,7 @@
 | Gestão de entregas Admin | Alterações integradas na `main` segundo histórico de commits | Exige teste funcional e revisão de permissões |
 | Compromisso/manutenção motorista | Alterações e migrations no repositório | Confirmar migration aplicada e validação no servidor; não confiar apenas no bloqueio da UI |
 | Distância OSRM/snapped points | Correcções integradas segundo histórico | Repetir cenários rurais e limites |
-| Tracking GPS | Requisitos funcionais e offline detalhados em 27-11-2026; implementação/validação pendente | Início após confirmação de recolha; comprador e Admin com acesso autorizado; fila offline, sincronização idempotente e testes Android reais ainda exigidos |
+| Tracking GPS | Auditoria estática da branch concluída em 27-11-2026; integração bloqueada até isolamento do escopo | Branch `feat/buyer-live-tracking-supplier-handover-receipt` está 113 commits à frente e 19 atrás de `main` e inclui alterações financeiras/checkout. Foram identificados bloqueios no início automático, fim do tracking no mapa e limites da fila offline. Ver [auditoria](TRACKING_BRANCH_AUDIT_2026-11-27.md). Testes Android físicos e E2E continuam pendentes |
 | Vercel Production | Bloqueio de acesso e erro de deployment reportados | O projecto pertence à equipa `agrilink-s-projects`; a sessão actual não tem permissão para publicar ou ler logs |
 | README/documentação | Índice e runbooks em construção | Este commit adiciona documentação operacional complementar |
 
