@@ -10,6 +10,7 @@ import { Badge } from '../components/ui/badge'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../integrations/supabase/client'
 import { toast } from '../hooks/use-toast'
+import BuyerFreightTracking from '../components/BuyerFreightTracking'
 import {
   getMarketplaceCheckoutSummary,
   getMarketplacePaymentRecipients,
@@ -31,6 +32,17 @@ type Purchase = {
   total_price: number | null
   created_at: string
   product_name: string
+}
+type PurchaseFreightLoad = {
+  id: string
+  pre_order_id: string
+  status: string
+  origin_label: string | null
+  destination_label: string | null
+  origin_lat: number | null
+  origin_lng: number | null
+  destination_lat: number | null
+  destination_lng: number | null
 }
 type CheckoutState = {
   summary: MarketplaceCheckoutSummary | null
@@ -80,6 +92,7 @@ export default function MyPurchases() {
   const { purchaseId } = useParams<{ purchaseId?: string }>()
   const purchaseHistoryPath = String(userProfile?.user_type ?? '').toLowerCase() === 'comprador' ? '/minhas-compras' : '/app'
   const [purchases, setPurchases] = useState<Purchase[]>([])
+  const [freightLoadsByOrder, setFreightLoadsByOrder] = useState<Record<string, PurchaseFreightLoad>>({})
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -119,6 +132,22 @@ export default function MyPurchases() {
           .in('id', productIds)
         if (productsError) throw productsError
         productNames = Object.fromEntries((products ?? []).map((product) => [product.id, product.product_type || 'Produto']))
+      }
+      const purchaseIds = rows.map((row) => row.id)
+      if (purchaseIds.length > 0) {
+        const { data: freightLoads, error: freightError } = await (supabase as any)
+          .from('freight_loads')
+          .select('id,pre_order_id,status,origin_label,destination_label,origin_lat,origin_lng,destination_lat,destination_lng')
+          .eq('buyer_id', user.id)
+          .in('pre_order_id', purchaseIds)
+        if (freightError) {
+          console.warn('[AgriLink] Não foi possível carregar o acompanhamento de frete.', freightError)
+          setFreightLoadsByOrder({})
+        } else {
+          setFreightLoadsByOrder(Object.fromEntries((freightLoads || []).map((load: PurchaseFreightLoad) => [load.pre_order_id, load])))
+        }
+      } else {
+        setFreightLoadsByOrder({})
       }
       setPurchases(rows.map((row) => ({ ...row, product_name: productNames[row.product_id] || 'Produto' })) as Purchase[])
     } catch (error: any) {
@@ -278,6 +307,7 @@ export default function MyPurchases() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {freightLoadsByOrder[purchase.id] && <BuyerFreightTracking load={freightLoadsByOrder[purchase.id]} />}
                   <div className="grid gap-3 rounded-lg border p-3 sm:grid-cols-3">
                     <div><p className="text-xs text-muted-foreground">Quantidade</p><p className="font-semibold">{Number(purchase.quantity).toLocaleString('pt-AO')} unidades de venda</p></div>
                     <div><p className="text-xs text-muted-foreground">Total registado</p><p className="font-semibold">{money(Number(purchase.total_price || 0))}</p></div>
