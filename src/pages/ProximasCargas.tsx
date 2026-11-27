@@ -37,7 +37,6 @@ import Loader from '../components/ui/Loader';
 interface FreightLoad {
   id: string;
   vehicle_id?: string | null;
-  qr_token: string;
   pre_order_id: string | null;
   created_by: string;
   product_name: string;
@@ -335,7 +334,7 @@ const ProximasCargas = () => {
     try {
       const { data, error } = await supabase
         .from('freight_loads')
-        .select('*')
+        .select('id,pre_order_id,created_by,product_name,weight_kg,origin_label,origin_lat,origin_lng,destination_label,destination_lat,destination_lng,pickup_date,offered_price,currency,status,driver_id,driver_quote_status,driver_offered_price,notes,supplier_handover_confirmed_at')
         .order('pickup_date', { ascending: true, nullsFirst: false })
         .limit(80);
       if (error) throw error;
