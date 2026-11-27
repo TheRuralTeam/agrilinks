@@ -1,5 +1,6 @@
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
+import { Alert } from "react-native";
 import { flushLocationOutbox } from "./outbox";
 import { DRIVER_LOCATION_TASK } from "./locationTask";
 import {
@@ -43,6 +44,19 @@ export async function requestAndStartDriverTracking(
   if (!foreground.granted) {
     throw new Error("É necessária permissão de localização precisa em primeiro plano.");
   }
+
+  const acknowledged = await new Promise<boolean>((resolve) => {
+    Alert.alert(
+      "Localização durante a entrega",
+      "A AgriLink precisa continuar a receber posições enquanto usa outras aplicações ou bloqueia o ecrã. O Android poderá abrir as definições para permitir localização em segundo plano. O comprador verá a localização apenas durante as cargas em trânsito atribuídas a si.",
+      [
+        { text: "Agora não", style: "cancel", onPress: () => resolve(false) },
+        { text: "Continuar", onPress: () => resolve(true) },
+      ],
+      { cancelable: false },
+    );
+  });
+  if (!acknowledged) throw new Error("A permissão de segundo plano não foi solicitada.");
 
   const background = await Location.requestBackgroundPermissionsAsync();
   if (!background.granted) {
