@@ -126,3 +126,18 @@ Uma tarefa só passa a **Concluída** quando:
 - GitHub: [TheRuralTeam/agrilinks](https://github.com/TheRuralTeam/agrilinks)
 - Branch principal: `main`
 - Pull Request da caixa de entrada de pré-compras: [#79](https://github.com/TheRuralTeam/agrilinks/pull/79)
+
+
+## Documentação técnica e operacional completa
+
+O README mantém o painel de prioridades. Os procedimentos detalhados, requisitos, matrizes de teste, segurança e publicação estão organizados em `docs/`.
+
+- [Índice geral da documentação](docs/README.md)
+- [Estado operacional e plano de release](docs/operations/PROJECT_STATUS_AND_RELEASE.md)
+- [Runbook de publicação Vercel](docs/operations/VERCEL_PRODUCTION_RUNBOOK.md)
+- [Runbook de pré-compras do fornecedor](docs/operations/SUPPLIER_PREORDERS_RUNBOOK.md)
+- [Runbook de entregas e tracking GPS](docs/operations/FREIGHT_TRACKING_RUNBOOK.md)
+- [Segurança e tratamento de dados](docs/operations/SECURITY_AND_DATA_HANDLING.md)
+- [Checklist QA e release](docs/qa/RELEASE_QA_CHECKLIST.md)
+
+**Regra:** actualizar o painel deste README e o documento especializado correspondente sempre que houver alteração de implementação, migration, configuração, teste, deployment ou decisão operacional. Estados sem evidência devem permanecer como pendentes.
