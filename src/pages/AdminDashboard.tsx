@@ -327,8 +327,11 @@ const AdminDashboard = () => {
         .eq("id", user.id)
         .single();
       
-      const { data: payoutAdminAccess } = await (supabase as any).rpc("is_agrilink_admin");
-      setCanManagePayouts(Boolean(payoutAdminAccess || userData?.is_root_admin));
+      const { data: payoutAdminAccess } = await (supabase as any).rpc("has_role", {
+        _user_id: user.id,
+        _role: "admin",
+      });
+      setCanManagePayouts(Boolean(payoutAdminAccess));
 
       if (userData?.is_root_admin) {
         setIsRootAdmin(true);
