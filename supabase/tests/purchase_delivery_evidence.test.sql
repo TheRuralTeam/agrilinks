@@ -39,13 +39,28 @@ begin
   perform set_config('request.jwt.claim.sub', v_driver::text, true);
   perform * from public.advance_freight_load_status(v_load, 'at_pickup');
 
-  -- Only the assigned supplier can confirm the physical handover.
-  perform set_config('request.jwt.claim.sub', v_supplier::text, true);
-  perform public.confirm_supplier_handover(v_load);
+  -- Seed the private supplier receipt row as if the authenticated supplier RPC
+  -- had uploaded its photo and signature. The separate handover contract test
+  -- verifies that only the assigned, paid supplier can create this row.
+  insert into public.freight_handover_evidence (
+    freight_load_id, supplier_id, driver_id, recipient_name,
+    product_quantity_kg, photo_path, supplier_signature_path
+  ) values (
+    v_load, v_supplier, v_driver, 'Destinatário de Teste', 100,
+    v_load::text || '/' || v_supplier::text || '/handover-photo.jpg',
+    v_load::text || '/' || v_supplier::text || '/supplier-signature.png'
+  );
 
-  -- The driver can depart only after supplier handover is recorded.
+  update public.freight_loads
+  set supplier_handover_confirmed_at = now()
+  where id = v_load and status = 'at_pickup';
+
+  insert into public.freight_load_events (freight_load_id, actor_id, event_type)
+  values (v_load, v_supplier, 'supplier_handover');
+
+  -- The driver must acknowledge the supplier receipt before the trip starts.
   perform set_config('request.jwt.claim.sub', v_driver::text, true);
-  perform * from public.advance_freight_load_status(v_load, 'in_transit');
+  perform public.confirm_supplier_handover_receipt(v_load);
 
   v_photo_path := v_load::text || '/' || v_driver::text || '/photo.jpg';
   v_signature_path := v_load::text || '/' || v_driver::text || '/signature.png';
@@ -135,7 +150,7 @@ begin
     raise exception 'Supplier handover was not written to the transaction history';
   end if;
 
-  -- Supplier handover is blocked until the marketplace payment is confirmed.
+  -- The legacy timestamp-only supplier RPC is disabled; only the evidence-backed RPC remains available.
   insert into public.freight_loads (
     id, created_by, driver_id, buyer_id, supplier_id, pre_order_id,
     status, driver_quote_status
