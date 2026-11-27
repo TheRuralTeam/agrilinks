@@ -75,4 +75,83 @@ grant select (
   driver_commitment_confirmed_at
 ) on public.freight_loads to authenticated;
 
+create or replace function public.get_freight_load_qr_details_by_id(p_freight_load_id uuid)
+returns table (
+  id uuid,
+  display_id text,
+  product_name text,
+  weight_kg numeric,
+  origin_label text,
+  destination_label text,
+  pickup_date date,
+  offered_price numeric,
+  currency text,
+  status text,
+  notes text,
+  route_distance_km numeric,
+  route_duration_minutes integer,
+  pre_order_id uuid,
+  order_display_id text,
+  order_status text,
+  payment_status text,
+  buyer_name text,
+  buyer_phone text,
+  driver_name text,
+  driver_phone text
+)
+language plpgsql
+security definer
+set search_path = ''
+as $qr$
+declare
+  v_qr_token text;
+begin
+  if auth.uid() is null then
+    raise exception 'AUTH_REQUIRED' using errcode = '42501';
+  end if;
+
+  select fl.qr_token
+  into v_qr_token
+  from public.freight_loads fl
+  where fl.id = p_freight_load_id;
+
+  if not found or v_qr_token is null then
+    raise exception 'FREIGHT_LOAD_NOT_FOUND' using errcode = 'P0002';
+  end if;
+
+  -- The existing token RPC enforces participant/admin authorization.
+  -- The token is consumed inside the database and is never returned to the client.
+  return query
+  select
+    details.id,
+    details.display_id,
+    details.product_name,
+    details.weight_kg,
+    details.origin_label,
+    details.destination_label,
+    details.pickup_date,
+    details.offered_price,
+    details.currency,
+    details.status,
+    details.notes,
+    details.route_distance_km,
+    details.route_duration_minutes,
+    details.pre_order_id,
+    details.order_display_id,
+    details.order_status,
+    details.payment_status,
+    details.buyer_name,
+    details.buyer_phone,
+    details.driver_name,
+    details.driver_phone
+  from public.get_freight_load_qr_details(v_qr_token) details;
+end;
+$qr$;
+
+revoke all on function public.get_freight_load_qr_details_by_id(uuid) from public, anon;
+grant execute on function public.get_freight_load_qr_details_by_id(uuid) to authenticated;
+
+comment on function public.get_freight_load_qr_details_by_id(uuid) is
+  'Returns participant-authorized freight QR details by load ID without disclosing the QR capability token.';
+
 commit;
