@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "AgriLink Motorista",
+    "slug": "agrilink-driver",
+    "scheme": "agrilink-driver",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "android": {
+      "package": "ao.agrilink.driver",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "POST_NOTIFICATIONS",
+        "RECEIVE_BOOT_COMPLETED"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true,
+          "locationWhenInUsePermission": "A AgriLink utiliza a localização para registar a recolha e acompanhar as entregas.",
+          "locationAlwaysAndWhenInUsePermission": "Durante uma entrega activa, a localização é partilhada com o comprador e com a operação AgriLink, mesmo com o ecrã bloqueado."
+        }
+      ],
+      [
+        "expo-sqlite",
+        {
+          "useSQLCipher": true
+        }
+      ],
+      "expo-notifications"
+    ]
+  }
+}
