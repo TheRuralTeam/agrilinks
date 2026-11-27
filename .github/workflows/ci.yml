@@ -6,6 +6,43 @@ on:
   push:
     branches: [ main ]
 jobs:
+
+  marketplace-payments-sql:
+    name: Marketplace payment allocation SQL
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: agrilink_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d agrilink_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Build isolated marketplace schema
+        env:
+          PGPASSWORD: postgres
+        run: psql -h 127.0.0.1 -U postgres -d agrilink_test -v ON_ERROR_STOP=1 -f supabase/tests/marketplace_payment_allocations_fixture.sql
+      - name: Apply marketplace payment allocation migration
+        env:
+          PGPASSWORD: postgres
+        run: psql -h 127.0.0.1 -U postgres -d agrilink_test -v ON_ERROR_STOP=1 -f supabase/migrations/20261127150000_marketplace_payment_allocations_and_release.sql
+      - name: Test payment split, delivery release and payout controls
+        env:
+          PGPASSWORD: postgres
+        run: psql -h 127.0.0.1 -U postgres -d agrilink_test -v ON_ERROR_STOP=1 -f supabase/tests/marketplace_payment_allocations.test.sql
   build:
     runs-on: ubuntu-24.04
     services:
