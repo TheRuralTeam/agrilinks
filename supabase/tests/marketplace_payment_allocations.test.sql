@@ -155,13 +155,13 @@ begin
   insert into public.orders(id,pre_order_id) values (v_order,v_pre_order);
   insert into public.freight_loads(
     id,created_by,driver_id,buyer_id,supplier_id,pre_order_id,order_id,
-    status,driver_quote_status,offered_price,currency
+    status,driver_quote_status,offered_price,driver_offered_price,currency
   ) values (
     v_load,v_supplier,v_driver,v_buyer,v_supplier,v_pre_order,v_order,
-    'in_transit','approved',100,'Kz'
+    'in_transit','approved',150,100,'Kz'
   );
-  insert into public.payment_intents(id,user_id,pre_order_id,amount,currency,purpose,status)
-  values (v_intent,v_buyer,v_pre_order,1100,'AOA','order_payment','processing');
+  insert into public.payment_intents(id,user_id,provider_id,pre_order_id,amount,currency,purpose,status)
+  values (v_intent,v_buyer,'agrilink_test_provider',v_pre_order,1100,'AOA','order_payment','processing');
 
   -- A verified success creates three reconciled allocations, all blocked.
   update public.payment_intents set status='succeeded' where id=v_intent;
