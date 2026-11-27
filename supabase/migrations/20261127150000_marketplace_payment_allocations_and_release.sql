@@ -5,6 +5,39 @@
 
 begin;
 
+alter table public.payment_providers
+  add column if not exists platform_destination_verified boolean not null default false;
+
+comment on column public.payment_providers.platform_destination_verified is
+  'True only after the provider merchant destination has been verified as an AgriLink-owned account.';
+
+create or replace function public.guard_payment_provider_platform_destination()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $
+begin
+  if new.platform_destination_verified is distinct from old.platform_destination_verified
+     and not coalesce(public.is_root_admin(auth.uid()), false)
+     and coalesce(auth.role(), '') <> 'service_role' then
+    raise exception 'ROOT_ADMIN_REQUIRED_TO_VERIFY_AGRILINK_DESTINATION'
+      using errcode = '42501';
+  end if;
+  return new;
+end;
+$;
+
+drop trigger if exists trg_guard_payment_provider_platform_destination
+  on public.payment_providers;
+
+create trigger trg_guard_payment_provider_platform_destination
+before update of platform_destination_verified on public.payment_providers
+for each row execute function public.guard_payment_provider_platform_destination();
+
+revoke all on function public.guard_payment_provider_platform_destination()
+  from public, anon, authenticated;
+
 -- Platform fees belong to AgriLink, not to a fictitious user beneficiary.
 alter table public.payment_allocations
   alter column recipient_user_id drop not null;
@@ -56,6 +89,7 @@ begin
        where pp.id = new.provider_id
          and pp.enabled = true
          and coalesce(pp.test_mode, false) = false
+         and pp.platform_destination_verified = true
      ) then
     raise exception 'LIVE_AGRILINK_PAYMENT_PROVIDER_REQUIRED' using errcode = '23514';
   end if;
