@@ -157,3 +157,22 @@ O README mantém o painel de prioridades. Os procedimentos detalhados, requisito
 - [Checklist QA e release](docs/qa/RELEASE_QA_CHECKLIST.md)
 
 **Regra:** actualizar o painel deste README e o documento especializado correspondente sempre que houver alteração de implementação, migration, configuração, teste, deployment ou decisão operacional. Estados sem evidência devem permanecer como pendentes.
+
+
+## Auditoria técnica do tracking GPS — 27-11-2026
+
+A revisão estática da branch `feat/buyer-live-tracking-supplier-handover-receipt` identificou pontos positivos e bloqueios que impedem a integração directa:
+
+- HEAD auditado: `278724cc3f1dd228597f216dba13d57a70463bc6`.
+- Comparação com `main`: branch divergente, 113 commits à frente e 12 atrás; merge-base `9f7e5baab42e5eec9420278cc87ca37cb36902e2`.
+- O diff contém alterações de tracking, comprovativos, checkout e liquidação financeira; não integrar o conjunto sem separação e revisão.
+- Android Driver CI e CI geral reportaram sucesso para o HEAD auditado (runs 45982697956 e 45982697663). Isto não comprova testes num dispositivo físico nem publicação.
+- A configuração Android declara `useSQLCipher: true`; confirmar o APK/AAB nativo efectivamente gerado antes de considerar a fila cifrada validada em dispositivo.
+- A activação inicial do tracking ainda depende do botão manual do motorista após a carga estar em trânsito. Preparar permissões/consentimento antes da recolha e iniciar automaticamente após confirmação autorizada de recolha.
+- A fila local Android ainda precisa de limite de capacidade, política de retenção/expiração e comportamento explícito quando o limite é atingido.
+- O componente do comprador ainda consulta e pode renderizar a última posição depois de a entrega sair do estado `in_transit`. Encerrar a consulta e ocultar a localização de tracking activo após conclusão/cancelamento, mantendo eventual histórico apenas segundo política autorizada.
+- A sincronização offline, a autorização por perfil e o ciclo de vida Android continuam pendentes de testes E2E e dispositivo real.
+
+**Estado após auditoria:** Em desenvolvimento — não integrar nem publicar até corrigir os bloqueios acima, reconciliar a divergência com `main`, rever migrations/RLS e concluir QA.
+
+**Evidência da revisão:** [HEAD da branch](https://github.com/TheRuralTeam/agrilinks/commit/278724cc3f1dd228597f216dba13d57a70463bc6) · [Comparação com main](https://github.com/TheRuralTeam/agrilinks/compare/main...feat/buyer-live-tracking-supplier-handover-receipt) · [Run Android CI](https://github.com/TheRuralTeam/agrilinks/actions/runs/45982697956) · [Run CI](https://github.com/TheRuralTeam/agrilinks/actions/runs/45982697663).
