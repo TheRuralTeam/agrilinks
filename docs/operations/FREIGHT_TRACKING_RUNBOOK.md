@@ -158,3 +158,44 @@ O tracking só pode ser marcado como **Concluído e validado** quando:
 8. a versão está publicada no ambiente pretendido e o deployment foi confirmado.
 
 Até lá, manter o estado como **Em desenvolvimento / validação pendente**. Um Preview Ready, código existente ou migration versionada não constitui prova de conclusão.
+
+
+## 12. Resultado da revisão estática da implementação — 27-11-2026
+
+Branch revista: `feat/buyer-live-tracking-supplier-handover-receipt`  
+HEAD: `278724cc3f1dd228597f216dba13d57a70463bc6`  
+Merge-base com `main`: `9f7e5baab42e5eec9420278cc87ca37cb36902e2`  
+Divergência observada: 113 commits à frente e 12 atrás; diff com alterações fora do âmbito de GPS.  
+CI no HEAD: Android Driver CI e CI geral concluídos com sucesso (runs 45982697956 e 45982697663).
+
+### Pontos positivos observados
+
+- Aplicação Android isolada em `apps/driver-android`, com Expo Location, Task Manager, SQLite e Secure Store.
+- Configuração declara SQLCipher através de `useSQLCipher: true`; esta configuração ainda tem de ser confirmada num APK/AAB nativo instalado.
+- Fila local usa identificadores de evento e sequência por dispositivo, e a RPC recebe lotes limitados a 100 amostras.
+- A RPC valida autenticação, motorista atribuído, estado da carga, coordenadas, metadados e janela temporal; a actualização da última posição compara o timestamp de captura para impedir regressão temporal.
+- O mapa do comprador apresenta hora de captura e recepção e identifica posições com mais de dois minutos como desactualizadas.
+
+### Bloqueios concretos a corrigir
+
+1. **Activação tardia/manual:** `App.tsx` só lista cargas `in_transit` e expõe um botão manual para iniciar o serviço. `reconcileDriverTracking` só retoma automaticamente se já existir consentimento local. A primeira activação não está ligada automaticamente ao evento de recolha. Implementar preparação de permissões/consentimento antes da recolha e reconciliação automática após a transição autorizada no servidor; nunca recolher/partilhar antes da confirmação.
+2. **Fila sem limite explícito:** `gps_outbox` não demonstra limite máximo de registos/bytes nem política de expiração. Definir capacidade, retenção, backpressure e alerta operacional sem eliminar silenciosamente pontos ainda não confirmados pelo servidor.
+3. **Tracking após o fim:** `BuyerFreightTracking.tsx` consulta a tabela e pode renderizar o último marcador independentemente do estado da carga. Condicionar subscrição, polling e marcador ao estado `in_transit`; após conclusão/cancelamento, terminar tracking activo e apresentar apenas estado final. Histórico, se permitido, deve ser uma vista separada e sujeita à política de retenção/permissão.
+4. **Reconciliação de branch:** a branch está 12 commits atrás e 113 à frente de `main`, com alterações financeiras e de checkout no mesmo diff. Rebase/merge controlado e separação de alterações antes de abrir PR; não fazer merge integral às cegas.
+5. **Validação nativa:** CI verde não prova permissões reais, SQLCipher no binário, execução em segundo plano, recuperação após force-stop/reboot, nem sincronização após modo avião. Exigir APK/AAB de teste e matriz física Android.
+6. **Autorização e privacidade:** executar testes reais de comprador A/B, motorista atribuído/não atribuído e Admin com/sem permissão, incluindo chamadas directas às RPCs e consultas PostgREST/Realtime.
+
+### Plano correctivo obrigatório
+
+- [ ] Separar tracking GPS e comprovativos de entrega das alterações financeiras/checkout.
+- [ ] Reconciliar os 12 commits da `main` antes de qualquer integração.
+- [ ] Preparar permissões e consentimento de localização antes da recolha, com explicação clara ao motorista.
+- [ ] Ligar o início automático à confirmação de recolha validada no backend.
+- [ ] Implementar limite/expiração/backpressure da fila sem perda silenciosa de amostras não confirmadas.
+- [ ] Encerrar polling, Realtime e marcador activo no comprador/Admin quando a entrega termina ou é cancelada.
+- [ ] Rever migrations, RLS, privilégios de RPC e políticas Storage.
+- [ ] Executar testes SQL, unitários, E2E e Android físico (segundo plano, ecrã bloqueado, rede intermitente, modo avião, GPS/permissões revogadas e reinício).
+- [ ] Abrir PR isolado, aguardar CI e revisão, integrar apenas após evidência.
+- [ ] Confirmar deployment Production e smoke tests no domínio publicado.
+
+**Conclusão desta revisão:** a implementação tem uma base técnica útil e CI aprovado, mas não satisfaz ainda todos os critérios operacionais deste runbook. Manter estado **Em desenvolvimento / validação pendente**.
