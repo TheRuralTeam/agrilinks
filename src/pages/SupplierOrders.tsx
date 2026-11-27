@@ -139,6 +139,13 @@ export default function SupplierOrders() {
     };
   }, [user?.id, loadOrders]);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void loadOrders();
+    }, 20000);
+    return () => window.clearInterval(timer);
+  }, [loadOrders]);
+
   const respond = async (order: SupplierOrder, status: 'accepted' | 'rejected') => {
     if (busyId) return;
     setBusyId(order.id);

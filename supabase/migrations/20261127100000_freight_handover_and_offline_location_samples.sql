@@ -2,6 +2,12 @@
 -- Additive migration: existing loads and location history remain readable.
 begin;
 
+alter table public.freight_load_events
+  drop constraint if exists freight_load_events_event_type_check;
+alter table public.freight_load_events
+  add constraint freight_load_events_event_type_check
+  check (event_type in ('accepted', 'supplier_handover', 'driver_pickup', 'driver_departure', 'driver_delivery', 'buyer_received'));
+
 alter table public.freight_load_location_history
   add column if not exists client_event_id uuid,
   add column if not exists device_id uuid,

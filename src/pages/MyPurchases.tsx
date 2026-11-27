@@ -179,6 +179,13 @@ export default function MyPurchases() {
     }
   }, [loadPurchases])
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void loadPurchases(true);
+    }, 30000);
+    return () => window.clearInterval(timer);
+  }, [loadPurchases]);
+
   const openPaymentOptions = async (purchase: Purchase) => {
     setCheckout((current) => ({ ...current, [purchase.id]: { summary: null, recipients: [], loading: true, error: null } }))
     try {

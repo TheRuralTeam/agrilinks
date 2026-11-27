@@ -234,7 +234,6 @@ const ProximasCargas = () => {
   const locationWatchId = useRef<number | null>(null);
   const onlineFlushHandlerRef = useRef<(() => void) | null>(null);
   const lastLocationWriteAt = useRef(0);
-  const onlineFlushHandlerRef = useRef<(() => void) | null>(null);
   const locationRetryNoticeShown = useRef(false);
 
   // The route-repair search must query the geocoder, not only filter previously saved places.
@@ -653,6 +652,18 @@ const ProximasCargas = () => {
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
     );
   };
+
+  const autoResumeAttemptedRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!user?.id || userProfile?.user_type !== 'motorista' || sharingLocationFor) return;
+    const activeLoad = loads.find((item) => item.driver_id === user.id && item.status === 'in_transit');
+    if (!activeLoad || autoResumeAttemptedRef.current.has(activeLoad.id)) return;
+    autoResumeAttemptedRef.current.add(activeLoad.id);
+    startLocationSharing(activeLoad);
+    // startLocationSharing is intentionally invoked once per active load after the page restores.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loads, user?.id, userProfile?.user_type, sharingLocationFor]);
 
   const submitQuote = async (load: FreightLoad) => {
     if (!requireAct('propor o preço de uma carga')) return;
