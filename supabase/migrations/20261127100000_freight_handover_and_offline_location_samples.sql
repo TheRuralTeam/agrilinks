@@ -324,7 +324,7 @@ security definer
 set search_path = ''
 as $function$
 begin
-  if old.status = 'at_pickup' and new.status = 'in_transit'
+  if new.status = 'in_transit' and old.status is distinct from new.status
      and not exists (
        select 1
        from public.freight_handover_evidence e

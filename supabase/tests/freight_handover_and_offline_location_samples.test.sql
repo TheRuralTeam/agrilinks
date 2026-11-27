@@ -24,6 +24,9 @@ begin
   ) then
     raise exception 'location event idempotency index is missing';
   end if;
+  if position('new.status = ''in_transit''' in pg_get_functiondef('public.guard_freight_supplier_handover_transition()'::regprocedure)) = 0 then
+    raise exception 'handover trigger must guard every transition into in_transit';
+  end if;
   if not exists (
     select 1 from pg_trigger
     where tgname='trg_guard_freight_supplier_handover_transition'
