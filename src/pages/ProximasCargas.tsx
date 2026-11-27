@@ -58,6 +58,7 @@ interface FreightLoad {
   destination_lat: number | null;
   destination_lng: number | null;
   in_transit_at: string | null;
+  supplier_handover_confirmed_at?: string | null;
 }
 
 interface DriverVehicle {
@@ -1030,11 +1031,17 @@ const ProximasCargas = () => {
       return;
     }
     const nextStatus = load.status === 'accepted' ? 'at_pickup' : load.status === 'at_pickup' ? 'in_transit' : 'delivered';
+    if (load.status === 'at_pickup' && !load.supplier_handover_confirmed_at) {
+      toast.error('Aguarde o fornecedor emitir a nota de entrega antes de confirmar a recepção.');
+      return;
+    }
     setBusyId(load.id);
-    const { error } = await supabase.rpc('advance_freight_load_status', { p_freight_load_id: load.id, p_status: nextStatus });
+    const result = load.status === 'at_pickup'
+      ? await supabase.rpc('confirm_supplier_handover_receipt', { p_freight_load_id: load.id })
+      : await supabase.rpc('advance_freight_load_status', { p_freight_load_id: load.id, p_status: nextStatus });
     setBusyId(null);
-    if (error) {
-      toast.error(error?.message || 'Não foi possível actualizar.');
+    if (result.error) {
+      toast.error(result.error.message || 'Não foi possível actualizar.');
       return;
     }
     if (nextStatus === 'delivered' && sharingLocationFor === load.id) stopLocationSharing();
@@ -1935,7 +1942,11 @@ const ProximasCargas = () => {
                       fontWeight: 800, cursor: 'pointer',
                     }}
                   >
-                    {busyId === load.id ? 'A confirmar…' : 'Confirmar que estou com a carga · iniciar GPS'}
+                    {busyId === load.id
+                      ? 'A confirmar…'
+                      : load.supplier_handover_confirmed_at
+                        ? 'Confirmar recepção da carga · iniciar GPS'
+                        : 'A aguardar nota de entrega do fornecedor'}
                   </button>
                 ) : isAssignedDriver && load.status === 'in_transit' ? (
                   <button
