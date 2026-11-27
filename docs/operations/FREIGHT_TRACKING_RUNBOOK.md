@@ -165,7 +165,7 @@ Até lá, manter o estado como **Em desenvolvimento / validação pendente**. Um
 Branch revista: `feat/buyer-live-tracking-supplier-handover-receipt`  
 HEAD: `278724cc3f1dd228597f216dba13d57a70463bc6`  
 Merge-base com `main`: `9f7e5baab42e5eec9420278cc87ca37cb36902e2`  
-Divergência observada: 113 commits à frente e 12 atrás; diff com alterações fora do âmbito de GPS.  
+Divergência observada na comparação GitHub de 27-11-2026: 113 commits à frente e 19 atrás; diff com alterações fora do âmbito de GPS. Ver [auditoria detalhada da branch](TRACKING_BRANCH_AUDIT_2026-11-27.md).  
 CI no HEAD: Android Driver CI e CI geral concluídos com sucesso (runs 45982697956 e 45982697663).
 
 ### Pontos positivos observados
