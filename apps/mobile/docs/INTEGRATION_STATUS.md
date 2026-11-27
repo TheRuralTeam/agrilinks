@@ -4,7 +4,7 @@ Data: 27-11-2026
 
 ## Origem e destino
 
-- Origem: `TheRuralTeam/mobileagri`, branch `main`.
+- Origem: `TheRuralTeam/mobileagri`, branch `main`, commit importado `f1a381517057ef0027486ebeeae80b32d3e96c29` (último commit da origem em 12-10-2026).
 - Destino: `TheRuralTeam/agrilinks`, branch `feat/integrate-driver-gps-tracking`.
 - Directório: `apps/mobile/`.
 - O código web permanece na raiz; a aplicação mobile Expo Router mantém o seu próprio `package.json`, `package-lock.json`, configuração Expo e ciclo de build.
