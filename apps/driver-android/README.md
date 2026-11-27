@@ -49,7 +49,7 @@ O aplicativo não contém service-role key. A autorização final é sempre feit
 
 - A aplicação não recolhe GPS quando o telefone está desligado, sem fix GPS, sem permissões ou quando o utilizador força a paragem da aplicação nas definições do Android.
 - Fabricantes Android podem aplicar optimizações de bateria agressivas. O comportamento deve ser validado em cada modelo de dispositivo utilizado pelos motoristas.
-- Se o processo for encerrado pelo sistema, a tarefa pode ser retomada pelo Android quando o sistema voltar a entregar eventos; não existe garantia de reinício após force-stop. Ao abrir novamente a aplicação, a sessão, as cargas activas e a fila local são recuperadas.
+- Se o Android terminar o processo da aplicação, a API estável do Expo não garante que a aplicação seja iniciada automaticamente por um novo evento de localização. Ao abrir novamente a aplicação, a sessão, as cargas activas e a fila local são recuperadas e o serviço pode ser registado de novo. Um force-stop nas definições impede a execução até o utilizador abrir a aplicação.
 - A ausência de posições deve aparecer como intervalo sem sinal, nunca como uma localização inventada.
 
 ## Plano obrigatório de testes físicos
