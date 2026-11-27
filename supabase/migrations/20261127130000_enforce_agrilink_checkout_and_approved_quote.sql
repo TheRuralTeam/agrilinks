@@ -59,14 +59,10 @@ begin
 
   v_freight := coalesce(v_freight, 0);
 
-  select exists (
-    select 1
-    from public.payment_providers pp
-    where pp.enabled = true
-      and coalesce(pp.test_mode, false) = false
-      and pp.id <> 'agrilink_authorized_recipient'
-  )
-  into v_provider_ready;
+  -- The Edge Function registry currently has no production adapters.
+  -- Keep checkout closed until an AgriLink-owned merchant destination is configured
+  -- and a production adapter is registered server-side.
+  v_provider_ready := false;
 
   return query
   select
@@ -75,8 +71,9 @@ begin
     v_freight,
     v_order.total_price + v_freight,
     'AOA'::text,
-    (v_freight > 0 and v_provider_ready),
+    (coalesce(v_order.total_price, 0) > 0 and v_freight > 0 and v_provider_ready),
     case
+      when coalesce(v_order.total_price, 0) <= 0 then 'WAITING_ORDER_TOTAL'
       when v_freight <= 0 then 'WAITING_FREIGHT_QUOTE'
       when not v_provider_ready then 'WAITING_PAYMENT_PROVIDER'
       else 'READY'
