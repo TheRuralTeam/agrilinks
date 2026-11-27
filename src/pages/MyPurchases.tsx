@@ -342,7 +342,7 @@ export default function MyPurchases() {
                             </Button>
                           ) : (
                             <p className="self-center text-sm text-emerald-700">
-                              Recepção confirmada em {new Date(freightLoadsByOrder[purchase.id].buyer_receipt_confirmed_at).toLocaleString('pt-AO')}.
+                              Recepção confirmada em {new Date(freightLoadsByOrder[purchase.id].buyer_receipt_confirmed_at!).toLocaleString('pt-AO')}.
                             </p>
                           )}
                         </div>
