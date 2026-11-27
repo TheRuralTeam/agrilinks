@@ -12,7 +12,7 @@
 | Gestão de entregas Admin | Alterações integradas na `main` segundo histórico de commits | Exige teste funcional e revisão de permissões |
 | Compromisso/manutenção motorista | Alterações e migrations no repositório | Confirmar migration aplicada e validação no servidor; não confiar apenas no bloqueio da UI |
 | Distância OSRM/snapped points | Correcções integradas segundo histórico | Repetir cenários rurais e limites |
-| Tracking GPS | Branch `feat/buyer-live-tracking-supplier-handover-receipt` foi reportada com Preview Ready | Preview não comprova merge na main nem produção; rever branch e migrations antes do merge |
+| Tracking GPS | Requisitos funcionais e offline detalhados em 27-11-2026; implementação/validação pendente | Início após confirmação de recolha; comprador e Admin com acesso autorizado; fila offline, sincronização idempotente e testes Android reais ainda exigidos |
 | Vercel Production | Bloqueio de acesso e erro de deployment reportados | O projecto pertence à equipa `agrilink-s-projects`; a sessão actual não tem permissão para publicar ou ler logs |
 | README/documentação | Índice e runbooks em construção | Este commit adiciona documentação operacional complementar |
 
@@ -34,10 +34,11 @@ A conta ChatGPT/integração sem autorização na equipa não consegue criar dep
 1. **Resolver produção Vercel:** corrigir build ou regra de ignore; publicar HEAD de main.
 2. **Validar pré-compras E2E:** comprador cria; fornecedor recebe notificação; pedido aparece; fornecedor aceita/rejeita; comprador vê estado.
 3. **Validar regressões de marketplace e autenticação.**
-4. **Rever tracking GPS:** diff, migrations, RLS, persistência offline, sincronização, permissões e consumo de bateria.
-5. **Integrar tracking apenas após revisão e QA.**
-6. **Validar Admin/entregas/manutenção/rotas com perfis reais.**
-7. **Actualizar este documento e README com os SHAs e resultados observados.**
+4. **Prioridade actual — tracking GPS:** rever a branch `feat/buyer-live-tracking-supplier-handover-receipt` face à `main`; confirmar evento de recolha, autorização por entrega, estados do mapa, fila offline, sincronização idempotente, migrations/RLS e consumo de bateria.
+5. Testar em Android real: rede estável/intermitente, modo avião, GPS desligado, segundo plano, permissões e reinício.
+6. Integrar tracking apenas após revisão do diff e QA; depois publicar e validar E2E em Production.
+7. Validar Admin/entregas/manutenção/rotas com perfis reais.
+8. Actualizar este documento e README com os SHAs e resultados observados.
 
 ## Registo de release
 
