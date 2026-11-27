@@ -1,0 +1,2126 @@
+import React, { useState, useEffect } from "react"
+import { useTranslation } from 'react-i18next'
+import i18n, { supportedLanguageOptions } from '../i18n/index'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
+import {
+  User, Edit, Package, MapPin, Phone, Mail, Calendar, BarChart3, CreditCard,
+  Settings, LogOut, Trash2, Camera, CheckCircle, Share2, Star, Users,
+  ClipboardList, Bell, ShoppingCart, Search, BadgeCheck, Globe,
+  TrendingUp, MessageCircle, Heart, Sparkles, LogIn, Plus
+} from 'lucide-react'
+import { FileSignature } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
+import { useGuestGate } from '../contexts/GuestGateContext'
+import { GUEST_PROFILE, getGuestData, getGuestProfile } from '../lib/guestSession'
+import { supabase } from '../integrations/supabase/client'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { toast } from '../hooks/use-toast'
+import { getProfileDisplayName, getProfileRoleLabel, resolveAvatarUrl } from '../lib/profileDisplay'
+import { sanitizePublicProfile, isNeutralPublicView } from '../lib/publicData'
+import { getWalletBalance } from '../features/wallet/walletService'
+import type { WalletBalance } from '../features/wallet/walletDomain'
+import { WalletSummaryCard } from '../features/wallet/WalletSummaryCard'
+import { respondToPreOrder } from '../features/orders/adminPreOrderService'
+import agrilinkLogo from '../assets/agrilink-logo.png'
+import { downloadMarketplaceTransactionReceipt } from '../features/orders/transactionReceipts'
+import { angolaProvinces } from '../data/angola-locations'
+import { SOURCING_AGRICULTURAL_PRODUCTS, SOURCING_UNITS } from '../features/sourcing/sourcingCatalog'
+import ProfileReceiptButton from '../components/ProfileReceiptButton'
+
+/* ─── Shared AgriLink design tokens ───────────────────────────────────────── */
+import { FONT, R, T } from '../lib/brand';
+const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)'
+
+/* ─── Interfaces ─────────────────────────────────────────────────────────────── */
+interface UserProduct {
+  id: string; product_type: string; quantity: number; harvest_date: string
+  price: number; province_id: string; municipality_id: string
+  sale_unit?: string | null; min_order_quantity?: number | null
+  status: 'active' | 'inactive' | 'removed'; created_at: string | null
+  views?: number; interests?: number
+}
+interface FichaRecebimento {
+  id: string; nomeFicha: string; produto: string; qualidade: string
+  embalagem: string; locaisEntrega?: string[]; telefone: string; created_at: string
+}
+interface ReceivedOrder {
+  id: string; product_id: string; user_id: string; quantity: number
+  location: string; status: string; created_at: string | null
+  unit_price?: number | null; total_price: number; payment_status?: string | null
+  reservation_expires_at: string | null; stockFullyRequested: boolean
+  product?: { product_type: string; price: number }
+  buyer?: { full_name: string; phone: string; email?: string }
+}
+interface BuyerPreOrder {
+  id: string; product_id: string; quantity: number; location: string
+  status: string; created_at: string | null; updated_at: string | null
+  unit_price: number | null; total_price: number | null
+  payment_status: string | null; reservation_expires_at: string | null
+  product?: { product_type: string; price: number }
+}
+interface BuyerFreightQuote {
+  id: string; pre_order_id: string; product_name: string; weight_kg: number
+  origin_label: string; destination_label: string; driver_offered_price: number | null
+  currency: string; driver_quote_status: string; route_distance_km: number | null
+  route_duration_minutes: number | null; status: string; created_at: string
+  buyer_quote_approved: boolean; supplier_quote_approved: boolean
+}
+type SupplierFreightProposal = BuyerFreightQuote
+interface SourcingRequest {
+  id: string; product_name: string; quantity: number; unit: string; delivery_date: string
+  quality_specification: string | null; delivery_province_id: string | null; delivery_municipality_id: string | null
+  delivery_location: string | null; description: string | null; status: string; admin_notes: string | null; created_at: string
+}
+interface SourcingQuote {
+  id: string; sourcing_request_id: string; available_quantity: number; unit: string
+  unit_price: number | null; currency: string; availability_status: string; confirmation_status: string
+  expected_delivery_date: string | null; valid_until: string | null; quality_notes: string | null; confirmed_at: string | null
+}
+
+interface SourcingAgentTaskStatus {
+  request_id: string;
+  status: 'queued' | 'running' | 'waiting_approval' | 'completed' | 'failed' | 'cancelled';
+  outcome: string | null;
+  summary: string | null;
+  verified_supplier_count: number;
+  marketplace_listing_count: number;
+  confirmed_quote_count: number;
+  full_stock_match_count?: number;
+  partial_stock_match_count?: number;
+  stock_match_details?: Array<{
+    product_id: string | null;
+    available_quantity_estimate: number;
+    unit: string | null;
+    covers_requested_quantity: boolean;
+    partial_quantity: boolean;
+    unit_compatible?: boolean;
+    clarification_required?: boolean;
+    clarification_reason?: string | null;
+    unit_listed?: string | null;
+    package_weight_kg?: number | null;
+    meets_minimum_order?: boolean | null;
+    minimum_order_in_requested_unit?: number | null;
+    commercially_eligible?: boolean | null;
+    location_match?: string;
+  }>;
+  prior_context: { similar_completed_requests: number; previous_outcomes: Array<{ outcome: string; count: number }> } | null;
+  error_code: string | null;
+  completed_at: string | null;
+}
+function agentStatusLabel(task?: SourcingAgentTaskStatus) {
+  if (!task) return 'Tarefa automática ainda não confirmada';
+  if (task.status === 'queued') return 'Na fila de processamento';
+  if (task.status === 'running') return 'A analisar o pedido';
+  if (task.status === 'failed') return 'Falha no processamento';
+  if (task.status === 'cancelled') return 'Processamento cancelado';
+  if (task.status === 'waiting_approval') return 'A aguardar revisão humana';
+  switch (task.outcome) {
+    case 'confirmed_quotes_found': case 'quotes_compared': return 'Cotações confirmadas encontradas';
+    case 'verified_suppliers_found_needs_quote': return 'Fornecedor confirmado; falta cotação';
+    case 'marketplace_listings_need_verification': return 'Publicações encontradas; falta verificar';
+    case 'no_verified_supplier_match': return 'Sem fornecedor confirmado compatível';
+    case 'needs_information': return 'Faltam informações';
+    case 'request_not_found': return 'Pedido não localizado para análise';
+    default: return 'Análise concluída; requer revisão';
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   MICRO COMPONENTS
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Tira de estatísticas — células iguais separadas por linhas finas.
+   Funciona com 2, 3 ou 4 valores e passa a 2×2 no telemóvel. */
+const StatsStrip = ({ items }: { items: { value: number | string; label: string; color: string }[] }) => (
+  <div className="ag-stats" data-n={items.length} style={{ ['--n' as any]: items.length }}>
+    {items.map((it) => (
+      <div key={it.label} className="ag-stat">
+        <div className="ag-stat-value" style={{ color: it.color }}>{it.value}</div>
+        <div className="ag-stat-label">{it.label}</div>
+      </div>
+    ))}
+  </div>
+)
+
+const InfoRow = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
+  <div className="ag-info-row">
+    <span className="ag-info-ico" aria-hidden="true">{icon}</span>
+    <div style={{ minWidth: 0 }}>
+      <div className="ag-info-label">{label}</div>
+      <div className="ag-info-value">{value || '—'}</div>
+    </div>
+  </div>
+)
+
+const TabBtn = ({ active, onClick, icon, label, badge, accent }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; badge?: number; accent: string }) => (
+  <button type="button" role="tab" aria-selected={active} onClick={onClick} className="ag-tab" style={{
+    display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
+    border: `1px solid ${active ? `${accent}35` : 'transparent'}`,
+    borderRadius: R.md, background: active ? T.g50 : 'transparent', cursor: 'pointer',
+    color: active ? T.g700 : T.muted,
+    fontWeight: active ? 700 : 600,
+    fontSize: 13, fontFamily: FONT, transition: `all 0.25s ${EASE}`,
+    position: 'relative', flexShrink: 0, whiteSpace: 'nowrap',
+  }}>
+    {icon}
+    <span>{label}</span>
+    {badge !== undefined && badge > 0 && (
+      <span style={{ minWidth: 16, height: 16, padding: '0 4px', borderRadius: R.pill, background: '#EF4444', color: T.white, fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{badge}</span>
+    )}
+  </button>
+)
+
+const SectionHead = ({ title, count, sub, action }: { title: string; count?: number; sub?: string; action?: React.ReactNode }) => (
+  <div className="ag-section-head">
+    <div style={{ minWidth: 0 }}>
+      <h3 className="ag-section-title">
+        {title}
+        {typeof count === 'number' && <span className="ag-count">{count}</span>}
+      </h3>
+      {sub && <p className="ag-section-sub">{sub}</p>}
+    </div>
+    {action}
+  </div>
+)
+
+const Btn = ({ children, onClick, variant = 'primary', disabled = false, size = 'md', type = 'button', style: extraStyle = {} }: any) => {
+  const base: React.CSSProperties = {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+    borderRadius: R.md, cursor: disabled ? 'not-allowed' : 'pointer',
+    fontWeight: 700, transition: `all 0.25s ${EASE}`, border: 'none', fontFamily: FONT,
+    opacity: disabled ? 0.5 : 1,
+    padding: size === 'sm' ? '8px 14px' : size === 'lg' ? '13px 26px' : '10px 18px',
+    fontSize: size === 'sm' ? 12 : 13,
+    ...extraStyle,
+  }
+  const variants: Record<string, React.CSSProperties> = {
+    primary:   { background: T.g600, color: T.white, boxShadow: 'none' },
+    secondary: { background: T.g50, color: T.g600 },
+    outline:   { background: T.white, color: T.mid, border: `1px solid ${T.rule}` },
+    danger:    { background: '#FEF2F2', color: '#DC2626' },
+    ghost:     { background: 'transparent', color: T.muted, border: 'none' },
+  }
+  return (
+    <button type={type} className="ag-btn" style={{ ...base, ...variants[variant] }} onClick={onClick} disabled={disabled}>{children}</button>
+  )
+}
+
+const Input = ({ label, value, onChange, type = 'text', placeholder = '', required = false }: any) => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+    {label && (
+      <label style={{ fontSize: 12, fontWeight: 700, color: T.ink, display: 'flex', gap: 6, alignItems: 'center', fontFamily: FONT }}>
+        {label}{required && <span style={{ color: T.g500 ?? T.g600, fontSize: 11, fontWeight: 500 }}>obrigatório</span>}
+      </label>
+    )}
+    <input type={type} value={value} onChange={onChange} placeholder={placeholder} className="ag-input" style={{
+      height: 44, borderRadius: R.md, border: `1px solid ${T.rule}`, padding: '0 14px',
+      fontSize: 13.5, outline: 'none', background: T.subtle, color: T.ink,
+      transition: `border-color 0.2s ${EASE}, box-shadow 0.2s ${EASE}, background 0.2s ${EASE}`, width: '100%', boxSizing: 'border-box',
+      fontFamily: FONT,
+    }} />
+  </div>
+)
+
+const Textarea = ({ label, value, onChange, placeholder = '', rows = 4 }: any) => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+    {label && <label style={{ fontSize: 12, fontWeight: 700, color: T.ink, fontFamily: FONT }}>{label}</label>}
+    <textarea value={value} onChange={onChange} placeholder={placeholder} rows={rows} className="ag-input" style={{
+      borderRadius: R.md, border: `1px solid ${T.rule}`, padding: '11px 14px',
+      fontSize: 13.5, outline: 'none', background: T.subtle, color: T.ink,
+      transition: `border-color 0.2s ${EASE}, box-shadow 0.2s ${EASE}`, width: '100%', boxSizing: 'border-box',
+      resize: 'vertical', fontFamily: FONT, lineHeight: 1.6,
+    }} />
+  </div>
+)
+
+const StatusPill = ({ status }: { status: string }) => {
+  const map: Record<string, { bg: string; color: string; label: string }> = {
+    active:     { bg: T.g50,     color: T.g600,    label: 'Activo' },
+    inactive:   { bg: 'rgba(44, 134, 59, 0.06)', color: '#2c863b', label: 'Inactivo' },
+    removed:    { bg: '#FEF2F2', color: '#DC2626',  label: 'Removido' },
+    pending:    { bg: 'rgba(44, 134, 59, 0.06)', color: '#2c863b', label: 'Pendente' },
+    pending_review: { bg: '#FFF7ED', color: '#C2410C', label: 'Pendente de verificação' },
+    approved:   { bg: T.g50,     color: T.g600,    label: 'Verificada' },
+    accepted:   { bg: T.g50,     color: T.g600,    label: 'Aceite' },
+    rejected:   { bg: '#FEF2F2', color: '#DC2626',  label: 'Rejeitado' },
+    expired:    { bg: '#FEF2F2', color: '#DC2626',  label: 'Expirado' },
+    cancelled:  { bg: '#F3F4F6', color: '#6B7280',  label: 'Cancelado' },
+    completed:  { bg: T.g50,     color: T.g600,    label: 'Concluído' },
+    processing: { bg: 'rgba(44, 134, 59, 0.06)', color: '#2c863b', label: 'A processar' },
+  }
+  const s = map[status] || { bg: T.canvas, color: T.muted, label: status }
+  return (
+    <span style={{ padding: '3px 10px', borderRadius: R.pill, background: s.bg, color: s.color, fontSize: 11, fontWeight: 700, fontFamily: FONT, whiteSpace: 'nowrap' }}>
+      {s.label}
+    </span>
+  )
+}
+
+const IconBtn = ({ icon, title, danger = false, onClick }: { icon: React.ReactNode; title: string; danger?: boolean; onClick?: () => void }) => (
+  <button type="button" title={title} aria-label={title} onClick={(event) => { event.stopPropagation(); onClick?.() }} className="ag-icon-btn" style={{
+    width: 34, height: 34, borderRadius: R.md, border: 'none',
+    background: danger ? '#FEF2F2' : T.g50, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    color: danger ? '#DC2626' : T.muted, transition: `all 0.2s ${EASE}`,
+  }}>{icon}</button>
+)
+
+const EmptyState = ({ icon, message, sub }: { icon: React.ReactNode; message: string; sub?: string }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '56px 20px', textAlign: 'center', background: T.white, borderRadius: R.md, border: `1px dashed ${T.rule}` }}>
+    <div style={{ width: 56, height: 56, borderRadius: R.md, background: T.g50, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>{icon}</div>
+    <p style={{ fontFamily: FONT, fontSize: 15.5, fontWeight: 700, color: T.ink, margin: 0 }}>{message}</p>
+    {sub && <p style={{ fontSize: 12, color: T.faint, marginTop: 6, maxWidth: 260, lineHeight: 1.6 }}>{sub}</p>}
+  </div>
+)
+
+/* ── Estado da análise automática de um pedido de sourcing ── */
+type StockMatch = NonNullable<SourcingAgentTaskStatus['stock_match_details']>[number]
+
+function describeStockMatch(match: StockMatch, fallbackUnit: string) {
+  const unit = match.unit || fallbackUnit
+  const quantityNote = match.clarification_required
+    ? 'unidade por confirmar'
+    : match.partial_quantity
+      ? 'quantidade parcial'
+      : match.covers_requested_quantity
+        ? 'quantidade indicada suficiente'
+        : 'quantidade por confirmar'
+  const location = match.location_match === 'same_municipality'
+    ? 'Localização: mesmo município.'
+    : match.location_match === 'same_province'
+      ? 'Localização: mesma província.'
+      : match.location_match === 'other_location'
+        ? 'Localização diferente da entrega.'
+        : 'Localização por confirmar.'
+  const eligibility = match.meets_minimum_order === false
+    ? `Mínimo de encomenda não atingido (${match.minimum_order_in_requested_unit == null ? 'valor por confirmar' : Number(match.minimum_order_in_requested_unit).toLocaleString('pt-AO') + ' ' + unit}); não elegível para este pedido.`
+    : match.commercially_eligible === true
+      ? 'Elegível para análise comercial; aguarda confirmação do fornecedor.'
+      : match.commercially_eligible === false
+        ? 'Não elegível para este pedido.'
+        : 'Elegibilidade comercial por confirmar.'
+  return `Stock estimado: ${Number(match.available_quantity_estimate).toLocaleString('pt-AO')} ${unit} — ${quantityNote}. ${location} ${eligibility} Aguarda confirmação do fornecedor.`
+}
+
+const SourcingStatusCell = ({ request, task, busy, onReanalyze }: {
+  request: SourcingRequest; task?: SourcingAgentTaskStatus; busy: boolean; onReanalyze: () => void
+}) => {
+  const matches = task?.stock_match_details ?? []
+  const hasCounts = !!task && (task.verified_supplier_count > 0 || task.marketplace_listing_count > 0 || task.confirmed_quote_count > 0)
+  return (
+    <div className="ag-agent-cell">
+      <StatusPill status={request.status} />
+      <span className="ag-agent-label" title={task?.summary || ''}>{agentStatusLabel(task)}</span>
+      {task?.summary && <span className="ag-agent-note">{task.summary}</span>}
+      <button type="button" disabled={busy} onClick={onReanalyze} aria-live="polite" className="ag-link-btn"
+        style={{ color: busy ? T.faint : T.g600, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>
+        {busy ? 'A analisar…' : 'Actualizar estado do agente'}
+      </button>
+      {hasCounts && task && (
+        <span className="ag-agent-note">
+          {task.verified_supplier_count} fornecedor(es) confirmado(s) · {task.marketplace_listing_count} publicação(ões) a verificar · {task.confirmed_quote_count} cotação(ões) confirmada(s)
+        </span>
+      )}
+      {matches.length > 0 && (
+        <div className="ag-agent-matches">
+          {matches.slice(0, 3).map((match, index) => (
+            <span key={match.product_id || `${request.id}-stock-${index}`} className="ag-agent-note" style={{ color: match.partial_quantity ? '#9a6700' : T.mid }}>
+              {describeStockMatch(match, request.unit)}
+            </span>
+          ))}
+          {matches.length > 3 && <span className="ag-agent-note">Mais correspondências disponíveis na análise automática.</span>}
+          <span className="ag-agent-note" style={{ fontSize: 9 }}>Estimativa baseada na publicação e nas reservas registadas; não confirma stock físico.</span>
+        </div>
+      )}
+      {task?.prior_context && (
+        <span className="ag-agent-note">Histórico comparável: {task.prior_context.similar_completed_requests ?? 0} pedido(s)</span>
+      )}
+    </div>
+  )
+}
+
+/* ── Responsive data table: real table on desktop, stacked cards on mobile ── */
+interface RCol<T> { key: string; label: string; align?: 'left' | 'right' | 'center'; width?: string; render: (row: T) => React.ReactNode }
+function RTable<T>({ columns, rows, keyField, actions, empty, accent }: {
+  columns: RCol<T>[]; rows: T[]; keyField: (r: T, i: number) => string
+  actions?: (r: T) => React.ReactNode; empty: React.ReactNode; accent?: (r: T) => string | undefined
+}) {
+  if (!rows.length) return <>{empty}</>
+  return (
+    <div className="ag-table-wrap" style={{ background: T.white, borderRadius: R.md, border: `1px solid ${T.rule}`, overflow: 'hidden' }}>
+      <table className="ag-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr>
+            <th style={{ width: 4, padding: 0 }} />
+            {columns.map(c => (
+              <th key={c.key} style={{ textAlign: c.align || 'left', width: c.width }}>{c.label}</th>
+            ))}
+            {actions && <th style={{ textAlign: 'right' }}>Ações</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={keyField(row, i)} style={{ animationDelay: `${i * 0.03}s` }}>
+              <td className="ag-accent-cell" style={{ background: accent?.(row) || 'transparent' }} />
+              {columns.map(c => (
+                <td key={c.key} data-label={c.label} style={{ textAlign: c.align || 'left' }}>{c.render(row)}</td>
+              ))}
+              {actions && <td data-label="Ações" style={{ textAlign: 'right' }}><div className="ag-row-actions">{actions(row)}</div></td>}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+/* Wrappers já tipados — evita usar `<RTable<Tipo> ...>` diretamente no JSX,
+   que quebra com o plugin de tagging do Lovable (data-lov-*). */
+const FichaTable = RTable<FichaRecebimento>
+const ProductTable = RTable<UserProduct>
+const SourcingTable = RTable<SourcingRequest>
+const OrdersTable = RTable<ReceivedOrder>
+const BuyerPreOrdersTable = RTable<BuyerPreOrder>
+const ReferralsTable = RTable<any>
+
+/* ════════════════════════════════════════════════════════════════════════════
+   MAIN COMPONENT
+   ════════════════════════════════════════════════════════════════════════════ */
+const Profile = () => {
+  const { t } = useTranslation()
+  const { user, userProfile: realProfile, logout } = useAuth()
+  const { isGuest, requireAuth } = useGuestGate()
+  const authenticatedUserId = user?.id
+  const guardAction = (action: string, callback: () => void) => {
+    if (!user) {
+      requireAuth(`Precisas de uma conta AgriLink para ${action}.`)
+      return
+    }
+    callback()
+  }
+  const userProfile: any = React.useMemo(
+    () => realProfile || (isGuest ? { ...GUEST_PROFILE, ...getGuestProfile() } : null),
+    [realProfile, isGuest]
+  )
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const [activeTab, setActiveTab] = useState(() => {
+    const requestedTab = new URLSearchParams(window.location.search).get('tab')
+    const supportedTabs = new Set(['products', 'orders', 'sourcing', 'referrals', 'statistics'])
+    return requestedTab && supportedTabs.has(requestedTab) ? requestedTab : 'products'
+  })
+
+  useEffect(() => {
+    const requestedTab = new URLSearchParams(location.search).get('tab')
+    const supportedTabs = new Set(['products', 'orders', 'sourcing', 'referrals', 'statistics'])
+    if (requestedTab && supportedTabs.has(requestedTab)) setActiveTab(requestedTab)
+  }, [location.search])
+  const [userProducts, setUserProducts] = useState<UserProduct[]>([])
+  const [fichasRecebimento, setFichasRecebimento] = useState<FichaRecebimento[]>([])
+  const [receivedOrders, setReceivedOrders] = useState<ReceivedOrder[]>([])
+  const [buyerPreOrders, setBuyerPreOrders] = useState<BuyerPreOrder[]>([])
+  const [buyerFreightQuotes, setBuyerFreightQuotes] = useState<BuyerFreightQuote[]>([])
+  const [supplierFreightProposals, setSupplierFreightProposals] = useState<SupplierFreightProposal[]>([])
+  const [freightQuoteBusyId, setFreightQuoteBusyId] = useState<string | null>(null)
+  const [receiptBusyId, setReceiptBusyId] = useState<string | null>(null)
+  const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null)
+  const [walletBalanceOwnerId, setWalletBalanceOwnerId] = useState<string | null>(null)
+  const [walletLoading, setWalletLoading] = useState(false)
+  const [walletError, setWalletError] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [editMode, setEditMode] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<UserProduct | null>(null)
+  const [productEditForm, setProductEditForm] = useState({ product_type: '', quantity: '', price: '', harvest_date: '', sale_unit: 'kg', min_order_quantity: '', province_id: '', municipality_id: '', description: '', category: '', product_variety: '', product_condition: '', packaging_type: '' })
+  const [savingProductEdit, setSavingProductEdit] = useState(false)
+  const [avatarLoading, setAvatarLoading] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [confirmAction, setConfirmAction] = useState<{
+    kind: 'delete-product' | 'reject-order'
+    id: string
+    title: string
+    description: string
+  } | null>(null)
+  const [confirmBusy, setConfirmBusy] = useState(false)
+  const [agentStats, setAgentStats] = useState<{ totalReferrals: number; totalPoints: number; recentReferrals: any[] } | null>(null)
+  const [buyerStats, setBuyerStats] = useState<{ completedOrders: number; favoriteProducts: number }>({ completedOrders: 0, favoriteProducts: 0 })
+  const [productStats, setProductStats] = useState<{ [productId: string]: { likes: number; comments: number } }>({})
+  const [provinceName, setProvinceName] = useState('')
+  const [municipalityName, setMunicipalityName] = useState('')
+  const [profileData, setProfileData] = useState({
+    full_name: userProfile?.full_name || '',
+    phone: userProfile?.phone || '',
+    email: userProfile?.email || user?.email || '',
+    province_id: userProfile?.province_id || '',
+    municipality_id: userProfile?.municipality_id || '',
+  })
+  const [driverLicenseData, setDriverLicenseData] = useState({
+    license_number: '',
+    license_categories: '',
+    issued_at: '',
+    expires_at: '',
+    issuing_authority: '',
+    verification_status: 'pending_review',
+  })
+  const [driverLicenseLoading, setDriverLicenseLoading] = useState(false)
+
+  const publicProfile = isNeutralPublicView(user) ? sanitizePublicProfile(userProfile || profileData) : userProfile || profileData
+  const profileDisplayName = getProfileDisplayName((publicProfile as any) || profileData)
+  const profileRoleLabel = getProfileRoleLabel((publicProfile as any)?.user_type || userProfile?.user_type)
+  const profileAvatarUrl = resolveAvatarUrl((publicProfile as any)?.avatar_url || userProfile?.avatar_url)
+  const roleAccent = T.g600
+  const memberCode = (userProfile as any)?.agent_code || (user?.id ? user.id.slice(0, 8).toUpperCase() : '—')
+
+  const [sourcingRequests, setSourcingRequests] = useState<SourcingRequest[]>([])
+  const [sourcingQuotes, setSourcingQuotes] = useState<SourcingQuote[]>([])
+  const [sourcingAgentStatuses, setSourcingAgentStatuses] = useState<Record<string, SourcingAgentTaskStatus>>({})
+  const [reanalyzingSourcingIds, setReanalyzingSourcingIds] = useState<Record<string, boolean>>({})
+  const [sourcingQuotesLoading, setSourcingQuotesLoading] = useState(false)
+  const [showSourcingForm, setShowSourcingForm] = useState(false)
+  const [sourcingForm, setSourcingForm] = useState({ product_name: '', quantity: '', unit: 'kg', quality_specification: '', delivery_province_id: '', delivery_municipality_id: '', delivery_location: '', delivery_date: '', description: '' })
+  const [submittingSourcing, setSubmittingSourcing] = useState(false)
+  const [profileLoadErrors, setProfileLoadErrors] = useState<Record<string, string>>({})
+  const clearProfileLoadError = React.useCallback((key: string) => {
+    setProfileLoadErrors((previous) => {
+      if (!(key in previous)) return previous
+      const next = { ...previous }
+      delete next[key]
+      return next
+    })
+  }, [])
+  const reportProfileLoadError = React.useCallback((key: string, label: string, _error: unknown) => {
+    const detail = 'Não foi possível consultar esta informação. Tente novamente.'
+    setProfileLoadErrors((previous) => ({ ...previous, [key]: `${label}: ${detail}` }))
+  }, [])
+
+  const fetchUserProducts = React.useCallback(async () => {
+    if (!user?.id) { setUserProducts([]); return }
+    try {
+      const { data, error } = await supabase.from('products').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+      if (error) throw error
+      const statsMap: { [productId: string]: { likes: number; comments: number } } = {}
+      const stats = await Promise.all((data || []).map(async (product) => {
+        const [likesResult, commentsResult] = await Promise.all([
+          supabase.from('product_likes').select('*', { count: 'exact', head: true }).eq('product_id', product.id),
+          supabase.from('product_comments').select('*', { count: 'exact', head: true }).eq('product_id', product.id),
+        ])
+        if (likesResult.error) throw likesResult.error
+        if (commentsResult.error) throw commentsResult.error
+        return [product.id, { likes: likesResult.count || 0, comments: commentsResult.count || 0 }] as const
+      }))
+      for (const [productId, engagement] of stats) statsMap[productId] = engagement
+      setProductStats(statsMap)
+      setUserProducts((data || []).map(p => ({ ...p, status: p.status as 'active' | 'inactive' | 'removed', views: statsMap[p.id]?.comments || 0, interests: statsMap[p.id]?.likes || 0 })))
+      clearProfileLoadError('products')
+    } catch (error) {
+      console.error(error)
+      reportProfileLoadError('products', 'Publicações', error)
+    }
+  }, [user?.id, clearProfileLoadError, reportProfileLoadError])
+
+  const fetchFichasRecebimento = React.useCallback(async () => {
+    if (!user?.id) { setFichasRecebimento([]); return }
+    try {
+      const { data, error } = await supabase.from('fichas_recebimento' as any).select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+      if (error) throw error
+      setFichasRecebimento((data || []) as any)
+      clearProfileLoadError('fichas')
+    } catch (error) {
+      console.error(error)
+      reportProfileLoadError('fichas', 'Fichas de recebimento', error)
+    }
+  }, [user?.id, clearProfileLoadError, reportProfileLoadError])
+
+  const fetchAgentStats = React.useCallback(async () => {
+    if (!user?.id) { setAgentStats({ totalReferrals: 0, totalPoints: 0, recentReferrals: [] }); return }
+    try {
+      const { data, error } = await supabase.rpc('get_agent_referral_stats', { agent_user_id: user.id })
+      if (error) throw error
+      if (data && data.length > 0) {
+        const s = data[0]
+        setAgentStats({ totalReferrals: Number(s.total_referrals) || 0, totalPoints: Number(s.total_points) || 0, recentReferrals: Array.isArray(s.recent_referrals) ? s.recent_referrals : [] })
+      } else {
+        setAgentStats({ totalReferrals: 0, totalPoints: 0, recentReferrals: [] })
+      }
+      clearProfileLoadError('agentStats')
+    } catch (error) {
+      console.error(error)
+      reportProfileLoadError('agentStats', 'Estatísticas de agente', error)
+    }
+  }, [user?.id, clearProfileLoadError, reportProfileLoadError])
+
+  const fetchReceivedOrders = React.useCallback(async () => {
+    if (!user?.id) { setReceivedOrders([]); return }
+    try {
+      const { data: userProductIds, error: prodError } = await supabase.from('products').select('id').eq('user_id', user.id)
+      if (prodError) throw prodError
+      if (!userProductIds || userProductIds.length === 0) { setReceivedOrders([]); clearProfileLoadError('receivedOrders'); return }
+      const productIds = userProductIds.map(p => p.id)
+      const { data: orders, error: ordersError } = await supabase.from('pre_orders').select('id, product_id, user_id, quantity, location, status, stock_fully_requested, created_at, updated_at, unit_price, total_price, reservation_expires_at, payment_status').in('product_id', productIds).is('deleted_at', null).order('created_at', { ascending: false })
+      if (ordersError) throw ordersError
+      const ordersWithDetails = await Promise.all((orders || []).map(async (order) => {
+        const { data: product, error: productError } = await supabase.from('products').select('product_type, price').eq('id', order.product_id).single()
+        if (productError) throw productError
+        const { data: buyerContact, error: buyerContactError } = await supabase.rpc('get_order_buyer_contact', { p_pre_order_id: order.id })
+        if (buyerContactError) throw buyerContactError
+        const buyer = buyerContact?.[0] || null
+        return { ...order, product: product || undefined, buyer: buyer || undefined, stockFullyRequested: Boolean((order as any).stock_fully_requested) } as ReceivedOrder
+      }))
+      setReceivedOrders(ordersWithDetails)
+      clearProfileLoadError('receivedOrders')
+    } catch (error) {
+      console.error(error)
+      reportProfileLoadError('receivedOrders', 'Encomendas recebidas', error)
+    }
+  }, [user?.id, clearProfileLoadError, reportProfileLoadError])
+
+  React.useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`profile-supplier-preorders-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'pre_orders' },
+        () => { void fetchReceivedOrders(); },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [user?.id, fetchReceivedOrders])
+
+  const refreshAgentStatuses = React.useCallback(async (requests: SourcingRequest[]) => {
+    if (!user?.id || requests.length === 0) return
+    try {
+      const { data, error } = await supabase.functions.invoke('agent-task-status', {
+        body: { request_ids: requests.map((request) => request.id) },
+      })
+      if (error) throw error
+      const next: Record<string, SourcingAgentTaskStatus> = {}
+      for (const task of (data?.tasks || []) as SourcingAgentTaskStatus[]) {
+        if (task.request_id) next[task.request_id] = task
+      }
+      setSourcingAgentStatuses((previous) => ({ ...previous, ...next }))
+      clearProfileLoadError('agentTasks')
+    } catch (error) {
+      console.error('[AgriLink Agents] Não foi possível actualizar o estado dos agentes:', error)
+      reportProfileLoadError('agentTasks', 'Estado dos agentes', error)
+    }
+  }, [user?.id, clearProfileLoadError, reportProfileLoadError])
+
+  const reanalyzeSourcingRequest = React.useCallback(async (request: SourcingRequest) => {
+    if (!user?.id) {
+      toast({ title: 'Sessão necessária', description: 'Inicie sessão para actualizar a análise do agente.', variant: 'destructive' });
+      return;
+    }
+    if (reanalyzingSourcingIds[request.id]) return;
+
+    setReanalyzingSourcingIds((previous) => ({ ...previous, [request.id]: true }));
+    try {
+      const { data, error } = await supabase.functions.invoke('agent-task-submit', {
+        body: {
+          task_type: 'sourcing_intake',
+          autonomy_mode: 'suggest',
+          idempotency_key: 'sourcing-' + request.id + '-refresh-' + Date.now(),
+          input_payload: {
+            sourcing_request_id: request.id,
+            product_name: request.product_name,
+            quantity: Number(request.quantity),
+            unit: request.unit,
+            delivery_location: request.delivery_location || [request.delivery_municipality_id, request.delivery_province_id].filter(Boolean).join(', '),
+            delivery_date: request.delivery_date,
+            quality_specification: request.quality_specification || null,
+          },
+        },
+      });
+      if (error) throw error;
+
+      // Give the durable task a moment to run before refreshing its visible status.
+      await new Promise((resolve) => window.setTimeout(resolve, 1200));
+      await refreshAgentStatuses([request]);
+      toast({
+        title: data?.task?.status === 'completed' ? 'Análise concluída' : 'Análise enviada',
+        description: data?.task?.status === 'completed'
+          ? 'A análise terminou e o estado do agente foi actualizado.'
+          : 'A tarefa foi aceite. O estado foi consultado; se ainda estiver em processamento, aguarde alguns segundos antes de tentar novamente.',
+      });
+    } catch (error: any) {
+      console.error('[AgriLink Agents] Falha ao reprocessar pedido:', error);
+      toast({
+        title: 'Não foi possível actualizar o agente',
+        description: error?.message || 'Verifique a ligação e tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setReanalyzingSourcingIds((previous) => ({ ...previous, [request.id]: false }));
+    }
+  }, [user?.id, refreshAgentStatuses, reanalyzingSourcingIds]);
+
+  const fetchSourcingRequests = React.useCallback(async () => {
+    if (!user?.id) { setSourcingRequests([]); setSourcingAgentStatuses({}); return }
+    try {
+      const { data, error } = await supabase.from('sourcing_requests').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+      if (error) throw error
+      const requests = (data || []) as SourcingRequest[]
+      setSourcingRequests(requests)
+      clearProfileLoadError('sourcingRequests')
+      await refreshAgentStatuses(requests)
+    } catch (error) {
+      console.error(error)
+      reportProfileLoadError('sourcingRequests', 'Pedidos de sourcing', error)
+    }
+  }, [user?.id, refreshAgentStatuses, clearProfileLoadError, reportProfileLoadError])
+
+  const fetchSourcingQuotes = React.useCallback(async () => {
+    const requestIds = sourcingRequests.map((request) => request.id)
+    if (!user?.id || requestIds.length === 0) { setSourcingQuotes([]); return }
+    setSourcingQuotesLoading(true)
+    try {
+      const { data, error } = await supabase.from('sourcing_supplier_quotes')
+        .select('id, sourcing_request_id, available_quantity, unit, unit_price, currency, availability_status, confirmation_status, expected_delivery_date, valid_until, quality_notes, confirmed_at')
+        .in('sourcing_request_id', requestIds)
+        .eq('confirmation_status', 'confirmed')
+        .order('confirmed_at', { ascending: false })
+      if (error) throw error
+      const dateParts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Luanda', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date())
+      const today = `${dateParts.find((part) => part.type === 'year')?.value}-${dateParts.find((part) => part.type === 'month')?.value}-${dateParts.find((part) => part.type === 'day')?.value}`
+      setSourcingQuotes(((data || []) as SourcingQuote[]).filter((quote) => !quote.valid_until || quote.valid_until >= today))
+      clearProfileLoadError('sourcingQuotes')
+    } catch (error) {
+      console.error('[AgriLink Sourcing] Erro ao carregar cotações confirmadas:', error)
+      reportProfileLoadError('sourcingQuotes', 'Cotações confirmadas', error)
+    } finally { setSourcingQuotesLoading(false) }
+  }, [user?.id, sourcingRequests, clearProfileLoadError, reportProfileLoadError])
+
+  useEffect(() => { void fetchSourcingQuotes() }, [fetchSourcingQuotes])
+
+  const fetchBuyerStats = React.useCallback(async () => {
+    if (!user?.id) { setBuyerStats({ completedOrders: 0, favoriteProducts: 0 }); return }
+    try {
+      const { count: completedCount, error: completedError } = await supabase.from('pre_orders').select('*', { count: 'exact', head: true }).eq('user_id', user.id).in('status', ['completed', 'accepted'])
+      if (completedError) throw completedError
+      const { count: likesCount, error: likesError } = await supabase.from('product_likes').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
+      if (likesError) throw likesError
+      setBuyerStats({ completedOrders: completedCount || 0, favoriteProducts: likesCount || 0 })
+      clearProfileLoadError('buyerStats')
+    } catch (error) {
+      console.error(error)
+      reportProfileLoadError('buyerStats', 'Estatísticas de comprador', error)
+    }
+  }, [user?.id, clearProfileLoadError, reportProfileLoadError])
+
+  const fetchBuyerPreOrders = React.useCallback(async () => {
+    if (!user?.id) { setBuyerPreOrders([]); return }
+    try {
+      const { data, error } = await supabase.from('pre_orders')
+        .select('id, product_id, quantity, location, status, created_at, updated_at, unit_price, total_price, reservation_expires_at, payment_status')
+        .eq('user_id', user.id).is('deleted_at', null).order('created_at', { ascending: false })
+      if (error) throw error
+      const rows = await Promise.all((data || []).map(async (order) => {
+        const { data: product, error: productError } = await supabase.from('products').select('product_type, price').eq('id', order.product_id).single()
+        if (productError) throw productError
+        return { ...order, product: product || undefined } as BuyerPreOrder
+      }))
+      setBuyerPreOrders(rows)
+      clearProfileLoadError('buyerPreOrders')
+    } catch (error) {
+      console.error(error)
+      reportProfileLoadError('buyerPreOrders', 'Pré-compras', error)
+    }
+  }, [user?.id, clearProfileLoadError, reportProfileLoadError])
+
+  const fetchBuyerFreightQuotes = React.useCallback(async () => {
+    if (!user?.id) { setBuyerFreightQuotes([]); return }
+    try {
+      const { data, error } = await (supabase as any).from('freight_loads')
+        .select('id, pre_order_id, product_name, weight_kg, origin_label, destination_label, driver_offered_price, currency, driver_quote_status, buyer_quote_approved, supplier_quote_approved, route_distance_km, route_duration_minutes, status, created_at')
+        .eq('buyer_id', user.id)
+        .in('driver_quote_status', ['pending_buyer_approval', 'approved', 'rejected'])
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      setBuyerFreightQuotes((data || []) as BuyerFreightQuote[])
+      clearProfileLoadError('buyerFreightQuotes')
+    } catch (error) {
+      console.error(error)
+      reportProfileLoadError('buyerFreightQuotes', 'Propostas de transporte', error)
+    }
+  }, [user?.id, clearProfileLoadError, reportProfileLoadError])
+
+  const fetchSupplierFreightProposals = React.useCallback(async () => {
+    if (!user?.id) { setSupplierFreightProposals([]); return }
+    try {
+      const { data, error } = await (supabase as any).from('freight_loads')
+        .select('id, pre_order_id, product_name, weight_kg, origin_label, destination_label, driver_offered_price, currency, driver_quote_status, buyer_quote_approved, supplier_quote_approved, route_distance_km, route_duration_minutes, status, created_at')
+        .eq('supplier_id', user.id)
+        .in('driver_quote_status', ['pending_buyer_approval', 'approved', 'rejected'])
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      setSupplierFreightProposals((data || []) as SupplierFreightProposal[])
+      clearProfileLoadError('supplierFreightProposals')
+    } catch (error) {
+      console.error(error)
+      reportProfileLoadError('supplierFreightProposals', 'Propostas de transporte recebidas', error)
+    }
+  }, [user?.id, clearProfileLoadError, reportProfileLoadError])
+
+  const downloadTransactionReceipt = async (preOrderId: string) => {
+    if (receiptBusyId) return
+    setReceiptBusyId(preOrderId)
+    try {
+      await downloadMarketplaceTransactionReceipt(preOrderId)
+      toast({ title: 'Comprovante gerado', description: 'O PDF foi gerado a partir do histórico transacional desta operação.' })
+    } catch (error: any) {
+      toast({ title: 'Não foi possível gerar o comprovante', description: error?.message || 'A operação não está disponível para o teu perfil.', variant: 'destructive' } as any)
+    } finally {
+      setReceiptBusyId(null)
+    }
+  }
+
+  const respondToFreightQuote = async (freightLoadId: string, approved: boolean) => {
+    if (!user?.id) { requireAuth('responder a uma proposta de transporte'); return }
+    setFreightQuoteBusyId(freightLoadId)
+    try {
+      const { error } = await supabase.rpc('respond_to_freight_quote', {
+        p_freight_load_id: freightLoadId,
+        p_approved: approved,
+      })
+      if (error) throw error
+      toast({ title: approved ? 'Preço de transporte aprovado.' : 'Proposta de transporte recusada.' })
+      await Promise.all([fetchBuyerFreightQuotes(), fetchSupplierFreightProposals()])
+    } catch (error: any) {
+      toast({ title: 'Não foi possível responder à proposta', description: error.message, variant: 'destructive' } as any)
+    } finally { setFreightQuoteBusyId(null) }
+  }
+
+  const submitSourcingRequest = async () => {
+    if (!user) {
+      requireAuth('enviar um pedido de sourcing')
+      return
+    }
+    const quantity = Number(sourcingForm.quantity)
+    if (!sourcingForm.product_name || !Number.isFinite(quantity) || quantity <= 0 || !sourcingForm.delivery_date || !sourcingForm.delivery_province_id || !sourcingForm.delivery_municipality_id) {
+      toast({ title: 'Erro', description: 'Indique o produto, uma quantidade válida, a data e o município de entrega.', variant: 'destructive' }); return
+    }
+    setSubmittingSourcing(true)
+    try {
+      const { data: sourcingRequest, error } = await supabase.from('sourcing_requests').insert({
+        user_id: user.id,
+        product_name: sourcingForm.product_name,
+        quantity,
+        unit: sourcingForm.unit,
+        quality_specification: sourcingForm.quality_specification.trim() || null,
+        delivery_province_id: sourcingForm.delivery_province_id,
+        delivery_municipality_id: sourcingForm.delivery_municipality_id,
+        delivery_location: sourcingForm.delivery_location.trim() || null,
+        delivery_date: sourcingForm.delivery_date,
+        description: sourcingForm.description.trim() || null,
+        status: 'pending',
+      }).select('id').single()
+      if (error) throw error
+
+      // The commercial request remains valid even if the consultative agent is unavailable.
+      const { error: agentError } = await supabase.functions.invoke('agent-task-submit', {
+        body: {
+          task_type: 'sourcing_intake',
+          autonomy_mode: 'suggest',
+          idempotency_key: `sourcing-${sourcingRequest.id}`,
+          input_payload: {
+            sourcing_request_id: sourcingRequest.id,
+            product_name: sourcingForm.product_name,
+            quantity,
+            unit: sourcingForm.unit,
+            delivery_location: sourcingForm.delivery_location.trim() || [angolaProvinces.find(p => p.id === sourcingForm.delivery_province_id)?.municipalities.find(m => m.id === sourcingForm.delivery_municipality_id)?.name, angolaProvinces.find(p => p.id === sourcingForm.delivery_province_id)?.name].filter(Boolean).join(', '),
+            delivery_date: sourcingForm.delivery_date,
+            quality_specification: sourcingForm.quality_specification.trim() || null,
+          },
+        },
+      })
+      if (agentError) {
+        console.error('AgriLink sourcing intake was not queued', agentError.message)
+        toast({ title: 'Pedido registado', description: 'A execução automática ainda não foi confirmada. Acompanhe o estado em Meus Pedidos.' })
+      } else {
+        toast({ title: 'Pedido registado', description: 'A verificação automática foi solicitada. Acompanhe o estado do pedido em Meus Pedidos.' })
+      }
+      setSourcingForm({ product_name: '', quantity: '', unit: 'kg', quality_specification: '', delivery_province_id: '', delivery_municipality_id: '', delivery_location: '', delivery_date: '', description: '' })
+      setShowSourcingForm(false)
+      await fetchSourcingRequests()
+      navigate('/perfil?tab=sourcing', { replace: true })
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message || 'Erro ao enviar pedido', variant: 'destructive' })
+    } finally { setSubmittingSourcing(false) }
+  }
+
+  const shareAgentCode = async () => {
+    const agentCode = (userProfile as any)?.agent_code; if (!agentCode) return
+    const shareMessage = `${t('profile.shareMessage')}: ${agentCode}\n\nCadastrar: ${window.location.origin}/cadastro`
+    if (navigator.share) { try { await navigator.share({ title: 'AgriLink - Código de Agente', text: shareMessage }) } catch { copyAgentCode() } } else { copyAgentCode() }
+  }
+
+  const copyAgentCode = () => {
+    const agentCode = (userProfile as any)?.agent_code; if (!agentCode) return
+    navigator.clipboard.writeText(agentCode)
+    toast({ title: t('profile.codeCopied') })
+  }
+
+  useEffect(() => {
+    if (!user) {
+      if (isGuest) {
+        setUserProducts(getGuestData<any[]>('products', []))
+        setFichasRecebimento(getGuestData<any[]>('fichas', []))
+      }
+      setLoading(false)
+      return
+    }
+    if (userProfile?.user_type === 'comprador') { fetchFichasRecebimento(); fetchSourcingRequests(); fetchBuyerStats(); fetchBuyerPreOrders(); fetchBuyerFreightQuotes() }
+    else {
+      fetchUserProducts();
+      fetchReceivedOrders();
+      if (userProfile?.user_type === 'agricultor' || userProfile?.user_type === 'agente') fetchSupplierFreightProposals();
+      else setSupplierFreightProposals([]);
+    }
+    if (userProfile?.user_type === 'agente') fetchAgentStats()
+    setLoading(false)
+  }, [user, userProfile, isGuest, fetchAgentStats, fetchBuyerStats, fetchBuyerPreOrders, fetchFichasRecebimento, fetchReceivedOrders, fetchSourcingRequests, fetchUserProducts, fetchBuyerFreightQuotes, fetchSupplierFreightProposals])
+
+  // Refresh sourcing agent results while the buyer is viewing the sourcing tab.
+  useEffect(() => {
+    if (!user?.id || isGuest || userProfile?.user_type !== 'comprador' || activeTab !== 'sourcing' || sourcingRequests.length === 0) return
+    const refreshStatuses = () => { void refreshAgentStatuses(sourcingRequests) }
+    refreshStatuses()
+    const timer = window.setInterval(refreshStatuses, 15000)
+    return () => window.clearInterval(timer)
+  }, [user?.id, isGuest, userProfile?.user_type, activeTab, sourcingRequests, refreshAgentStatuses])
+
+  useEffect(() => {
+    if (!authenticatedUserId || isGuest) {
+      setWalletBalance(null)
+      setWalletLoading(false)
+      setWalletError(false)
+      return
+    }
+
+    let isCurrent = true
+    setWalletBalance(null)
+    setWalletBalanceOwnerId(null)
+    setWalletLoading(true)
+    setWalletError(false)
+
+    getWalletBalance(authenticatedUserId)
+      .then((balance) => {
+        if (isCurrent) {
+          setWalletBalance(balance)
+          setWalletBalanceOwnerId(authenticatedUserId)
+        }
+      })
+      .catch(() => {
+        if (isCurrent) setWalletError(true)
+      })
+      .finally(() => {
+        if (isCurrent) setWalletLoading(false)
+      })
+
+    return () => { isCurrent = false }
+  }, [authenticatedUserId, isGuest])
+
+  useEffect(() => {
+    if (userProfile) {
+      setProfileData({ full_name: userProfile.full_name || '', phone: userProfile.phone || '', email: userProfile.email || user?.email || '', province_id: userProfile.province_id || '', municipality_id: userProfile.municipality_id || '' })
+      setProvinceName(userProfile.province_id)
+      setMunicipalityName(userProfile.municipality_id)
+    }
+  }, [userProfile, user])
+
+  useEffect(() => {
+    let active = true
+    const loadDriverLicense = async () => {
+      if (!user?.id || userProfile?.user_type !== 'motorista' || isGuest) {
+        setDriverLicenseData({ license_number: '', license_categories: '', issued_at: '', expires_at: '', issuing_authority: '', verification_status: 'pending_review' })
+        return
+      }
+      setDriverLicenseLoading(true)
+      const { data, error } = await supabase
+        .from('driver_licenses')
+        .select('license_number, license_categories, issued_at, expires_at, issuing_authority, verification_status')
+        .eq('driver_id', user.id)
+        .maybeSingle()
+      if (!active) return
+      if (error) {
+        toast({ title: 'Não foi possível carregar os dados da carta', description: error.message, variant: 'destructive' })
+      } else if (data) {
+        setDriverLicenseData({
+          license_number: data.license_number || '',
+          license_categories: (data.license_categories || []).join(', '),
+          issued_at: data.issued_at || '',
+          expires_at: data.expires_at || '',
+          issuing_authority: data.issuing_authority || '',
+          verification_status: data.verification_status || 'pending_review',
+        })
+      } else {
+        setDriverLicenseData({ license_number: '', license_categories: '', issued_at: '', expires_at: '', issuing_authority: '', verification_status: 'pending_review' })
+      }
+      setDriverLicenseLoading(false)
+    }
+    void loadDriverLicense()
+    return () => { active = false }
+  }, [user?.id, userProfile?.user_type, isGuest])
+
+  const updateProfile = async () => {
+    if (!user) {
+      requireAuth('editar o teu perfil')
+      return
+    }
+    try {
+      const categories = driverLicenseData.license_categories
+        .split(',')
+        .map((category) => category.trim().toUpperCase())
+        .filter(Boolean)
+      if (userProfile?.user_type === 'motorista' && (
+        !driverLicenseData.license_number.trim() || categories.length === 0 ||
+        !driverLicenseData.issued_at || !driverLicenseData.expires_at ||
+        !driverLicenseData.issuing_authority.trim()
+      )) {
+        toast({ title: 'Preencha todos os dados da carta de condução.', variant: 'destructive' })
+        return
+      }
+      if (userProfile?.user_type === 'motorista' && driverLicenseData.expires_at <= driverLicenseData.issued_at) {
+        toast({ title: 'A validade da carta deve ser posterior à data de emissão.', variant: 'destructive' })
+        return
+      }
+      const { error } = await supabase.from('users').update({
+        full_name: profileData.full_name,
+        phone: profileData.phone,
+        province_id: profileData.province_id,
+        municipality_id: profileData.municipality_id,
+        updated_at: new Date().toISOString(),
+      }).eq('id', user.id)
+      if (error) throw error
+
+      if (userProfile?.user_type === 'motorista') {
+        const { error: licenseError } = await supabase.from('driver_licenses').upsert({
+          driver_id: user.id,
+          license_number: driverLicenseData.license_number.trim(),
+          license_categories: [...new Set(categories)],
+          issued_at: driverLicenseData.issued_at,
+          expires_at: driverLicenseData.expires_at,
+          issuing_authority: driverLicenseData.issuing_authority.trim(),
+        }, { onConflict: 'driver_id' })
+        if (licenseError) throw licenseError
+      }
+      toast({ title: 'Perfil actualizado com sucesso.' })
+      setEditMode(false)
+    } catch (error: any) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }) }
+  }
+
+  const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!user) {
+      requireAuth('alterar a tua foto de perfil')
+      return
+    }
+    try {
+      setAvatarLoading(true)
+      const file = event.target.files?.[0]; if (!file) return
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${user.id}/avatar.${fileExt}`
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file, { upsert: true })
+      if (uploadError) throw uploadError
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
+      await supabase.from('users').update({ avatar_url: publicUrl, updated_at: new Date().toISOString() }).eq('id', user.id)
+    } catch (error: any) { toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' }) }
+    finally { setAvatarLoading(false) }
+  }
+
+  const openProductEditor = (product: UserProduct) => {
+    if (!user) { requireAuth('editar um produto'); return }
+    setEditingProduct(product)
+    setProductEditForm({
+      product_type: product.product_type || '',
+      quantity: String(product.quantity ?? ''),
+      price: String(product.price ?? ''),
+      harvest_date: product.harvest_date || '',
+      sale_unit: product.sale_unit || 'kg',
+      min_order_quantity: product.min_order_quantity == null ? '' : String(product.min_order_quantity),
+      province_id: product.province_id || '',
+      municipality_id: product.municipality_id || '',
+      description: String((product as any).description || ''),
+      category: String((product as any).category || ''),
+      product_variety: String((product as any).product_variety || ''),
+      product_condition: String((product as any).product_condition || ''),
+      packaging_type: String((product as any).packaging_type || ''),
+    })
+  }
+
+  const saveProductEdit = async () => {
+    if (!user || !editingProduct) return
+    const quantity = Number(productEditForm.quantity)
+    const price = Number(productEditForm.price)
+    const minOrder = productEditForm.min_order_quantity.trim() ? Number(productEditForm.min_order_quantity) : (editingProduct.min_order_quantity ?? 1)
+    if (!productEditForm.product_type.trim() || !Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(price) || price < 0 || (minOrder !== null && (!Number.isFinite(minOrder) || minOrder <= 0))) {
+      toast({ title: 'Verifica os dados do produto', description: 'Indica o produto, uma quantidade positiva, um preço válido e uma quantidade mínima válida.', variant: 'destructive' })
+      return
+    }
+    setSavingProductEdit(true)
+    try {
+      const updates = {
+        product_type: productEditForm.product_type.trim(),
+        quantity,
+        price,
+        harvest_date: productEditForm.harvest_date || undefined,
+        sale_unit: productEditForm.sale_unit || 'kg',
+        min_order_quantity: minOrder,
+        province_id: productEditForm.province_id || editingProduct.province_id,
+        municipality_id: productEditForm.municipality_id || editingProduct.municipality_id,
+        description: productEditForm.description.trim() || null,
+        category: productEditForm.category.trim() || null,
+        product_variety: productEditForm.product_variety.trim() || null,
+        product_condition: productEditForm.product_condition.trim() || null,
+        packaging_type: productEditForm.packaging_type.trim() || null,
+        updated_at: new Date().toISOString(),
+      }
+      const { data, error } = await supabase.from('products').update(updates).eq('id', editingProduct.id).eq('user_id', user.id).select('*').single()
+      if (error) throw error
+      setUserProducts(prev => prev.map(product => product.id === editingProduct.id ? { ...product, ...data } as UserProduct : product))
+      toast({ title: 'Produto actualizado', description: 'As alterações foram guardadas com sucesso.' })
+      setEditingProduct(null)
+      await fetchUserProducts()
+    } catch (error: any) {
+      console.error('[AgriLink] Erro ao editar produto:', error)
+      toast({ title: 'Não foi possível guardar o produto', description: error?.message || 'Confirma os dados e tenta novamente.', variant: 'destructive' } as any)
+    } finally {
+      setSavingProductEdit(false)
+    }
+  }
+
+  const deleteProduct = async (productId: string) => {
+    if (!user) {
+      requireAuth('remover um produto')
+      return
+    }
+    const product = userProducts.find(p => p.id === productId)
+    setConfirmAction({
+      kind: 'delete-product',
+      id: productId,
+      title: 'Remover produto?',
+      description: `O produto “${product?.product_type || 'Produto'}” será marcado como removido no seu catálogo.`,
+    })
+  }
+
+  const shareProduct = async (product: UserProduct) => {
+    const unit = product.sale_unit || 'kg'
+    const shareUrl = window.location.origin + '/marketplace'
+    const shareText = [
+      'AgriLink — ' + product.product_type,
+      'Preço: ' + Number(product.price).toLocaleString('pt-AO') + ' Kz/' + unit,
+      'Disponível: ' + Number(product.quantity).toLocaleString('pt-AO') + ' ' + unit,
+      'Consulte o marketplace AgriLink: ' + shareUrl,
+    ].join('\n')
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'AgriLink — ' + product.product_type, text: shareText, url: shareUrl })
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareText)
+        toast({ title: 'Detalhes do produto copiados', description: 'Já podes partilhar a publicação com os teus clientes.' })
+      } else {
+        throw new Error('Este navegador não permite partilhar nem copiar automaticamente.')
+      }
+    } catch (error: any) {
+      if (error?.name === 'AbortError') return
+      console.error('[AgriLink] Erro ao partilhar produto:', error)
+      toast({ title: 'Não foi possível partilhar', description: error?.message || 'Tenta novamente.', variant: 'destructive' } as any)
+    }
+  }
+  const acceptOrder = async (orderId: string) => {
+    if (!user) {
+      requireAuth('aceitar um pedido')
+      return
+    }
+    try {
+      const updatedOrder = await respondToPreOrder(orderId, 'accepted')
+      setReceivedOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: updatedOrder.status, updated_at: updatedOrder.updated_at } : o))
+      await fetchReceivedOrders()
+      toast({ title: 'Pedido aceite.' })
+    } catch (error: any) { toast({ title: 'Erro ao aceitar pedido', description: error.message, variant: 'destructive' } as any) }
+  }
+
+  const rejectOrder = async (orderId: string) => {
+    if (!user) {
+      requireAuth('rejeitar um pedido')
+      return
+    }
+    const order = receivedOrders.find(o => o.id === orderId)
+    setConfirmAction({
+      kind: 'reject-order',
+      id: orderId,
+      title: 'Rejeitar pedido?',
+      description: `A pré-compra de ${order?.quantity?.toLocaleString?.('pt-AO') || '0'} kg será marcada como rejeitada. Esta ação não pode ser revertida pelo comprador.`,
+    })
+  }
+
+  const contactBuyer = async (order: ReceivedOrder) => {
+    if (!user) {
+      requireAuth('iniciar uma conversa com o comprador')
+      return
+    }
+    if (!order.user_id) return
+    try {
+      const { data: legacyConversation, error: legacyError } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`and(user_id.eq.${user.id},peer_user_id.eq.${order.user_id}),and(user_id.eq.${order.user_id},peer_user_id.eq.${user.id})`)
+        .limit(1)
+      if (legacyError) throw legacyError
+      if (legacyConversation?.[0]?.id) {
+        navigate(`/messages/${legacyConversation[0].id}`)
+        return
+      }
+
+      const { data: conversationId, error } = await supabase.rpc('get_or_create_conversation', {
+        p_user_id: user.id,
+        p_other_user_id: order.user_id,
+      })
+      if (error) throw error
+      if (!conversationId) throw new Error('O servidor não confirmou a criação da conversa.')
+      navigate(`/messages/${conversationId}`)
+    } catch (error) {
+      console.error('[AgriLink] Não foi possível abrir a conversa:', error)
+      toast({ title: 'Não foi possível abrir a conversa', description: 'Verifique a ligação e tente novamente.', variant: 'destructive' })
+    }
+  }
+
+  const formatDate = (d: string | null | undefined) => d ? new Date(d).toLocaleDateString('pt-AO') : 'Data indisponível'
+  const activeProducts = userProducts.filter(p => p.status === 'active').length
+  const totalComments = userProducts.reduce((s, p) => s + (productStats[p.id]?.comments || 0), 0)
+  const totalLikes = userProducts.reduce((s, p) => s + (productStats[p.id]?.likes || 0), 0)
+
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: T.white, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', border: `2.5px solid ${T.gBorder}`, borderTopColor: T.g500 ?? T.g600, animation: 'ag-spin 0.8s linear infinite' }}/>
+        <p style={{ fontSize: 13, color: T.faint, fontWeight: 500, fontFamily: FONT }}>{t('profile.loadingProfile')}</p>
+      </div>
+    </div>
+  )
+
+  /* ── TABS config ── */
+  // Fluxos logísticos do comprador devem permanecer ligados ao backend; não usar estado visual fictício.
+  const isComprador = userProfile?.user_type === 'comprador'
+  const isAgente = userProfile?.user_type === 'agente'
+  const isAgricultor = userProfile?.user_type === 'agricultor'
+
+  const tabs = [
+    { id: 'products', label: isComprador ? t('profile.myFichas') : t('profile.myProducts'), icon: isComprador ? <ClipboardList size={15}/> : <Package size={15}/> },
+    ...(isComprador ? [{ id: 'orders', label: 'Minhas pré-compras', icon: <ShoppingCart size={15}/>, badge: buyerPreOrders.filter(o => o.status === 'pending').length }] : []),
+    ...(isComprador ? [{ id: 'sourcing', label: t('profile.sourcing'), icon: <Search size={15}/> }] : []),
+    ...(isAgricultor || isAgente ? [{ id: 'orders', label: t('profile.receivedOrders'), icon: <ShoppingCart size={15}/>, badge: receivedOrders.filter(o => o.status === 'pending').length }] : []),
+    ...(isAgente ? [{ id: 'referrals', label: t('profile.myReferrals'), icon: <Users size={15}/> }] : []),
+    { id: 'statistics', label: t('profile.statistics'), icon: <BarChart3 size={15}/> },
+  ]
+
+  const firstName = (profileDisplayName || '').trim().split(/\s+/)[0] || ''
+  const provinceEntry = angolaProvinces.find((province) => province.id === provinceName)
+  const provinceLabel = provinceEntry?.name || provinceName
+  const municipalityLabel = provinceEntry?.municipalities.find((municipality) => municipality.id === municipalityName)?.name || municipalityName
+  const locationLabel = [provinceLabel, municipalityLabel].filter(Boolean).join(', ')
+  const pageSubtitle = isComprador
+    ? 'Acompanha as tuas pré-compras, pedidos de sourcing e fichas.'
+    : isAgente
+      ? 'Gere as tuas publicações, os pedidos recebidos e as indicações.'
+      : 'Gere as tuas publicações e os pedidos que recebes.'
+  const quickAction = isComprador
+    ? { label: 'Minhas compras', icon: <ShoppingCart size={14} />, to: '/minhas-compras', guard: 'ver as tuas compras' }
+    : { label: 'Publicar produto', icon: <Plus size={14} />, to: '/publicar-produto', guard: 'publicar um produto' }
+
+  const statItems = isAgente
+    ? [
+        { value: profileLoadErrors.agentStats ? '—' : agentStats?.totalReferrals || 0, label: t('profile.usersReferred'), color: T.g600 },
+        { value: profileLoadErrors.agentStats ? '—' : agentStats?.totalPoints || 0, label: t('profile.pointsEarned'), color: T.gold },
+      ]
+    : isComprador
+    ? [
+        { value: profileLoadErrors.fichas ? '—' : fichasRecebimento.length, label: t('profile.fichasCreated'), color: T.g600 },
+        { value: profileLoadErrors.buyerStats ? '—' : buyerStats.completedOrders, label: t('profile.purchasesCompleted'), color: T.g600 },
+        { value: profileLoadErrors.buyerStats ? '—' : buyerStats.favoriteProducts, label: t('profile.favoriteProducts'), color: T.gold },
+      ]
+    : [
+        { value: profileLoadErrors.products ? '—' : activeProducts, label: t('profile.activeProducts'), color: T.g600 },
+        { value: profileLoadErrors.products ? '—' : totalComments, label: t('profile.comments'), color: T.g600 },
+        { value: profileLoadErrors.products ? '—' : totalLikes, label: t('profile.likes'), color: T.gold },
+      ]
+
+  return (
+    <div className="ag-profile-page" style={{ minHeight: '100vh', background: T.white, fontFamily: FONT, paddingBottom: 80, WebkitFontSmoothing: 'antialiased' }}>
+
+      {/* ═══ HEADER ═══════════════════════════════════════════════════════════ */}
+      <header style={{
+        position: 'sticky', top: 0, zIndex: 30,
+        background: 'rgba(255,255,255,0.92)', backdropFilter: 'saturate(180%) blur(20px)', WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+        borderBottom: `1px solid ${T.rule}`,
+      }}>
+        <div className="ag-profile-toolbar" style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h1 style={{ fontFamily: FONT, fontSize: 17, fontWeight: 700, color: T.ink, margin: 0, letterSpacing: '-0.01em' }}>
+            {t('profile.title')}
+          </h1>
+          <div className="ag-profile-actions" style={{ display: 'flex', gap: 8 }}>
+            <Btn variant="outline" size="sm" onClick={() => navigate('/contratos')}>
+              <FileSignature size={14}/> <span className="hidden sm:inline">Contratos</span>
+            </Btn>
+            {user && !isGuest ? (
+              <>
+                <Btn variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
+                  <Settings size={14}/> <span className="hidden sm:inline">{t('profile.settings')}</span>
+                </Btn>
+                <Btn variant="danger" size="sm" onClick={() => logout()}>
+                  <LogOut size={14}/> <span className="hidden sm:inline">Sair</span>
+                </Btn>
+              </>
+            ) : (
+              <Btn variant="primary" size="sm" onClick={() => navigate('/login')}>
+                <LogIn size={14}/> <span className="hidden sm:inline">Entrar</span>
+              </Btn>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {Object.keys(profileLoadErrors).length > 0 && (
+        <div role="alert" className="mx-auto mt-4 flex w-full max-w-6xl flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          <div>
+            <p className="font-semibold">Algumas informações do perfil não puderam ser actualizadas.</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {Object.values(profileLoadErrors).map((message) => <li key={message}>{message}</li>)}
+            </ul>
+          </div>
+          <button type="button" className="self-start rounded-lg border border-amber-300 bg-white px-3 py-2 font-semibold hover:bg-amber-100" onClick={() => {
+            void fetchUserProducts()
+            void fetchFichasRecebimento()
+            void fetchAgentStats()
+            void fetchReceivedOrders()
+            void fetchSourcingRequests()
+            void fetchBuyerStats()
+            void fetchBuyerPreOrders()
+            void fetchBuyerFreightQuotes()
+          }}>Tentar novamente</button>
+        </div>
+      )}
+
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 20px' }} className="ag-layout">
+
+        {/* ══ LEFT COLUMN ══════════════════════════════════════════════════════ */}
+        <div className="ag-side">
+
+          {/* Cartão de perfil organizado em quatro áreas de informação. */}
+          <div className="ag-card" style={{ animation: `ag-fade-up 0.5s ${EASE} both` }}>
+            {!editMode ? (
+              <>
+                <div className="ag-profile-cover" aria-hidden="true" />
+                <div className="ag-profile-head">
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    <div style={{
+                      width: 72, height: 72, borderRadius: '50%',
+                      border: `2px solid ${roleAccent}33`, boxShadow: `0 0 0 4px ${T.white}`,
+                      background: roleAccent,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                    }}>
+                      {profileAvatarUrl
+                        ? <img src={profileAvatarUrl} alt={profileDisplayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                        : <span style={{ fontFamily: FONT, fontSize: 26, fontWeight: 800, color: T.white }}>{profileDisplayName.charAt(0).toUpperCase() || 'U'}</span>
+                      }
+                    </div>
+                    <label htmlFor="avatar-upload" className="ag-avatar-edit" title="Alterar foto de perfil" style={{
+                      position: 'absolute', bottom: -2, right: -2, width: 26, height: 26,
+                      borderRadius: '50%', background: T.white, border: `1px solid ${T.rule}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                      transition: `transform 0.2s ${EASE}`,
+                    }}>
+                      {avatarLoading ? <div style={{ width: 11, height: 11, borderRadius: '50%', border: `1.5px solid ${roleAccent}`, borderTopColor: 'transparent', animation: 'ag-spin 0.8s linear infinite' }}/> : <Camera size={12} color={roleAccent} strokeWidth={1.75}/>}
+                    </label>
+                    <input id="avatar-upload" type="file" accept="image/*" onChange={uploadAvatar} style={{ display: 'none' }}/>
+                  </div>
+                  <div style={{ minWidth: 0, width: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <h2 style={{ fontFamily: FONT, fontSize: 21, fontWeight: 800, color: T.ink, margin: 0, letterSpacing: '-0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {profileDisplayName}
+                      </h2>
+                      {(userProfile as any)?.verified && <BadgeCheck size={16} color={roleAccent} strokeWidth={2} aria-label="Perfil verificado"/>}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: roleAccent, flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, color: T.muted, fontWeight: 600 }}>{profileRoleLabel}</span>
+                    </div>
+                    <span style={{ display: 'block', marginTop: 6, fontSize: 10.5, color: T.faint, fontWeight: 700 }}>
+                      Rede AgriLink · #{memberCode}
+                    </span>
+                  </div>
+                </div>
+                <div className="ag-profile-info">
+                  <InfoRow icon={<Mail size={14} strokeWidth={1.6}/>} label={t('profile.email')} value={profileData.email} />
+                  <InfoRow icon={<Phone size={14} strokeWidth={1.6}/>} label={t('profile.phone')} value={profileData.phone} />
+                  <InfoRow icon={<MapPin size={14} strokeWidth={1.6}/>} label="Localização" value={locationLabel} />
+                </div>
+                {user?.id === userProfile?.id && userProfile?.user_type === 'motorista' && (
+                  <div style={{ margin: '0 18px 16px', padding: '14px', border: `1px solid ${T.rule}`, borderRadius: R.md, background: T.subtle }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+                      <strong style={{ fontSize: 13, color: T.ink }}>Carta de condução</strong>
+                      <StatusPill status={driverLicenseData.verification_status} />
+                    </div>
+                    {driverLicenseLoading ? <p style={{ fontSize: 12, color: T.muted }}>A carregar os dados da carta…</p> : (
+                      <>
+                        <InfoRow icon={<FileSignature size={14}/>} label="Número da carta" value={driverLicenseData.license_number} />
+                        <InfoRow icon={<BadgeCheck size={14}/>} label="Categorias" value={driverLicenseData.license_categories} />
+                        <InfoRow icon={<Calendar size={14}/>} label="Data de emissão" value={driverLicenseData.issued_at} />
+                        <InfoRow icon={<Calendar size={14}/>} label="Validade" value={driverLicenseData.expires_at} />
+                        <InfoRow icon={<FileSignature size={14}/>} label="Entidade emissora" value={driverLicenseData.issuing_authority} />
+                      </>
+                    )}
+                  </div>
+                )}
+                <div className="ag-profile-foot">
+                  <Btn variant="secondary" onClick={() => guardAction('editar o teu perfil', () => setEditMode(true))} style={{ gridColumn: '1 / -1' }}>
+                    <Edit size={13} strokeWidth={1.75}/> {t('profile.editProfile')}
+                  </Btn>
+                  {isComprador && <ProfileReceiptButton />}
+                  {isAgente && (
+                    <Btn variant="outline" onClick={shareAgentCode}>
+                      <Share2 size={13} strokeWidth={1.75}/> Partilhar código
+                    </Btn>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <Input label={t('profile.fullName')} value={profileData.full_name} onChange={(e: any) => setProfileData(p => ({ ...p, full_name: e.target.value }))} />
+                <Input label={t('profile.phone')} value={profileData.phone} onChange={(e: any) => setProfileData(p => ({ ...p, phone: e.target.value }))} />
+                <Input label={t('profile.email')} type="email" value={profileData.email} onChange={(e: any) => setProfileData(p => ({ ...p, email: e.target.value }))} />
+                {userProfile?.user_type === 'motorista' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14, border: `1px solid ${T.rule}`, borderRadius: R.md, background: T.subtle }}>
+                    <div>
+                      <strong style={{ display: 'block', fontSize: 13, color: T.ink }}>Carta de condução</strong>
+                      <span style={{ fontSize: 11, color: T.muted }}>Estes dados ficam guardados nas tuas informações pessoais e são privados.</span>
+                    </div>
+                    <Input label="Número da carta" value={driverLicenseData.license_number} onChange={(e: any) => setDriverLicenseData(p => ({ ...p, license_number: e.target.value }))} required />
+                    <Input label="Categorias (separadas por vírgula)" value={driverLicenseData.license_categories} onChange={(e: any) => setDriverLicenseData(p => ({ ...p, license_categories: e.target.value }))} placeholder="Ex.: A, B, C" required />
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
+                      <Input label="Data de emissão" type="date" value={driverLicenseData.issued_at} onChange={(e: any) => setDriverLicenseData(p => ({ ...p, issued_at: e.target.value }))} required />
+                      <Input label="Data de validade" type="date" value={driverLicenseData.expires_at} onChange={(e: any) => setDriverLicenseData(p => ({ ...p, expires_at: e.target.value }))} required />
+                    </div>
+                    <Input label="Entidade emissora" value={driverLicenseData.issuing_authority} onChange={(e: any) => setDriverLicenseData(p => ({ ...p, issuing_authority: e.target.value }))} placeholder="Ex.: Direcção de Trânsito e Segurança Rodoviária" required />
+                    <span style={{ fontSize: 11, color: T.muted }}>Estado: {driverLicenseData.verification_status === 'approved' ? 'Verificada' : driverLicenseData.verification_status === 'rejected' ? 'Requer correcção' : 'Pendente de verificação'}</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Btn variant="primary" onClick={updateProfile} style={{ flex: 1 }}>{t('common.save')}</Btn>
+                  <Btn variant="outline" onClick={() => setEditMode(false)} style={{ flex: 1 }}>{t('common.cancel')}</Btn>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {user && !isGuest && (
+            <WalletSummaryCard
+              key={authenticatedUserId}
+              balance={walletBalanceOwnerId === authenticatedUserId ? walletBalance : null}
+              loading={walletLoading}
+              error={walletError}
+            />
+          )}
+
+          <div style={{ animation: `ag-fade-up 0.5s ${EASE} 0.06s both` }}>
+            <StatsStrip items={statItems} />
+          </div>
+
+          {isAgente && (userProfile as any)?.agent_code && (
+            <div style={{ padding: '14px 16px', borderRadius: R.md, background: T.g50, border: `1px solid ${T.gBorder}`, animation: `ag-fade-up 0.5s ${EASE} 0.1s both` }}>
+              <p style={{ fontSize: 11.5, color: T.muted, fontWeight: 600, margin: 0 }}>{t('profile.agentCode')}</p>
+              <p style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 20, fontWeight: 800, color: roleAccent, letterSpacing: '0.05em', margin: '2px 0 0' }}>{(userProfile as any).agent_code}</p>
+            </div>
+          )}
+        </div>
+
+        {/* ══ RIGHT COLUMN ═════════════════════════════════════════════════════ */}
+        <div style={{ animation: `ag-fade-up 0.5s ${EASE} 0.1s both`, minWidth: 0 }}>
+
+          <div className="ag-page-head">
+            <div style={{ minWidth: 0 }}>
+              <h2 className="ag-page-title">{firstName ? `Olá, ${firstName}` : t('profile.title')}</h2>
+              <p className="ag-page-sub">{pageSubtitle}</p>
+            </div>
+            <Btn variant="primary" onClick={() => guardAction(quickAction.guard, () => navigate(quickAction.to))}>
+              {quickAction.icon} {quickAction.label}
+            </Btn>
+          </div>
+
+          {/* Separadores */}
+          <div role="tablist" className="ag-tabs">
+            {tabs.map(tab => (
+              <TabBtn
+                key={tab.id}
+                active={activeTab === tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                icon={tab.icon}
+                label={tab.label}
+                badge={(tab as any).badge}
+                accent={roleAccent}
+              />
+            ))}
+          </div>
+
+          <div key={activeTab} style={{ animation: `ag-fade-up 0.35s ${EASE} both` }}>
+
+          {/* ── Products / Fichas ── */}
+          {activeTab === 'products' && (
+            <>
+            <SectionHead
+              title={isComprador ? t('profile.myFichas') : t('profile.myProducts')}
+              count={isComprador ? fichasRecebimento.length : userProducts.length}
+              sub={isComprador ? 'Fichas de recebimento que criaste.' : 'Produtos publicados no teu catálogo.'}
+            />
+            {isComprador ? (
+              <FichaTable
+                columns={[
+                  { key: 'nome', label: 'Ficha', render: r => <span style={{ fontWeight: 700, color: T.ink }}>{r.nomeFicha}</span> },
+                  { key: 'produto', label: 'Produto', render: r => r.produto },
+                  { key: 'qualidade', label: 'Qualidade', render: r => r.qualidade },
+                  { key: 'locais', label: 'Locais', align: 'center', render: r => `${r.locaisEntrega?.length || 0}` },
+                  { key: 'data', label: 'Criado em', render: r => formatDate(r.created_at) },
+                ]}
+                rows={fichasRecebimento}
+                keyField={r => r.id}
+                actions={() => (
+                  <>
+                    <IconBtn icon={<Edit size={13} strokeWidth={1.75}/>} title={t('profile.editFicha')} />
+                    <IconBtn icon={<Bell size={13} strokeWidth={1.75}/>} title={t('profile.notifications')} />
+                    <IconBtn icon={<Trash2 size={13} strokeWidth={1.75}/>} title={t('profile.removeFicha')} danger />
+                  </>
+                )}
+                empty={<EmptyState icon={<ClipboardList size={26} color={T.faint}/>} message={t('profile.noFichasCreated')} />}
+              />
+            ) : (
+              <ProductTable
+                columns={[
+                  { key: 'produto', label: 'Produto', render: r => (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      <span style={{ fontWeight: 700, color: T.ink }}>{r.product_type}</span>
+                      <StatusPill status={r.status} />
+                    </div>
+                  ) },
+                  { key: 'qtd', label: 'Quantidade', render: r => `${r.quantity.toLocaleString()} ${r.sale_unit || 'kg'}` },
+                  { key: 'colheita', label: 'Colheita', render: r => formatDate(r.harvest_date) },
+                  { key: 'preco', label: 'Preço', align: 'right', render: r => <span style={{ fontWeight: 800, color: T.g600 }}>{r.price.toLocaleString()} Kz/{r.sale_unit || 'kg'}</span> },
+                  { key: 'interacoes', label: 'Interações', align: 'center', render: r => (
+                    <div style={{ display: 'flex', gap: 10, justifyContent: 'center', color: T.faint, fontSize: 12 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><MessageCircle size={12} strokeWidth={1.75}/>{productStats[r.id]?.comments || 0}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Heart size={12} strokeWidth={1.75}/>{productStats[r.id]?.likes || 0}</span>
+                    </div>
+                  ) },
+                ]}
+                rows={userProducts}
+                keyField={r => r.id}
+                accent={r => r.status === 'active' ? T.g500 ?? T.g600 : r.status === 'inactive' ? T.goldL : '#EF4444'}
+                actions={r => (
+                  <>
+                    <IconBtn icon={<Edit size={13} strokeWidth={1.75}/>} title={t('profile.editProduct')} onClick={() => openProductEditor(r)} />
+                    <IconBtn icon={<Share2 size={13} strokeWidth={1.75}/>} title={t('profile.promoteShare')} onClick={() => void shareProduct(r)} />
+                    {r.status !== 'removed' && <IconBtn icon={<Trash2 size={13} strokeWidth={1.75}/>} danger onClick={() => deleteProduct(r.id)} title={t('profile.removeProduct')} />}
+                  </>
+                )}
+                empty={<EmptyState icon={<Package size={26} color={T.faint}/>} message={t('profile.noProductsPublished')} />}
+              />
+            )}
+            </>
+          )}
+
+          {/* ── Sourcing ── */}
+          {activeTab === 'sourcing' && isComprador && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                <div>
+                  <h3 style={{ fontFamily: FONT, fontSize: 17, fontWeight: 700, color: T.ink, margin: 0 }}>{t('sourcing.title')}</h3>
+                  <p style={{ fontSize: 12, color: T.faint, marginTop: 2 }}>{t('sourcing.subtitle')}</p>
+                </div>
+                <Btn variant="primary" size="sm" onClick={() => setShowSourcingForm(!showSourcingForm)}>
+                  {showSourcingForm ? t('common.cancel') : t('sourcing.newRequest')}
+                </Btn>
+              </div>
+
+              {showSourcingForm && (
+                <div style={{ background: T.white, borderRadius: R.md, border: `1px solid ${T.rule}`, padding: 20, display: 'flex', flexDirection: 'column', gap: 14, animation: `ag-fade-up 0.3s ${EASE} both` }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 14 }} className="sm:grid-cols-2">
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, fontWeight: 700, color: T.mid }}>
+                      Produto agrícola *
+                      <select value={sourcingForm.product_name} onChange={(e) => setSourcingForm(p => ({ ...p, product_name: e.target.value }))} required style={{ width: '100%', minHeight: 42, padding: '10px 12px', borderRadius: R.md, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, font: 'inherit' }}>
+                        <option value="">Seleccionar produto</option>
+                        {SOURCING_AGRICULTURAL_PRODUCTS.map(product => <option key={product} value={product}>{product}</option>)}
+                      </select>
+                    </label>
+                    <Input label="Quantidade *" type="number" min="0.01" step="any" value={sourcingForm.quantity} onChange={(e: any) => setSourcingForm(p => ({ ...p, quantity: e.target.value }))} placeholder="Ex.: 2500" required />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 14 }} className="sm:grid-cols-2">
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, fontWeight: 700, color: T.mid }}>
+                      Unidade de medida *
+                      <select value={sourcingForm.unit} onChange={(e) => setSourcingForm(p => ({ ...p, unit: e.target.value }))} required style={{ width: '100%', minHeight: 42, padding: '10px 12px', borderRadius: R.md, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, font: 'inherit' }}>
+                        {SOURCING_UNITS.map(unit => <option key={unit.value} value={unit.value}>{unit.label}</option>)}
+                      </select>
+                    </label>
+                    <Input label="Data pretendida de entrega *" type="date" value={sourcingForm.delivery_date} onChange={(e: any) => setSourcingForm(p => ({ ...p, delivery_date: e.target.value }))} required />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 14 }} className="sm:grid-cols-2">
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, fontWeight: 700, color: T.mid }}>
+                      Província de entrega *
+                      <select value={sourcingForm.delivery_province_id} onChange={(e) => setSourcingForm(p => ({ ...p, delivery_province_id: e.target.value, delivery_municipality_id: '' }))} required style={{ width: '100%', minHeight: 42, padding: '10px 12px', borderRadius: R.md, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, font: 'inherit' }}>
+                        <option value="">Seleccionar província</option>
+                        {angolaProvinces.map(province => <option key={province.id} value={province.id}>{province.name}</option>)}
+                      </select>
+                    </label>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, fontWeight: 700, color: T.mid }}>
+                      Município de entrega *
+                      <select value={sourcingForm.delivery_municipality_id} onChange={(e) => setSourcingForm(p => ({ ...p, delivery_municipality_id: e.target.value }))} required disabled={!sourcingForm.delivery_province_id} style={{ width: '100%', minHeight: 42, padding: '10px 12px', borderRadius: R.md, border: `1px solid ${T.rule}`, background: T.white, color: T.ink, font: 'inherit', opacity: sourcingForm.delivery_province_id ? 1 : 0.55 }}>
+                        <option value="">Seleccionar município</option>
+                        {angolaProvinces.find(province => province.id === sourcingForm.delivery_province_id)?.municipalities.map(municipality => <option key={municipality.id} value={municipality.id}>{municipality.name}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                  <Input label="Local de entrega (opcional)" value={sourcingForm.delivery_location} onChange={(e: any) => setSourcingForm(p => ({ ...p, delivery_location: e.target.value.slice(0, 180) }))} placeholder="Ex.: armazém, mercado ou ponto de descarga" />
+                  <Textarea label="Qualidade e apresentação pretendidas" value={sourcingForm.quality_specification} onChange={(e: any) => setSourcingForm(p => ({ ...p, quality_specification: e.target.value.slice(0, 1000) }))} placeholder="Ex.: produto fresco, seco, sem danos, calibre ou tipo de embalagem pretendidos" />
+                  <Textarea label={t('sourcing.description')} value={sourcingForm.description} onChange={(e: any) => setSourcingForm(p => ({ ...p, description: e.target.value }))} placeholder={t('sourcing.descriptionPlaceholder')} />
+                  <Btn variant="primary" onClick={submitSourcingRequest} disabled={submittingSourcing} style={{ width: '100%' }}>
+                    {submittingSourcing ? t('common.processing') : t('sourcing.submitRequest')}
+                  </Btn>
+                </div>
+              )}
+
+              <SourcingTable
+                columns={[
+                  { key: 'produto', label: 'Produto', render: r => <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}><span style={{ fontWeight: 700, color: T.ink }}>{r.product_name}</span>{r.quality_specification && <span style={{ fontSize: 11, color: T.faint }}>{r.quality_specification}</span>}</div> },
+                  { key: 'qtd', label: 'Quantidade', render: r => `${Number(r.quantity).toLocaleString('pt-AO')} ${SOURCING_UNITS.find(unit => unit.value === r.unit)?.label || r.unit || 'kg'}` },
+                  { key: 'entrega', label: 'Entrega', render: r => {
+                    const province = angolaProvinces.find(item => item.id === r.delivery_province_id);
+                    const municipality = province?.municipalities.find(item => item.id === r.delivery_municipality_id);
+                    return <span style={{ fontSize: 12 }}>{[province?.name, municipality?.name, r.delivery_location].filter(Boolean).join(' · ') || '—'}</span>;
+                  } },
+                  { key: 'data', label: t('sourcing.deliveryDate'), render: r => new Date(r.delivery_date).toLocaleDateString('pt-AO') },
+                  { key: 'estado', label: 'Estado', render: r => <SourcingStatusCell request={r} task={sourcingAgentStatuses[r.id]} busy={!!reanalyzingSourcingIds[r.id]} onReanalyze={() => void reanalyzeSourcingRequest(r)} /> },
+                ]}
+                rows={sourcingRequests}
+                keyField={r => r.id}
+                empty={<EmptyState icon={<Search size={26} color={T.faint}/>} message={t('sourcing.noRequests')} />}
+              />
+
+              <div style={{ background: T.white, borderRadius: R.md, border: `1px solid ${T.rule}`, padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <h4 style={{ fontFamily: FONT, fontSize: 15, fontWeight: 750, color: T.ink, margin: 0 }}>Cotações confirmadas pela AgriLink</h4>
+                  <p style={{ fontSize: 11, color: T.faint, marginTop: 4 }}>Só aparecem aqui disponibilidades verificadas pela equipa. Contactos directos do fornecedor permanecem protegidos durante a fase de pesquisa.</p>
+                </div>
+                {sourcingQuotesLoading ? (
+                  <p style={{ fontSize: 12, color: T.faint }}>A carregar cotações confirmadas…</p>
+                ) : sourcingQuotes.length === 0 ? (
+                  <p style={{ fontSize: 12, color: T.faint }}>Ainda não existem cotações confirmadas para os seus pedidos. A equipa irá actualizar esta área quando validar uma disponibilidade.</p>
+                ) : sourcingQuotes.map((quote) => {
+                  const request = sourcingRequests.find((item) => item.id === quote.sourcing_request_id)
+                  return (
+                    <div key={quote.id} style={{ border: `1px solid ${T.rule}`, borderRadius: R.md, padding: 13, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                        <strong style={{ fontSize: 13, color: T.ink }}>{request?.product_name || 'Produto agrícola'}</strong>
+                        <StatusPill status="confirmed" />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(125px, 1fr))', gap: 10 }}>
+                        <div><div style={{ fontSize: 10, color: T.faint }}>Quantidade disponível</div><div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{Number(quote.available_quantity).toLocaleString('pt-AO')} {SOURCING_UNITS.find(unit => unit.value === quote.unit)?.label || quote.unit}</div></div>
+                        <div><div style={{ fontSize: 10, color: T.faint }}>Preço por unidade</div><div style={{ fontSize: 13, fontWeight: 700, color: T.g600 }}>{quote.unit_price === null ? 'A confirmar' : `${Number(quote.unit_price).toLocaleString('pt-AO')} ${quote.currency}`}</div></div>
+                        <div><div style={{ fontSize: 10, color: T.faint }}>Entrega prevista</div><div style={{ fontSize: 12, color: T.mid }}>{quote.expected_delivery_date ? new Date(quote.expected_delivery_date).toLocaleDateString('pt-AO') : 'A combinar'}</div></div>
+                        <div><div style={{ fontSize: 10, color: T.faint }}>Válida até</div><div style={{ fontSize: 12, color: T.mid }}>{quote.valid_until ? new Date(quote.valid_until).toLocaleDateString('pt-AO') : 'Sem data definida'}</div></div>
+                      </div>
+                      {quote.quality_notes && <p style={{ fontSize: 12, color: T.mid, margin: 0 }}>Qualidade: {quote.quality_notes}</p>}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── Buyer Pre-orders ── */}
+          {activeTab === 'orders' && isComprador && (
+            <>
+            <section style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', padding: 16, marginBottom: 14, background: T.white, border: `1px solid ${T.rule}`, borderRadius: R.md }}>
+              <div style={{ minWidth: 220, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: T.ink, fontSize: 14 }}>
+                  <ShoppingCart size={16} color={T.g600} /> As minhas compras
+                </div>
+                <p style={{ margin: '5px 0 0', fontSize: 12, color: T.muted, lineHeight: 1.6 }}>
+                  Consulta os estados das pré-compras e vê as instruções oficiais de pagamento quando estiverem disponíveis.
+                </p>
+              </div>
+              <Btn onClick={() => navigate('/minhas-compras')} variant="primary"><ShoppingCart size={14} /> Acompanhar compras</Btn>
+            </section>
+            <BuyerPreOrdersTable
+              columns={[
+                { key: 'produto', label: 'Produto', render: r => <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}><span style={{ fontWeight: 700, color: T.ink }}>{r.product?.product_type || 'Produto'}</span><StatusPill status={r.status} /></div> },
+                { key: 'qtd', label: 'Quantidade', align: 'right', render: r => <span style={{ fontWeight: 700, color: T.g600 }}>{r.quantity.toLocaleString('pt-AO')} kg</span> },
+                { key: 'valor', label: 'Total', align: 'right', render: r => `${Number(r.total_price || 0).toLocaleString('pt-AO')} Kz` },
+                { key: 'pagamento', label: 'Pagamento', render: r => {
+                  const freightQuote = buyerFreightQuotes.find(quote => quote.pre_order_id === r.id)
+                  const freightAgreed = freightQuote?.driver_quote_status === 'approved' && freightQuote.buyer_quote_approved
+                  const label = r.payment_status === 'paid'
+                    ? 'Pago'
+                    : r.status !== 'accepted'
+                      ? 'Não iniciado'
+                      : freightAgreed
+                        ? 'Pronto para pagamento'
+                        : 'A negociar transporte'
+                  return <span style={{ fontSize: 12, fontWeight: 600, color: r.payment_status === 'paid' || freightAgreed ? T.g600 : T.faint }}>{label}</span>
+                } },
+                { key: 'data', label: 'Data', render: r => formatDate(r.created_at) },
+              ]}
+              rows={buyerPreOrders}
+              keyField={r => r.id}
+              accent={r => r.status === 'pending' ? T.goldL : r.status === 'accepted' ? T.g400 : r.status === 'rejected' ? '#EF4444' : T.faint}
+              actions={r => (
+                <>
+                  <IconBtn icon={<CreditCard size={13} strokeWidth={1.75}/>} title="Acompanhar pedido e pagamento" onClick={() => navigate(`/pagamento/${r.id}`)} />
+                  <IconBtn
+                    icon={<FileSignature size={13} strokeWidth={1.75}/>}
+                    title={receiptBusyId === r.id ? 'A gerar comprovante…' : 'Histórico e comprovante PDF'}
+                    onClick={() => { if (receiptBusyId !== r.id) void downloadTransactionReceipt(r.id) }}
+                  />
+                </>
+              )}
+              empty={<EmptyState icon={<ShoppingCart size={26} color={T.faint}/>} message="Ainda não tens pré-compras." sub="As pré-compras enviadas aparecerão aqui e serão actualizadas quando o fornecedor responder." />}
+            />
+            </>
+          )}
+
+          {activeTab === 'orders' && isComprador && buyerFreightQuotes.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+              {buyerFreightQuotes.map((quote) => (
+                <section key={quote.id} style={{ background: T.white, border: `1px solid ${T.rule}`, borderRadius: R.md, padding: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: T.ink }}>{quote.product_name}</div>
+                      <div style={{ marginTop: 4, fontSize: 12, color: T.muted }}>{quote.origin_label} → {quote.destination_label}</div>
+                      <div style={{ marginTop: 5, fontSize: 12, color: T.faint }}>{Number(quote.weight_kg).toLocaleString('pt-AO')} kg · {quote.route_distance_km != null ? Number(quote.route_distance_km).toFixed(1) + ' km' : 'rota indisponível'} · {quote.route_duration_minutes != null ? Math.round(quote.route_duration_minutes / 60) + ' h estimadas' : 'tempo indisponível'}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: T.g600 }}>{quote.driver_offered_price == null ? '—' : Number(quote.driver_offered_price).toLocaleString('pt-AO') + ' ' + (quote.currency || 'Kz')}</div>
+                      <div style={{ marginTop: 3, fontSize: 11, color: quote.driver_quote_status === 'approved' ? T.g600 : quote.driver_quote_status === 'rejected' ? T.danger : T.gold, fontWeight: 700 }}>
+                        {quote.driver_quote_status === 'approved'
+                          ? 'Preço aprovado por ti'
+                          : quote.driver_quote_status === 'rejected'
+                            ? 'Recusada · o motorista pode rever o preço'
+                            : 'A aguardar a tua decisão'}
+                      </div>
+                    </div>
+                  </div>
+                  {quote.driver_quote_status === 'pending_buyer_approval' && !quote.buyer_quote_approved && (
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 13, flexWrap: 'wrap' }}>
+                      <IconBtn icon={<Trash2 size={13} strokeWidth={1.75}/>} title={freightQuoteBusyId === quote.id ? 'A processar…' : 'Recusar transporte'} danger onClick={() => { if (freightQuoteBusyId !== quote.id) void respondToFreightQuote(quote.id, false) }} />
+                      <IconBtn icon={<CheckCircle size={13} strokeWidth={1.75}/>} title={freightQuoteBusyId === quote.id ? 'A processar…' : 'Aprovar transporte'} onClick={() => { if (freightQuoteBusyId !== quote.id) void respondToFreightQuote(quote.id, true) }} />
+                    </div>
+                  )}
+                </section>
+              ))}
+            </div>
+          )}
+
+          {/* ── Received Orders ── */}
+          {activeTab === 'orders' && (isAgricultor || isAgente) && (
+            <div className="ag-stack">
+            <SectionHead title={t('profile.receivedOrders')} count={receivedOrders.length} sub="Pedidos de compradores aos teus produtos." />
+            <StatsStrip items={[
+              { value: receivedOrders.length, label: 'Pedidos recebidos', color: T.ink },
+              { value: receivedOrders.filter(order => order.status === 'accepted').length, label: 'Pedidos aceites', color: T.g600 },
+              { value: receivedOrders.filter(order => order.payment_status === 'paid').length, label: 'Pagamentos confirmados', color: T.g600 },
+              { value: `${receivedOrders.filter(order => order.payment_status === 'paid').reduce((sum, order) => sum + Number(order.total_price || 0) * 0.92, 0).toLocaleString('pt-AO')} Kz`, label: 'Entradas líquidas (após 8%)', color: T.g600 },
+            ]} />
+            {supplierFreightProposals.length > 0 && (
+              <div style={{ display: 'grid', gap: 10, marginTop: 14, marginBottom: 14 }}>
+                {supplierFreightProposals.map((proposal) => (
+                  <section key={proposal.id} style={{ background: T.white, border: `1px solid ${T.rule}`, borderRadius: R.md, padding: 14 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>Proposta de transporte · {proposal.product_name}</div>
+                        <div style={{ marginTop: 4, fontSize: 12, color: T.muted }}>{proposal.origin_label} → {proposal.destination_label}</div>
+                        <div style={{ marginTop: 3, fontSize: 11, color: T.faint }}>{Number(proposal.weight_kg).toLocaleString('pt-AO')} kg · {proposal.route_distance_km != null ? `${Number(proposal.route_distance_km).toFixed(1)} km` : 'rota por confirmar'}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: T.g600 }}>{proposal.driver_offered_price == null ? '—' : `${Number(proposal.driver_offered_price).toLocaleString('pt-AO')} ${proposal.currency || 'Kz'}`}</div>
+                        <div style={{ marginTop: 3, fontSize: 11, fontWeight: 700, color: proposal.driver_quote_status === 'approved' ? T.g600 : proposal.driver_quote_status === 'rejected' ? T.danger : T.gold }}>
+                          {proposal.driver_quote_status === 'approved'
+                            ? 'Preço aprovado pelo comprador'
+                            : proposal.driver_quote_status === 'rejected'
+                              ? 'Recusada · aguarda novo preço do motorista'
+                              : 'A aguardar decisão do comprador'}
+                        </div>
+                      </div>
+                    </div>
+                    <p style={{ margin: '10px 0 0', fontSize: 11, color: T.muted }}>O preço de transporte é aprovado pelo comprador. Após a confirmação do pagamento, a AgriLink retém 8% do produto e contabiliza o teu valor líquido.</p>
+                  </section>
+                ))}
+              </div>
+            )}
+            <OrdersTable
+              columns={[
+                { key: 'produto', label: 'Produto', render: r => (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <span style={{ fontWeight: 700, color: T.ink }}>{r.product?.product_type || t('profile.product')}</span>
+                    <StatusPill status={r.status} />
+                    {r.stockFullyRequested && (
+                      <span style={{ fontSize: 10.5, fontWeight: 700, color: T.g700 }}>
+                        Estoque solicitado totalmente
+                      </span>
+                    )}
+                  </div>
+                ) },
+                { key: 'comprador', label: t('profile.product') === 'Product' ? 'Buyer' : 'Comprador', render: r => (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ fontWeight: 600 }}>{r.buyer?.full_name || 'Comprador'}</span>
+                    <span style={{ fontSize: 11.5, color: T.faint }}>{r.buyer?.phone || t('profile.noPhone')}</span>
+                  </div>
+                ) },
+                { key: 'local', label: 'Localização', render: r => r.location },
+                { key: 'qtd', label: 'Quantidade', align: 'right', render: r => <span style={{ fontWeight: 700, color: T.g600 }}>{r.quantity.toLocaleString()} kg</span> },
+                { key: 'valor', label: 'Valor do produto', align: 'right', render: r => `${Number(r.total_price || 0).toLocaleString('pt-AO')} Kz` },
+                { key: 'comissao', label: 'Comissão (8%)', align: 'right', render: r => r.payment_status === 'paid' ? `${(Number(r.total_price || 0) * 0.08).toLocaleString('pt-AO')} Kz` : 'Após pagamento' },
+                { key: 'liquido', label: 'Líquido', align: 'right', render: r => r.payment_status === 'paid' ? `${(Number(r.total_price || 0) * 0.92).toLocaleString('pt-AO')} Kz` : 'A liquidar' },
+                { key: 'pagamento', label: 'Pagamento', render: r => <span style={{ fontSize: 11, fontWeight: 700, color: r.payment_status === 'paid' ? T.g600 : T.faint }}>{r.payment_status === 'paid' ? 'Confirmado' : r.payment_status === 'pending' || r.payment_status === 'processing' ? 'Em validação' : 'Não iniciado'}</span> },
+                { key: 'data', label: 'Data', render: r => formatDate(r.created_at) },
+              ]}
+              rows={receivedOrders}
+              keyField={r => r.id}
+              accent={r => r.status === 'pending' ? T.goldL : r.status === 'accepted' ? T.g400 : '#EF4444'}
+              actions={r => (
+                <>
+                  {r.status === 'pending' && <IconBtn icon={<CheckCircle size={13} strokeWidth={1.75}/>} title={t('profile.accept')} onClick={() => acceptOrder(r.id)} />}
+                  {r.status === 'pending' && <IconBtn icon={<Trash2 size={13} strokeWidth={1.75}/>} title={t('profile.reject')} danger onClick={() => rejectOrder(r.id)} />}
+                  <IconBtn icon={<Phone size={13} strokeWidth={1.75}/>} title={t('profile.contact')} onClick={() => contactBuyer(r)} />
+                  <IconBtn icon={<FileSignature size={13} strokeWidth={1.75}/>} title={receiptBusyId === r.id ? 'A gerar comprovante…' : 'Histórico e comprovante PDF'} onClick={() => { if (receiptBusyId !== r.id) void downloadTransactionReceipt(r.id) }} />
+                </>
+              )}
+              empty={<EmptyState icon={<ShoppingCart size={26} color={T.faint}/>} message={t('profile.noOrdersReceived')} sub={t('profile.ordersWillAppear')} />}
+            />
+            </div>
+          )}
+
+          {/* ── Referrals ── */}
+          {activeTab === 'referrals' && isAgente && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <SectionHead title={t('profile.myReferrals')} count={agentStats?.recentReferrals?.length || 0} sub="Utilizadores que entraram com o teu código." />
+              <StatsStrip items={[
+                { value: agentStats?.totalReferrals || 0, label: t('profile.usersReferred'), color: roleAccent },
+                { value: agentStats?.totalPoints || 0, label: t('profile.pointsEarned'), color: T.gold },
+              ]} />
+
+              <ReferralsTable
+                columns={[
+                  { key: 'user', label: 'Utilizador', render: r => (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: T.g50, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <User size={13} color={T.g600} strokeWidth={1.75}/>
+                      </div>
+                      <span style={{ fontWeight: 700, color: T.ink }}>{r.user_name}</span>
+                    </div>
+                  ) },
+                  { key: 'tipo', label: 'Tipo', render: r => <StatusPill status={r.user_type} /> },
+                  { key: 'data', label: 'Data', render: r => formatDate(r.created_at) },
+                  { key: 'pontos', label: 'Pontos', align: 'right', render: r => (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 800, color: T.gold }}>
+                      <Star size={12} color={T.goldL} fill={T.goldL} strokeWidth={1.75}/> +{r.points}
+                    </span>
+                  ) },
+                ]}
+                rows={agentStats?.recentReferrals || []}
+                keyField={(r, i) => `${r.user_name}-${i}`}
+                empty={<EmptyState icon={<Users size={26} color={T.faint}/>} message={t('profile.noReferralsYet')} sub={t('profile.shareToEarnPoints')} />}
+              />
+            </div>
+          )}
+
+          {/* ── Statistics ── */}
+          {activeTab === 'statistics' && (
+            <div style={{ background: T.white, borderRadius: R.md, border: `1px solid ${T.rule}`, padding: 24 }}>
+              <h3 style={{ fontFamily: FONT, fontSize: 18, fontWeight: 700, color: T.ink, margin: '0 0 18px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <TrendingUp size={17} color={roleAccent} strokeWidth={1.75}/> {t('profile.performanceSummary')}
+              </h3>
+              <div className="ag-metric-grid">
+                {(isAgente ? [
+                  { label: t('profile.totalReferrals'), val: agentStats?.totalReferrals || 0, color: T.g600 },
+                  { label: t('profile.totalPoints'), val: agentStats?.totalPoints || 0, color: T.gold },
+                ] : isComprador ? [
+                  { label: t('profile.totalReceipts'), val: fichasRecebimento.length, color: T.g600 },
+                  { label: t('profile.purchasesSimulation'), val: buyerStats.completedOrders, color: T.g600 },
+                  { label: t('profile.favoritesSimulation'), val: buyerStats.favoriteProducts, color: T.gold },
+                ] : [
+                  { label: t('profile.totalProductsPublished'), val: userProducts.length, color: T.ink },
+                  { label: t('profile.activeProducts'), val: activeProducts, color: T.g600 },
+                  { label: t('profile.totalComments'), val: totalComments, color: T.g600 },
+                  { label: t('profile.totalLikes'), val: totalLikes, color: T.gold },
+                ]).map((row) => (
+                  <div key={row.label} className="ag-metric">
+                    <span className="ag-metric-label">{row.label}</span>
+                    <span className="ag-metric-value" style={{ color: row.color }}>{typeof row.val === 'number' ? row.val.toLocaleString() : row.val}</span>
+                  </div>
+                ))}
+              </div>
+              {isAgente && (
+                <p style={{ fontSize: 11, color: T.faint, marginTop: 16, padding: '12px 14px', borderRadius: R.md, background: T.g50 }}>
+                  {t('profile.eachUserWorth')}
+                </p>
+              )}
+            </div>
+          )}
+          </div>
+        </div>
+      </div>
+
+      <Dialog open={!!editingProduct} onOpenChange={(open) => { if (!open && !savingProductEdit) setEditingProduct(null) }}>
+        <DialogContent style={{ maxWidth: 680, maxHeight: '90vh', overflowY: 'auto', borderRadius: R.md, border: `1px solid ${T.rule}` }}>
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: FONT, fontSize: 19, fontWeight: 750, color: T.ink }}>Editar produto agrícola</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={(event) => { event.preventDefault(); void saveProductEdit() }} style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '8px 0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+              <Input label="Produto *" value={productEditForm.product_type} onChange={(e: any) => setProductEditForm(p => ({ ...p, product_type: e.target.value }))} required />
+              <Input label="Variedade" value={productEditForm.product_variety} onChange={(e: any) => setProductEditForm(p => ({ ...p, product_variety: e.target.value }))} />
+              <Input label="Quantidade disponível *" type="number" value={productEditForm.quantity} onChange={(e: any) => setProductEditForm(p => ({ ...p, quantity: e.target.value }))} required />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: T.ink }}>Unidade de venda *</label>
+                <select value={productEditForm.sale_unit} onChange={e => setProductEditForm(p => ({ ...p, sale_unit: e.target.value }))} style={{ height: 44, borderRadius: R.md, border: `1px solid ${T.rule}`, padding: '0 12px', background: T.subtle, color: T.ink, font: 'inherit' }}>
+                  <option value="kg">Quilograma (kg)</option><option value="ton">Tonelada (t)</option><option value="unidade">Unidade</option><option value="caixa">Caixa</option><option value="saco">Saco</option><option value="litro">Litro</option>
+                </select>
+              </div>
+              <Input label="Preço por unidade (Kz) *" type="number" value={productEditForm.price} onChange={(e: any) => setProductEditForm(p => ({ ...p, price: e.target.value }))} required />
+              <Input label="Quantidade mínima de encomenda" type="number" value={productEditForm.min_order_quantity} onChange={(e: any) => setProductEditForm(p => ({ ...p, min_order_quantity: e.target.value }))} />
+              <Input label="Data de colheita" type="date" value={productEditForm.harvest_date} onChange={(e: any) => setProductEditForm(p => ({ ...p, harvest_date: e.target.value }))} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: T.ink }}>Província</label>
+                <select value={productEditForm.province_id} onChange={e => setProductEditForm(p => ({ ...p, province_id: e.target.value, municipality_id: '' }))} style={{ height: 44, borderRadius: R.md, border: `1px solid ${T.rule}`, padding: '0 12px', background: T.subtle, color: T.ink, font: 'inherit' }}>
+                  <option value="">Seleccionar província</option>
+                  {angolaProvinces.map(province => <option key={province.id} value={province.id}>{province.name}</option>)}
+                </select>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: T.ink }}>Município</label>
+                <select value={productEditForm.municipality_id} onChange={e => setProductEditForm(p => ({ ...p, municipality_id: e.target.value }))} disabled={!productEditForm.province_id} style={{ height: 44, borderRadius: R.md, border: `1px solid ${T.rule}`, padding: '0 12px', background: T.subtle, color: T.ink, font: 'inherit', opacity: productEditForm.province_id ? 1 : .55 }}>
+                  <option value="">Seleccionar município</option>
+                  {angolaProvinces.find(province => province.id === productEditForm.province_id)?.municipalities.map(municipality => <option key={municipality.id} value={municipality.id}>{municipality.name}</option>)}
+                </select>
+              </div>
+              <Input label="Categoria agrícola" value={productEditForm.category} onChange={(e: any) => setProductEditForm(p => ({ ...p, category: e.target.value }))} />
+              <Input label="Condição do produto" value={productEditForm.product_condition} onChange={(e: any) => setProductEditForm(p => ({ ...p, product_condition: e.target.value }))} />
+              <Input label="Tipo de embalagem" value={productEditForm.packaging_type} onChange={(e: any) => setProductEditForm(p => ({ ...p, packaging_type: e.target.value }))} />
+            </div>
+            <Textarea label="Descrição" value={productEditForm.description} onChange={(e: any) => setProductEditForm(p => ({ ...p, description: e.target.value.slice(0, 3000) }))} placeholder="Descreve a qualidade, apresentação e outros detalhes relevantes." rows={4} />
+            <DialogFooter style={{ gap: 8 }}>
+              <Btn type="button" variant="outline" onClick={() => setEditingProduct(null)} disabled={savingProductEdit}>Cancelar</Btn>
+              <Btn type="submit" variant="primary" disabled={savingProductEdit}>{savingProductEdit ? 'A guardar…' : 'Guardar alterações'}</Btn>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!confirmAction} onOpenChange={(open) => { if (!open && !confirmBusy) setConfirmAction(null) }}>
+        <DialogContent style={{ maxWidth: 430, borderRadius: R.md, border: `1px solid ${T.rule}` }}>
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: FONT, fontSize: 19, fontWeight: 700, color: T.ink, display: 'flex', alignItems: 'center', gap: 9 }}>
+              <span style={{ width: 36, height: 36, borderRadius: R.md, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: T.g50, border: `1px solid ${T.gBorder}`, padding: 7 }}>
+                <img src={agrilinkLogo} alt="AgriLink" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              </span>
+              {confirmAction?.title || 'Confirmar ação'}
+            </DialogTitle>
+          </DialogHeader>
+          <div style={{ padding: '8px 0 14px', color: T.muted, fontSize: 13, lineHeight: 1.65 }}>
+            {confirmAction?.description}
+          </div>
+          <DialogFooter>
+            <Btn variant="outline" onClick={() => setConfirmAction(null)} disabled={confirmBusy}>Cancelar</Btn>
+            <Btn
+              variant="primary"
+              disabled={confirmBusy}
+              onClick={async () => {
+                if (!confirmAction || !user) return
+                setConfirmBusy(true)
+                try {
+                  if (confirmAction.kind === 'delete-product') {
+                    const { data: removedProduct, error } = await supabase.from('products').update({ status: 'removed' }).eq('id', confirmAction.id).eq('user_id', user.id).select('id').single()
+                    if (error) throw error
+                    if (!removedProduct) throw new Error('O produto não foi encontrado ou já não tens permissão para o remover.')
+                    setUserProducts(prev => prev.filter(p => p.id !== confirmAction.id))
+                    toast({ title: 'Produto removido', description: 'O produto foi retirado do seu catálogo.' })
+                  } else {
+                    const updatedOrder = await respondToPreOrder(confirmAction.id, 'rejected')
+                    setReceivedOrders(prev => prev.map(o => o.id === confirmAction.id ? { ...o, status: updatedOrder.status, updated_at: updatedOrder.updated_at } : o))
+                    await fetchReceivedOrders()
+                    toast({ title: 'Pedido rejeitado' })
+                  }
+                  setConfirmAction(null)
+                } catch (error: any) {
+                  console.error('[AgriLink] Erro ao executar ação:', error)
+                  toast({ title: 'Não foi possível concluir a ação', description: error?.message || 'Tente novamente.', variant: 'destructive' } as any)
+                } finally {
+                  setConfirmBusy(false)
+                }
+              }}
+            >
+              {confirmBusy ? 'A processar…' : 'Confirmar'}
+            </Btn>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══ SETTINGS MODAL ═══════════════════════════════════════════════════ */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent style={{ maxWidth: 420, borderRadius: R.md, border: `1px solid ${T.rule}` }}>
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: FONT, fontSize: 19, fontWeight: 700, color: T.ink, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Settings size={17} color={T.g600}/> {t('profile.settings')}
+            </DialogTitle>
+          </DialogHeader>
+          <div style={{ padding: '8px 0 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 700, color: T.ink, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <Globe size={13} color={T.g500 ?? T.g600}/> {t('common.language') || 'Idioma'}
+              </label>
+              <Select value={i18n.language} onValueChange={(value) => {
+                i18n.changeLanguage(value)
+                localStorage.setItem('agrilink_language', value)
+                toast({ title: t('common.success'), description: t('common.languageChanged') || 'Idioma alterado.' })
+              }}>
+                <SelectTrigger style={{ borderRadius: R.md, border: `1px solid ${T.rule}`, height: 42, fontSize: 13, fontFamily: 'inherit' }}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent style={{ borderRadius: R.md, border: `1px solid ${T.rule}` }}>
+                  {supportedLanguageOptions.map((language) => (
+                    <SelectItem key={language.val} value={language.val} style={{ fontSize: 13 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 16 }}>{language.flag}</span> {language.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Btn variant="outline" onClick={() => setSettingsOpen(false)}>{t('common.close')}</Btn>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <style>{`
+        * { box-sizing: border-box; }
+
+        @keyframes ag-spin    { to { transform: rotate(360deg) } }
+        @keyframes ag-fade-up { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: translateY(0) } }
+
+
+        .ag-btn:active { transform: scale(0.97); }
+        .ag-btn { min-height: 40px; }
+        .ag-icon-btn:hover { background: ${T.g100}; color: ${T.g600}; }
+        .ag-avatar-edit:hover { transform: scale(1.08); }
+        .ag-input:focus { border-color: ${T.g500 ?? T.g600} !important; background: ${T.white} !important; box-shadow: 0 0 0 4px rgba(61,154,72,0.1); }
+        .ag-tab:hover { color: ${T.ink}; }
+        .ag-profile-page { color: ${T.ink}; }
+        .ag-profile-page .ag-table-wrap { overflow-x: auto !important; }
+
+        /* ── Table ───────────────────────────────────────────────────────── */
+        .ag-table { border-collapse: collapse; }
+        .ag-table thead th {
+          text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: ${T.faint}; padding: 13px 16px; white-space: nowrap;
+          border-bottom: 1px solid ${T.rule}; background: ${T.canvas};
+        }
+        .ag-table tbody tr { animation: ag-fade-up 0.4s ${EASE} both; transition: background 0.2s ${EASE}; }
+        .ag-table tbody tr:hover { background: ${T.g50}; }
+        .ag-table tbody tr:hover .ag-row-actions { opacity: 1; }
+        .ag-table tbody td { padding: 14px 16px; font-size: 13px; color: ${T.mid}; border-bottom: 1px solid ${T.rule}; vertical-align: middle; }
+        .ag-table tbody tr:last-child td { border-bottom: none; }
+        .ag-row-actions { display: inline-flex; gap: 5px; justify-content: flex-end; opacity: 0.55; transition: opacity 0.2s ${EASE}; }
+        .ag-accent-cell { width: 4px; padding: 0 !important; border-bottom: none !important; }
+
+        @media (max-width: 720px) {
+          .ag-table thead { display: none; }
+          .ag-table, .ag-table tbody, .ag-table tr, .ag-table td { display: block; width: 100%; }
+          .ag-table tbody tr { padding: 14px 16px; border-bottom: 1px solid ${T.rule}; position: relative; }
+          .ag-table tbody tr:last-child { border-bottom: none; }
+          .ag-table td { padding: 5px 0; border: none !important; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: right !important; }
+          .ag-table td.ag-accent-cell { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; height: auto; }
+          .ag-table td[data-label]::before {
+            content: attr(data-label); font-size: 10.5px; font-weight: 700; color: ${T.faint}; text-align: left; flex-shrink: 0;
+          }
+          .ag-row-actions { opacity: 1; }
+        }
+
+        @media (max-width: 480px) {
+          .ag-layout { padding: 18px 14px !important; gap: 14px !important; }
+          .ag-profile-toolbar { padding: 0 14px !important; }
+          .ag-profile-actions { gap: 5px !important; }
+          .ag-profile-actions .ag-btn { padding-left: 9px !important; padding-right: 9px !important; }
+        }
+
+        @media (min-width: 640px) {
+          .sm\\:grid-cols-2 { grid-template-columns: 1fr 1fr !important; }
+          .sm\\:inline { display: inline !important; }
+        }
+
+        /* ── Estrutura da página ─────────────────────────────────────────── */
+        .ag-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; align-items: start; }
+        .ag-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+        @media (min-width: 1024px) {
+          .ag-layout { grid-template-columns: 340px minmax(0, 1fr); gap: 28px; }
+          .ag-side { position: sticky; top: 84px; }
+        }
+        .ag-stack { display: flex; flex-direction: column; gap: 14px; }
+
+        .ag-page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+        .ag-page-title { margin: 0; font-family: ${FONT}; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; color: ${T.ink}; }
+        .ag-page-sub { margin: 4px 0 0; font-size: 13.5px; color: ${T.muted}; line-height: 1.5; }
+
+        .ag-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+        .ag-section-title { display: flex; align-items: center; gap: 8px; margin: 0; font-family: ${FONT}; font-size: 16px; font-weight: 700; color: ${T.ink}; }
+        .ag-section-sub { margin: 3px 0 0; font-size: 12px; color: ${T.faint}; }
+        .ag-count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; background: ${T.g50}; color: ${T.g700}; font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+        .ag-tabs { display: flex; gap: 6px; padding: 5px; margin-bottom: 20px; overflow-x: auto; background: ${T.white}; border: 1px solid ${T.rule}; border-radius: ${R.md}px; scrollbar-width: none; }
+        .ag-tabs::-webkit-scrollbar { display: none; }
+
+        /* ── Cartão de perfil ────────────────────────────────────────────── */
+        .ag-card { background: ${T.white}; border: 1px solid ${T.rule}; border-radius: ${R.md}px; overflow: hidden; }
+        .ag-profile-cover { height: 64px; background: ${T.g50}; border-bottom: 1px solid ${T.rule}; }
+        .ag-profile-head { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 0 20px; margin-top: -36px; }
+        .ag-profile-info { padding: 6px 20px 0; }
+        .ag-profile-foot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 14px 20px 20px; }
+        .ag-info-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid ${T.rule}; }
+        .ag-info-row:last-child { border-bottom: none; }
+        .ag-info-ico { display: flex; flex-shrink: 0; margin-top: 2px; color: ${T.faint}; }
+        .ag-info-label { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: ${T.faint}; }
+        .ag-info-value { margin-top: 2px; font-size: 13.5px; font-weight: 500; color: ${T.mid}; overflow-wrap: anywhere; }
+
+        /* ── Indicadores ─────────────────────────────────────────────────── */
+        .ag-stats { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: 1px; background: ${T.rule}; border: 1px solid ${T.rule}; border-radius: ${R.md}px; overflow: hidden; }
+        .ag-stat { min-width: 0; padding: 16px 12px; text-align: center; background: ${T.white}; }
+        .ag-stat-value { font-family: ${FONT}; font-size: 22px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+        .ag-stat-label { margin-top: 6px; font-size: 11px; font-weight: 500; color: ${T.faint}; line-height: 1.35; }
+        @media (max-width: 520px) { .ag-stats[data-n="4"] { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+        .ag-metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+        .ag-metric { display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 1px solid ${T.rule}; border-radius: ${R.md}px; background: ${T.white}; }
+        .ag-metric-label { font-size: 12.5px; font-weight: 500; color: ${T.muted}; line-height: 1.4; }
+        .ag-metric-value { font-family: ${FONT}; font-size: 28px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+
+        /* ── Sourcing: estado do agente ──────────────────────────────────── */
+        .ag-agent-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; max-width: 260px; text-align: left; }
+        .ag-agent-label { font-size: 11px; color: ${T.mid}; }
+        .ag-agent-note { font-size: 10px; color: ${T.faint}; line-height: 1.45; }
+        .ag-agent-matches { display: flex; flex-direction: column; gap: 4px; padding-top: 6px; margin-top: 2px; border-top: 1px solid ${T.rule}; }
+        .ag-link-btn { padding: 0; border: 0; background: transparent; font-size: 11px; font-weight: 700; }
+
+        /* ── Acessibilidade ──────────────────────────────────────────────── */
+        .ag-btn:focus-visible, .ag-tab:focus-visible, .ag-icon-btn:focus-visible, .ag-link-btn:focus-visible { outline: 2px solid ${T.g600}; outline-offset: 2px; }
+        @media (min-width: 721px) { .ag-table { min-width: 720px; } }
+
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+export default Profile

@@ -1,0 +1,510 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+@import "../design-system/tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================================
+  AgriLink — white and official brand-green design foundation
+  ========================================================= */
+
+@layer base {
+  :root {
+    /* Brand palette: white and AgriLink green (#2c863b). */
+    --background: 0 0% 100%;
+    --background-secondary: 100 16% 96%;
+    --foreground: 0 0% 0%;
+
+    /* Surfaces */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --card-border: 120 13% 86%;
+
+    /* Popovers */
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+
+    /* Primary brand green */
+    --primary: 130 51% 35%;
+    --primary-light: 130 51% 35%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 130 51% 35%;
+    --primary-glow: 130 51% 35%;
+
+    /* Secondary surfaces use white; emphasis comes from green. */
+    --secondary: 100 16% 96%;
+    --secondary-light: 0 0% 100%;
+    --secondary-foreground: 0 0% 0%;
+
+    /* Business */
+    --business: 130 51% 35%;
+    --business-light: 130 51% 35%;
+    --business-foreground: 0 0% 100%;
+
+    /* Compatibility aliases stay within the brand palette. */
+    --accent: 130 51% 35%;
+    --accent-light: 130 51% 35%;
+    --accent-foreground: 0 0% 100%;
+    --accent-hover: 130 51% 35%;
+
+    /* Muted */
+    --muted: 100 16% 96%;
+    --muted-foreground: 133 5% 34%;
+
+    /* Status colors are distinct from the brand and pass text contrast. */
+    --success: 139 65% 25%;
+    --success-foreground: 0 0% 100%;
+    --warning: 35 100% 24%;
+    --warning-foreground: 0 0% 100%;
+    --destructive: 4 71% 37%;
+    --destructive-foreground: 0 0% 100%;
+    --info: 210 69% 29%;
+    --info-foreground: 0 0% 100%;
+
+    /* Borders */
+    --border: 120 13% 86%;
+    --border-strong: 120 6% 49%;
+    --input: 120 13% 86%;
+    --ring: 130 51% 35%;
+
+    /* Legacy gradient utilities resolve to solid brand colors. */
+    --gradient-primary: linear-gradient(135deg, #2c863b, #2c863b);
+    --gradient-business: linear-gradient(135deg, #2c863b, #2c863b);
+    --gradient-hero: linear-gradient(145deg, #2c863b, #2c863b);
+    --gradient-gold: linear-gradient(135deg, #2c863b, #2c863b);
+    --gradient-card: linear-gradient(160deg, #ffffff, #ffffff);
+    --gradient-surface: linear-gradient(180deg, #ffffff, #ffffff);
+
+    /* Shadows */
+    --shadow-xs: 0 1px 2px 0 hsl(130 51% 35% / 0.04);
+    --shadow-soft: 0 3px 12px -4px hsl(130 51% 35% / 0.10);
+    --shadow-medium: 0 8px 24px -8px hsl(130 51% 35% / 0.14);
+    --shadow-strong: 0 16px 40px -12px hsl(130 51% 35% / 0.18);
+    --shadow-glow: 0 0 32px hsl(130 51% 35% / 0.20);
+    --shadow-inner: inset 0 1px 2px hsl(130 51% 35% / 0.06);
+
+    /* Animations */
+    --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    --radius: 12px;
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-primary: 130 51% 35%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 100%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 130 51% 35% / 0.24;
+    --sidebar-ring: 130 51% 35%;
+
+    /* Safe areas */
+    --safe-area-inset-top: env(safe-area-inset-top, 0px);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-inset-left: env(safe-area-inset-left, 0px);
+    --safe-area-inset-right: env(safe-area-inset-right, 0px);
+
+    /* ============================================================
+       Map & Satellite Panel palette — Verde Alface (Lettuce Green)
+       Consumed via var(--map-*) in MapView.tsx and SatelliteMonitor.tsx
+       ============================================================ */
+    --map-g950: #2C863B;
+    --map-g900: #2C863B;
+    --map-g800: #2C863B;
+    --map-g700: #2C863B;
+    --map-g600: #2C863B;
+    --map-g500: #2C863B;
+    --map-g400: #2C863B;
+    --map-g200: #FFFFFF;
+    --map-g100: #FFFFFF;
+    --map-g50:  #FFFFFF;
+    --map-gborder: #2C863B;
+    --map-accent:   #2C863B;
+    --map-accent-l: #2C863B;
+    --map-accent-bg:#FFFFFF;
+    --map-ink:    #2C863B;
+    --map-slate:  #2C863B;
+    --map-mid:    #2C863B;
+    --map-muted:  #2C863B;
+    --map-faint:  #2C863B;
+    --map-rule:   #2C863B;
+    --map-canvas: #FFFFFF;
+    --map-surface:#FFFFFF;
+    --map-white:  #FFFFFF;
+    --map-gold:   #2C863B;
+    --map-gold-l: #2C863B;
+    --map-gold-bg:#FFFFFF;
+    --map-danger: #2C863B;
+    --map-danger-bg:#FFFFFF;
+    --map-blue:   #2C863B;
+    --map-blue-bg:#FFFFFF;
+    --map-shadow:    rgba(44,134,59,0.08);
+    --map-shadow-md: rgba(44,134,59,0.14);
+    --map-shadow-lg: rgba(44,134,59,0.20);
+  }
+
+  .dark {
+    --background: 0 0% 100%;
+    --background-secondary: 100 16% 96%;
+    --foreground: 0 0% 0%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --card-border: 120 13% 86%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+
+    --primary: 130 51% 35%;
+    --primary-light: 130 51% 35%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 130 51% 35%;
+
+    --secondary: 100 16% 96%;
+    --secondary-light: 0 0% 100%;
+    --secondary-foreground: 0 0% 0%;
+    --business: 130 51% 35%;
+    --business-light: 130 51% 35%;
+    --business-foreground: 0 0% 100%;
+
+    --muted: 100 16% 96%;
+    --muted-foreground: 133 5% 34%;
+    --success: 139 65% 25%;
+    --success-foreground: 0 0% 100%;
+    --warning: 35 100% 24%;
+    --warning-foreground: 0 0% 100%;
+    --info: 210 69% 29%;
+    --info-foreground: 0 0% 100%;
+
+    --accent: 130 51% 35%;
+    --accent-light: 130 51% 35%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 4 71% 37%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 120 13% 86%;
+    --border-strong: 120 6% 49%;
+    --input: 120 13% 86%;
+    --ring: 130 51% 35%;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-primary: 130 51% 35%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 100%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 130 51% 35% / 0.24;
+    --sidebar-ring: 130 51% 35%;
+
+    /* Map overlays retain the same two brand colors in dark mode. */
+    --map-g950: #FFFFFF;
+    --map-g900: #FFFFFF;
+    --map-g800: #FFFFFF;
+    --map-g700: #FFFFFF;
+    --map-g600: #FFFFFF;
+    --map-g500: #FFFFFF;
+    --map-g400: #FFFFFF;
+    --map-g200: #2C863B;
+    --map-g100: #2C863B;
+    --map-g50:  #2C863B;
+    --map-gborder: #FFFFFF;
+    --map-accent:   #FFFFFF;
+    --map-accent-l: #FFFFFF;
+    --map-accent-bg:#2C863B;
+    --map-ink:    #FFFFFF;
+    --map-slate:  #FFFFFF;
+    --map-mid:    #FFFFFF;
+    --map-muted:  #FFFFFF;
+    --map-faint:  #FFFFFF;
+    --map-rule:   #FFFFFF;
+    --map-canvas: #2C863B;
+    --map-surface:#2C863B;
+    --map-white:  #2C863B;
+    --map-gold:   #FFFFFF;
+    --map-gold-l: #FFFFFF;
+    --map-gold-bg:#2C863B;
+    --map-danger: #FFFFFF;
+    --map-danger-bg:#2C863B;
+    --map-blue:   #FFFFFF;
+    --map-blue-bg:#2C863B;
+    --map-shadow:    rgba(255,255,255,0.12);
+    --map-shadow-md: rgba(255,255,255,0.20);
+    --map-shadow-lg: rgba(255,255,255,0.28);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  /* AgriLink typography — one font, consistent weights everywhere */
+  h1, h2, h3, h4, h5, h6, button, input, textarea, select, label, .badge {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+  h1 { @apply text-2xl font-extrabold tracking-tight; }
+  h2 { @apply text-xl font-bold tracking-tight; }
+  h3 { @apply text-base font-bold; }
+  p, span, li { font-weight: 400; }
+  button { font-weight: 700; }
+
+  input, textarea, select {
+    @apply bg-background text-foreground border-border;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: hsl(var(--muted-foreground));
+    opacity: 1;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus,
+  button:focus-visible {
+    @apply outline-none ring-2 ring-primary/20 ring-offset-2 ring-offset-background;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+    background: hsl(var(--background-secondary));
+  }
+
+  body,
+  #root {
+    min-height: 100%;
+    background: hsl(var(--background-secondary));
+  }
+
+  /* Better focus styles */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer components {
+  /* Card hover effects */
+  .card-interactive {
+    @apply transition-all duration-200 hover:shadow-medium hover:-translate-y-0.5;
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-background/80 backdrop-blur-md border border-border/50;
+  }
+
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent;
+  }
+
+  /* Safe bottom padding for mobile nav */
+  .safe-bottom {
+    padding-bottom: calc(4.5rem + var(--safe-area-inset-bottom));
+  }
+
+  /* Content container with responsive padding */
+  .content-container {
+    @apply px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full;
+  }
+}
+
+/* === Scrollbar styles === */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom scrollbar for non-hidden areas */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 12px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* ======================================================
+   Carousel (react-slick)
+   ====================================================== */
+.slick-slider { 
+  position: relative;
+}
+.slick-slide { 
+  display: block;
+}
+.slick-slide img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0;
+}
+.slick-list { 
+  border-radius: 0;
+  overflow: hidden;
+}
+
+/* Dots */
+.slick-dots {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex !important;
+  gap: 8px;
+  z-index: 30;
+}
+.slick-dots li {
+  margin: 0;
+}
+.slick-dots button {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: hsl(0 0% 100% / 0.5);
+  border: none;
+  transition: all 0.2s ease;
+  font-size: 0;
+  padding: 0;
+}
+.slick-dots li.slick-active button {
+  width: 20px;
+  background: hsl(0 0% 100%);
+}
+
+/* Arrows */
+.slick-prev, .slick-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(0 0% 100% / 0.9);
+  border-radius: 999px;
+  border: none;
+  box-shadow: 0 2px 8px hsl(0 0% 0% / 0.1);
+  transition: all 0.15s ease;
+  z-index: 10;
+  cursor: pointer;
+}
+.slick-prev:hover, .slick-next:hover {
+  transform: translateY(-50%) scale(1.05);
+  background: hsl(0 0% 100%);
+}
+.slick-prev { left: 12px; }
+.slick-next { right: 12px; }
+.slick-prev:before, .slick-next:before { content: ''; }
+
+@media (max-width: 640px) {
+  .slick-prev, .slick-next { display: none !important; }
+  .slick-dots { bottom: 8px; gap: 6px; }
+  .slick-dots button { width: 5px; height: 5px; }
+  .slick-dots li.slick-active button { width: 16px; }
+}
+
+/* Form reset for slick */
+form button:not([type]),
+form input[type="submit"] {
+  all: unset;
+  cursor: pointer;
+}
+
+/* ======================================================
+   Animations
+   ====================================================== */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out forwards;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* Staggered animation delays */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+
+/* Drop shadow glow effect */
+.drop-shadow-glow {
+  filter: drop-shadow(0 0 12px hsl(88 55% 55% / 0.6));
+}
+
+@keyframes bounce-in {
+  0% { opacity: 0; transform: scale(0.3); }
+  50% { opacity: 1; transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

@@ -1,0 +1,496 @@
+import React, { Suspense, lazy, useEffect } from "react";
+import { Toaster } from "./components/ui/toaster";
+import { Toaster as Sonner } from "./components/ui/sonner";
+import { TooltipProvider } from "./components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import Loader from "./components/ui/Loader";
+import AppLayout from "./layouts/AppLayout";
+import { GuestGateProvider } from "./contexts/GuestGateContext";
+import { purgeExpiredGuestSession } from "./lib/guestSession";
+import { AdminPermission } from "./features/auth/authorization";
+import NotificationRuntime from "./components/NotificationRuntime";
+
+const Index = lazy(() => import("./pages/Index"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const Registration = lazy(() => import("./pages/Registration"));
+const ProformaInvoices = lazy(() => import("./pages/ProformaInvoices"));
+const TechnicalSheet = lazy(() => import("./pages/TechnicalSheet"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const AppHome = lazy(() => import("./pages/AppHome"));
+const MapView = lazy(() => import("./pages/MapView"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const Messages = lazy(() => import("./pages/Messages"));
+const Profile = lazy(() => import("./pages/Profile"));
+const ConversationsList = lazy(() => import("./pages/ConversationsList"));
+const Support = lazy(() => import("./pages/Support"));
+const PublishProduct = lazy(() => import("./pages/PublishProduct"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminOrderTrash = lazy(() => import("./components/admin/AdminOrderTrash"));
+const FichaRecebimento = lazy(() => import("./pages/FichaRecebimento"));
+const CriarContratoFuturos = lazy(() => import("./pages/CriarContratoFuturos"));
+const ContratosFuturos = lazy(() => import("./pages/ContratosFuturos"));
+const SearchPage = lazy(() => import("./pages/SearchPage"));
+const EmailConfirmation = lazy(() => import("./pages/EmailConfirmation"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const ChangePassword = lazy(() => import("./pages/ChangePassword"));
+const AdminPasswordResets = lazy(() => import("./pages/AdminPasswordResets"));
+const UserProfile = lazy(() => import("./pages/UserProfile"));
+const B2BProfile = lazy(() => import("./pages/B2BProfile"));
+const CompletarPerfil = lazy(() => import("./pages/CompletarPerfil"));
+const PublicProductLocation = lazy(() => import("./pages/PublicProductLocation"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const MeusContratos = lazy(() => import("./pages/MeusContratos"));
+const ProximasCargas = lazy(() => import("./pages/ProximasCargas"));
+const FreightLoadScan = lazy(() => import("./pages/FreightLoadScan"));
+const P2PBeneficiary = lazy(() => import("./pages/P2PBeneficiary"));
+const MyPurchases = lazy(() => import("./pages/MyPurchases"));
+const SupplierOrders = lazy(() => import("./pages/SupplierOrders"));
+
+const queryClient = new QueryClient();
+
+const isProfileComplete = (p: any) =>
+  !!(p && p.user_type && p.identity_document && p.province_id && p.municipality_id);
+
+// Protected Route component
+const ProtectedRoute = ({ children, allowIncomplete = true, allowUnverified = false }: { children: React.ReactNode; allowIncomplete?: boolean; allowUnverified?: boolean }) => {
+  const { user, userProfile, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return null;
+  }
+
+  if (!user) {
+    const from = `${location.pathname}${location.search}${location.hash}`;
+    return <Navigate to="/login" state={{ from }} replace />;
+  }
+
+  // Supabase Auth é a fonte de verdade; o perfil público pode estar alguns ms atrasado.
+  const emailConfirmed = Boolean(user.email_confirmed_at);
+  if (!allowUnverified && !emailConfirmed) {
+    return <Navigate to="/confirmar-email" replace />;
+  }
+
+  if (!allowIncomplete && userProfile && !isProfileComplete(userProfile)) {
+    return <Navigate to="/completar-perfil" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const MAP_PREVIEW_STORAGE_KEY = 'agrilink-map-preview-expires-at';
+const MAP_PREVIEW_DURATION_MS = 60_000;
+
+const MapPreviewRoute = ({ render }: { render: (readOnly: boolean) => React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [expired, setExpired] = React.useState(false);
+  const from = `${location.pathname}${location.search}${location.hash}`;
+
+  useEffect(() => {
+    if (loading || user) return;
+
+    let expiresAt: number;
+    try {
+      const storedExpiry = Number(sessionStorage.getItem(MAP_PREVIEW_STORAGE_KEY));
+      expiresAt = storedExpiry > 0 ? storedExpiry : Date.now() + MAP_PREVIEW_DURATION_MS;
+      if (storedExpiry <= 0) sessionStorage.setItem(MAP_PREVIEW_STORAGE_KEY, String(expiresAt));
+    } catch {
+      expiresAt = Date.now() + MAP_PREVIEW_DURATION_MS;
+    }
+
+    const remaining = expiresAt - Date.now();
+    const requireLogin = () => navigate('/login', { replace: true, state: { from } });
+    if (remaining <= 0) {
+      setExpired(true);
+      requireLogin();
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setExpired(true);
+      requireLogin();
+    }, remaining);
+    return () => window.clearTimeout(timeout);
+  }, [loading, user, navigate, from]);
+
+  if (loading || expired) return <Loader />;
+  if (user) return <ProtectedRoute>{render(false)}</ProtectedRoute>;
+  return render(true);
+};
+
+/**
+ * Rota aberta: utilizadores autenticados passam pelas mesmas validações do
+ * ProtectedRoute; visitantes entram em Modo Convidado (dados locais, 2h).
+ */
+const OpenRoute = ({ children, allowIncomplete = true }: { children: React.ReactNode; allowIncomplete?: boolean }) => {
+  const { user, userProfile, loading } = useAuth();
+
+  if (loading) {
+    return null;
+  }
+
+  if (user) {
+    const emailConfirmed = Boolean(user.email_confirmed_at);
+    if (!emailConfirmed) return <Navigate to="/confirmar-email" replace />;
+    if (!allowIncomplete && userProfile && !isProfileComplete(userProfile)) return <Navigate to="/completar-perfil" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const PermissionRoute = ({ children, permissions, requireAll = false, allowSupportAgent = false, allowRootAdmins = false }: { children: React.ReactNode; permissions: AdminPermission[]; requireAll?: boolean; allowSupportAgent?: boolean; allowRootAdmins?: boolean }) => {
+  const { user, loading, isAdmin, isRootAdmin, isSuperRoot, isSupportAgent, hasAnyPermission, hasAllPermissions } = useAuth();
+  if (loading) return <Loader />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!isAdmin && !isRootAdmin && !isSuperRoot) return <Navigate to="/app" replace />;
+  const allowedByPermission = requireAll ? hasAllPermissions(permissions) : hasAnyPermission(permissions);
+  const allowed = allowedByPermission || (allowSupportAgent && isSupportAgent) || (allowRootAdmins && (isRootAdmin || isSuperRoot));
+  if (!allowed) return <Navigate to="/app" replace />;
+  return <>{children}</>;
+};
+
+
+const RoleRoute = ({ children, allowedRole }: { children: React.ReactNode; allowedRole: string }) => {
+  const { user, userProfile, loading } = useAuth();
+  if (loading) return <Loader />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!user.email_confirmed_at) return <Navigate to="/confirmar-email" replace />;
+  if (String(userProfile?.user_type ?? "").toLowerCase() !== allowedRole) {
+    return <Navigate to="/app" replace />;
+  }
+  return <>{children}</>;
+};
+
+const AppRoutes = () => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (user?.app_metadata?.must_change_password === true && location.pathname !== "/change-password") {
+    return <Navigate to="/change-password" replace />;
+  }
+
+  return (
+    <Suspense fallback={<Loader />}>
+      <Routes>
+        <Route path="/" element={user ? <Navigate to="/app" replace /> : <Index />} />
+        <Route path="/index" element={user ? <Navigate to="/app" replace /> : <Index />} />
+        <Route path="/home" element={user ? <Navigate to="/app" replace /> : <Index />} />
+        <Route path="/site" element={<Index />} />
+        <Route path="/login" element={user ? <Navigate to="/app" replace /> : <LoginPage />} />
+        <Route path="/cadastro" element={<Navigate to="/login?mode=signup" replace />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/confirmar-email" element={<EmailConfirmation />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/change-password" element={<ChangePassword />} />
+        <Route path="/admin-password-resets" element={<PermissionRoute permissions={["manage_users"]} allowRootAdmins><AdminPasswordResets /></PermissionRoute>} />
+        <Route path="/termos-publicidade" element={<TermsOfService />} />
+        <Route path="/privacidade" element={<PrivacyPolicy />} />
+        <Route path="/politica-privacidade" element={<PrivacyPolicy />} />
+        <Route path="/produto/:id" element={<ProductDetail />} />
+        <Route path="/produto/:id/localizacao" element={<PublicProductLocation />} />
+        <Route path="/mapa" element={<MapPreviewRoute render={(readOnly) => <MapView readOnly={readOnly} />} />} />
+
+        {/* App Routes */}
+        <Route
+          path="/app"
+          element={
+            <OpenRoute allowIncomplete>
+              <AppLayout>
+                <AppHome />
+              </AppLayout>
+            </OpenRoute>
+          }
+        />
+        <Route
+          path="/mapa-app"
+          element={
+            <MapPreviewRoute render={(readOnly) => (
+              <AppLayout>
+                <MapView readOnly={readOnly} />
+              </AppLayout>
+            )} />
+          }
+        />
+        <Route
+          path="/notificacoes"
+          element={
+            <OpenRoute>
+              <AppLayout>
+                <Notifications />
+              </AppLayout>
+            </OpenRoute>
+          }
+        />
+        <Route
+          path="/messages/:id"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Messages />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/listamensagens"
+          element={
+            <OpenRoute>
+              <AppLayout>
+                <ConversationsList />
+              </AppLayout>
+            </OpenRoute>
+          }
+        />
+        <Route
+          path="/perfil"
+          element={
+            <OpenRoute>
+              <AppLayout>
+                <Profile />
+              </AppLayout>
+            </OpenRoute>
+          }
+        />
+        <Route
+          path="/carrinho"
+          element={<Navigate to="/app" replace />}
+        />
+        <Route
+          path="/pagamento/:purchaseId"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <MyPurchases />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/minhas-compras"
+          element={
+            <RoleRoute allowedRole="comprador">
+              <AppLayout>
+                <MyPurchases />
+              </AppLayout>
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/pedidos-fornecedor"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <SupplierOrders />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/perfil/:id"
+          element={
+            <OpenRoute>
+              <AppLayout>
+                <UserProfile />
+              </AppLayout>
+            </OpenRoute>
+          }
+        />
+        <Route
+          path="/empresa/:id"
+          element={
+            <OpenRoute>
+              <AppLayout>
+                <B2BProfile />
+              </AppLayout>
+            </OpenRoute>
+          }
+        />
+        <Route
+          path="/suporte"
+          element={
+            <OpenRoute>
+              <AppLayout>
+                <Support />
+              </AppLayout>
+            </OpenRoute>
+          }
+        />
+        <Route path="/mercado" element={<Navigate to="/app" replace />} />
+        <Route
+          path="/carteira"
+          element={
+            <ProtectedRoute>
+              <Navigate to="/perfil" replace />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/publicar-produto"
+          element={
+            <OpenRoute>
+              <PublishProduct />
+            </OpenRoute>
+          }
+        />
+        <Route
+          path="/facturas-proforma"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <ProformaInvoices />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <PermissionRoute permissions={['view_analytics']}>
+              <Navigate to="/admindashboard" replace />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="/admindashboard"
+          element={
+            <PermissionRoute permissions={['view_analytics']}>
+              <AdminDashboard />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="/admindashboard/pedidos/lixeira"
+          element={
+            <PermissionRoute permissions={['manage_orders']} allowSupportAgent>
+              <AdminOrderTrash />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="/search"
+          element={
+            <OpenRoute>
+              <AppLayout>
+                <SearchPage />
+              </AppLayout>
+            </OpenRoute>
+          }
+        />
+        <Route
+          path="/contratos-futuros/novo"
+          element={
+            <ProtectedRoute>
+              <CriarContratoFuturos />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/contratos"
+          element={
+            <OpenRoute>
+              <AppLayout>
+                <MeusContratos />
+              </AppLayout>
+            </OpenRoute>
+          }
+        />
+        <Route
+          path="/cargas"
+          element={
+            <RoleRoute allowedRole="motorista">
+              <AppLayout>
+                <ProximasCargas />
+              </AppLayout>
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/cargas/scan/:token"
+          element={
+            <RoleRoute allowedRole="motorista">
+              <AppLayout>
+                <FreightLoadScan />
+              </AppLayout>
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/contratos-futuros"
+          element={
+            <ProtectedRoute>
+              <ContratosFuturos />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ficharecebimento"
+          element={
+            <OpenRoute>
+              <FichaRecebimento />
+            </OpenRoute>
+          }
+        />
+        <Route
+          path="/ficha-tecnica/:id"
+          element={
+            <ProtectedRoute allowIncomplete>
+              <TechnicalSheet />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/completar-perfil"
+          element={
+            <ProtectedRoute allowIncomplete>
+              <CompletarPerfil />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Catch-all */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
+  );
+};
+
+const App = () => {
+  useEffect(() => {
+    purgeExpiredGuestSession();
+    if ('serviceWorker' in navigator && import.meta.env.PROD) {
+      void navigator.serviceWorker.ready.catch((error) => {
+          console.warn('Service worker not ready yet:', error);
+        });
+    }
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <GuestGateProvider>
+                <NotificationRuntime />
+                <AppRoutes />
+              </GuestGateProvider>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
+
+export default App;

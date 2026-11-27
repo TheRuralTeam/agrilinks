@@ -1,0 +1,1494 @@
+# AGRILINK — PREMIUM PRODUCT UI/UX REBUILD
+
+## 1. CONTEXTO DO PRODUTO
+
+A AgriLink é uma plataforma AgriTech / Marketplace + Logistics + Payments criada para conectar produtores, vendedores, compradores e transportadores, permitindo comercialização e movimentação de produtos agrícolas de forma digital.
+
+A plataforma deve evoluir para um produto digital premium, sofisticado, confiável e escalável, preparado para utilização real em Angola e posteriormente expansão para outros mercados africanos.
+
+O objetivo NÃO é apenas alterar cores, fontes ou alguns componentes.
+
+Quero reconstruir a experiência visual e de interação da AgriLink de ponta a ponta, criando uma identidade digital própria, contemporânea e reconhecível.
+
+A nova interface deve transmitir:
+
+* confiança
+* tecnologia
+* eficiência
+* escala
+* agricultura
+* logística
+* comércio
+* segurança
+* profissionalismo
+* inovação africana
+* simplicidade operacional
+
+A AgriLink deve parecer um produto desenvolvido por uma empresa tecnológica madura e especializada, e não um template, dashboard genérico ou aplicação produzida automaticamente por uma IA.
+
+---
+
+# 2. PRINCÍPIO FUNDAMENTAL
+
+NÃO CRIAR UMA INTERFACE COM APARÊNCIA DE "AI GENERATED APP".
+
+Evitar completamente:
+
+* layouts genéricos de SaaS
+* excesso de cards arredondados
+* excesso de glassmorphism
+* gradientes genéricos
+* dashboards com dezenas de cards iguais
+* ícones Lucide usados indiscriminadamente
+* botões excessivamente arredondados
+* sombras exageradas
+* componentes repetitivos
+* grandes áreas vazias sem função
+* aparência semelhante a templates de Lovable, v0, Bolt ou outros geradores
+* landing pages genéricas de startups
+* estética "green fintech" previsível
+* excesso de pills
+* excesso de badges
+* excesso de bordas
+* componentes visualmente idênticos em todas as páginas
+
+A interface deve ter decisões de design intencionais.
+
+Cada componente deve existir porque resolve uma necessidade concreta da experiência.
+
+---
+
+# 3. DIREÇÃO CRIATIVA
+
+Criar uma linguagem visual própria para a AgriLink.
+
+Conceito:
+
+## "AFRICAN AGRICULTURE × DIGITAL INFRASTRUCTURE"
+
+Combinar:
+
+* linguagem editorial premium
+* interfaces de produtos financeiros modernos
+* sistemas logísticos profissionais
+* marketplaces contemporâneos
+* cartografia e geolocalização
+* dados agrícolas
+* fotografia documental de alta qualidade
+* microinterações discretas
+* tipografia forte
+* hierarquia visual rigorosa
+
+A tecnologia deve estar presente sem fazer a plataforma parecer excessivamente "cyberpunk".
+
+Futurista, mas funcional.
+
+Premium, mas acessível.
+
+Tecnológica, mas humana.
+
+Africana, mas internacional.
+
+---
+
+# 4. IDENTIDADE VISUAL
+
+Desenvolver um sistema visual consistente antes de construir as páginas.
+
+## Cores
+
+Não utilizar apenas "verde + branco".
+
+Criar uma paleta completa:
+
+### Primary
+
+Um verde institucional sofisticado associado à agricultura e crescimento.
+
+### Secondary
+
+Tons escuros inspirados em:
+
+* solo
+* carvão
+* floresta
+* infraestrutura
+
+### Accent
+
+Uma cor energética utilizada para:
+
+* ações importantes
+* estados positivos
+* oportunidades
+* indicadores
+* CTAs
+
+### Neutral
+
+Criar uma escala completa:
+
+50
+100
+200
+300
+400
+500
+600
+700
+800
+900
+950
+
+A interface deve funcionar tanto em:
+
+* Light Mode
+* Dark Mode
+
+O Dark Mode deve ser tratado como uma experiência própria, não simplesmente inverter as cores.
+
+---
+
+# 5. TIPOGRAFIA
+
+Utilizar uma tipografia profissional e contemporânea.
+
+Priorizar:
+
+* excelente legibilidade
+* números bem desenhados
+* suporte consistente para português
+* excelente leitura em dispositivos móveis
+
+Criar hierarquia tipográfica:
+
+Display
+H1
+H2
+H3
+H4
+Body Large
+Body
+Body Small
+Caption
+Label
+Numeric / Data
+
+Os números devem ter especial atenção porque a plataforma trabalha com:
+
+* preços
+* quantidades
+* toneladas
+* distâncias
+* pagamentos
+* transações
+* métricas
+* estatísticas
+
+---
+
+# 6. DESIGN SYSTEM
+
+Criar um Design System completo.
+
+Componentes principais:
+
+* Button
+* IconButton
+* Input
+* Search
+* Select
+* Combobox
+* Date Picker
+* Time Picker
+* Currency Input
+* Quantity Input
+* Phone Input
+* OTP Input
+* Textarea
+* Checkbox
+* Radio
+* Switch
+* Tabs
+* Segmented Control
+* Dropdown
+* Tooltip
+* Popover
+* Modal
+* Drawer
+* Bottom Sheet
+* Toast
+* Notification
+* Alert
+* Empty State
+* Loading State
+* Skeleton
+* Error State
+* Success State
+* Data Table
+* Pagination
+* Stepper
+* Timeline
+* Status Indicator
+* Map Controls
+* Product Card
+* Order Card
+* Transport Card
+* Payment Card
+* User Card
+* Producer Card
+* Buyer Card
+* Driver Card
+* Statistics
+* Charts
+* Activity Feed
+
+Não usar todos esses componentes indiscriminadamente.
+
+Criar regras claras para quando cada componente deve ser utilizado.
+
+---
+
+# 7. RESPONSIVIDADE
+
+A interface deve ser verdadeiramente responsive.
+
+Não criar apenas:
+
+Desktop → Mobile
+
+Criar experiências específicas para:
+
+* Desktop
+* Laptop
+* Tablet
+* Mobile
+* Mobile pequeno
+
+No mobile, priorizar:
+
+* thumb-friendly interactions
+* bottom navigation
+* bottom sheets
+* gestures
+* simplified navigation
+* contextual actions
+* sticky actions
+
+No desktop:
+
+* sidebar
+* command/search system
+* multi-column layouts
+* contextual panels
+* mapas maiores
+* tabelas
+* analytics
+
+---
+
+# 8. ARQUITETURA DE NAVEGAÇÃO
+
+Criar uma arquitetura de navegação clara.
+
+## Área pública
+
+* Home
+* Explorar produtos
+* Categorias
+* Como funciona
+* Sobre a AgriLink
+* Para produtores
+* Para compradores
+* Para transportadores
+* Ajuda
+* Termos
+* Privacidade
+
+## Área autenticada
+
+Dashboard
+Marketplace
+Pedidos
+Ofertas
+Licitações
+Reservas
+Transportes
+Mapa
+Mensagens
+Pagamentos
+Carteira
+Notificações
+Favoritos
+Perfil
+Definições
+Suporte
+
+A navegação deve mudar de acordo com o papel do utilizador.
+
+---
+
+# 9. ROLE-BASED EXPERIENCE
+
+Criar experiências específicas para:
+
+### Comprador
+
+Prioridades:
+
+* encontrar produtos
+* comparar preços
+* negociar
+* fazer pedidos
+* reservar
+* pagar
+* acompanhar transporte
+
+### Produtor
+
+Prioridades:
+
+* publicar produtos
+* gerir stock
+* receber pedidos
+* aceitar ofertas
+* acompanhar vendas
+* gerir pagamentos
+* acompanhar compradores
+
+### Vendedor
+
+Prioridades:
+
+* catálogo
+* pedidos
+* preços
+* negociação
+* vendas
+
+### Transportador
+
+Prioridades:
+
+* cargas disponíveis
+* rotas
+* reservas
+* entregas
+* localização
+* ganhos
+
+### Administrador
+
+Prioridades:
+
+* operações
+* utilizadores
+* marketplace
+* pagamentos
+* transportes
+* disputas
+* analytics
+* segurança
+* auditoria
+
+Não criar simplesmente o mesmo dashboard para todos mudando apenas textos.
+
+Cada papel deve possuir uma experiência operacional própria.
+
+---
+
+# 10. ONBOARDING
+
+Criar um onboarding premium e educativo.
+
+O onboarding deve explicar o funcionamento da AgriLink antes de exigir que o utilizador compreenda a plataforma sozinho.
+
+## Etapa 1 — Welcome
+
+Mensagem:
+
+"Bem-vindo à AgriLink."
+
+Explicar em uma frase:
+
+"Uma plataforma para comprar, vender, transportar e acompanhar produtos agrícolas de forma simples e segura."
+
+Utilizar uma composição visual forte, não apenas um card central.
+
+---
+
+## Etapa 2 — Escolher o perfil
+
+Perguntar:
+
+"Como pretende utilizar a AgriLink?"
+
+Opções:
+
+* Quero comprar
+* Quero vender
+* Sou produtor
+* Quero transportar
+* Quero utilizar mais de uma função
+
+Explicar brevemente cada opção.
+
+---
+
+## Etapa 3 — Como funciona
+
+Criar uma experiência visual em etapas:
+
+1. Encontre ou publique produtos
+2. Negocie
+3. Faça o pedido
+4. Escolha ou solicite transporte
+5. Efetue o pagamento
+6. Acompanhe a entrega
+
+Utilizar animações e ilustrações próprias.
+
+---
+
+## Etapa 4 — Marketplace
+
+Mostrar visualmente:
+
+Produto
+→ Oferta
+→ Negociação
+→ Pedido
+
+---
+
+## Etapa 5 — Logística
+
+Mostrar:
+
+Origem
+→ Transportador
+→ Rota
+→ Destino
+
+Utilizar mapa e movimento visual.
+
+---
+
+## Etapa 6 — Pagamentos
+
+Explicar:
+
+* pagamento
+* confirmação
+* estado da transação
+* histórico
+
+Nunca prometer segurança absoluta.
+
+Utilizar linguagem de confiança baseada em processos.
+
+---
+
+## Etapa 7 — Personalização
+
+Perguntar:
+
+* localização
+* categorias de interesse
+* raio de pesquisa
+* tipo de utilização
+* preferências
+
+---
+
+## Etapa 8 — Finalização
+
+Mostrar:
+
+"Está tudo pronto."
+
+CTA:
+
+"Começar a utilizar a AgriLink"
+
+---
+
+# 11. DASHBOARD
+
+O dashboard deve ser operacional, não simplesmente decorativo.
+
+A primeira pergunta que o dashboard deve responder é:
+
+"O que preciso fazer agora?"
+
+Criar uma hierarquia baseada em:
+
+1. ações pendentes
+2. atividade recente
+3. operações
+4. métricas
+5. recomendações
+
+Exemplo:
+
+Bom dia, Cláudio.
+
+Você possui:
+
+3 pedidos aguardando confirmação
+2 pagamentos pendentes
+1 transporte em andamento
+
+Depois:
+
+### Atividade
+
+timeline operacional.
+
+### Operações
+
+pedidos, ofertas, entregas.
+
+### Performance
+
+vendas
+compras
+volume
+receita
+etc.
+
+Evitar uma grelha composta por 12 cards estatísticos iguais.
+
+---
+
+# 12. MARKETPLACE
+
+O Marketplace deve ser uma das experiências centrais da AgriLink.
+
+Criar:
+
+* pesquisa avançada
+* filtros
+* localização
+* distância
+* categoria
+* preço
+* quantidade
+* disponibilidade
+* produtor/vendedor
+* transporte disponível
+
+Criar visualizações:
+
+### Grid
+
+Para exploração.
+
+### List
+
+Para comparação.
+
+### Map
+
+Para descoberta geográfica.
+
+Permitir alternar entre:
+
+Produtos
+Mapa
+
+com uma transição fluida.
+
+---
+
+# 13. PRODUCT DETAIL
+
+Criar uma página de produto premium.
+
+Estrutura:
+
+Fotografias
+Produto
+Preço
+Unidade
+Quantidade disponível
+Localização
+Produtor
+Data de publicação
+Qualidade
+Disponibilidade
+Transporte
+Negociação
+Histórico relevante
+
+CTA principal:
+
+"Fazer pedido"
+
+CTA secundário:
+
+"Fazer oferta"
+
+CTA:
+
+"Reservar"
+
+A localização deve ser visualmente importante.
+
+Utilizar mapa quando relevante.
+
+---
+
+# 14. NEGOCIAÇÃO
+
+Criar uma experiência de negociação semelhante a uma conversa comercial.
+
+Mostrar:
+
+Preço solicitado
+Oferta
+Contraoferta
+Quantidade
+Prazo
+Transporte
+Condições
+
+Timeline:
+
+Oferta
+→ Contraoferta
+→ Aceitação
+→ Pedido
+
+A negociação deve ser clara mesmo para utilizadores pouco familiarizados com plataformas digitais.
+
+---
+
+# 15. PEDIDOS
+
+Criar uma experiência operacional.
+
+Status:
+
+Pedido criado
+→ Confirmado
+→ Preparação
+→ Transporte
+→ Em trânsito
+→ Entregue
+→ Concluído
+
+Utilizar timeline visual.
+
+Mostrar:
+
+* origem
+* destino
+* produto
+* quantidade
+* preço
+* transporte
+* pagamento
+* contacto
+* documentos
+
+---
+
+# 16. LOGÍSTICA / MAPA
+
+O mapa deve ser uma experiência central.
+
+Não utilizar apenas um mapa colocado como background.
+
+Criar:
+
+* localização de origem
+* destino
+* transportador
+* rota
+* estado
+* ETA
+* distância
+* eventos
+
+Exemplo:
+
+"Transportador em trânsito"
+
+"Chegada estimada: 42 min"
+
+Criar painéis contextuais sobre o mapa.
+
+O mapa deve funcionar em:
+
+Desktop
+Mobile
+
+---
+
+# 17. TRANSPORTADORES
+
+Criar um ambiente específico.
+
+Dashboard:
+
+Cargas disponíveis
+Rotas
+Reservas
+Entregas
+Ganhos
+Distância percorrida
+
+Criar:
+
+"Encontrar carga"
+
+Mostrar:
+
+Origem
+Destino
+Carga
+Peso
+Distância
+Valor
+Data
+Requisitos
+
+CTA:
+
+"Reservar transporte"
+
+---
+
+# 18. PAGAMENTOS
+
+Criar uma experiência de pagamentos com nível visual semelhante a fintech.
+
+Mostrar:
+
+Saldo
+Transações
+Pagamentos pendentes
+Recebimentos
+Estado das transações
+
+Estados:
+
+Pending
+Processing
+Successful
+Failed
+Cancelled
+Refunded
+
+Criar detalhes de transação.
+
+Nunca esconder informação importante.
+
+---
+
+# 19. NOTIFICAÇÕES
+
+Criar centro de notificações.
+
+Separar:
+
+Pedidos
+Pagamentos
+Transportes
+Ofertas
+Sistema
+
+Permitir:
+
+* marcar como lida
+* abrir ação
+* filtrar
+* visualizar histórico
+
+Notificações devem ser acionáveis.
+
+---
+
+# 20. MENSAGENS
+
+Criar sistema de comunicação entre:
+
+Comprador
+Vendedor
+Produtor
+Transportador
+
+Adicionar contexto comercial à conversa.
+
+Exemplo:
+
+┌ Produto ┐
+Milho
+500 kg
+85.000 Kz
+
+[Ver pedido]
+
+Isso evita que a conversa fique desconectada da operação.
+
+---
+
+# 21. PERFIL
+
+Perfil deve apresentar reputação operacional.
+
+Mostrar:
+
+* nome
+* tipo de utilizador
+* localização
+* atividade
+* produtos
+* transações
+* avaliações
+* taxa de conclusão
+* tempo médio de resposta
+
+Não exagerar com gamificação.
+
+A confiança deve vir dos dados.
+
+---
+
+# 22. ADMIN
+
+Criar um Admin Console profissional.
+
+Não reutilizar o dashboard do utilizador.
+
+Criar:
+
+Overview
+Users
+Producers
+Buyers
+Transporters
+Products
+Orders
+Payments
+Transactions
+Disputes
+Logistics
+Notifications
+Reports
+Analytics
+Audit Logs
+System Settings
+
+Adicionar:
+
+* filtros
+* pesquisa
+* bulk actions
+* export
+* audit trail
+* permissions
+
+---
+
+# 23. ANALYTICS
+
+Criar visualizações úteis.
+
+Exemplos:
+
+GMV
+Volume transacionado
+Pedidos
+Taxa de conclusão
+Tempo médio de entrega
+Volume por categoria
+Volume por localização
+Receita
+Transportes
+Utilizadores ativos
+
+Os gráficos devem ser elegantes e funcionais.
+
+Não utilizar gráficos apenas para preencher espaço.
+
+---
+
+# 24. MICROINTERAÇÕES
+
+Adicionar microinterações cuidadosamente.
+
+Exemplos:
+
+* botão confirma ação
+* pedido muda de estado
+* pagamento processado
+* produto publicado
+* oferta aceita
+* transporte iniciado
+* entrega concluída
+
+Utilizar:
+
+fade
+slide
+scale
+morph
+progressive disclosure
+
+Evitar animações exageradas.
+
+A interface deve parecer rápida.
+
+---
+
+# 25. ESTADOS
+
+Cada funcionalidade deve possuir:
+
+Loading
+Empty
+Success
+Error
+Offline
+Pending
+Disabled
+Permission denied
+
+Não criar apenas o estado "normal".
+
+Exemplo:
+
+Marketplace sem produtos:
+
+"Não encontramos produtos nesta área."
+
+CTA:
+
+"Alterar localização"
+
+ou
+
+"Limpar filtros"
+
+---
+
+# 26. ACESSIBILIDADE
+
+Cumprir boas práticas de acessibilidade:
+
+* contraste adequado
+* navegação por teclado
+* foco visível
+* labels
+* aria
+* tamanho mínimo de touch targets
+* feedback visual
+* feedback textual
+* redução de movimento
+
+Não depender apenas de cores para representar estados.
+
+---
+
+# 27. LOCALIZAÇÃO E ANGOLA
+
+A experiência deve ser adaptada ao contexto angolano.
+
+Utilizar:
+
+Kz / AOA
+
+Telefone:
+
++244
+
+Formatos locais quando apropriado.
+
+Considerar:
+
+* conectividade limitada
+* dispositivos Android de entrada
+* utilização móvel predominante
+* diferentes níveis de literacia digital
+* operações agrícolas reais
+* logística rodoviária
+* pagamentos locais
+
+A interface deve continuar elegante mesmo em conexões lentas.
+
+---
+
+# 28. PERFORMANCE
+
+A experiência visual não pode prejudicar performance.
+
+Priorizar:
+
+* lazy loading
+* imagens optimizadas
+* skeleton loading
+* progressive loading
+* code splitting
+* caching
+* redução de JavaScript desnecessário
+
+Mobile deve ser tratado como prioridade.
+
+---
+
+# 29. FOTOGRAFIA
+
+Não utilizar imagens stock genéricas de agricultura sempre que possível.
+
+A direção fotográfica deve mostrar:
+
+* agricultores reais
+* produtos reais
+* mercados
+* transporte
+* estradas
+* armazéns
+* produção
+* paisagens africanas
+
+Preferir fotografia documental e editorial.
+
+Evitar imagens excessivamente perfeitas de bancos de imagem.
+
+---
+
+# 30. ILUSTRAÇÕES
+
+Criar um sistema de ilustração próprio para:
+
+* onboarding
+* empty states
+* erros
+* logística
+* pagamentos
+* marketplace
+
+Não utilizar ilustrações SaaS genéricas.
+
+---
+
+# 31. ICONOGRAFIA
+
+Criar linguagem consistente.
+
+Não misturar diferentes famílias de ícones.
+
+Utilizar ícones apenas quando melhorarem a compreensão.
+
+Para ações importantes, combinar:
+
+ícone + texto
+
+quando necessário.
+
+---
+
+# 32. DESKTOP APP EXPERIENCE
+
+No desktop, criar sensação de aplicação profissional.
+
+Sidebar:
+
+Logo
+Marketplace
+Pedidos
+Logística
+Pagamentos
+Mensagens
+Analytics
+
+Bottom:
+
+Ajuda
+Notificações
+Perfil
+
+Adicionar:
+
+command/search interface
+
+Atalho:
+
+Ctrl + K
+
+para pesquisa e navegação rápida.
+
+---
+
+# 33. MOBILE APP EXPERIENCE
+
+Criar uma experiência mobile realmente nativa.
+
+Bottom navigation:
+
+Início
+Explorar
+Pedidos
+Mensagens
+Perfil
+
+Ações secundárias ficam em:
+
+More
+Sheets
+Menus
+
+Criar FAB apenas quando realmente necessário.
+
+---
+
+# 34. LANDING PAGE
+
+A landing page deve parecer uma empresa tecnológica real.
+
+Hero:
+
+Mensagem forte sobre o problema que a AgriLink resolve.
+
+Não utilizar:
+
+"Revolutionizing agriculture with AI"
+
+ou copy genérica semelhante.
+
+Mostrar o produto real.
+
+Utilizar:
+
+* marketplace
+* mapa
+* produtos
+* pedidos
+* logística
+
+como elementos visuais.
+
+A landing page deve demonstrar o produto em funcionamento.
+
+---
+
+# 35. RESPONSABILIDADE VISUAL
+
+Evitar "design por decoração".
+
+Cada decisão visual deve responder:
+
+Por que isto existe?
+
+O que isto ajuda o utilizador a fazer?
+
+A interface deve reduzir fricção operacional.
+
+---
+
+# 36. COMPONENTES PROIBIDOS COMO PADRÃO
+
+Não utilizar automaticamente:
+
+* Card branco dentro de card branco
+* 20px/24px border-radius em tudo
+* sombras pesadas
+* gradientes verdes
+* glassmorphism
+* dashboards de 4 cards idênticos
+* hero genérico com texto central
+* botão "Get Started" genérico
+* excesso de badges
+* excesso de pills
+* tabelas sem hierarquia
+* gráficos decorativos
+* layouts clonados de SaaS
+
+---
+
+# 37. PERSONALIDADE VISUAL
+
+A AgriLink deve ser reconhecida mesmo sem o logotipo.
+
+Se removermos:
+
+* logo
+* nome
+* textos
+
+a interface ainda deve parecer AgriLink.
+
+Criar elementos proprietários:
+
+* padrões
+* tratamento de mapas
+* componentes de localização
+* timeline operacional
+* cards de produto
+* sistema de estados
+* linguagem tipográfica
+* componentes de negociação
+
+---
+
+# 38. DESIGN TOKENS
+
+Implementar tokens para:
+
+colors
+spacing
+radius
+typography
+shadows
+motion
+z-index
+breakpoints
+icons
+
+Exemplo:
+
+--color-primary
+--color-surface
+--color-background
+--color-border
+--color-success
+--color-warning
+--color-danger
+
+Não espalhar valores arbitrários pelo código.
+
+---
+
+# 39. MOTION SYSTEM
+
+Criar um sistema de movimento consistente.
+
+Micro:
+100–150ms
+
+Normal:
+200–300ms
+
+Complex:
+300–500ms
+
+Utilizar easing profissional.
+
+Respeitar:
+
+prefers-reduced-motion
+
+---
+
+# 40. SEGURANÇA E CONFIANÇA
+
+Como a plataforma envolve comércio e pagamentos, a UI deve transmitir confiança.
+
+Mostrar claramente:
+
+* estado de pagamento
+* estado do pedido
+* identidade da contraparte
+* localização
+* confirmação
+* histórico
+* suporte
+* segurança
+
+Nunca esconder informação operacional importante atrás de menus desnecessários.
+
+---
+
+# 41. RESULTADO ESPERADO
+
+Quero que o resultado final pareça uma plataforma desenvolvida por uma equipa internacional de:
+
+Product Designers
+UX Researchers
+Frontend Engineers
+Product Managers
+Design Engineers
+
+durante vários ciclos de produto.
+
+Não quero que pareça:
+
+"um dashboard feito por IA".
+
+Quero:
+
+"um produto tecnológico proprietário".
+
+---
+
+# 42. PROCESSO DE IMPLEMENTAÇÃO
+
+Não redesenhar todas as páginas aleatoriamente.
+
+Seguir esta ordem:
+
+1. Product architecture
+2. User journeys
+3. Information architecture
+4. Design principles
+5. Design tokens
+6. Typography
+7. Color system
+8. Icon system
+9. Core components
+10. Navigation
+11. Onboarding
+12. Authentication
+13. Dashboard
+14. Marketplace
+15. Product details
+16. Orders
+17. Negotiation
+18. Logistics
+19. Payments
+20. Messaging
+21. Notifications
+22. Profile
+23. Transporter experience
+24. Admin
+25. Analytics
+26. Empty/loading/error states
+27. Responsive adaptation
+28. Accessibility
+29. Motion
+30. Final visual consistency audit
+
+---
+
+# 43. IMPLEMENTAÇÃO TÉCNICA
+
+Preservar a lógica de negócio existente da AgriLink sempre que possível.
+
+Não destruir funcionalidades existentes apenas para alterar a aparência.
+
+Separar:
+
+UI
+UX
+Business Logic
+Data Layer
+Authentication
+Authorization
+
+Criar componentes reutilizáveis.
+
+Evitar duplicação.
+
+Manter arquitetura escalável.
+
+---
+
+# 44. REGRA CRÍTICA
+
+Antes de criar qualquer página, estabelecer primeiro:
+
+* Design System
+* Navigation System
+* Component Library
+* Typography
+* Color Tokens
+* Spacing System
+* Interaction Rules
+
+Depois utilizar esses elementos para construir as páginas.
+
+Não criar componentes visualmente diferentes para a mesma função.
+
+---
+
+# 45. EXPERIÊNCIA FINAL
+
+Quando um novo utilizador entrar na AgriLink, deverá compreender rapidamente:
+
+"O que é isto?"
+
+"O que posso fazer aqui?"
+
+"Como compro?"
+
+"Como vendo?"
+
+"Como transporto?"
+
+"Como pago?"
+
+"Em que estado está a minha operação?"
+
+"Posso confiar nesta transação?"
+
+Quando um utilizador experiente entrar, deverá sentir:
+
+"Consigo operar rapidamente."
+
+Esse é o objetivo principal da nova UX.
+
+---
+
+# 46. CRITÉRIO DE QUALIDADE
+
+Antes de considerar o trabalho concluído, fazer uma auditoria completa:
+
+Visual consistency
+UX consistency
+Responsive behavior
+Accessibility
+Performance
+Navigation
+Forms
+Validation
+Error handling
+Loading states
+Empty states
+Mobile UX
+Desktop UX
+Dark mode
+Onboarding
+Marketplace
+Orders
+Logistics
+Payments
+Notifications
+Admin
+Security UX
+
+Eliminar qualquer componente que pareça:
+
+genérico,
+decorativo,
+redundante,
+inconsistente
+ou claramente produzido por um template de IA.
+
+---
+
+# DIREÇÃO FINAL
+
+Não copie Apple.
+Não copie Stripe.
+Não copie Uber.
+Não copie Airbnb.
+Não copie Linear.
+Não copie qualquer outro produto.
+
+Estude os padrões de qualidade desses produtos apenas como referência de engenharia de produto.
+
+A AgriLink precisa ter uma identidade própria.
+
+O resultado deve comunicar:
+
+AGRICULTURA + COMÉRCIO + LOGÍSTICA + TECNOLOGIA + CONFIANÇA.
+
+Criar uma experiência premium, moderna, futurista e profissional, mas sobretudo funcional.
+
+A prioridade é:
+
+CLAREZA → VELOCIDADE → CONFIANÇA → OPERAÇÃO → ESTÉTICA.
+
+A estética deve servir ao produto, e não o contrário.

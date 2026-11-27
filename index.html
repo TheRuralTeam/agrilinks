@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AgriLink - Marketplace Agroalimentar B2B</title>
+    <meta name="description" content="AgriLink conecta produtores, fornecedores e compradores institucionais com contratos digitais, OTP por email e rastreabilidade." />
+    <meta name="author" content="Claudio Afonso Henriques" />
+    <meta name="theme-color" content="#1f7a3a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="AgriLink" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/placeholder.svg" />
+
+    <!-- AgriLink uses one fixed light theme across the platform. -->
+    <script>
+      (function(){
+        try {
+          localStorage.setItem('agrilink-theme', 'light');
+          document.documentElement.classList.remove('dark');
+          document.documentElement.style.colorScheme = 'light';
+          document.documentElement.style.background = '#f7f9f7';
+          document.body && (document.body.style.background = '#f7f9f7');
+        } catch (e) { /* ignore */ }
+      })();
+    </script>
+
+    <!-- No content hiding: keep theme script only to apply light/dark immediately -->
+
+    <meta property="og:title" content="AgriLink - Marketplace Agroalimentar B2B" />
+    <meta property="og:description" content="Produtores, fornecedores e compradores conectados por contratos digitais e rastreabilidade." />
+    <meta property="og:type" content="website" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@AgriLink" />
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
