@@ -29,6 +29,10 @@ O projecto `agrilink` está sob a equipa Vercel `agrilink-s-projects`. O utiliza
 
 A conta ChatGPT/integração sem autorização na equipa não consegue criar deployment nem consultar detalhes privados. Não contornar esta limitação criando um projecto Vercel alternativo.
 
+## Branch de integração isolada criada — 27-11-2026
+
+Foi criada a branch `feat/integrate-driver-gps-tracking` directamente a partir do HEAD de `main` (`1047e14c009fa8b12af1e42edefc59be457fc7fe`). A branch de origem `feat/buyer-live-tracking-supplier-handover-receipt` não foi integrada. A branch nova começa limpa, sem portar ainda código ou migrations da origem. O plano e os critérios estão em [ISOLATED_TRACKING_INTEGRATION.md](ISOLATED_TRACKING_INTEGRATION.md). A criação foi confirmada; implementação e QA continuam pendentes.
+
 ## Ordem de execução
 
 1. **Resolver produção Vercel:** corrigir build ou regra de ignore; publicar HEAD de main.
