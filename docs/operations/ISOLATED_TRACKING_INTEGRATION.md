@@ -7,7 +7,7 @@
 - Branch base: `main`
 - Commit exacto da base no momento da criação: `1047e14c009fa8b12af1e42edefc59be457fc7fe`
 - Data: 27-11-2026
-- Estado: **branch criada; isolamento confirmado; portabilidade de código ainda não iniciada**.
+- Estado: **branch criada; documentação sincronizada; inventário inicial concluído; portabilidade de código ainda não iniciada**.
 
 ## Objectivo
 
@@ -57,7 +57,7 @@ Cada ficheiro e dependência deve ser comparado com `main` antes de ser portado.
 9. [ ] Validar autorização de comprador, motorista e Admin; testar acessos negativos.
 10. [ ] Executar testes automatizados e build nativo Android.
 11. [ ] Testar em dispositivos reais e redes intermitentes.
-12. [ ] Abrir PR para `main), com diff limitado e evidência de QA.
+12. [ ] Abrir PR para `main`, com diff limitado e evidência de QA.
 
 ## Critérios para aceitar o PR
 
@@ -75,3 +75,16 @@ Cada ficheiro e dependência deve ser comparado com `main` antes de ser portado.
 ## Estado e limites da confirmação
 
 A criação da branch foi confirmada pela API GitHub. A branch contém inicialmente o mesmo conteúdo de `main` no SHA base indicado. A criação da branch **não** significa que o tracking esteja integrado, testado ou publicado. Não foram executados testes Android, SQL ou E2E nesta etapa.
+
+
+## Actualização de execução — sincronização e inventário (27-11-2026)
+
+- A documentação de referência foi sincronizada com o conteúdo actual de `main` nos ficheiros `docs/README.md` e `docs/operations/PROJECT_STATUS_AND_RELEASE.md`; o `FREIGHT_TRACKING_RUNBOOK.md` já estava igual.
+- A comparação de `main` com a branch isolada confirma que as diferenças permanecem documentais: o plano desta branch e as actualizações de índice/estado. Não foi introduzido código funcional da branch de origem.
+- Nova comparação da origem com `main`: 113 commits à frente e 26 atrás. O diff contém 50 ficheiros, incluindo app Android, componentes de tracking/handover, migrations e testes, mas também checkout, pagamentos, payout e alterações gerais que ficam excluídas.
+- Inventário inicial dos componentes de tracking concluído: `apps/driver-android` (App, serviço GPS, outbox SQLite/SQLCipher), `src/components/BuyerFreightTracking.tsx`, migrations `20261127100000...` e `20261127110000...`, e teste SQL de handover/localização.
+- Riscos confirmados para correcção antes de portar: activação Android depende de acção manual na primeira utilização; fila offline não tem limite explícito de registos/bytes/expiração; o mapa não condiciona explicitamente polling/Realtime ao estado `in_transit`; a RPC batch aceita sincronização tardia de cargas entregues (necessário manter o histórico sem reactivar o tracking); e a RPC legada de localização deve ser revista para impedir regressão temporal.
+- A migration de segurança altera privilégios de leitura em `freight_loads`; requer comparação cuidadosa com políticas e colunas do schema actual antes de qualquer aplicação.
+- Nenhuma migration foi aplicada em Supabase nesta etapa. Nenhum APK/AAB foi construído ou testado num dispositivo físico. Nenhuma alteração foi publicada em Production.
+
+**Próximo passo técnico:** comparar as migrations e as dependências de schema/RLS com `main`, identificar os pontos de integração do evento de recolha já existentes e só então portar ficheiros pequenos e isolados.
