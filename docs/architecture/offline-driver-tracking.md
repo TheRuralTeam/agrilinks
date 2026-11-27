@@ -9,6 +9,9 @@
 - PR #76 remains open and contains older delivery/payment changes. It must be reviewed and reconciled separately; it is not a safe drop-in base.
 
 ## Implemented in this feature branch
+- Supplier UI for issuing a private handover note and driver UI for acknowledging it.
+- Buyer purchase page with realtime latest-position map, 30-second polling fallback, capture/receipt timestamps, GPS accuracy and stale-state warning.
+- Web fallback queue using IndexedDB and AES-GCM; this is durable while the browser remains active and is not a native background tracker.
 - Supplier handover evidence table, private storage bucket and participant-only read policies.
 - Supplier submission RPC validates supplier ownership, pickup status, assigned driver/vehicle, payment and approved freight quote; it records supplier evidence without starting transit.
 - Driver acknowledgement RPC is the only path that completes handover and transitions the load into transit.
@@ -19,9 +22,8 @@
 
 ## Not yet implemented / release blockers
 - Native Android driver client with a foreground location service and durable encrypted SQLite queue.
-- Web IndexedDB queue and UI integration.
-- Supplier and driver UI for the two-step handover receipt.
-- Buyer realtime tracking page and stale/offline status display.
+- Native Android driver client with encrypted durable queue and background location service.
+- Physical-device tests: screen lock, process death, reboot, airplane mode, no GPS fix, battery optimization and reconnection.
 - Removal or narrowing of the broad freight-load SELECT policy after a complete query audit (must avoid breaking open-load discovery).
 - Physical-device tests: screen lock, process death, reboot, airplane mode, no GPS fix, battery optimization and reconnection.
 - CI and production migration rollout.

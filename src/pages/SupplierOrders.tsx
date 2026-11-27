@@ -44,14 +44,14 @@ export default function SupplierOrders() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const loadOrders = useCallback(async () => {
+  const loadOrders = useCallback(async (quiet = false) => {
     if (!user?.id) {
       setOrders([]);
       setLoading(false);
       return;
     }
 
-    setLoading(true);
+    if (!quiet) setLoading(true);
     try {
       const { data: products, error: productsError } = await supabase
         .from('products')
@@ -114,7 +114,7 @@ export default function SupplierOrders() {
       console.error('Erro ao carregar pedidos do fornecedor:', error);
       toast.error(error instanceof Error ? error.message : 'Não foi possível carregar os pedidos.');
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
   }, [user?.id]);
 
@@ -142,6 +142,13 @@ export default function SupplierOrders() {
   useEffect(() => {
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') void loadOrders();
+    }, 20000);
+    return () => window.clearInterval(timer);
+  }, [loadOrders]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void loadOrders(true);
     }, 20000);
     return () => window.clearInterval(timer);
   }, [loadOrders]);

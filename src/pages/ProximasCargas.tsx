@@ -328,8 +328,8 @@ const ProximasCargas = () => {
     return () => controller.abort();
   }, [destination, origin, pickupDate]);
 
-  const fetchLoads = useCallback(async () => {
-    setLoading(true);
+  const fetchLoads = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true);
     try {
       const { data, error } = await supabase
         .from('freight_loads')
@@ -341,13 +341,20 @@ const ProximasCargas = () => {
     } catch (e: any) {
       toast.error('Não foi possível carregar as cargas.');
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     void fetchLoads();
   }, [fetchLoads, user?.id]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void fetchLoads(true);
+    }, 15000);
+    return () => window.clearInterval(timer);
+  }, [fetchLoads]);
 
   useEffect(() => {
     if (!user?.id || userProfile?.user_type !== 'motorista') {
