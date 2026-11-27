@@ -1,4 +1,5 @@
 import { supabase } from '../integrations/supabase/client';
+import type { Json } from '../integrations/supabase/types';
 
 type LocationPayload = {
   latitude: number;
@@ -171,7 +172,7 @@ export async function flushFreightLocationQueue(freightLoadId: string): Promise<
     const deviceId = batch[0].deviceId;
     const samples = await Promise.all(batch.map(async (item) => {
       const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(item.iv) }, key, item.ciphertext);
-      return JSON.parse(new TextDecoder().decode(plaintext)) as Record<string, unknown>;
+      return JSON.parse(new TextDecoder().decode(plaintext)) as Json;
     }));
     const { data, error } = await supabase.rpc('record_freight_load_location_batch', {
       p_freight_load_id: freightLoadId,

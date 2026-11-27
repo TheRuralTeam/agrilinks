@@ -937,6 +937,8 @@ export type Database = {
       }
       freight_loads: {
         Row: {
+          supplier_handover_confirmed_at: string | null
+          supplier_id: string | null
           accepted_at: string | null
           contract_id: string | null
           created_at: string
@@ -972,6 +974,8 @@ export type Database = {
           weight_kg: number
         }
         Insert: {
+          supplier_handover_confirmed_at?: string | null
+          supplier_id?: string | null
           accepted_at?: string | null
           contract_id?: string | null
           created_at?: string
@@ -1007,6 +1011,8 @@ export type Database = {
           weight_kg?: number
         }
         Update: {
+          supplier_handover_confirmed_at?: string | null
+          supplier_id?: string | null
           accepted_at?: string | null
           contract_id?: string | null
           created_at?: string
