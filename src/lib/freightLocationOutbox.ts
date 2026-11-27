@@ -65,13 +65,20 @@ async function getOrCreateMeta<T extends string | number | CryptoKey>(key: strin
   if (existing) return existing.value as T;
   const value = await create();
   const writeTx = db.transaction(META_STORE, 'readwrite');
-  writeTx.objectStore(META_STORE).put({ key, value } satisfies MetaRecord);
-  await new Promise<void>((resolve, reject) => {
-    writeTx.oncomplete = () => resolve();
-    writeTx.onerror = () => reject(writeTx.error || new Error('Não foi possível guardar metadados GPS.'));
-    writeTx.onabort = () => reject(writeTx.error || new Error('Gravação de metadados GPS cancelada.'));
-  });
-  return value;
+  writeTx.objectStore(META_STORE).add({ key, value } satisfies MetaRecord);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      writeTx.oncomplete = () => resolve();
+      writeTx.onerror = () => reject(writeTx.error || new Error('Não foi possível guardar metadados GPS.'));
+      writeTx.onabort = () => reject(writeTx.error || new Error('Gravação de metadados GPS cancelada.'));
+    });
+    return value;
+  } catch {
+    const retryTx = db.transaction(META_STORE, 'readonly');
+    const winner = await requestResult(retryTx.objectStore(META_STORE).get(key)) as MetaRecord | undefined;
+    if (winner) return winner.value as T;
+    throw new Error('Não foi possível inicializar a identidade segura do dispositivo.');
+  }
 }
 
 async function getDeviceId(): Promise<string> {

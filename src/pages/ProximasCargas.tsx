@@ -236,6 +236,11 @@ const ProximasCargas = () => {
   const lastLocationWriteAt = useRef(0);
   const locationRetryNoticeShown = useRef(false);
 
+  useEffect(() => () => {
+    if (locationWatchId.current != null && navigator.geolocation) navigator.geolocation.clearWatch(locationWatchId.current);
+    if (onlineFlushHandlerRef.current) window.removeEventListener('online', onlineFlushHandlerRef.current);
+  }, []);
+
   // The route-repair search must query the geocoder, not only filter previously saved places.
   useEffect(() => {
     const query = routeSetupDestinationSearch.trim();

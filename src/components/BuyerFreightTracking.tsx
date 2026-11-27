@@ -77,7 +77,7 @@ export default function BuyerFreightTracking({ load }: { load: Load }) {
 
   const capturedAt = position ? new Date(position.captured_at || position.recorded_at) : null;
   const receivedAt = position ? new Date(position.received_at || position.recorded_at) : null;
-  const ageMs = receivedAt ? Math.max(0, Date.now() - receivedAt.getTime()) : null;
+  const ageMs = capturedAt ? Math.max(0, Date.now() - capturedAt.getTime()) : null;
   const stale = ageMs != null && ageMs > 120000;
   const driverPoint: [number, number] | null = position ? [position.latitude, position.longitude] : null;
   const origin: [number, number] | null = load.origin_lat != null && load.origin_lng != null ? [load.origin_lat, load.origin_lng] : null;
