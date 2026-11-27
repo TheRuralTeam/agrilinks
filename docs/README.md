@@ -10,6 +10,7 @@ Esta pasta reúne documentação de arquitectura, operação, segurança, QA e p
 | [Runbook Vercel](operations/VERCEL_PRODUCTION_RUNBOOK.md) | Publicação de `main`, Build Logs, Ignored Build Step, rollback e evidência |
 | [Pré-compras do fornecedor](operations/SUPPLIER_PREORDERS_RUNBOOK.md) | RLS, trigger de notificação, Realtime e testes comprador-fornecedor |
 | [Tracking e entregas](operations/FREIGHT_TRACKING_RUNBOOK.md) | Requisitos de tracking, offline, permissões, entregas e testes |
+| [Auditoria da branch de tracking (27-11-2026)](operations/TRACKING_BRANCH_AUDIT_2026-11-27.md) | Diff, riscos identificados, bloqueios e plano de isolamento antes do merge |
 | [Segurança e dados](operations/SECURITY_AND_DATA_HANDLING.md) | Regras de acesso, GPS, dados pessoais, pagamentos e segredos |
 | [QA e release checklist](qa/RELEASE_QA_CHECKLIST.md) | Critérios mínimos para validar alterações e releases |
 
