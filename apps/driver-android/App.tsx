@@ -276,7 +276,7 @@ export default function App() {
     return (
       <SafeAreaView style={styles.centered}>
         <ActivityIndicator color="#176B45" size="large" />
-        <Text style={styles.muted}>A preparar a sessão segura…</Text>
+        <Text style={styles.smallMuted}>A preparar a sessão segura…</Text>
       </SafeAreaView>
     );
   }
@@ -296,7 +296,7 @@ export default function App() {
   if (!session) {
     return (
       <SafeAreaView style={styles.screen}>
-        <StatusBar barStyle="dark-content" backgroundColor="#F5F7F4" />
+        <StatusBar barStyle="dark-content" />
         <View style={styles.loginCard}>
           <Text style={styles.brand}>AgriLink</Text>
           <Text style={styles.eyebrow}>OPERAÇÕES DE TRANSPORTE</Text>
