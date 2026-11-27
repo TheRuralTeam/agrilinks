@@ -69,7 +69,7 @@ export async function persistLocationSamples(
 
         for (const loadId of loadIds) {
           const result = await database.runAsync(
-            "INSERT OR IGNORE INTO gps_outbox ("
+            "INSERT OR IGNORE INTO gps_outbox (" +
               "id, freight_load_id, client_event_id, device_sequence, captured_at, " +
               "latitude, longitude, accuracy_m, speed_mps, heading_deg, created_at" +
               ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
