@@ -148,7 +148,7 @@ export default function FreightDeliveryEvidenceForm({
       if (signatureUpload.error) throw signatureUpload.error;
 
       submissionRequestStarted = true;
-      const { error: submitError } = await supabase.rpc('submit_freight_delivery_evidence', {
+      const { error: submitError } = await (supabase as any).rpc('submit_freight_delivery_evidence', {
         p_freight_load_id: freightLoadId,
         p_recipient_name: recipientName.trim(),
         p_photo_path: photoPath,
@@ -164,7 +164,7 @@ export default function FreightDeliveryEvidenceForm({
     } catch (cause) {
       // Reconcile an ambiguous network response before deleting uploads or inviting a duplicate retry.
       try {
-        const { data: persistedEvidence } = await supabase.rpc('get_freight_delivery_evidence', {
+        const { data: persistedEvidence } = await (supabase as any).rpc('get_freight_delivery_evidence', {
           p_freight_load_id: freightLoadId,
         });
         if (persistedEvidence && typeof persistedEvidence === 'object' && !Array.isArray(persistedEvidence)) {
