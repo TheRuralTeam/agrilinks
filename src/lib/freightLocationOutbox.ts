@@ -154,7 +154,7 @@ async function removeAcknowledged(ids: string[]): Promise<void> {
   });
 }
 
-export async function flushFreightLocationQueue(freightLoadId: string, client: SupabaseClient): Promise<{ synced: number; error: Error | null }> {
+export async function flushFreightLocationQueue(freightLoadId: string): Promise<{ synced: number; error: Error | null }> {
   let synced = 0;
   try {
     if (!navigator.onLine) return { synced, error: null };

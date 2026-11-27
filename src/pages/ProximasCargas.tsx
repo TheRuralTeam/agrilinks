@@ -234,7 +234,6 @@ const ProximasCargas = () => {
   const locationWatchId = useRef<number | null>(null);
   const onlineFlushHandlerRef = useRef<(() => void) | null>(null);
   const lastLocationWriteAt = useRef(0);
-  const pendingLocationRef = useRef<Record<string, FreightLoadLocation>>({});
   const onlineFlushHandlerRef = useRef<(() => void) | null>(null);
   const locationRetryNoticeShown = useRef(false);
 

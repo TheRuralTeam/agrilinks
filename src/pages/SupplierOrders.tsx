@@ -7,7 +7,6 @@ import { supabase } from '../integrations/supabase/client';
 import { respondToPreOrder } from '../features/orders/adminPreOrderService';
 import { R, T } from '../lib/brand';
 import SupplierHandoverEvidenceForm from '../components/SupplierHandoverEvidenceForm';
-import SupplierHandoverEvidenceForm from '../components/SupplierHandoverEvidenceForm';
 
 interface SupplierOrder {
   id: string;
@@ -194,7 +193,7 @@ export default function SupplierOrders() {
           <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Nota de entrega emitida. Aguardando o motorista confirmar a recepção para iniciar o rastreamento.</div>
         )}
         {order.freight_load_id && order.freight_status === 'at_pickup' && order.freight_driver_id && !order.supplier_handover_confirmed_at && (
-          <SupplierHandoverEvidenceForm freightLoadId={order.freight_load_id} supplierId={user!.id} driverId={order.freight_driver_id} expectedQuantityKg={order.freight_weight_kg || order.quantity} onSubmitted={() => void loadOrders()} />
+          <SupplierHandoverEvidenceForm freightLoadId={order.freight_load_id} supplierId={user!.id} expectedQuantityKg={order.freight_weight_kg || 0} onSubmitted={() => void loadOrders()} />
         )}
         {order.freight_load_id && order.supplier_handover_confirmed_at && order.freight_status === 'at_pickup' && (
           <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Nota de entrega emitida. Aguardando o motorista confirmar a recepção para iniciar o rastreamento.</div>

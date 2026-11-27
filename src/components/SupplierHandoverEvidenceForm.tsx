@@ -3,7 +3,7 @@ import type { FormEvent, PointerEvent } from 'react';
 import { Loader2, RotateCcw, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../integrations/supabase/client';
-type Props = { freightLoadId: string; supplierId: string; driverId: string; expectedQuantityKg: number; onSubmitted: () => void };
+type Props = { freightLoadId: string; supplierId: string; expectedQuantityKg: number; onSubmitted: () => void };
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 function currentPosition(): Promise<GeolocationPosition | null> {
@@ -15,7 +15,7 @@ function currentPosition(): Promise<GeolocationPosition | null> {
 function canvasBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Não foi possível preparar a assinatura.')), 'image/png'));
 }
-export default function SupplierHandoverEvidenceForm({ freightLoadId, supplierId, driverId, expectedQuantityKg, onSubmitted }: Props) {
+export default function SupplierHandoverEvidenceForm({ freightLoadId, supplierId, expectedQuantityKg, onSubmitted }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null), drawingRef = useRef(false), signedRef = useRef(false);
   const [recipientName, setRecipientName] = useState(''), [quantityKg, setQuantityKg] = useState(String(expectedQuantityKg || ''));
   const [conditionNotes, setConditionNotes] = useState(''), [photo, setPhoto] = useState<File | null>(null);
@@ -71,7 +71,18 @@ export default function SupplierHandoverEvidenceForm({ freightLoadId, supplierId
       if (!data) throw new Error('O servidor não devolveu o identificador do comprovativo.');
       toast.success('Nota de entrega emitida. Aguarda a confirmação do motorista.'); onSubmitted();
     } catch (cause) {
-      if (!rpcStarted || rpcReturned) await supabase.storage.from('freight-handover-evidence').remove([photoPath, signaturePath].filter((path): path is string => Boolean(path))).catch(() => undefined);
+      if (rpcStarted && !rpcReturned) {
+        const { data: persisted } = await (supabase as any).from('freight_handover_evidence')
+          .select('id').eq('freight_load_id', freightLoadId).maybeSingle();
+        if (persisted?.id) {
+          toast.success('Nota de entrega confirmada pelo servidor.');
+          onSubmitted();
+          return;
+        }
+      } else if (!rpcStarted || rpcReturned) {
+        await supabase.storage.from('freight-handover-evidence')
+          .remove([photoPath, signaturePath].filter((path): path is string => Boolean(path))).catch(() => undefined);
+      }
       setError(cause instanceof Error ? cause.message : 'Não foi possível emitir a nota de entrega.');
     } finally { setSubmitting(false); }
   };
