@@ -92,9 +92,20 @@ create table public.freight_delivery_evidence (
   driver_id uuid not null references public.users(id)
 );
 
+create table public.payment_providers (
+  id text primary key,
+  enabled boolean not null default false,
+  test_mode boolean not null default true,
+  platform_destination_verified boolean not null default false
+);
+
+insert into public.payment_providers (id, enabled, test_mode, platform_destination_verified)
+values ('agrilink_test_provider', true, false, true);
+
 create table public.payment_intents (
   id uuid primary key,
   user_id uuid not null references public.users(id),
+  provider_id text not null references public.payment_providers(id),
   pre_order_id uuid references public.pre_orders(id),
   amount numeric(15,2) not null,
   currency char(3) not null,
