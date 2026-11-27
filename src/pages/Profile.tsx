@@ -65,7 +65,6 @@ interface BuyerFreightQuote {
   origin_label: string; destination_label: string; driver_offered_price: number | null
   currency: string; driver_quote_status: string; route_distance_km: number | null
   route_duration_minutes: number | null; status: string; created_at: string
-  buyer_quote_approved: boolean; supplier_quote_approved: boolean
 }
 type SupplierFreightProposal = BuyerFreightQuote
 interface SourcingRequest {
@@ -736,7 +735,7 @@ const Profile = () => {
     if (!user?.id) { setBuyerFreightQuotes([]); return }
     try {
       const { data, error } = await (supabase as any).from('freight_loads')
-        .select('id, pre_order_id, product_name, weight_kg, origin_label, destination_label, driver_offered_price, currency, driver_quote_status, buyer_quote_approved, supplier_quote_approved, route_distance_km, route_duration_minutes, status, created_at')
+        .select('id, pre_order_id, product_name, weight_kg, origin_label, destination_label, driver_offered_price, currency, driver_quote_status, route_distance_km, route_duration_minutes, status, created_at')
         .eq('buyer_id', user.id)
         .in('driver_quote_status', ['pending_buyer_approval', 'approved', 'rejected'])
         .order('created_at', { ascending: false })
@@ -1662,7 +1661,7 @@ const Profile = () => {
                 { key: 'valor', label: 'Total', align: 'right', render: r => `${Number(r.total_price || 0).toLocaleString('pt-AO')} Kz` },
                 { key: 'pagamento', label: 'Pagamento', render: r => {
                   const freightQuote = buyerFreightQuotes.find(quote => quote.pre_order_id === r.id)
-                  const freightAgreed = freightQuote?.driver_quote_status === 'approved' && freightQuote.buyer_quote_approved
+                  const freightAgreed = freightQuote?.driver_quote_status === 'approved'
                   const label = r.payment_status === 'paid'
                     ? 'Pago'
                     : r.status !== 'accepted'
@@ -1713,7 +1712,7 @@ const Profile = () => {
                       </div>
                     </div>
                   </div>
-                  {quote.driver_quote_status === 'pending_buyer_approval' && !quote.buyer_quote_approved && (
+                  {quote.driver_quote_status === 'pending_buyer_approval' && (
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 13, flexWrap: 'wrap' }}>
                       <IconBtn icon={<Trash2 size={13} strokeWidth={1.75}/>} title={freightQuoteBusyId === quote.id ? 'A processar…' : 'Recusar transporte'} danger onClick={() => { if (freightQuoteBusyId !== quote.id) void respondToFreightQuote(quote.id, false) }} />
                       <IconBtn icon={<CheckCircle size={13} strokeWidth={1.75}/>} title={freightQuoteBusyId === quote.id ? 'A processar…' : 'Aprovar transporte'} onClick={() => { if (freightQuoteBusyId !== quote.id) void respondToFreightQuote(quote.id, true) }} />
