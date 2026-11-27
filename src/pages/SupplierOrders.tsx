@@ -89,7 +89,7 @@ export default function SupplierOrders() {
       const orderIds = (data || []).map((order) => order.id);
       const freightByOrder = new Map<string, { id: string; status: string; driver_id: string | null; weight_kg: number; supplier_handover_confirmed_at: string | null }>();
       if (orderIds.length > 0) {
-        const { data: freightLoads, error: freightError } = await supabase.from('freight_loads')
+        const { data: freightLoads, error: freightError } = await (supabase as any).from('freight_loads')
           .select('id,pre_order_id,status,driver_id,weight_kg,supplier_handover_confirmed_at')
           .eq('supplier_id', user.id).in('pre_order_id', orderIds);
         if (freightError) throw freightError;
