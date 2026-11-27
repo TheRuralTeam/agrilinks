@@ -16,7 +16,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public, pg_temp
-as $
+as $guard$
 begin
   if new.platform_destination_verified is distinct from old.platform_destination_verified
      and not coalesce(public.is_root_admin(auth.uid()), false)
@@ -26,7 +26,7 @@ begin
   end if;
   return new;
 end;
-$;
+$guard$;
 
 drop trigger if exists trg_guard_payment_provider_platform_destination
   on public.payment_providers;
