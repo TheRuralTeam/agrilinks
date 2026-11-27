@@ -1,0 +1,36 @@
+name: Android Driver CI
+
+on:
+  push:
+    branches:
+      - feat/buyer-live-tracking-supplier-handover-receipt
+    paths:
+      - "apps/driver-android/**"
+      - ".github/workflows/driver-android-ci.yml"
+  pull_request:
+    paths:
+      - "apps/driver-android/**"
+      - ".github/workflows/driver-android-ci.yml"
+
+jobs:
+  typecheck:
+    name: TypeScript and Expo compatibility
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/driver-android
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.13.1"
+      - name: Install pinned dependencies
+        run: npm install --no-audit --no-fund
+      - name: Check Expo SDK compatibility
+        run: npx expo install --check
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Expo project diagnostics
+        run: npx expo-doctor

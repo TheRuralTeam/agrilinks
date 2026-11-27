@@ -937,6 +937,8 @@ export type Database = {
       }
       freight_loads: {
         Row: {
+          supplier_handover_confirmed_at: string | null
+          supplier_id: string | null
           accepted_at: string | null
           contract_id: string | null
           created_at: string
@@ -972,6 +974,8 @@ export type Database = {
           weight_kg: number
         }
         Insert: {
+          supplier_handover_confirmed_at?: string | null
+          supplier_id?: string | null
           accepted_at?: string | null
           contract_id?: string | null
           created_at?: string
@@ -1007,6 +1011,8 @@ export type Database = {
           weight_kg?: number
         }
         Update: {
+          supplier_handover_confirmed_at?: string | null
+          supplier_id?: string | null
           accepted_at?: string | null
           contract_id?: string | null
           created_at?: string
@@ -5174,6 +5180,28 @@ export type Database = {
           rating_average: number
           rating_count: number
         }[]
+      }
+      confirm_supplier_handover_receipt: {
+        Args: { p_freight_load_id: string }
+        Returns: string
+      }
+      record_freight_load_location_batch: {
+        Args: { p_device_id: string; p_freight_load_id: string; p_samples: Json }
+        Returns: number
+      }
+      submit_supplier_handover_evidence: {
+        Args: {
+          p_accuracy_m?: number | null
+          p_condition_notes?: string | null
+          p_freight_load_id: string
+          p_latitude?: number | null
+          p_longitude?: number | null
+          p_photo_path: string
+          p_product_quantity_kg: number
+          p_recipient_name: string
+          p_supplier_signature_path: string
+        }
+        Returns: string
       }
       record_freight_load_location: {
         Args: {

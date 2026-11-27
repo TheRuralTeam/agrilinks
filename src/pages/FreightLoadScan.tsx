@@ -52,7 +52,7 @@ const ScanRow = ({ icon, label, value }: { icon: React.ReactNode; label: string;
 
 const FreightLoadScan = () => {
   const navigate = useNavigate();
-  const { token } = useParams<{ token: string }>();
+  const { token, loadId } = useParams<{ token?: string; loadId?: string }>();
   const { user, loading: authLoading } = useAuth();
   const [data, setData] = useState<ScanDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,7 +65,7 @@ const FreightLoadScan = () => {
       setLoading(false);
       return;
     }
-    if (!token) {
+    if (!token && !loadId) {
       setMessage('QR inválido ou incompleto.');
       setLoading(false);
       return;
@@ -74,10 +74,12 @@ const FreightLoadScan = () => {
     const load = async () => {
       setLoading(true);
       setMessage(null);
-      const { data: result, error } = await supabase.rpc(
-        'get_freight_load_qr_details' as never,
-        { p_qr_token: decodeURIComponent(token) } as never,
-      );
+      const { data: result, error } = loadId
+        ? await (supabase as any).rpc('get_freight_load_qr_details_by_id', { p_freight_load_id: loadId })
+        : await supabase.rpc(
+            'get_freight_load_qr_details' as never,
+            { p_qr_token: decodeURIComponent(token!) } as never,
+          );
 
       if (error) {
         console.error(error);
@@ -91,7 +93,7 @@ const FreightLoadScan = () => {
     };
 
     void load();
-  }, [authLoading, token, user]);
+  }, [authLoading, token, loadId, user]);
 
   if (authLoading || loading) {
     return <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: T.canvas }}><Loader /></div>;

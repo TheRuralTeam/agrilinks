@@ -18,10 +18,12 @@ import {
 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import { FreightRouteMap, FreightPointSelection } from '../components/FreightRouteMap';
+import FreightDeliveryEvidenceForm from '../components/FreightDeliveryEvidenceForm';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../contexts/AuthContext';
 import { useCanAct } from '../hooks/useCanAct';
 import { T, FONT } from '../lib/brand';
+import { enqueueFreightLocationSample, flushFreightLocationQueue } from '../lib/freightLocationOutbox';
 import {
   calculateFreightRoute,
   DestinationWeather,
@@ -36,7 +38,6 @@ import Loader from '../components/ui/Loader';
 interface FreightLoad {
   id: string;
   vehicle_id?: string | null;
-  qr_token: string;
   pre_order_id: string | null;
   created_by: string;
   product_name: string;
@@ -58,6 +59,7 @@ interface FreightLoad {
   destination_lat: number | null;
   destination_lng: number | null;
   in_transit_at: string | null;
+  supplier_handover_confirmed_at?: string | null;
 }
 
 interface DriverVehicle {
@@ -220,6 +222,7 @@ const ProximasCargas = () => {
   } | null>(null);
   const [driverLocations, setDriverLocations] = useState<Record<string, FreightLoadLocation>>({});
   const [sharingLocationFor, setSharingLocationFor] = useState<string | null>(null);
+  const [deliveryEvidenceLoad, setDeliveryEvidenceLoad] = useState<FreightLoad | null>(null);
   const [routeSetupLoadId, setRouteSetupLoadId] = useState<string | null>(null);
   const [routeSetupOrigin, setRouteSetupOrigin] = useState<FreightCoordinate | null>(null);
   const [routeSetupDestination, setRouteSetupDestination] = useState<FreightCoordinate | null>(null);
@@ -230,10 +233,16 @@ const ProximasCargas = () => {
   const [routeSetupGeocodedSuggestions, setRouteSetupGeocodedSuggestions] = useState<RouteLocationSuggestion[]>([]);
   const [routeSetupSearchingPlaces, setRouteSetupSearchingPlaces] = useState(false);
   const locationWatchId = useRef<number | null>(null);
-  const lastLocationWriteAt = useRef(0);
-  const pendingLocationRef = useRef<Record<string, FreightLoadLocation>>({});
   const onlineFlushHandlerRef = useRef<(() => void) | null>(null);
+  const activeTrackingLoadIdsRef = useRef<string[]>([]);
+  const lastLocationWriteAt = useRef(0);
   const locationRetryNoticeShown = useRef(false);
+
+  useEffect(() => () => {
+    if (locationWatchId.current != null && navigator.geolocation) navigator.geolocation.clearWatch(locationWatchId.current);
+    activeTrackingLoadIdsRef.current = [];
+    if (onlineFlushHandlerRef.current) window.removeEventListener('online', onlineFlushHandlerRef.current);
+  }, []);
 
   // The route-repair search must query the geocoder, not only filter previously saved places.
   useEffect(() => {
@@ -322,12 +331,12 @@ const ProximasCargas = () => {
     return () => controller.abort();
   }, [destination, origin, pickupDate]);
 
-  const fetchLoads = useCallback(async () => {
-    setLoading(true);
+  const fetchLoads = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('freight_loads')
-        .select('*')
+        .select('id,created_by,driver_id,contract_id,order_id,product_id,product_name,weight_kg,origin_label,origin_lat,origin_lng,destination_label,destination_lat,destination_lng,pickup_date,offered_price,currency,status,notes,accepted_at,in_transit_at,delivered_at,created_at,updated_at,pre_order_id,driver_offered_price,driver_price_method,driver_quote_status,route_distance_km,route_duration_minutes,supplier_id,buyer_id,supplier_handover_confirmed_at,driver_pickup_confirmed_at,driver_delivery_confirmed_at,buyer_receipt_confirmed_at,driver_arrived_at,vehicle_id,driver_commitment_confirmed_at')
         .order('pickup_date', { ascending: true, nullsFirst: false })
         .limit(80);
       if (error) throw error;
@@ -335,13 +344,20 @@ const ProximasCargas = () => {
     } catch (e: any) {
       toast.error('Não foi possível carregar as cargas.');
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     void fetchLoads();
   }, [fetchLoads, user?.id]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void fetchLoads(true);
+    }, 15000);
+    return () => window.clearInterval(timer);
+  }, [fetchLoads]);
 
   useEffect(() => {
     if (!user?.id || userProfile?.user_type !== 'motorista') {
@@ -544,15 +560,17 @@ const ProximasCargas = () => {
     };
   }, [relevantTransitIds]);
 
+  const flushQueuedFreightLocations = () => {
+    void Promise.all(activeTrackingLoadIdsRef.current.map((id) => flushFreightLocationQueue(id)));
+  };
+
   const stopLocationSharing = () => {
     if (locationWatchId.current != null && navigator.geolocation) {
       navigator.geolocation.clearWatch(locationWatchId.current);
     }
     locationWatchId.current = null;
-    if (onlineFlushHandlerRef.current) {
-      window.removeEventListener('online', onlineFlushHandlerRef.current);
-      onlineFlushHandlerRef.current = null;
-    }
+    activeTrackingLoadIdsRef.current = [];
+    if (onlineFlushHandlerRef.current) { window.removeEventListener('online', onlineFlushHandlerRef.current); onlineFlushHandlerRef.current = null; }
     setSharingLocationFor(null);
   };
 
@@ -571,66 +589,58 @@ const ProximasCargas = () => {
     lastLocationWriteAt.current = 0;
     locationRetryNoticeShown.current = false;
     setSharingLocationFor(load.id);
+    const trackingLoads = [
+      load,
+      ...loads.filter((item) => item.driver_id === user?.id && item.status === 'in_transit' && item.id !== load.id),
+    ];
+    activeTrackingLoadIdsRef.current = trackingLoads.map((item) => item.id);
 
-    const persistLocation = async (location: FreightLoadLocation) => {
-      if (!navigator.onLine) {
-        pendingLocationRef.current[load.id] = location;
-        setDriverLocations((previous) => ({ ...previous, [load.id]: location }));
-        return;
-      }
-
-      const { error } = await supabase.rpc('record_freight_load_location', {
-        p_freight_load_id: load.id,
-        p_latitude: location.latitude,
-        p_longitude: location.longitude,
-        p_accuracy_m: location.accuracy_m as number,
-        p_speed_mps: location.speed_mps as number,
-        p_heading_deg: location.heading_deg as number,
-        p_record_history: true,
-      });
-
-      if (error) {
-        if (error.code === '42501' || error.code === '22023') {
-          toast.error('A partilha GPS foi recusada pelo servidor. Confirme que esta carga está atribuída a si e em trânsito.');
-          stopLocationSharing();
-          return;
-        }
-        pendingLocationRef.current[load.id] = location;
-        setDriverLocations((previous) => ({ ...previous, [load.id]: location }));
-        if (!locationRetryNoticeShown.current) {
-          toast.error('Sem confirmação do servidor. A última posição será reenviada quando a ligação voltar.');
+    const persistLocation = async (location: Omit<FreightLoadLocation, 'freight_load_id'>) => {
+      try {
+        await Promise.all(trackingLoads.map((activeLoad) => enqueueFreightLocationSample(activeLoad.id, location)));
+        if (navigator.onLine) {
+          const results = await Promise.all(
+            trackingLoads.map((activeLoad) => flushFreightLocationQueue(activeLoad.id))
+          );
+          const failed = results.find((result) => result.error);
+          if (failed?.error) throw failed.error;
+          setDriverLocations((previous) => ({
+            ...previous,
+            ...Object.fromEntries(trackingLoads.map((item) => [
+              item.id,
+              { ...location, freight_load_id: item.id },
+            ])),
+          }));
+          if (locationRetryNoticeShown.current) {
+            toast.success('Ligação restabelecida. As posições GPS pendentes foram sincronizadas.');
+            locationRetryNoticeShown.current = false;
+          }
+        } else if (!locationRetryNoticeShown.current) {
+          toast.info('Sem cobertura. As posições GPS estão guardadas neste dispositivo e serão sincronizadas quando a ligação regressar.');
           locationRetryNoticeShown.current = true;
         }
-        return;
-      }
-
-      delete pendingLocationRef.current[load.id];
-      setDriverLocations((previous) => ({ ...previous, [load.id]: location }));
-      if (locationRetryNoticeShown.current) {
-        toast.success('Ligação restabelecida. A posição GPS voltou a ser sincronizada.');
-        locationRetryNoticeShown.current = false;
+      } catch (error) {
+        console.warn('[AgriLink] A fila GPS permanece guardada localmente para nova tentativa.', error);
+        if (!locationRetryNoticeShown.current) {
+          toast.error('A posição foi guardada localmente. A sincronização será tentada novamente.');
+          locationRetryNoticeShown.current = true;
+        }
       }
     };
 
-    const flushPending = () => {
-      const pending = pendingLocationRef.current[load.id];
-      if (pending) void persistLocation(pending);
-    };
-    onlineFlushHandlerRef.current = flushPending;
-    window.addEventListener('online', flushPending);
-
+    onlineFlushHandlerRef.current = flushQueuedFreightLocations;
+    window.addEventListener('online', flushQueuedFreightLocations);
     locationWatchId.current = navigator.geolocation.watchPosition(
       async (position) => {
         if (Date.now() - lastLocationWriteAt.current < 15000) return;
         lastLocationWriteAt.current = Date.now();
-        const location: FreightLoadLocation = {
-          freight_load_id: load.id,
+        const location = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
           accuracy_m: Number.isFinite(position.coords.accuracy) ? position.coords.accuracy : null,
           speed_mps: position.coords.speed != null && position.coords.speed >= 0 ? position.coords.speed : null,
           heading_deg: position.coords.heading != null && position.coords.heading >= 0 ? position.coords.heading : null,
-          recorded_at: new Date().toISOString(),
+          recorded_at: new Date(position.timestamp || Date.now()).toISOString(),
         };
         if (!Number.isFinite(location.latitude) || !Number.isFinite(location.longitude) ||
             location.latitude < -90 || location.latitude > 90 ||
@@ -646,14 +656,26 @@ const ProximasCargas = () => {
           error.code === error.PERMISSION_DENIED
             ? 'Permita o acesso à localização para partilhar o trajeto.'
             : error.code === error.TIMEOUT
-              ? 'A leitura GPS demorou demasiado. Verifique o sinal e tente novamente.'
-              : 'Não foi possível obter a localização do motorista.'
+              ? 'Sem fix GPS neste momento. A aplicação continuará a tentar obter uma posição.'
+              : 'O sinal GPS está indisponível. A aplicação continuará a tentar obter uma posição.'
         );
-        stopLocationSharing();
+        if (error.code === error.PERMISSION_DENIED) stopLocationSharing();
       },
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
     );
   };
+
+  const autoResumeAttemptedRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!user?.id || userProfile?.user_type !== 'motorista' || sharingLocationFor) return;
+    const activeLoad = loads.find((item) => item.driver_id === user.id && item.status === 'in_transit');
+    if (!activeLoad || autoResumeAttemptedRef.current.has(activeLoad.id)) return;
+    autoResumeAttemptedRef.current.add(activeLoad.id);
+    startLocationSharing(activeLoad);
+    // startLocationSharing is intentionally invoked once per active load after the page restores.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loads, user?.id, userProfile?.user_type, sharingLocationFor]);
 
   const submitQuote = async (load: FreightLoad) => {
     if (!requireAct('propor o preço de uma carga')) return;
@@ -1030,14 +1052,23 @@ const ProximasCargas = () => {
       return;
     }
     const nextStatus = load.status === 'accepted' ? 'at_pickup' : load.status === 'at_pickup' ? 'in_transit' : 'delivered';
-    setBusyId(load.id);
-    const { error } = await supabase.rpc('advance_freight_load_status', { p_freight_load_id: load.id, p_status: nextStatus });
-    setBusyId(null);
-    if (error) {
-      toast.error(error?.message || 'Não foi possível actualizar.');
+    if (nextStatus === 'delivered') {
+      setDeliveryEvidenceLoad(load);
       return;
     }
-    if (nextStatus === 'delivered' && sharingLocationFor === load.id) stopLocationSharing();
+    if (load.status === 'at_pickup' && !load.supplier_handover_confirmed_at) {
+      toast.error('Aguarde o fornecedor emitir a nota de entrega antes de confirmar a recepção.');
+      return;
+    }
+    setBusyId(load.id);
+    const result = load.status === 'at_pickup'
+      ? await supabase.rpc('confirm_supplier_handover_receipt', { p_freight_load_id: load.id })
+      : await supabase.rpc('advance_freight_load_status', { p_freight_load_id: load.id, p_status: nextStatus });
+    setBusyId(null);
+    if (result.error) {
+      toast.error(result.error.message || 'Não foi possível actualizar.');
+      return;
+    }
     if (nextStatus === 'in_transit') startLocationSharing({ ...load, status: 'in_transit' });
     await fetchLoads();
   };
@@ -1926,7 +1957,7 @@ const ProximasCargas = () => {
                   </div>
                 ) : isAssignedDriver && load.status === 'at_pickup' ? (
                   <button
-                    disabled={busyId === load.id}
+                    disabled={busyId === load.id || !load.supplier_handover_confirmed_at}
                     onClick={() => void advance(load)}
                     style={{
                       marginTop: 14, width: '100%', padding: '12px 16px',
@@ -1935,7 +1966,11 @@ const ProximasCargas = () => {
                       fontWeight: 800, cursor: 'pointer',
                     }}
                   >
-                    {busyId === load.id ? 'A confirmar…' : 'Confirmar que estou com a carga · iniciar GPS'}
+                    {busyId === load.id
+                      ? 'A confirmar…'
+                      : load.supplier_handover_confirmed_at
+                        ? 'Confirmar recepção da carga · iniciar GPS'
+                        : 'A aguardar nota de entrega do fornecedor'}
                   </button>
                 ) : isAssignedDriver && load.status === 'in_transit' ? (
                   <button
@@ -2047,6 +2082,20 @@ const ProximasCargas = () => {
             </div>
           </section>
         </div>
+      )}
+      {deliveryEvidenceLoad && user?.id && (
+        <FreightDeliveryEvidenceForm
+          freightLoadId={deliveryEvidenceLoad.id}
+          driverId={user.id}
+          onCancel={() => setDeliveryEvidenceLoad(null)}
+          onSubmitted={() => {
+            const completedLoadId = deliveryEvidenceLoad.id;
+            setDeliveryEvidenceLoad(null);
+            if (sharingLocationFor === completedLoadId) stopLocationSharing();
+            toast.success('Comprovativo registado. A entrega foi confirmada.');
+            void fetchLoads();
+          }}
+        />
       )}
     </div>
   );

@@ -1,22 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowLeft, ShoppingBag, CreditCard, Clock3, CheckCircle2, AlertCircle, MapPin, RefreshCw } from 'lucide-react'
+import { ArrowLeft, ShoppingBag, CreditCard, Clock3, CheckCircle2, AlertCircle, MapPin, RefreshCw, FileText } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { Input } from '../components/ui/input'
-import { Label } from '../components/ui/label'
-import { Textarea } from '../components/ui/textarea'
 import { Badge } from '../components/ui/badge'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../integrations/supabase/client'
 import { toast } from '../hooks/use-toast'
+import BuyerFreightTracking from '../components/BuyerFreightTracking'
+import FreightDeliveryEvidenceViewer from '../components/FreightDeliveryEvidenceViewer'
+import { downloadMarketplaceTransactionReceipt } from '../features/orders/transactionReceipts'
 import {
   getMarketplaceCheckoutSummary,
-  getMarketplacePaymentRecipients,
-  createAuthorizedRecipientPaymentIntent,
-  submitAuthorizedRecipientPaymentProof,
   type MarketplaceCheckoutSummary,
-  type AuthorizedPaymentRecipient,
 } from '../features/marketplace/marketplaceCheckoutService'
 
 type Purchase = {
@@ -32,13 +28,26 @@ type Purchase = {
   created_at: string
   product_name: string
 }
+type PurchaseFreightLoad = {
+  id: string
+  pre_order_id: string
+  status: string
+  origin_label: string | null
+  destination_label: string | null
+  origin_lat: number | null
+  origin_lng: number | null
+  destination_lat: number | null
+  destination_lng: number | null
+  driver_id: string | null
+  delivered_at: string | null
+  buyer_receipt_confirmed_at: string | null
+  created_at: string
+}
 type CheckoutState = {
   summary: MarketplaceCheckoutSummary | null
-  recipients: AuthorizedPaymentRecipient[]
   loading: boolean
   error: string | null
 }
-type PaymentDraft = { intentId: string; recipientName: string; accountIdentifier: string; channel: string; accountHolder: string; instructions: string | null }
 
 const money = (amount: number, currency = 'AOA') =>
   new Intl.NumberFormat('pt-AO', { style: 'currency', currency, maximumFractionDigits: 2 }).format(amount)
@@ -80,15 +89,13 @@ export default function MyPurchases() {
   const { purchaseId } = useParams<{ purchaseId?: string }>()
   const purchaseHistoryPath = String(userProfile?.user_type ?? '').toLowerCase() === 'comprador' ? '/minhas-compras' : '/app'
   const [purchases, setPurchases] = useState<Purchase[]>([])
+  const [freightLoadsByOrder, setFreightLoadsByOrder] = useState<Record<string, PurchaseFreightLoad>>({})
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [checkout, setCheckout] = useState<Record<string, CheckoutState>>({})
-  const [selectedRecipients, setSelectedRecipients] = useState<Record<string, string>>({})
-  const [paymentDrafts, setPaymentDrafts] = useState<Record<string, PaymentDraft>>({})
-  const [proofReferences, setProofReferences] = useState<Record<string, string>>({})
-  const [proofNotes, setProofNotes] = useState<Record<string, string>>({})
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [deliveryEvidenceViewId, setDeliveryEvidenceViewId] = useState<string | null>(null)
 
   const loadPurchases = useCallback(async (quiet = false) => {
     if (!user?.id) {
@@ -120,6 +127,26 @@ export default function MyPurchases() {
         if (productsError) throw productsError
         productNames = Object.fromEntries((products ?? []).map((product) => [product.id, product.product_type || 'Produto']))
       }
+      const purchaseIds = rows.map((row) => row.id)
+      if (purchaseIds.length > 0) {
+        const { data: freightLoads, error: freightError } = await (supabase as any)
+          .from('freight_loads')
+          .select('id,pre_order_id,status,origin_label,destination_label,origin_lat,origin_lng,destination_lat,destination_lng,driver_id,delivered_at,buyer_receipt_confirmed_at,created_at')
+          .in('pre_order_id', purchaseIds)
+          .order('created_at', { ascending: false })
+        if (freightError) {
+          console.warn('[AgriLink] Não foi possível carregar o acompanhamento de frete.', freightError)
+          setFreightLoadsByOrder({})
+        } else {
+          const latestByOrder: Record<string, PurchaseFreightLoad> = {}
+          for (const load of (freightLoads || []) as PurchaseFreightLoad[]) {
+            if (!latestByOrder[load.pre_order_id]) latestByOrder[load.pre_order_id] = load
+          }
+          setFreightLoadsByOrder(latestByOrder)
+        }
+      } else {
+        setFreightLoadsByOrder({})
+      }
       setPurchases(rows.map((row) => ({ ...row, product_name: productNames[row.product_id] || 'Produto' })) as Purchase[])
     } catch (error: any) {
       const message = 'Não foi possível consultar o histórico de compras. Verifique a ligação e tente novamente.'
@@ -150,18 +177,21 @@ export default function MyPurchases() {
     }
   }, [loadPurchases])
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void loadPurchases(true);
+    }, 30000);
+    return () => window.clearInterval(timer);
+  }, [loadPurchases]);
+
   const openPaymentOptions = async (purchase: Purchase) => {
-    setCheckout((current) => ({ ...current, [purchase.id]: { summary: null, recipients: [], loading: true, error: null } }))
+    setCheckout((current) => ({ ...current, [purchase.id]: { summary: null, loading: true, error: null } }))
     try {
-      const [summary, recipients] = await Promise.all([
-        getMarketplaceCheckoutSummary(purchase.id),
-        getMarketplacePaymentRecipients(purchase.id),
-      ])
+      const summary = await getMarketplaceCheckoutSummary(purchase.id)
       setCheckout((current) => ({
         ...current,
         [purchase.id]: {
           summary,
-          recipients: recipients ?? [],
           loading: false,
           error: null,
         },
@@ -173,58 +203,56 @@ export default function MyPurchases() {
         })
       }
     } catch (error: any) {
-      setCheckout((current) => ({ ...current, [purchase.id]: { summary: null, recipients: [], loading: false, error: error?.message || 'Não foi possível consultar o pagamento.' } }))
-      toast({ title: 'Pagamento indisponível', description: error?.message || 'Não foi possível consultar as opções de pagamento.', variant: 'destructive' })
+      setCheckout((current) => ({
+        ...current,
+        [purchase.id]: {
+          summary: null,
+          loading: false,
+          error: error?.message || 'Não foi possível consultar o pagamento.',
+        },
+      }))
+      toast({
+        title: 'Pagamento indisponível',
+        description: error?.message || 'Não foi possível consultar o estado do checkout.',
+        variant: 'destructive',
+      })
     }
   }
 
-  const createPayment = async (purchase: Purchase) => {
-    const state = checkout[purchase.id]
-    const recipientId = selectedRecipients[purchase.id]
-    if (!recipientId || !state?.summary?.payment_ready) return
-    setBusyId(purchase.id)
+  const confirmBuyerReceipt = async (load: PurchaseFreightLoad) => {
+    setBusyId(load.id)
     try {
-      const intent = await createAuthorizedRecipientPaymentIntent(purchase.id, recipientId)
-      const recipient = state.recipients.find((item) => item.id === recipientId)
-      setPaymentDrafts((current) => ({
-        ...current,
-        [purchase.id]: {
-          intentId: intent.intent_id,
-          recipientName: intent.recipient_name,
-          accountIdentifier: intent.account_identifier,
-          channel: recipient?.channel || 'Canal autorizado',
-          accountHolder: recipient?.account_holder || intent.recipient_name,
-          instructions: recipient?.instructions || null,
-        },
-      }))
-      toast({ title: 'Instruções de pagamento preparadas', description: 'Usa os dados apresentados e comunica a transferência quando terminares.' })
+      const { error } = await (supabase as any).rpc('confirm_freight_receipt', {
+        p_freight_load_id: load.id,
+      })
+      if (error) throw error
+      toast({
+        title: 'Recepção confirmada',
+        description: 'A AgriLink registou a confirmação. A liquidação será processada conforme as regras da operação.',
+      })
       await loadPurchases(true)
     } catch (error: any) {
-      toast({ title: 'Não foi possível preparar o pagamento', description: error?.message || 'Verifica se a compra continua elegível.', variant: 'destructive' })
+      toast({
+        title: 'Não foi possível confirmar a recepção',
+        description: error?.message || 'Verifique o comprovativo de entrega e tente novamente.',
+        variant: 'destructive',
+      })
     } finally {
       setBusyId(null)
     }
   }
 
-  const submitProof = async (purchaseId: string) => {
-    const draft = paymentDrafts[purchaseId]
-    const reference = proofReferences[purchaseId]?.trim()
-    if (!draft || !reference) {
-      toast({ title: 'Falta a referência', description: 'Introduz a referência real da transferência para comunicar o pagamento.', variant: 'destructive' })
-      return
-    }
+  const downloadReceipt = async (purchaseId: string) => {
     setBusyId(purchaseId)
     try {
-      await submitAuthorizedRecipientPaymentProof(draft.intentId, reference, proofNotes[purchaseId]?.trim() || undefined)
-      toast({ title: 'Pagamento comunicado', description: 'A operação foi enviada para validação. O estado será actualizado após confirmação.' })
-      setPaymentDrafts((current) => {
-        const next = { ...current }
-        delete next[purchaseId]
-        return next
-      })
-      await loadPurchases(true)
+      await downloadMarketplaceTransactionReceipt(purchaseId)
+      toast({ title: 'Recibo preparado', description: 'O comprovativo da transacção foi gerado.' })
     } catch (error: any) {
-      toast({ title: 'Não foi possível comunicar o pagamento', description: error?.message || 'Confirma a referência e tenta novamente.', variant: 'destructive' })
+      toast({
+        title: 'Não foi possível gerar o recibo',
+        description: error?.message || 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      })
     } finally {
       setBusyId(null)
     }
@@ -267,7 +295,6 @@ export default function MyPurchases() {
         <div className="space-y-4">
           {purchases.map((purchase) => {
             const state = checkout[purchase.id]
-            const draft = paymentDrafts[purchase.id]
             const canStartPayment = purchase.status === 'accepted' && ['unpaid', 'failed', null].includes(purchase.payment_status)
             return (
               <Card key={purchase.id}>
@@ -278,6 +305,62 @@ export default function MyPurchases() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {freightLoadsByOrder[purchase.id] && <BuyerFreightTracking load={freightLoadsByOrder[purchase.id]} />}
+                  {freightLoadsByOrder[purchase.id] && (
+                    <section className="space-y-3 rounded-lg border p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold">Comprovativo e recepção da entrega</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {freightLoadsByOrder[purchase.id].status === 'delivered'
+                              ? freightLoadsByOrder[purchase.id].delivered_at
+                                ? 'Entrega registada em ' + new Date(freightLoadsByOrder[purchase.id].delivered_at as string).toLocaleString('pt-AO')
+                                : 'Entrega registada pelo motorista.'
+                              : 'O comprovativo ficará disponível quando o motorista concluir a entrega.'}
+                          </p>
+                        </div>
+                        <Badge variant={freightLoadsByOrder[purchase.id].buyer_receipt_confirmed_at ? 'default' : 'outline'}>
+                          {freightLoadsByOrder[purchase.id].buyer_receipt_confirmed_at ? 'Recepção confirmada' : 'A aguardar recepção'}
+                        </Badge>
+                      </div>
+                      {freightLoadsByOrder[purchase.id].status === 'delivered' && (
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDeliveryEvidenceViewId(freightLoadsByOrder[purchase.id].id)}
+                          >
+                            <FileText className="mr-2 h-4 w-4" /> Ver comprovativo de entrega
+                          </Button>
+                          {!freightLoadsByOrder[purchase.id].buyer_receipt_confirmed_at ? (
+                            <Button
+                              size="sm"
+                              disabled={busyId === freightLoadsByOrder[purchase.id].id}
+                              onClick={() => void confirmBuyerReceipt(freightLoadsByOrder[purchase.id])}
+                            >
+                              {busyId === freightLoadsByOrder[purchase.id].id ? 'A confirmar…' : 'Confirmar recepção'}
+                            </Button>
+                          ) : (
+                            <p className="self-center text-sm text-emerald-700">
+                              Recepção confirmada em {new Date(freightLoadsByOrder[purchase.id].buyer_receipt_confirmed_at!).toLocaleString('pt-AO')}.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </section>
+                  )}
+                  {purchase.payment_status === 'paid' && (
+                    <div className="flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={busyId === purchase.id}
+                        onClick={() => void downloadReceipt(purchase.id)}
+                      >
+                        <FileText className="mr-2 h-4 w-4" /> Descarregar recibo da transacção
+                      </Button>
+                    </div>
+                  )}
                   <div className="grid gap-3 rounded-lg border p-3 sm:grid-cols-3">
                     <div><p className="text-xs text-muted-foreground">Quantidade</p><p className="font-semibold">{Number(purchase.quantity).toLocaleString('pt-AO')} unidades de venda</p></div>
                     <div><p className="text-xs text-muted-foreground">Total registado</p><p className="font-semibold">{money(Number(purchase.total_price || 0))}</p></div>
@@ -286,7 +369,7 @@ export default function MyPurchases() {
 
                   {canStartPayment && (
                     <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900 dark:bg-amber-950/20">
-                      <div className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><div><p className="font-semibold">Próximo passo: confirmar o pagamento</p><p className="mt-1 text-sm text-muted-foreground">As instruções são mostradas apenas quando existe um destinatário de pagamento autorizado e o checkout confirma que esta compra está pronta.</p></div></div>
+                      <div className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><div><p className="font-semibold">Próximo passo: confirmar o pagamento</p><p className="mt-1 text-sm text-muted-foreground">O produto e o frete são pagos exclusivamente à conta oficial da AgriLink. Não transfiras valores directamente para fornecedores ou motoristas.</p></div></div>
                       <Button className="mt-3" onClick={() => void openPaymentOptions(purchase)} disabled={state?.loading || busyId === purchase.id}><CreditCard className="mr-2 h-4 w-4" />{state?.loading ? 'A consultar…' : 'Consultar opções de pagamento'}</Button>
                       {state?.error && <p className="mt-2 text-sm text-destructive">{state.error}</p>}
                       {state?.summary && (
@@ -300,24 +383,15 @@ export default function MyPurchases() {
                           {state.summary.payment_ready && (
                             <div className="space-y-2 rounded-md border bg-background p-3">
                               <div>
-                                <p className="font-semibold">Gateway de pagamento indisponível</p>
-                                <p className="mt-1 text-sm text-muted-foreground">Nenhuma cobrança será iniciada: falta configurar um provedor e a confirmação segura por webhook. Se houver um meio autorizado abaixo, podes usá-lo; caso contrário, aguarda a activação do gateway.</p>
+                                <p className="font-semibold">Pagamento centralizado na conta AgriLink</p>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                  O checkout está elegível, mas o gateway oficial ainda não está activo. Nenhuma cobrança será iniciada e não serão apresentados IBANs ou números de terceiros. Aguarda a activação do meio de pagamento oficial da AgriLink.
+                                </p>
                               </div>
                               <Button disabled>
                                 <CreditCard className="mr-2 h-4 w-4" />
-                                EMIS indisponível
+                                Pagamento AgriLink indisponível
                               </Button>
-                            </div>
-                          )}
-                          {state.summary.payment_ready && state.recipients.length === 0 && <p className="rounded-md border p-3 text-sm text-muted-foreground">Não há beneficiário activo para transferência manual e a ligação EMIS ainda está em configuração. Não transfiras dinheiro para dados recebidos fora da AgriLink.</p>}
-                          {state.summary.payment_ready && state.recipients.length > 0 && (
-                            <div className="space-y-3 rounded-md border bg-background p-3">
-                              <Label>Escolhe o método e destinatário autorizado</Label>
-                              <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={selectedRecipients[purchase.id] || ''} onChange={(event) => setSelectedRecipients((current) => ({ ...current, [purchase.id]: event.target.value }))}>
-                                <option value="">Seleccionar opção</option>
-                                {state.recipients.map((recipient) => <option key={recipient.id} value={recipient.id}>{recipient.display_name} · {recipient.channel.replace(/_/g, ' ')}</option>)}
-                              </select>
-                              <Button onClick={() => void createPayment(purchase)} disabled={!selectedRecipients[purchase.id] || busyId === purchase.id || Boolean(paymentDrafts[purchase.id])}>{busyId === purchase.id ? 'A preparar…' : paymentDrafts[purchase.id] ? 'Instruções já geradas' : 'Gerar instruções seguras'}</Button>
                             </div>
                           )}
                         </div>
@@ -325,18 +399,8 @@ export default function MyPurchases() {
                     </div>
                   )}
 
-                  {draft && (
-                    <div className="space-y-3 rounded-lg border p-4">
-                      <div><p className="font-semibold">Instruções de pagamento</p><p className="text-sm text-muted-foreground">Método: {draft.channel.replace(/_/g, ' ')}</p><p className="mt-1 text-sm">Destinatário: <strong>{draft.recipientName}</strong></p><p className="text-sm">Titular: <strong>{draft.accountHolder}</strong></p><p className="mt-1 break-all font-mono text-sm">{draft.accountIdentifier}</p>{draft.instructions && <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{draft.instructions}</p>}</div>
-                      <p className="text-sm text-muted-foreground">Confirma o nome e os dados no canal de pagamento escolhido. Depois da transferência, regista a referência abaixo. A compra só será marcada como paga após validação.</p>
-                      <div><Label>Referência real da transferência</Label><Input value={proofReferences[purchase.id] || ''} onChange={(event) => setProofReferences((current) => ({ ...current, [purchase.id]: event.target.value }))} placeholder="Referência / comprovativo da operação" /></div>
-                      <div><Label>Nota opcional</Label><Textarea value={proofNotes[purchase.id] || ''} onChange={(event) => setProofNotes((current) => ({ ...current, [purchase.id]: event.target.value }))} placeholder="Informação adicional para a validação" rows={2} /></div>
-                      <Button onClick={() => void submitProof(purchase.id)} disabled={!proofReferences[purchase.id]?.trim() || busyId === purchase.id}>{busyId === purchase.id ? 'A enviar…' : 'Comunicar pagamento'}</Button>
-                    </div>
-                  )}
-
-                  {purchase.status === 'accepted' && purchase.payment_status === 'pending' && !draft && <p className="flex items-start gap-2 rounded-md border p-3 text-sm text-muted-foreground"><Clock3 className="mt-0.5 h-4 w-4 shrink-0" />Existe um pagamento pendente de confirmação. Não inicies outra transferência; consulta o estado novamente mais tarde ou contacta o suporte AgriLink.</p>}
-                  {purchase.status === 'accepted' && purchase.payment_status === 'processing' && !draft && <p className="flex items-start gap-2 rounded-md border p-3 text-sm text-muted-foreground"><Clock3 className="mt-0.5 h-4 w-4 shrink-0" />O pagamento foi comunicado e está em validação pela AgriLink.</p>}
+                  {purchase.status === 'accepted' && purchase.payment_status === 'pending' && <p className="flex items-start gap-2 rounded-md border p-3 text-sm text-muted-foreground"><Clock3 className="mt-0.5 h-4 w-4 shrink-0" />Existe um pagamento pendente de confirmação. Não inicies outra transferência; consulta o estado novamente mais tarde ou contacta o suporte AgriLink.</p>}
+                  {purchase.status === 'accepted' && purchase.payment_status === 'processing' && <p className="flex items-start gap-2 rounded-md border p-3 text-sm text-muted-foreground"><Clock3 className="mt-0.5 h-4 w-4 shrink-0" />O pagamento foi comunicado e está em validação pela AgriLink.</p>}
                   {purchase.status !== 'accepted' && purchase.payment_status !== 'paid' && (
                     <p className="flex items-start gap-2 rounded-md border p-3 text-sm text-muted-foreground"><Clock3 className="mt-0.5 h-4 w-4 shrink-0" />{purchase.status === 'pending' || purchase.status === 'aguardando' ? 'O fornecedor ainda não aceitou a pré-compra. Não é necessário pagar nesta fase.' : 'Consulta o estado acima. Não efectues pagamentos adicionais sem instruções oficiais na plataforma.'}</p>
                   )}
@@ -346,6 +410,12 @@ export default function MyPurchases() {
             )
           })}
         </div>
+      )}
+      {deliveryEvidenceViewId && (
+        <FreightDeliveryEvidenceViewer
+          freightLoadId={deliveryEvidenceViewId}
+          onClose={() => setDeliveryEvidenceViewId(null)}
+        />
       )}
     </main>
   )
