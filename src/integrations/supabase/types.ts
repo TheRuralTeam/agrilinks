@@ -5175,28 +5175,6 @@ export type Database = {
           rating_count: number
         }[]
       }
-      confirm_supplier_handover_receipt: {
-        Args: { p_freight_load_id: string }
-        Returns: string
-      }
-      record_freight_load_location_batch: {
-        Args: { p_device_id: string; p_freight_load_id: string; p_samples: Json }
-        Returns: number
-      }
-      submit_supplier_handover_evidence: {
-        Args: {
-          p_accuracy_m?: number | null
-          p_condition_notes?: string | null
-          p_freight_load_id: string
-          p_latitude?: number | null
-          p_longitude?: number | null
-          p_photo_path: string
-          p_product_quantity_kg: number
-          p_recipient_name: string
-          p_supplier_signature_path: string
-        }
-        Returns: string
-      }
       record_freight_load_location: {
         Args: {
           p_accuracy_m: number

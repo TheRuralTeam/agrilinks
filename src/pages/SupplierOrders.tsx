@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../integrations/supabase/client';
 import { respondToPreOrder } from '../features/orders/adminPreOrderService';
 import { R, T } from '../lib/brand';
+import SupplierHandoverEvidenceForm from '../components/SupplierHandoverEvidenceForm';
 
 interface SupplierOrder {
   id: string;
@@ -20,6 +21,11 @@ interface SupplierOrder {
   product_name: string;
   buyer_name: string;
   buyer_phone: string;
+  freight_load_id?: string | null;
+  freight_status?: string | null;
+  freight_driver_id?: string | null;
+  freight_weight_kg?: number | null;
+  supplier_handover_confirmed_at?: string | null;
 }
 
 const statusLabel: Record<string, string> = {
@@ -80,13 +86,28 @@ export default function SupplierOrders() {
         buyerNames = new Map((buyers || []).map((buyer) => [buyer.id, { full_name: buyer.full_name, phone: buyer.phone || '' }]));
       }
 
+      const orderIds = (data || []).map((order) => order.id);
+      const freightByOrder = new Map<string, { id: string; status: string; driver_id: string | null; weight_kg: number; supplier_handover_confirmed_at: string | null }>();
+      if (orderIds.length > 0) {
+        const { data: freightLoads, error: freightError } = await supabase.from('freight_loads')
+          .select('id,pre_order_id,status,driver_id,weight_kg,supplier_handover_confirmed_at')
+          .eq('supplier_id', user.id).in('pre_order_id', orderIds);
+        if (freightError) throw freightError;
+        (freightLoads || []).forEach((load) => {
+          if (load.pre_order_id) freightByOrder.set(load.pre_order_id, {
+            id: load.id, status: load.status, driver_id: load.driver_id,
+            weight_kg: Number(load.weight_kg || 0), supplier_handover_confirmed_at: load.supplier_handover_confirmed_at,
+          });
+        });
+      }
       setOrders((data || []).map((order) => {
-        const buyer = buyerNames.get(order.user_id);
+        const buyer = buyerNames.get(order.user_id), freight = freightByOrder.get(order.id);
         return {
-          ...order,
-          product_name: productNames.get(order.product_id) || 'Produto',
-          buyer_name: buyer?.full_name || 'Comprador',
-          buyer_phone: buyer?.phone || '',
+          ...order, product_name: productNames.get(order.product_id) || 'Produto',
+          buyer_name: buyer?.full_name || 'Comprador', buyer_phone: buyer?.phone || '',
+          freight_load_id: freight?.id || null, freight_status: freight?.status || null,
+          freight_driver_id: freight?.driver_id || null, freight_weight_kg: freight?.weight_kg || null,
+          supplier_handover_confirmed_at: freight?.supplier_handover_confirmed_at || null,
         } as SupplierOrder;
       }));
     } catch (error) {
@@ -165,6 +186,12 @@ export default function SupplierOrders() {
         </div>
 
         <p className="mt-3 text-xs leading-relaxed" style={{ color: T.muted }}>Entrega: {order.location || 'A combinar'}</p>
+        {order.freight_load_id && order.freight_status === 'at_pickup' && order.freight_driver_id && !order.supplier_handover_confirmed_at && (
+          <SupplierHandoverEvidenceForm freightLoadId={order.freight_load_id} supplierId={user!.id} driverId={order.freight_driver_id} expectedQuantityKg={order.freight_weight_kg || order.quantity} onSubmitted={() => void loadOrders()} />
+        )}
+        {order.freight_load_id && order.supplier_handover_confirmed_at && order.freight_status === 'at_pickup' && (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Nota de entrega emitida. Aguardando o motorista confirmar a recepção para iniciar o rastreamento.</div>
+        )}
 
         {['pending', 'aguardando'].includes(order.status) && (
           <div className="mt-4 flex gap-2">
