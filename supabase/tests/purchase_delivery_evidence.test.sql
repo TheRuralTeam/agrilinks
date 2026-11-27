@@ -24,12 +24,6 @@ begin
     (v_supplier, 'authenticated', 'authenticated', 'supplier-evidence-test@example.invalid', now(), '{}'::jsonb, '{"full_name":"Supplier Evidence Test"}'::jsonb, now(), now()),
     (v_other, 'authenticated', 'authenticated', 'other-evidence-test@example.invalid', now(), '{}'::jsonb, '{"full_name":"Other Evidence Test"}'::jsonb, now(), now());
 
-  insert into public.users (id, full_name, user_type, email_verified) values
-    (v_driver, 'Driver Evidence Test', 'motorista', true),
-    (v_buyer, 'Buyer Evidence Test', 'comprador', true),
-    (v_supplier, 'Supplier Evidence Test', 'agricultor', true),
-    (v_other, 'Other Evidence Test', 'comprador', true);
-
   insert into public.pre_orders (id, status, payment_status)
   values
     (v_pre_order, 'accepted', 'paid'),
