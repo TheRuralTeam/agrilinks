@@ -11,7 +11,8 @@ Esta pasta reúne documentação de arquitectura, operação, segurança, QA e p
 | [Pré-compras do fornecedor](operations/SUPPLIER_PREORDERS_RUNBOOK.md) | RLS, trigger de notificação, Realtime e testes comprador-fornecedor |
 | [Tracking e entregas](operations/FREIGHT_TRACKING_RUNBOOK.md) | Requisitos de tracking, offline, permissões, entregas e testes |
 | [Auditoria da branch de tracking (27-11-2026)](operations/TRACKING_BRANCH_AUDIT_2026-11-27.md) | Diff, riscos identificados, bloqueios e plano de isolamento antes do merge |
-| [Plano da branch isolada de tracking](operations/ISOLATED_TRACKING_INTEGRATION.md) | Branch `feat/integrate-driver-gps-tracking`, base exacta, escopo permitido e critérios do PR |
+| [Plano da branch isolada de tracking](operations/ISOLATED_TRACKING_INTEGRATION.md) | Branch `feat/integrate-driver-gps-tracking`, integração do app mobile, base exacta, escopo e critérios do PR |
+| [Estado da integração mobile](../apps/mobile/docs/INTEGRATION_STATUS.md) | Origem `mobileagri`, estrutura Expo, exclusões de segurança e reconciliação de backend pendente |
 | [Segurança e dados](operations/SECURITY_AND_DATA_HANDLING.md) | Regras de acesso, GPS, dados pessoais, pagamentos e segredos |
 | [QA e release checklist](qa/RELEASE_QA_CHECKLIST.md) | Critérios mínimos para validar alterações e releases |
 
