@@ -34,7 +34,7 @@ export default function FreightDeliveryEvidenceViewer({ freightLoadId, onClose }
       setError(null);
 
       try {
-        const { data, error: rpcError } = await supabase.rpc('get_freight_delivery_evidence', {
+        const { data, error: rpcError } = await (supabase as any).rpc('get_freight_delivery_evidence', {
           p_freight_load_id: freightLoadId,
         });
         if (rpcError) throw rpcError;
