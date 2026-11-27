@@ -5,6 +5,7 @@ do $$
 declare
   v_count integer;
   v_def text;
+  v_handover_def text;
 begin
   if to_regclass('public.freight_handover_evidence') is null then
     raise exception 'freight_handover_evidence table is missing';
@@ -14,6 +15,15 @@ begin
   end if;
   if to_regprocedure('public.confirm_supplier_handover_receipt(uuid)') is null then
     raise exception 'driver handover acknowledgement RPC is missing';
+  end if;
+  if has_function_privilege('authenticated','public.confirm_supplier_handover(uuid)','EXECUTE') then
+    raise exception 'legacy handover RPC must not bypass the evidence-backed flow';
+  end if;
+  select pg_get_functiondef('public.submit_supplier_handover_evidence(uuid,text,numeric,text,text,text,double precision,double precision,double precision)'::regprocedure)
+    into v_handover_def;
+  if position('payment_status = ''paid''' in v_handover_def) = 0
+     or position('driver_quote_status is distinct from ''approved''' in v_handover_def) = 0 then
+    raise exception 'supplier handover must require paid order and approved driver quote';
   end if;
   if to_regprocedure('public.record_freight_load_location_batch(uuid,uuid,jsonb)') is null then
     raise exception 'offline location batch RPC is missing';
