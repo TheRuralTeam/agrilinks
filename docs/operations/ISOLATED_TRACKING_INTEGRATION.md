@@ -7,7 +7,7 @@
 - Branch base: `main`
 - Commit exacto da base no momento da criação: `1047e14c009fa8b12af1e42edefc59be457fc7fe`
 - Data: 27-11-2026
-- Estado: **branch criada; documentação sincronizada; inventário inicial concluído; portabilidade de código ainda não iniciada**.
+- Estado: **branch isolada; aplicação Expo importada em `apps/mobile/`; integração dos contratos de backend e tracking em curso**.
 
 ## Objectivo
 
@@ -21,10 +21,11 @@ A comparação GitHub com `main` indicou 113 commits à frente e 19 atrás. A br
 
 ## Regra de isolamento
 
-A branch de integração foi criada directamente do SHA de `main` indicado acima. No momento da criação, não foram copiados commits, migrations ou ficheiros da branch de origem. Isto garante que o ponto de partida é o código actual de produção (branch principal), não a branch divergente.
+A branch de integração foi criada directamente do SHA de `main` indicado acima. No momento da criação, a branch começou no código de `main`. Posteriormente, por pedido explícito, foi importada a aplicação Expo do repositório independente `TheRuralTeam/mobileagri` para `apps/mobile/`; não foram importados commits da branch divergente de tracking.
 
 ## Escopo permitido para portar após revisão
 
+- Aplicação mobile AgriLink Expo Router completa, em `apps/mobile/`, mantendo dependências isoladas da aplicação web.
 - App Android do motorista e configuração Expo estritamente necessária ao tracking.
 - Serviço de localização foreground/background e consentimento.
 - Captura de localização apenas após evento de recolha/handover validado.
@@ -47,17 +48,18 @@ Cada ficheiro e dependência deve ser comparado com `main` antes de ser portado.
 ## Sequência de implementação
 
 1. [x] Criar branch isolada a partir do SHA exacto de `main`.
-2. [x] Registar a divergência da branch de origem e proibir merge integral.
-3. [ ] Inventariar ficheiros e dependências do tracking na branch de origem.
-4. [ ] Rever migrations/RPCs e políticas de acesso contra o schema actual de `main`.
-5. [ ] Portar o fluxo de handover e evento de início de transporte.
-6. [ ] Fazer o serviço Android iniciar/reconciliar após confirmação de recolha, sem depender de um botão tardio.
-7. [ ] Encerrar tracking ao concluir/cancelar; separar posição ao vivo do histórico.
-8. [ ] Definir limites, retenção, retry/backoff e recuperação da fila offline.
-9. [ ] Validar autorização de comprador, motorista e Admin; testar acessos negativos.
-10. [ ] Executar testes automatizados e build nativo Android.
-11. [ ] Testar em dispositivos reais e redes intermitentes.
-12. [ ] Abrir PR para `main`, com diff limitado e evidência de QA.
+2. [x] Importar a aplicação `TheRuralTeam/mobileagri` para `apps/mobile/`, sem copiar segredos nem artefactos gerados.
+3. [x] Registar a divergência da branch de origem e proibir merge integral.
+4. [x] Inventariar ficheiros e dependências do tracking na branch de origem e da aplicação mobile.
+5. [ ] Rever migrations/RPCs e políticas de acesso contra o schema actual de `main` e reconciliar o contrato mobile.
+6. [ ] Portar o fluxo de handover e evento de início de transporte.
+7. [ ] Fazer o serviço mobile iniciar/reconciliar após confirmação de recolha, sem depender de um botão tardio.
+8. [ ] Encerrar tracking ao concluir/cancelar; separar posição ao vivo do histórico.
+9. [ ] Definir limites, retenção, retry/backoff e recuperação da fila offline.
+10. [ ] Validar autorização de comprador, motorista e Admin; testar acessos negativos.
+11. [ ] Executar testes automatizados e build nativo Android.
+12. [ ] Testar em dispositivos reais e redes intermitentes.
+13. [ ] Abrir PR para `main`, com diff limitado e evidência de QA.
 
 ## Critérios para aceitar o PR
 
@@ -118,3 +120,20 @@ A integração tem de escolher um único caminho transaccional: o motorista conf
 Não copiar a migration de origem integralmente. Criar migrations pequenas e sequenciais para (a) handover e transição segura, (b) ingestão offline/idempotente e protecção temporal, e (c) permissões estritamente necessárias. Portar componentes de UI/Android depois de os contratos SQL estarem estabilizados. A migration de segurança de leitura geral de `freight_loads` fica fora do port inicial, salvo justificação independente e auditoria completa de dependências.
 
 **Estado:** revisão de compatibilidade iniciada; nenhuma migration foi aplicada remotamente; nenhuma funcionalidade foi ainda portada para esta branch.
+
+
+## Importação da aplicação mobile — 27-11-2026
+
+- Repositório de origem confirmado: [TheRuralTeam/mobileagri](https://github.com/TheRuralTeam/mobileagri), branch `main`.
+- Importados 137 ficheiros para `apps/mobile/` (135 ficheiros versionados da origem, mais `.env.example` e documentação de integração).
+- A aplicação web continua na raiz e mantém o seu package manager/dependências. A app Expo tem `package.json` e `package-lock.json` próprios; os comandos mobile devem ser executados dentro de `apps/mobile/`.
+- A importação inclui assets binários, rotas, componentes, configuração Expo/EAS e histórico de migrations mobile.
+- Foram excluídos o `.env` da origem, o export gerado `.expo-final-audit-web/`, o estado local `supabase/.temp/` e configurações pessoais.
+- O `.env` existe no repositório de origem público; sem ler nem replicar o conteúdo, fica registado o risco: rodar imediatamente qualquer credencial não pública que tenha sido incluída nesse ficheiro. A chave Supabase anon/publicável não é segredo, mas service-role keys, passwords e tokens privados nunca podem permanecer expostos.
+- A aplicação mobile de origem declara Expo SDK 57 / React Native 0.86.3 e usa Supabase. A configuração EAS ainda aponta para o projecto Expo da origem e não foi validada nesta integração.
+- **Bloqueio de tracking:** `apps/mobile/src/lib/freightLocationTask.ts` chama a RPC legada `update_freight_tracking_location` e a tabela `freight_tracking_locations`. O contrato web/track branch usa `freight_load_locations`, histórico e RPC batch. O serviço mobile ainda precisa ser adaptado; não se declara GPS unificado.
+- As migrations preservadas em `apps/mobile/supabase/migrations/` são apenas referência da origem. Não aplicar estas migrations por esse caminho; o schema canónico de produção continua a ser gerido em `supabase/migrations/` na raiz.
+- Não foi executado `npm ci`, Expo Doctor, TypeScript, build EAS, APK/AAB ou teste Android físico. Não houve deploy Vercel nem alteração no Supabase.
+
+**Commit da importação:** `aa7622c3d30f7fb5eeaec9b5f582d6669f025fb9`.
+**Documento mobile:** [apps/mobile/docs/INTEGRATION_STATUS.md](../../apps/mobile/docs/INTEGRATION_STATUS.md).
