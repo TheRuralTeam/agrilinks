@@ -107,6 +107,10 @@ export default function App() {
       if (error) setErrorMessage("Não foi possível recuperar a sessão segura.");
       setSession(data.session);
       setAuthReady(true);
+    }).catch(() => {
+      if (!mounted) return;
+      setErrorMessage("Não foi possível abrir a sessão local cifrada. Verifique o build nativo e o armazenamento seguro.");
+      setAuthReady(true);
     });
 
     const {
