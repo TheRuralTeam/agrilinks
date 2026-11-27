@@ -16,6 +16,14 @@ declare
   v_evidence jsonb;
   v_event_count integer;
 begin
+  insert into auth.users (
+    id, aud, role, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+  ) values
+    (v_driver, 'authenticated', 'authenticated', 'driver-evidence-test@example.invalid', now(), '{}'::jsonb, '{"full_name":"Driver Evidence Test"}'::jsonb, now(), now()),
+    (v_buyer, 'authenticated', 'authenticated', 'buyer-evidence-test@example.invalid', now(), '{}'::jsonb, '{"full_name":"Buyer Evidence Test"}'::jsonb, now(), now()),
+    (v_supplier, 'authenticated', 'authenticated', 'supplier-evidence-test@example.invalid', now(), '{}'::jsonb, '{"full_name":"Supplier Evidence Test"}'::jsonb, now(), now()),
+    (v_other, 'authenticated', 'authenticated', 'other-evidence-test@example.invalid', now(), '{}'::jsonb, '{"full_name":"Other Evidence Test"}'::jsonb, now(), now());
+
   insert into public.users (id, full_name, user_type, email_verified) values
     (v_driver, 'Driver Evidence Test', 'motorista', true),
     (v_buyer, 'Buyer Evidence Test', 'comprador', true),
