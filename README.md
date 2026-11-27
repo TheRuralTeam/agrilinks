@@ -176,3 +176,12 @@ A revisão estática da branch `feat/buyer-live-tracking-supplier-handover-recei
 **Estado após auditoria:** Em desenvolvimento — não integrar nem publicar até corrigir os bloqueios acima, reconciliar a divergência com `main`, rever migrations/RLS e concluir QA.
 
 **Evidência da revisão:** [HEAD da branch](https://github.com/TheRuralTeam/agrilinks/commit/278724cc3f1dd228597f216dba13d57a70463bc6) · [Comparação com main](https://github.com/TheRuralTeam/agrilinks/compare/main...feat/buyer-live-tracking-supplier-handover-receipt) · [Run Android CI](https://github.com/TheRuralTeam/agrilinks/actions/runs/45982697956) · [Run CI](https://github.com/TheRuralTeam/agrilinks/actions/runs/45982697663).
+
+
+## Estrutura do repositório
+
+- `/`: aplicação web AgriLink (Vite/React/TypeScript).
+- `apps/mobile/`: aplicação mobile AgriLink (Expo Router/React Native), importada do repositório `TheRuralTeam/mobileagri`.
+- `supabase/`: migrations e configuração canónicas do backend partilhado.
+
+A aplicação mobile mantém dependências e comandos próprios dentro de `apps/mobile/`; não instalar as dependências mobile na raiz nem misturar os lockfiles. A importação do código não significa que backend, tracking GPS, build Android ou publicação estejam validados. Consulte [o estado da integração mobile](apps/mobile/docs/INTEGRATION_STATUS.md) e [o plano de tracking isolado](docs/operations/ISOLATED_TRACKING_INTEGRATION.md).
