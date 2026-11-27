@@ -231,6 +231,7 @@ const ProximasCargas = () => {
   const [routeSetupGeocodedSuggestions, setRouteSetupGeocodedSuggestions] = useState<RouteLocationSuggestion[]>([]);
   const [routeSetupSearchingPlaces, setRouteSetupSearchingPlaces] = useState(false);
   const locationWatchId = useRef<number | null>(null);
+  const onlineFlushHandlerRef = useRef<(() => void) | null>(null);
   const lastLocationWriteAt = useRef(0);
   const locationRetryNoticeShown = useRef(false);
 
@@ -547,7 +548,7 @@ const ProximasCargas = () => {
     const activeIds = loads
       .filter((item) => item.driver_id === user?.id && item.status === 'in_transit')
       .map((item) => item.id);
-    void Promise.all(activeIds.map((id) => flushFreightLocationQueue(id, supabase)));
+    void Promise.all(activeIds.map((id) => flushFreightLocationQueue(id)));
   };
 
   const stopLocationSharing = () => {
@@ -555,7 +556,10 @@ const ProximasCargas = () => {
       navigator.geolocation.clearWatch(locationWatchId.current);
     }
     locationWatchId.current = null;
-    window.removeEventListener('online', flushQueuedFreightLocations);
+    if (onlineFlushHandlerRef.current) {
+      window.removeEventListener('online', onlineFlushHandlerRef.current);
+      onlineFlushHandlerRef.current = null;
+    }
     setSharingLocationFor(null);
   };
 
@@ -586,7 +590,7 @@ const ProximasCargas = () => {
         }
         if (navigator.onLine) {
           const results = await Promise.all(
-            trackingLoads.map((activeLoad) => flushFreightLocationQueue(activeLoad.id, supabase))
+            trackingLoads.map((activeLoad) => flushFreightLocationQueue(activeLoad.id))
           );
           const failed = results.find((result) => result.error);
           if (failed?.error) throw failed.error;
@@ -614,6 +618,7 @@ const ProximasCargas = () => {
       }
     };
 
+    onlineFlushHandlerRef.current = flushQueuedFreightLocations;
     window.addEventListener('online', flushQueuedFreightLocations);
     locationWatchId.current = navigator.geolocation.watchPosition(
       async (position) => {

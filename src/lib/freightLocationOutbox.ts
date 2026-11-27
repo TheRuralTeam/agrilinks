@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from '../integrations/supabase/client';
 
 type LocationPayload = {
   latitude: number;
@@ -166,7 +166,7 @@ export async function flushFreightLocationQueue(freightLoadId: string, client: S
       const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(item.iv) }, key, item.ciphertext);
       return JSON.parse(new TextDecoder().decode(plaintext)) as Record<string, unknown>;
     }));
-    const { data, error } = await client.rpc('record_freight_load_location_batch', {
+    const { data, error } = await supabase.rpc('record_freight_load_location_batch', {
       p_freight_load_id: freightLoadId,
       p_device_id: deviceId,
       p_samples: samples,
@@ -176,7 +176,7 @@ export async function flushFreightLocationQueue(freightLoadId: string, client: S
     await removeAcknowledged(batch.map((item) => item.id));
     synced = batch.length;
     if (batch.length === BATCH_SIZE) {
-      const next = await flushFreightLocationQueue(freightLoadId, client);
+      const next = await flushFreightLocationQueue(freightLoadId);
       return { synced: synced + next.synced, error: next.error };
     }
     return { synced, error: null };
