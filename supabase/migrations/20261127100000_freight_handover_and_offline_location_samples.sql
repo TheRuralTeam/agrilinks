@@ -292,15 +292,17 @@ begin
     raise exception 'Supplier handover receipt is not available for acknowledgement' using errcode = '42501';
   end if;
 
+  v_acknowledged_at := now();
+
   update public.freight_handover_evidence
-  set driver_acknowledged_at = now()
+  set driver_acknowledged_at = v_acknowledged_at
   where id = v_evidence_id;
 
   update public.freight_loads
   set status = 'in_transit',
-      driver_pickup_confirmed_at = coalesce(driver_pickup_confirmed_at, now()),
-      in_transit_at = coalesce(in_transit_at, now()),
-      updated_at = now()
+      driver_pickup_confirmed_at = coalesce(driver_pickup_confirmed_at, v_acknowledged_at),
+      in_transit_at = coalesce(in_transit_at, v_acknowledged_at),
+      updated_at = v_acknowledged_at
   where id = v_load.id and status = 'at_pickup';
 
   if not found then
@@ -309,6 +311,18 @@ begin
 
   insert into public.freight_load_events (freight_load_id, actor_id, event_type)
   values (v_load.id, v_actor, 'driver_departure');
+
+  insert into public.order_transaction_events (
+    pre_order_id, order_id, freight_load_id, event_type, from_status, to_status, actor_id, metadata
+  ) values (
+    v_load.pre_order_id, v_load.order_id, v_load.id, 'supplier_handover_confirmed',
+    'at_pickup', 'in_transit', v_actor,
+    jsonb_build_object(
+      'source', 'supplier_handover_evidence',
+      'evidence_id', v_evidence_id,
+      'acknowledged_at', v_acknowledged_at
+    )
+  );
 
   return v_evidence_id;
 end;
