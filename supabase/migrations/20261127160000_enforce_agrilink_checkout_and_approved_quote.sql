@@ -1,6 +1,8 @@
 -- Checkout is available only through a live AgriLink-configured payment provider.
 -- Manual recipient records are not a platform-account guarantee and are never used
 -- to make a buyer checkout appear payable.
+revoke all on function public.confirm_supplier_handover(uuid) from public, anon, authenticated;
+
 create or replace function public.get_marketplace_checkout_summary(p_pre_order_id uuid)
 returns table (
   pre_order_id uuid,
