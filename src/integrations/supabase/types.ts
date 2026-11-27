@@ -2873,6 +2873,8 @@ export type Database = {
           account_holder: string
           account_identifier: string
           active: boolean
+          archived_at: string | null
+          bank_name: string | null
           channel: string
           created_at: string
           currency: string
@@ -2880,7 +2882,9 @@ export type Database = {
           id: string
           instructions: string | null
           max_amount: number | null
+          sort_order: number
           updated_at: string
+          updated_by: string | null
           verified_at: string | null
           verified_by: string | null
         }
@@ -2888,6 +2892,8 @@ export type Database = {
           account_holder: string
           account_identifier: string
           active?: boolean
+          archived_at?: string | null
+          bank_name?: string | null
           channel: string
           created_at?: string
           currency?: string
@@ -2895,7 +2901,9 @@ export type Database = {
           id?: string
           instructions?: string | null
           max_amount?: number | null
+          sort_order?: number
           updated_at?: string
+          updated_by?: string | null
           verified_at?: string | null
           verified_by?: string | null
         }
@@ -2903,6 +2911,8 @@ export type Database = {
           account_holder?: string
           account_identifier?: string
           active?: boolean
+          archived_at?: string | null
+          bank_name?: string | null
           channel?: string
           created_at?: string
           currency?: string
@@ -2910,7 +2920,9 @@ export type Database = {
           id?: string
           instructions?: string | null
           max_amount?: number | null
+          sort_order?: number
           updated_at?: string
+          updated_by?: string | null
           verified_at?: string | null
           verified_by?: string | null
         }
@@ -4467,6 +4479,78 @@ export type Database = {
         Args: { p_freight_load_id: string; p_vehicle_id: string; p_driver_commitment_confirmed: boolean }
         Returns: string
       }
+      admin_archive_payment_recipient: {
+        Args: { p_recipient_id: string }
+        Returns: boolean
+      }
+      admin_create_payment_recipient: {
+        Args: {
+          p_account_holder: string
+          p_account_identifier: string
+          p_bank_name?: string | null
+          p_channel: string
+          p_display_name: string
+          p_instructions?: string | null
+          p_max_amount?: number | null
+          p_sort_order?: number
+        }
+        Returns: string
+      }
+      admin_list_payment_recipient_audit: {
+        Args: { p_limit?: number; p_recipient_id?: string | null }
+        Returns: {
+          action: string
+          actor_id: string
+          actor_name: string
+          details: Json
+          event_type: string
+          id: string
+          occurred_at: string
+        }[]
+      }
+      admin_list_payment_recipients: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          account_holder: string
+          account_identifier: string
+          active: boolean
+          archived_at: string | null
+          bank_name: string | null
+          channel: string
+          created_at: string
+          currency: string
+          display_name: string
+          id: string
+          instructions: string | null
+          max_amount: number | null
+          sort_order: number
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+        }[]
+      }
+      admin_set_payment_recipient_active: {
+        Args: { p_active: boolean; p_recipient_id: string }
+        Returns: boolean
+      }
+      admin_update_payment_recipient: {
+        Args: {
+          p_account_holder: string
+          p_account_identifier: string
+          p_bank_name?: string | null
+          p_channel: string
+          p_display_name: string
+          p_instructions?: string | null
+          p_max_amount?: number | null
+          p_recipient_id: string
+          p_sort_order?: number
+        }
+        Returns: boolean
+      }
+      admin_verify_payment_recipient: {
+        Args: { p_recipient_id: string }
+        Returns: boolean
+      }
       accept_p2p_match: { Args: { p_match_id: string }; Returns: string }
       admin_add_p2p_beneficiary_account: {
         Args: {
@@ -4749,8 +4833,12 @@ export type Database = {
         }
         Returns: {
           account_identifier: string
+          account_holder: string
           amount: number
+          bank_name: string | null
+          channel: string
           currency: string
+          instructions: string | null
           intent_id: string
           pre_order_id: string
           recipient_id: string
@@ -4997,11 +5085,12 @@ export type Database = {
         Returns: {
           account_holder: string
           account_identifier: string
+          bank_name: string | null
           channel: string
           currency: string
           display_name: string
           id: string
-          instructions: string
+          instructions: string | null
         }[]
       }
       get_marketplace_transaction_history: {
