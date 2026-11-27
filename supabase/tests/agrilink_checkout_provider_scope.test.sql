@@ -12,9 +12,8 @@ begin
   if position('driver_quote_status = ''approved''' in v_definition) = 0
      or position('driver_offered_price' in v_definition) = 0
      or position('payment_authorized_recipients' in v_definition) > 0
-     or position('agrilink_authorized_recipient' in v_definition) = 0
      or position('v_provider_ready := false' in v_definition) = 0 then
-    raise exception 'checkout readiness must require an approved driver quote and a live AgriLink provider only';
+    raise exception 'checkout must remain closed until an AgriLink gateway adapter is registered';
   end if;
 
 
