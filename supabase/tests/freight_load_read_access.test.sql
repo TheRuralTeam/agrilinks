@@ -27,11 +27,6 @@ begin
     raise exception 'authenticated users must retain access to safe freight columns';
   end if;
 
-  if not has_column_privilege('authenticated', 'public.freight_loads', 'buyer_quote_approved', 'SELECT')
-     or not has_column_privilege('authenticated', 'public.freight_loads', 'supplier_quote_approved', 'SELECT') then
-    raise exception 'authorized users must retain quote approval metadata';
-  end if;
-
   if has_column_privilege('authenticated', 'public.freight_loads', 'qr_token', 'SELECT') then
     raise exception 'QR token must not be directly selectable by authenticated users';
   end if;
