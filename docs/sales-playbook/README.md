@@ -11,6 +11,17 @@ Versão estática e independente do manual comercial desenvolvido na aplicação
 
 O workflow prepara apenas esta página estática e publica-a no GitHub Pages. Não depende de React, Vite, Supabase, Vercel, variáveis de ambiente ou serviços pagos.
 
+### Activação inicial obrigatória (uma única vez)
+
+Um administrador do repositório deve abrir:
+
+1. Repositório `TheRuralTeam/agrilinks` → **Settings**.
+2. Menu **Pages**.
+3. Em **Build and deployment**, seleccionar **Deploy from a branch: GitHub Actions** (ou a opção **GitHub Actions** como source).
+4. Guardar a configuração.
+
+Esta configuração inicial exige permissão administrativa no repositório. O workflow não tenta criar ou alterar as definições administrativas; depois da activação, a publicação é executada pelo GitHub Actions.
+
 ## Funcionalidades
 
 - Layout responsivo para telemóveis e computadores.
@@ -28,4 +39,4 @@ Não introduzir aqui dados pessoais, credenciais, informação de clientes, dado
 
 ## Actualização
 
-Editar o ficheiro index.html nesta pasta. A publicação é accionada automaticamente após a integração das alterações na branch main, ou manualmente pelo workflow Publish AgriLink Sales Playbook.
+Editar o ficheiro `index.html` nesta pasta. A publicação é accionada automaticamente após a integração das alterações na branch `main`, ou manualmente pelo workflow `Publish AgriLink Sales Playbook`.
