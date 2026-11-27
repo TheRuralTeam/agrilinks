@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowLeft, ShoppingBag, CreditCard, Clock3, CheckCircle2, AlertCircle, MapPin, RefreshCw } from 'lucide-react'
+import { ArrowLeft, ShoppingBag, CreditCard, Clock3, CheckCircle2, AlertCircle, MapPin, RefreshCw, FileText } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
@@ -11,6 +11,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../integrations/supabase/client'
 import { toast } from '../hooks/use-toast'
 import BuyerFreightTracking from '../components/BuyerFreightTracking'
+import FreightDeliveryEvidenceViewer from '../components/FreightDeliveryEvidenceViewer'
+import { downloadMarketplaceTransactionReceipt } from '../features/orders/transactionReceipts'
 import {
   getMarketplaceCheckoutSummary,
   getMarketplacePaymentRecipients,
@@ -43,6 +45,10 @@ type PurchaseFreightLoad = {
   origin_lng: number | null
   destination_lat: number | null
   destination_lng: number | null
+  driver_id: string | null
+  delivered_at: string | null
+  buyer_receipt_confirmed_at: string | null
+  created_at: string
 }
 type CheckoutState = {
   summary: MarketplaceCheckoutSummary | null
@@ -102,6 +108,7 @@ export default function MyPurchases() {
   const [proofReferences, setProofReferences] = useState<Record<string, string>>({})
   const [proofNotes, setProofNotes] = useState<Record<string, string>>({})
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [deliveryEvidenceViewId, setDeliveryEvidenceViewId] = useState<string | null>(null)
 
   const loadPurchases = useCallback(async (quiet = false) => {
     if (!user?.id) {
@@ -137,14 +144,18 @@ export default function MyPurchases() {
       if (purchaseIds.length > 0) {
         const { data: freightLoads, error: freightError } = await (supabase as any)
           .from('freight_loads')
-          .select('id,pre_order_id,status,origin_label,destination_label,origin_lat,origin_lng,destination_lat,destination_lng')
-          .eq('buyer_id', user.id)
+          .select('id,pre_order_id,status,origin_label,destination_label,origin_lat,origin_lng,destination_lat,destination_lng,driver_id,delivered_at,buyer_receipt_confirmed_at,created_at')
           .in('pre_order_id', purchaseIds)
+          .order('created_at', { ascending: false })
         if (freightError) {
           console.warn('[AgriLink] Não foi possível carregar o acompanhamento de frete.', freightError)
           setFreightLoadsByOrder({})
         } else {
-          setFreightLoadsByOrder(Object.fromEntries((freightLoads || []).map((load: PurchaseFreightLoad) => [load.pre_order_id, load])))
+          const latestByOrder: Record<string, PurchaseFreightLoad> = {}
+          for (const load of (freightLoads || []) as PurchaseFreightLoad[]) {
+            if (!latestByOrder[load.pre_order_id]) latestByOrder[load.pre_order_id] = load
+          }
+          setFreightLoadsByOrder(latestByOrder)
         }
       } else {
         setFreightLoadsByOrder({})
@@ -266,6 +277,45 @@ export default function MyPurchases() {
     }
   }
 
+  const confirmBuyerReceipt = async (load: PurchaseFreightLoad) => {
+    setBusyId(load.id)
+    try {
+      const { error } = await (supabase as any).rpc('confirm_freight_receipt', {
+        p_freight_load_id: load.id,
+      })
+      if (error) throw error
+      toast({
+        title: 'Recepção confirmada',
+        description: 'A AgriLink registou a confirmação. A liquidação será processada conforme as regras da operação.',
+      })
+      await loadPurchases(true)
+    } catch (error: any) {
+      toast({
+        title: 'Não foi possível confirmar a recepção',
+        description: error?.message || 'Verifique o comprovativo de entrega e tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const downloadReceipt = async (purchaseId: string) => {
+    setBusyId(purchaseId)
+    try {
+      await downloadMarketplaceTransactionReceipt(purchaseId)
+      toast({ title: 'Recibo preparado', description: 'O comprovativo da transacção foi gerado.' })
+    } catch (error: any) {
+      toast({
+        title: 'Não foi possível gerar o recibo',
+        description: error?.message || 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      })
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   if (loading) return <div className="mx-auto max-w-5xl p-6 text-sm text-muted-foreground">A carregar as tuas compras…</div>
 
   return (
@@ -315,6 +365,61 @@ export default function MyPurchases() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {freightLoadsByOrder[purchase.id] && <BuyerFreightTracking load={freightLoadsByOrder[purchase.id]} />}
+                  {freightLoadsByOrder[purchase.id] && (
+                    <section className="space-y-3 rounded-lg border p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold">Comprovativo e recepção da entrega</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {freightLoadsByOrder[purchase.id].status === 'delivered'
+                              ? freightLoadsByOrder[purchase.id].delivered_at
+                                ? 'Entrega registada em ' + new Date(freightLoadsByOrder[purchase.id].delivered_at as string).toLocaleString('pt-AO')
+                                : 'Entrega registada pelo motorista.'
+                              : 'O comprovativo ficará disponível quando o motorista concluir a entrega.'}
+                          </p>
+                        </div>
+                        <Badge variant={freightLoadsByOrder[purchase.id].buyer_receipt_confirmed_at ? 'default' : 'outline'}>
+                          {freightLoadsByOrder[purchase.id].buyer_receipt_confirmed_at ? 'Recepção confirmada' : 'A aguardar recepção'}
+                        </Badge>
+                      </div>
+                      {freightLoadsByOrder[purchase.id].status === 'delivered' && (
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDeliveryEvidenceViewId(freightLoadsByOrder[purchase.id].id)}
+                          >
+                            <FileText className="mr-2 h-4 w-4" /> Ver comprovativo de entrega
+                          </Button>
+                          {!freightLoadsByOrder[purchase.id].buyer_receipt_confirmed_at ? (
+                            <Button
+                              size="sm"
+                              disabled={busyId === freightLoadsByOrder[purchase.id].id}
+                              onClick={() => void confirmBuyerReceipt(freightLoadsByOrder[purchase.id])}
+                            >
+                              {busyId === freightLoadsByOrder[purchase.id].id ? 'A confirmar…' : 'Confirmar recepção'}
+                            </Button>
+                          ) : (
+                            <p className="self-center text-sm text-emerald-700">
+                              Recepção confirmada em {new Date(freightLoadsByOrder[purchase.id].buyer_receipt_confirmed_at).toLocaleString('pt-AO')}.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </section>
+                  )}
+                  {purchase.payment_status === 'paid' && (
+                    <div className="flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={busyId === purchase.id}
+                        onClick={() => void downloadReceipt(purchase.id)}
+                      >
+                        <FileText className="mr-2 h-4 w-4" /> Descarregar recibo da transacção
+                      </Button>
+                    </div>
+                  )}
                   <div className="grid gap-3 rounded-lg border p-3 sm:grid-cols-3">
                     <div><p className="text-xs text-muted-foreground">Quantidade</p><p className="font-semibold">{Number(purchase.quantity).toLocaleString('pt-AO')} unidades de venda</p></div>
                     <div><p className="text-xs text-muted-foreground">Total registado</p><p className="font-semibold">{money(Number(purchase.total_price || 0))}</p></div>
@@ -383,6 +488,12 @@ export default function MyPurchases() {
             )
           })}
         </div>
+      )}
+      {deliveryEvidenceViewId && (
+        <FreightDeliveryEvidenceViewer
+          freightLoadId={deliveryEvidenceViewId}
+          onClose={() => setDeliveryEvidenceViewId(null)}
+        />
       )}
     </main>
   )
