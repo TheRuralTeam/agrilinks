@@ -50,6 +50,16 @@ begin
     raise exception 'ORDER_PAYMENT_REQUIRES_PRE_ORDER' using errcode = '23514';
   end if;
 
+  if new.provider_id = 'agrilink_authorized_recipient'
+     or not exists (
+       select 1 from public.payment_providers pp
+       where pp.id = new.provider_id
+         and pp.enabled = true
+         and coalesce(pp.test_mode, false) = false
+     ) then
+    raise exception 'LIVE_AGRILINK_PAYMENT_PROVIDER_REQUIRED' using errcode = '23514';
+  end if;
+
   select po.* into v_order
   from public.pre_orders po
   where po.id = new.pre_order_id
@@ -83,7 +93,7 @@ begin
   end if;
 
   v_product_amount := round(v_order.total_price, 2);
-  v_freight_amount := round(coalesce(v_load.offered_price, v_load.driver_offered_price, 0), 2);
+  v_freight_amount := round(coalesce(v_load.driver_offered_price, v_load.offered_price, 0), 2);
   v_platform_fee := round(v_freight_amount * 0.08, 2);
   v_driver_amount := round(v_freight_amount - v_platform_fee, 2);
   v_expected_total := round(v_product_amount + v_freight_amount, 2);
@@ -269,7 +279,7 @@ declare
   v_commission numeric(15,2);
 begin
   select l.id, l.driver_id, l.currency,
-         coalesce(l.offered_price, l.driver_offered_price, 0) as freight_amount
+         coalesce(l.driver_offered_price, l.offered_price, 0) as freight_amount
   into v_load
   from public.freight_loads l
   where l.id = p_freight_load_id
@@ -277,7 +287,8 @@ begin
     and l.supplier_handover_confirmed_at is not null
     and l.driver_pickup_confirmed_at is not null
     and l.driver_delivery_confirmed_at is not null
-    and l.buyer_receipt_confirmed_at is not null;
+    and l.buyer_receipt_confirmed_at is not null
+    and l.driver_quote_status = 'approved';
 
   if not found or v_load.driver_id is null or v_load.freight_amount <= 0 then
     return;
