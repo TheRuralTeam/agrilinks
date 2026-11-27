@@ -88,3 +88,33 @@ A criação da branch foi confirmada pela API GitHub. A branch contém inicialme
 - Nenhuma migration foi aplicada em Supabase nesta etapa. Nenhum APK/AAB foi construído ou testado num dispositivo físico. Nenhuma alteração foi publicada em Production.
 
 **Próximo passo técnico:** comparar as migrations e as dependências de schema/RLS com `main`, identificar os pontos de integração do evento de recolha já existentes e só então portar ficheiros pequenos e isolados.
+
+## Revisão de compatibilidade com o schema actual de main — 27-11-2026
+
+### Fluxo já existente em main
+
+- `freight_load_locations` e as políticas base já existem; a leitura actual contempla criador/motorista e, numa migration posterior, fornecedor/comprador/Admin.
+- A RPC `advance_freight_load_status` já executa as transições `accepted → at_pickup → in_transit → delivered`, valida motorista atribuído, pagamento e aprovação do preço de transporte.
+- A migration de tracking de Outubro já contém `record_freight_load_location`; a versão actual actualiza a posição mais recente sem comparar timestamp de captura.
+- O Admin já consulta eventos e localizações; a área do comprador já possui um componente de tracking no branch de origem, mas ainda precisa de ciclo de vida limitado a `in_transit`.
+
+### Incompatibilidade bloqueante identificada
+
+A migration de origem instala um trigger que impede qualquer transição para `in_transit` sem prova de entrega do fornecedor e confirmação do motorista. A RPC existente `advance_freight_load_status` tenta fazer precisamente essa transição sem passar pelo novo recibo. Logo, aplicar apenas a migration, sem migrar os chamadores e o fluxo de UI, pode bloquear a passagem legítima de cargas para transporte.
+
+A integração tem de escolher um único caminho transaccional: o motorista confirma o recibo de entrega do fornecedor e essa RPC valida a prova, muda o estado para `in_transit` e regista o evento. A RPC antiga deve ser ajustada ou explicitamente impedida de fazer essa transição, sem deixar um caminho alternativo que contorne a prova.
+
+### Outros pontos que exigem correcção
+
+1. A migration de origem substitui a constraint de `freight_load_events.event_type`; antes de portar, enumerar todos os tipos efectivamente usados em `main` e preservar os existentes, para não quebrar operações Admin/entrega.
+2. A RPC batch aceita amostras de cargas `in_transit` e `delivered` para permitir sincronização offline tardia. Isso é aceitável apenas para histórico com timestamp original; a posição ao vivo não pode ser reactivada nem retroceder após entrega.
+3. A RPC legada `record_freight_load_location` ainda faz upsert sem condição temporal. A integração deve impor comparação de `captured_at` e evitar que chamadas legadas substituam uma posição mais recente.
+4. A política de leitura actual de localizações deve ser mantida e testada com comprador real (incluindo `buyer_id`/pré-compra), fornecedor, motorista atribuído e Admin; não substituir por política mais restritiva sem avaliar fluxos existentes.
+5. A migration de origem que revoga SELECT geral em `freight_loads` e concede SELECT por coluna é uma alteração transversal. Não portar automaticamente: inventariar todos os selects existentes, confirmar colunas necessárias e separar hardening de segurança do escopo GPS quando não for indispensável.
+6. A fila SQLite cifra dados se SQLCipher estiver realmente presente no binário; a verificação em runtime é positiva, mas ainda falta provar num APK/AAB gerado. Também faltam limites de capacidade, retenção e backoff.
+
+### Decisão de portabilidade
+
+Não copiar a migration de origem integralmente. Criar migrations pequenas e sequenciais para (a) handover e transição segura, (b) ingestão offline/idempotente e protecção temporal, e (c) permissões estritamente necessárias. Portar componentes de UI/Android depois de os contratos SQL estarem estabilizados. A migration de segurança de leitura geral de `freight_loads` fica fora do port inicial, salvo justificação independente e auditoria completa de dependências.
+
+**Estado:** revisão de compatibilidade iniciada; nenhuma migration foi aplicada remotamente; nenhuma funcionalidade foi ainda portada para esta branch.
