@@ -51,6 +51,7 @@ const FreightLoadScan = lazy(() => import("./pages/FreightLoadScan"));
 const P2PBeneficiary = lazy(() => import("./pages/P2PBeneficiary"));
 const MyPurchases = lazy(() => import("./pages/MyPurchases"));
 const SupplierOrders = lazy(() => import("./pages/SupplierOrders"));
+const AgriLinkTeamSalesPlaybook = lazy(() => import("./pages/AgriLinkTeamSalesPlaybook"));
 
 const queryClient = new QueryClient();
 
@@ -191,6 +192,7 @@ const AppRoutes = () => {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/change-password" element={<ChangePassword />} />
         <Route path="/admin-password-resets" element={<PermissionRoute permissions={["manage_users"]} allowRootAdmins><AdminPasswordResets /></PermissionRoute>} />
+        <Route path="/agrilinkteamtecnicasdevendas" element={<PermissionRoute permissions={["manage_users"]} allowRootAdmins><AgriLinkTeamSalesPlaybook /></PermissionRoute>} />
         <Route path="/termos-publicidade" element={<TermsOfService />} />
         <Route path="/privacidade" element={<PrivacyPolicy />} />
         <Route path="/politica-privacidade" element={<PrivacyPolicy />} />
