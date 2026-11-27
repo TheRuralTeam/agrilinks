@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import { FreightRouteMap, FreightPointSelection } from '../components/FreightRouteMap';
+import FreightDeliveryEvidenceForm from '../components/FreightDeliveryEvidenceForm';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../contexts/AuthContext';
 import { useCanAct } from '../hooks/useCanAct';
@@ -221,6 +222,7 @@ const ProximasCargas = () => {
   } | null>(null);
   const [driverLocations, setDriverLocations] = useState<Record<string, FreightLoadLocation>>({});
   const [sharingLocationFor, setSharingLocationFor] = useState<string | null>(null);
+  const [deliveryEvidenceLoad, setDeliveryEvidenceLoad] = useState<FreightLoad | null>(null);
   const [routeSetupLoadId, setRouteSetupLoadId] = useState<string | null>(null);
   const [routeSetupOrigin, setRouteSetupOrigin] = useState<FreightCoordinate | null>(null);
   const [routeSetupDestination, setRouteSetupDestination] = useState<FreightCoordinate | null>(null);
@@ -1050,6 +1052,10 @@ const ProximasCargas = () => {
       return;
     }
     const nextStatus = load.status === 'accepted' ? 'at_pickup' : load.status === 'at_pickup' ? 'in_transit' : 'delivered';
+    if (nextStatus === 'delivered') {
+      setDeliveryEvidenceLoad(load);
+      return;
+    }
     if (load.status === 'at_pickup' && !load.supplier_handover_confirmed_at) {
       toast.error('Aguarde o fornecedor emitir a nota de entrega antes de confirmar a recepção.');
       return;
@@ -1063,7 +1069,6 @@ const ProximasCargas = () => {
       toast.error(result.error.message || 'Não foi possível actualizar.');
       return;
     }
-    if (nextStatus === 'delivered' && sharingLocationFor === load.id) stopLocationSharing();
     if (nextStatus === 'in_transit') startLocationSharing({ ...load, status: 'in_transit' });
     await fetchLoads();
   };
@@ -2077,6 +2082,20 @@ const ProximasCargas = () => {
             </div>
           </section>
         </div>
+      )}
+      {deliveryEvidenceLoad && user?.id && (
+        <FreightDeliveryEvidenceForm
+          freightLoadId={deliveryEvidenceLoad.id}
+          driverId={user.id}
+          onCancel={() => setDeliveryEvidenceLoad(null)}
+          onSubmitted={() => {
+            const completedLoadId = deliveryEvidenceLoad.id;
+            setDeliveryEvidenceLoad(null);
+            if (sharingLocationFor === completedLoadId) stopLocationSharing();
+            toast.success('Comprovativo registado. A entrega foi confirmada.');
+            void fetchLoads();
+          }}
+        />
       )}
     </div>
   );
