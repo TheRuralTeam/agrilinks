@@ -62,6 +62,8 @@ grant select (
   driver_offered_price,
   driver_price_method,
   driver_quote_status,
+  buyer_quote_approved,
+  supplier_quote_approved,
   route_distance_km,
   route_duration_minutes,
   supplier_id,
