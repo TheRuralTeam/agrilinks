@@ -1,1 +1,0 @@
-REVOKE ALL ON FUNCTION public.set_freight_load_route_coordinates(uuid, double precision, double precision, double precision, double precision) FROM PUBLIC, anon, authenticated;
